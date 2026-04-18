@@ -9,29 +9,35 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AppRouteImport } from './routes/app'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppIndexRouteImport } from './routes/app.index'
-import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
-import { Route as AppSettingsRouteImport } from './routes/app.settings'
-import { Route as AppCustomersRouteImport } from './routes/app.customers'
-import { Route as AppEstimatesIndexRouteImport } from './routes/app.estimates.index'
-import { Route as AppEstimatesNewRouteImport } from './routes/app.estimates.new'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
+import { Route as AppClientsRouteImport } from './routes/_app.clients'
+import { Route as AppCatalogRouteImport } from './routes/_app.catalog'
+import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
+import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
 
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
-  id: '/app',
-  path: '/app',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -39,216 +45,232 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => AuthRoute,
-} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
-const AppCustomersRoute = AppCustomersRouteImport.update({
-  id: '/customers',
-  path: '/customers',
+const AppPriceBooksRoute = AppPriceBooksRouteImport.update({
+  id: '/price-books',
+  path: '/price-books',
   getParentRoute: () => AppRoute,
 } as any)
-const AppEstimatesIndexRoute = AppEstimatesIndexRouteImport.update({
-  id: '/estimates/',
-  path: '/estimates/',
+const AppClientsRoute = AppClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
   getParentRoute: () => AppRoute,
 } as any)
-const AppEstimatesNewRoute = AppEstimatesNewRouteImport.update({
-  id: '/estimates/new',
-  path: '/estimates/new',
+const AppCatalogRoute = AppCatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppJobsIndexRoute = AppJobsIndexRouteImport.update({
+  id: '/jobs/',
+  path: '/jobs/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppJobsIdRoute = AppJobsIdRouteImport.update({
+  id: '/jobs/$id',
+  path: '/jobs/$id',
   getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/app': typeof AppRouteWithChildren
-  '/auth': typeof AuthRouteWithChildren
-  '/app/customers': typeof AppCustomersRoute
-  '/app/settings': typeof AppSettingsRoute
-  '/auth/reset-password': typeof AuthResetPasswordRoute
-  '/app/': typeof AppIndexRoute
-  '/app/estimates/new': typeof AppEstimatesNewRoute
-  '/app/estimates/': typeof AppEstimatesIndexRoute
+  '/': typeof AppIndexRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/signup': typeof SignupRoute
+  '/catalog': typeof AppCatalogRoute
+  '/clients': typeof AppClientsRoute
+  '/price-books': typeof AppPriceBooksRoute
+  '/settings': typeof AppSettingsRoute
+  '/jobs/$id': typeof AppJobsIdRoute
+  '/jobs/': typeof AppJobsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/auth': typeof AuthRouteWithChildren
-  '/app/customers': typeof AppCustomersRoute
-  '/app/settings': typeof AppSettingsRoute
-  '/auth/reset-password': typeof AuthResetPasswordRoute
-  '/app': typeof AppIndexRoute
-  '/app/estimates/new': typeof AppEstimatesNewRoute
-  '/app/estimates': typeof AppEstimatesIndexRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/signup': typeof SignupRoute
+  '/catalog': typeof AppCatalogRoute
+  '/clients': typeof AppClientsRoute
+  '/price-books': typeof AppPriceBooksRoute
+  '/settings': typeof AppSettingsRoute
+  '/': typeof AppIndexRoute
+  '/jobs/$id': typeof AppJobsIdRoute
+  '/jobs': typeof AppJobsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/app': typeof AppRouteWithChildren
-  '/auth': typeof AuthRouteWithChildren
-  '/app/customers': typeof AppCustomersRoute
-  '/app/settings': typeof AppSettingsRoute
-  '/auth/reset-password': typeof AuthResetPasswordRoute
-  '/app/': typeof AppIndexRoute
-  '/app/estimates/new': typeof AppEstimatesNewRoute
-  '/app/estimates/': typeof AppEstimatesIndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/signup': typeof SignupRoute
+  '/_app/catalog': typeof AppCatalogRoute
+  '/_app/clients': typeof AppClientsRoute
+  '/_app/price-books': typeof AppPriceBooksRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/jobs/$id': typeof AppJobsIdRoute
+  '/_app/jobs/': typeof AppJobsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/app'
-    | '/auth'
-    | '/app/customers'
-    | '/app/settings'
-    | '/auth/reset-password'
-    | '/app/'
-    | '/app/estimates/new'
-    | '/app/estimates/'
+    | '/login'
+    | '/onboarding'
+    | '/signup'
+    | '/catalog'
+    | '/clients'
+    | '/price-books'
+    | '/settings'
+    | '/jobs/$id'
+    | '/jobs/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/login'
+    | '/onboarding'
+    | '/signup'
+    | '/catalog'
+    | '/clients'
+    | '/price-books'
+    | '/settings'
     | '/'
-    | '/auth'
-    | '/app/customers'
-    | '/app/settings'
-    | '/auth/reset-password'
-    | '/app'
-    | '/app/estimates/new'
-    | '/app/estimates'
+    | '/jobs/$id'
+    | '/jobs'
   id:
     | '__root__'
-    | '/'
-    | '/app'
-    | '/auth'
-    | '/app/customers'
-    | '/app/settings'
-    | '/auth/reset-password'
-    | '/app/'
-    | '/app/estimates/new'
-    | '/app/estimates/'
+    | '/_app'
+    | '/login'
+    | '/onboarding'
+    | '/signup'
+    | '/_app/catalog'
+    | '/_app/clients'
+    | '/_app/price-books'
+    | '/_app/settings'
+    | '/_app/'
+    | '/_app/jobs/$id'
+    | '/_app/jobs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
-  AuthRoute: typeof AuthRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  OnboardingRoute: typeof OnboardingRoute
+  SignupRoute: typeof SignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app': {
-      id: '/app'
-      path: '/app'
-      fullPath: '/app'
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/': {
-      id: '/app/'
-      path: '/'
-      fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/auth/reset-password': {
-      id: '/auth/reset-password'
-      path: '/reset-password'
-      fullPath: '/auth/reset-password'
-      preLoaderRoute: typeof AuthResetPasswordRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/app/settings': {
-      id: '/app/settings'
+    '/_app/settings': {
+      id: '/_app/settings'
       path: '/settings'
-      fullPath: '/app/settings'
+      fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/customers': {
-      id: '/app/customers'
-      path: '/customers'
-      fullPath: '/app/customers'
-      preLoaderRoute: typeof AppCustomersRouteImport
+    '/_app/price-books': {
+      id: '/_app/price-books'
+      path: '/price-books'
+      fullPath: '/price-books'
+      preLoaderRoute: typeof AppPriceBooksRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/estimates/': {
-      id: '/app/estimates/'
-      path: '/estimates'
-      fullPath: '/app/estimates/'
-      preLoaderRoute: typeof AppEstimatesIndexRouteImport
+    '/_app/clients': {
+      id: '/_app/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof AppClientsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/estimates/new': {
-      id: '/app/estimates/new'
-      path: '/estimates/new'
-      fullPath: '/app/estimates/new'
-      preLoaderRoute: typeof AppEstimatesNewRouteImport
+    '/_app/catalog': {
+      id: '/_app/catalog'
+      path: '/catalog'
+      fullPath: '/catalog'
+      preLoaderRoute: typeof AppCatalogRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/jobs/': {
+      id: '/_app/jobs/'
+      path: '/jobs'
+      fullPath: '/jobs/'
+      preLoaderRoute: typeof AppJobsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/jobs/$id': {
+      id: '/_app/jobs/$id'
+      path: '/jobs/$id'
+      fullPath: '/jobs/$id'
+      preLoaderRoute: typeof AppJobsIdRouteImport
       parentRoute: typeof AppRoute
     }
   }
 }
 
 interface AppRouteChildren {
-  AppCustomersRoute: typeof AppCustomersRoute
+  AppCatalogRoute: typeof AppCatalogRoute
+  AppClientsRoute: typeof AppClientsRoute
+  AppPriceBooksRoute: typeof AppPriceBooksRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
-  AppEstimatesNewRoute: typeof AppEstimatesNewRoute
-  AppEstimatesIndexRoute: typeof AppEstimatesIndexRoute
+  AppJobsIdRoute: typeof AppJobsIdRoute
+  AppJobsIndexRoute: typeof AppJobsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppCustomersRoute: AppCustomersRoute,
+  AppCatalogRoute: AppCatalogRoute,
+  AppClientsRoute: AppClientsRoute,
+  AppPriceBooksRoute: AppPriceBooksRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
-  AppEstimatesNewRoute: AppEstimatesNewRoute,
-  AppEstimatesIndexRoute: AppEstimatesIndexRoute,
+  AppJobsIdRoute: AppJobsIdRoute,
+  AppJobsIndexRoute: AppJobsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
-interface AuthRouteChildren {
-  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
-}
-
-const AuthRouteChildren: AuthRouteChildren = {
-  AuthResetPasswordRoute: AuthResetPasswordRoute,
-}
-
-const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
-  AuthRoute: AuthRouteWithChildren,
+  LoginRoute: LoginRoute,
+  OnboardingRoute: OnboardingRoute,
+  SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
