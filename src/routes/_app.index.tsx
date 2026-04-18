@@ -1,17 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { Download, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { StatCard } from "@/components/brand/StatCard";
 import { TradeMixBar } from "@/components/brand/TradeMixBar";
 import { TradeBadge } from "@/components/brand/TradeBadge";
 import { StatusBadge } from "@/components/brand/StatusBadge";
-import { Briefcase, DollarSign, FileText, Users } from "lucide-react";
 import type { Trade } from "@/lib/trades";
 
 export const Route = createFileRoute("/_app/")({
   component: Dashboard,
 });
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
 
 function Dashboard() {
   const { user } = useAuth();
@@ -34,22 +53,23 @@ function Dashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("jobs")
-        .select("id, name, job_number, status, primary_trade, total_estimate, property_address, created_at")
-        .order("created_at", { ascending: false })
+        .select(
+          "id, name, job_number, status, primary_trade, total_estimate, property_address, updated_at, client_id",
+        )
+        .order("updated_at", { ascending: false })
         .limit(50);
       return data ?? [];
     },
   });
 
-  const { data: clientCount = 0 } = useQuery({
-    queryKey: ["clients-count"],
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients-list"],
     queryFn: async () => {
-      const { count } = await supabase
-        .from("clients")
-        .select("*", { count: "exact", head: true });
-      return count ?? 0;
+      const { data } = await supabase.from("clients").select("id, name");
+      return data ?? [];
     },
   });
+  const clientMap = new Map(clients.map((c) => [c.id, c.name]));
 
   const { data: estimatesCount = 0 } = useQuery({
     queryKey: ["estimates-count"],
@@ -61,104 +81,189 @@ function Dashboard() {
     },
   });
 
-  // Build trade-mix data from jobs.primary_trade
+  // Trade mix
   const tradeMix: Record<Trade, number> = {
     roofing: 0, exterior: 0, windows: 0, interior: 0,
     hvac: 0, plumbing: 0, electrical: 0, mitigation: 0,
   };
-  for (const j of jobs) {
-    if (j.primary_trade) tradeMix[j.primary_trade as Trade] = (tradeMix[j.primary_trade as Trade] ?? 0) + 1;
+  const activeJobs = jobs.filter((j) => j.status !== "complete");
+  for (const j of activeJobs) {
+    if (j.primary_trade) tradeMix[j.primary_trade as Trade] += 1;
   }
-  const totalPipeline = jobs.reduce((sum, j) => sum + Number(j.total_estimate ?? 0), 0);
+  const activeTradeCount = Object.values(tradeMix).filter((n) => n > 0).length;
+  const totalQuoted = jobs.reduce(
+    (sum, j) => sum + Number(j.total_estimate ?? 0),
+    0,
+  );
+  const avgJob = jobs.length ? totalQuoted / jobs.length : 0;
+
+  function fmtMoney(n: number, compact = false) {
+    if (compact && n >= 1000) {
+      return `$${(n / 1000).toFixed(n >= 100_000 ? 0 : 1)}K`;
+    }
+    return `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  }
 
   const firstName = profile?.first_name ?? "there";
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">
-          Hello, {firstName}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Here's what's happening across your jobs today.
-        </p>
+    <div className="space-y-7">
+      {/* Greeting + actions */}
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <h1
+            className="font-extrabold leading-[1.1] text-foreground"
+            style={{ fontSize: 28, letterSpacing: "-0.8px" }}
+          >
+            {greeting()}, {firstName}
+          </h1>
+          <p
+            className="mt-1.5 text-[14px]"
+            style={{ color: "var(--text-muted)" }}
+          >
+            {activeJobs.length} active jobs across {activeTradeCount}{" "}
+            {activeTradeCount === 1 ? "trade" : "trades"}.{" "}
+            {estimatesCount} estimate{estimatesCount === 1 ? "" : "s"} on file.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => toast.info("Xactimate import — coming soon")}
+            className="btn-ghost flex h-9 items-center gap-2 rounded-lg px-3.5 text-[13px] font-semibold"
+          >
+            <Download className="h-3.5 w-3.5" strokeWidth={2.4} />
+            Import
+          </button>
+          <button
+            onClick={() => toast.info("New Job wizard — coming soon")}
+            className="btn-brand flex h-9 items-center gap-2 rounded-lg px-3.5 text-[13px] font-semibold"
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
+            New Job
+          </button>
+        </div>
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Active Jobs" value={jobs.length} icon={<Briefcase className="h-4 w-4" />} />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
-          label="Pipeline"
-          value={`$${totalPipeline.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
-          icon={<DollarSign className="h-4 w-4" />}
+          label="Active Jobs"
+          value={activeJobs.length}
+          delta={activeJobs.length > 0 ? "this week" : "—"}
+          deltaDirection="up"
         />
-        <StatCard label="Estimates" value={estimatesCount} icon={<FileText className="h-4 w-4" />} />
-        <StatCard label="Clients" value={clientCount} icon={<Users className="h-4 w-4" />} />
+        <StatCard
+          label="Total Estimates"
+          value={estimatesCount}
+          delta={estimatesCount > 0 ? "on file" : "—"}
+          deltaDirection="neutral"
+        />
+        <StatCard
+          label="Total Quoted"
+          value={fmtMoney(totalQuoted, true)}
+          delta="pipeline"
+          deltaDirection="up"
+        />
+        <StatCard
+          label="Avg. Job Value"
+          value={fmtMoney(avgJob, true)}
+          delta={jobs.length ? `${jobs.length} jobs` : "—"}
+          deltaDirection="neutral"
+        />
       </div>
 
       {/* Trade mix */}
-      <div
-        className="rounded-xl border p-6"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Trade Mix
+      <div className="card-surface p-5">
+        <div className="mb-4 flex items-center justify-between border-b pb-3.5"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <h2 className="text-[14px] font-bold tracking-tight text-foreground">
+            Trade Mix · Active Jobs
           </h2>
-          <span className="font-mono-num text-xs text-muted-foreground">
-            {jobs.length} jobs
+          <span
+            className="font-mono-num text-xs"
+            style={{ color: "var(--text-muted)" }}
+          >
+            {activeJobs.length} jobs total
           </span>
         </div>
         <TradeMixBar data={tradeMix} />
       </div>
 
       {/* Recent jobs */}
-      <div
-        className="rounded-xl border"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
-      >
-        <div className="border-b px-6 py-4" style={{ borderColor: "var(--border)" }}>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="card-surface overflow-hidden">
+        <div
+          className="flex items-center justify-between border-b px-5 py-4"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <h2 className="text-[14px] font-bold tracking-tight text-foreground">
             Recent Jobs
           </h2>
         </div>
         {jobs.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
               No jobs yet. Create your first job to get started.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-                  <th className="px-6 py-3 font-semibold">Job #</th>
-                  <th className="px-6 py-3 font-semibold">Name</th>
-                  <th className="px-6 py-3 font-semibold">Trade</th>
-                  <th className="px-6 py-3 font-semibold">Status</th>
-                  <th className="px-6 py-3 text-right font-semibold">Total</th>
+                <tr className="text-left">
+                  {["Job #", "Client", "Property", "Trade", "Status", "Total", "Updated"].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        className="px-3 py-2.5 text-[11px] font-semibold uppercase"
+                        style={{
+                          color: "var(--text-muted)",
+                          letterSpacing: "1.2px",
+                          borderBottom: "1px solid var(--border)",
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {jobs.slice(0, 8).map((j) => (
                   <tr
                     key={j.id}
-                    className="cursor-pointer border-t transition-colors hover:bg-[var(--surface-hover)]"
-                    style={{ borderColor: "var(--border)" }}
+                    className="cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+                    style={{ borderBottom: "1px solid var(--border)" }}
                   >
-                    <td className="px-6 py-3 font-mono-num text-muted-foreground">
+                    <td
+                      className="px-3 py-3.5 font-mono-num text-[12px]"
+                      style={{ color: "var(--text-dim)" }}
+                    >
                       {j.job_number ?? "—"}
                     </td>
-                    <td className="px-6 py-3 font-medium text-foreground">{j.name}</td>
-                    <td className="px-6 py-3">
+                    <td className="px-3 py-3.5 text-[13px] font-medium text-foreground">
+                      {j.client_id ? clientMap.get(j.client_id) ?? "—" : "—"}
+                    </td>
+                    <td
+                      className="px-3 py-3.5 text-[13px]"
+                      style={{ color: "var(--text-dim)" }}
+                    >
+                      {j.property_address ?? j.name}
+                    </td>
+                    <td className="px-3 py-3.5">
                       {j.primary_trade ? <TradeBadge trade={j.primary_trade} /> : "—"}
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-3 py-3.5">
                       <StatusBadge status={j.status} />
                     </td>
-                    <td className="px-6 py-3 text-right font-mono-num font-semibold text-foreground">
-                      ${Number(j.total_estimate).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    <td className="px-3 py-3.5 text-right font-mono-num text-[13px] font-semibold text-foreground">
+                      {fmtMoney(Number(j.total_estimate))}
+                    </td>
+                    <td
+                      className="px-3 py-3.5 text-[12px]"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      {timeAgo(j.updated_at)}
                     </td>
                   </tr>
                 ))}

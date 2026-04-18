@@ -14,14 +14,16 @@ export function TradeBadge({ trade, className, size = "sm" }: TradeBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md border font-medium",
-        size === "sm" ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-xs",
+        "inline-flex items-center gap-1.5 rounded font-semibold uppercase",
         className,
       )}
       style={{
-        backgroundColor: `${color}1f`, // ~12% alpha
-        borderColor: `${color}40`,
+        backgroundColor: `${color}26`,
+        border: `1px solid ${color}4d`,
         color: color,
+        padding: size === "md" ? "4px 10px" : "3px 8px",
+        fontSize: 11,
+        letterSpacing: ".3px",
       }}
     >
       <span
