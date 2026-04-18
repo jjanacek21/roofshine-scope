@@ -31,14 +31,14 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "RoofScope Pro — Estimating Software for Roofing Contractors" },
+      { title: "GCN Estimator — Estimating Software for Roofing Contractors" },
       {
         name: "description",
         content:
-          "Build accurate roofing estimates in minutes. RoofScope Pro is the modern estimating platform for professional contractors.",
+          "Build accurate roofing estimates in minutes. GCN Estimator is the modern estimating platform for professional contractors.",
       },
-      { name: "author", content: "RoofScope Pro" },
-      { property: "og:title", content: "RoofScope Pro — Estimating Software for Roofing Contractors" },
+      { name: "author", content: "GCN Estimator" },
+      { property: "og:title", content: "GCN Estimator — Estimating Software for Roofing Contractors" },
       {
         property: "og:description",
         content: "Build accurate roofing estimates in minutes.",

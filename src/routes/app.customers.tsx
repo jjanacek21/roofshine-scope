@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Users } from "lucide-react";
 
 export const Route = createFileRoute("/app/customers")({
-  head: () => ({ meta: [{ title: "Customers · RoofScope Pro" }] }),
+  head: () => ({ meta: [{ title: "Customers · GCN Estimator" }] }),
   component: () => (
     <div className="mx-auto max-w-7xl px-6 py-10">
       <h1 className="text-3xl font-bold tracking-tight">Customers</h1>

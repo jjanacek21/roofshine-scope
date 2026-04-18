@@ -13,8 +13,8 @@ import { Loader2, ArrowLeft, MailCheck } from "lucide-react";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in · RoofScope Pro" },
-      { name: "description", content: "Sign in or create your RoofScope Pro account." },
+      { title: "Sign in · GCN Estimator" },
+      { name: "description", content: "Sign in or create your GCN Estimator account." },
     ],
   }),
   component: AuthPage,
@@ -48,9 +48,9 @@ function AuthPage() {
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[image:var(--gradient-hero)] shadow-[var(--shadow-glow)]">
-              <span className="text-lg font-bold text-primary-foreground">R</span>
+              <span className="text-lg font-bold text-primary-foreground">G</span>
             </div>
-            <h1 className="mt-5 text-2xl font-bold tracking-tight">Welcome to RoofScope Pro</h1>
+            <h1 className="mt-5 text-2xl font-bold tracking-tight">Welcome to GCN Estimator</h1>
             <p className="mt-1 text-sm text-muted-foreground">Sign in or create an account to get started</p>
           </div>
 

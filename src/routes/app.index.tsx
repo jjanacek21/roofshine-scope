@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, DollarSign, CheckCircle2, Clock, Plus, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/app/")({
-  head: () => ({ meta: [{ title: "Dashboard · RoofScope Pro" }] }),
+  head: () => ({ meta: [{ title: "Dashboard · GCN Estimator" }] }),
   component: Dashboard,
 });
 

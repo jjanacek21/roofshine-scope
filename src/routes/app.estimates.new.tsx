@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/estimates/new")({
-  head: () => ({ meta: [{ title: "New estimate · RoofScope Pro" }] }),
+  head: () => ({ meta: [{ title: "New estimate · GCN Estimator" }] }),
   component: NewEstimate,
 });
 
