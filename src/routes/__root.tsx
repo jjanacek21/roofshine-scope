@@ -1,4 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -11,12 +13,12 @@ function NotFoundComponent() {
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          The page you're looking for doesn't exist.
         </p>
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="btn-brand inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold"
           >
             Go home
           </Link>
@@ -31,27 +33,19 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "GCN Estimator — All-Trade Estimating Software for Contractors" },
+      { title: "BuildScopeAI — Multi-Trade Estimating for Contractors" },
       {
         name: "description",
         content:
-          "Estimate every trade on a residential or commercial property. Built for general contractors and estimators.",
+          "Estimate roofing, exterior, windows, interior, HVAC, plumbing, electrical, and mitigation work — all in one platform.",
       },
-      { name: "author", content: "GCN Estimator" },
-      { property: "og:title", content: "GCN Estimator — All-Trade Estimating Software for Contractors" },
-      {
-        property: "og:description",
-        content: "Estimate every trade on any property — built for general contractors and estimators.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap",
       },
       { rel: "stylesheet", href: appCss },
     ],
@@ -76,10 +70,16 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+  }));
+
   return (
-    <AuthProvider>
-      <Outlet />
-      <Toaster />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Outlet />
+        <Toaster />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
