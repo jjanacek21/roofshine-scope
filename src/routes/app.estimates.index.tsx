@@ -55,7 +55,7 @@ function EstimatesList() {
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Estimates</h1>
-          <p className="mt-1 text-sm text-muted-foreground">All your roofing estimates in one place.</p>
+          <p className="mt-1 text-sm text-muted-foreground">All your estimates across every trade in one place.</p>
         </div>
         <Link to="/app/estimates/new">
           <Button className="gap-2"><Plus className="h-4 w-4" /> New estimate</Button>
