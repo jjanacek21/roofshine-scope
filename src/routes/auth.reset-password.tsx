@@ -10,7 +10,7 @@ import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/auth/reset-password")({
   head: () => ({
-    meta: [{ title: "Reset password · RoofScope Pro" }],
+    meta: [{ title: "Reset password · GCN Estimator" }],
   }),
   component: ResetPasswordPage,
 });

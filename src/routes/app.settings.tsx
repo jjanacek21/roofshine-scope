@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/app/settings")({
-  head: () => ({ meta: [{ title: "Settings · RoofScope Pro" }] }),
+  head: () => ({ meta: [{ title: "Settings · GCN Estimator" }] }),
   component: SettingsPage,
 });
 
@@ -33,7 +33,7 @@ function SettingsPage() {
 
       <div className="mt-6 rounded-xl border border-destructive/30 bg-card p-6 shadow-[var(--shadow-sm)]">
         <h2 className="font-semibold text-destructive">Sign out</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Sign out of your RoofScope Pro account.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Sign out of your GCN Estimator account.</p>
         <Button variant="outline" className="mt-4" onClick={() => signOut()}>Sign out</Button>
       </div>
     </div>

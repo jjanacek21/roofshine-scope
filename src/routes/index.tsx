@@ -5,7 +5,7 @@ import { Check, Calculator, FileText, Zap, ShieldCheck, ArrowRight } from "lucid
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "RoofScope Pro — Estimating Software for Roofing Contractors" },
+      { title: "GCN Estimator — Estimating Software for Roofing Contractors" },
       {
         name: "description",
         content:
@@ -39,7 +39,7 @@ function Header() {
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[image:var(--gradient-hero)] shadow-[var(--shadow-glow)]">
             <span className="text-sm font-bold text-primary-foreground">R</span>
           </div>
-          <span className="text-lg font-semibold tracking-tight">RoofScope Pro</span>
+          <span className="text-lg font-semibold tracking-tight">GCN Estimator</span>
         </Link>
         <nav className="hidden items-center gap-8 md:flex">
           <a href="#features" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Features</a>
@@ -76,7 +76,7 @@ function Hero() {
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Stop wrestling with spreadsheets. RoofScope Pro turns roof measurements into
+            Stop wrestling with spreadsheets. GCN Estimator turns roof measurements into
             polished, accurate estimates your customers will actually sign — in minutes, not hours.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -204,7 +204,7 @@ function CTA() {
             Ready to estimate faster?
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-primary-foreground/85">
-            Join thousands of contractors winning more jobs with RoofScope Pro.
+            Join thousands of contractors winning more jobs with GCN Estimator.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link to="/auth">
@@ -230,7 +230,7 @@ function Footer() {
   return (
     <footer className="border-t border-border py-10">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
-        <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} RoofScope Pro. All rights reserved.</p>
+        <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} GCN Estimator. All rights reserved.</p>
         <div className="flex items-center gap-6 text-sm text-muted-foreground">
           <a href="#" className="hover:text-foreground">Privacy</a>
           <a href="#" className="hover:text-foreground">Terms</a>

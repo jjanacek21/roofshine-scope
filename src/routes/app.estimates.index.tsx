@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, FileText, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/estimates/")({
-  head: () => ({ meta: [{ title: "Estimates · RoofScope Pro" }] }),
+  head: () => ({ meta: [{ title: "Estimates · GCN Estimator" }] }),
   component: EstimatesList,
 });
 
