@@ -28,11 +28,14 @@ import { Route as AdminCompaniesRouteImport } from './routes/admin.companies'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAnnouncementsRouteImport } from './routes/admin.announcements'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
+import { Route as AppTeamRouteImport } from './routes/_app.team'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCatalogRouteImport } from './routes/_app.catalog'
+import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
+import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
 
 const SignupRoute = SignupRouteImport.update({
@@ -129,6 +132,11 @@ const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AdminRoute,
 } as any)
+const AppTeamRoute = AppTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -149,10 +157,20 @@ const AppCatalogRoute = AppCatalogRouteImport.update({
   path: '/catalog',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTeamIndexRoute = AppTeamIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppTeamRoute,
+} as any)
 const AppJobsIndexRoute = AppJobsIndexRouteImport.update({
   id: '/jobs/',
   path: '/jobs/',
   getParentRoute: () => AppRoute,
+} as any)
+const AppTeamInvitesRoute = AppTeamInvitesRouteImport.update({
+  id: '/invites',
+  path: '/invites',
+  getParentRoute: () => AppTeamRoute,
 } as any)
 const AppJobsIdRoute = AppJobsIdRouteImport.update({
   id: '/jobs/$id',
@@ -170,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/clients': typeof AppClientsRoute
   '/price-books': typeof AppPriceBooksRoute
   '/settings': typeof AppSettingsRoute
+  '/team': typeof AppTeamRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
@@ -184,7 +203,9 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
   '/jobs/$id': typeof AppJobsIdRoute
+  '/team/invites': typeof AppTeamInvitesRoute
   '/jobs/': typeof AppJobsIndexRoute
+  '/team/': typeof AppTeamIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -209,7 +230,9 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
   '/jobs/$id': typeof AppJobsIdRoute
+  '/team/invites': typeof AppTeamInvitesRoute
   '/jobs': typeof AppJobsIndexRoute
+  '/team': typeof AppTeamIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -222,6 +245,7 @@ export interface FileRoutesById {
   '/_app/clients': typeof AppClientsRoute
   '/_app/price-books': typeof AppPriceBooksRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/_app/team': typeof AppTeamRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
@@ -237,7 +261,9 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/_app/jobs/$id': typeof AppJobsIdRoute
+  '/_app/team/invites': typeof AppTeamInvitesRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
+  '/_app/team/': typeof AppTeamIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -251,6 +277,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/price-books'
     | '/settings'
+    | '/team'
     | '/admin/analytics'
     | '/admin/announcements'
     | '/admin/audit'
@@ -265,7 +292,9 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/'
     | '/jobs/$id'
+    | '/team/invites'
     | '/jobs/'
+    | '/team/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -290,7 +319,9 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/jobs/$id'
+    | '/team/invites'
     | '/jobs'
+    | '/team'
   id:
     | '__root__'
     | '/_app'
@@ -302,6 +333,7 @@ export interface FileRouteTypes {
     | '/_app/clients'
     | '/_app/price-books'
     | '/_app/settings'
+    | '/_app/team'
     | '/admin/analytics'
     | '/admin/announcements'
     | '/admin/audit'
@@ -317,7 +349,9 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/admin/'
     | '/_app/jobs/$id'
+    | '/_app/team/invites'
     | '/_app/jobs/'
+    | '/_app/team/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -463,6 +497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAnalyticsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_app/team': {
+      id: '/_app/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof AppTeamRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
@@ -491,12 +532,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCatalogRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/team/': {
+      id: '/_app/team/'
+      path: '/'
+      fullPath: '/team/'
+      preLoaderRoute: typeof AppTeamIndexRouteImport
+      parentRoute: typeof AppTeamRoute
+    }
     '/_app/jobs/': {
       id: '/_app/jobs/'
       path: '/jobs'
       fullPath: '/jobs/'
       preLoaderRoute: typeof AppJobsIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_app/team/invites': {
+      id: '/_app/team/invites'
+      path: '/invites'
+      fullPath: '/team/invites'
+      preLoaderRoute: typeof AppTeamInvitesRouteImport
+      parentRoute: typeof AppTeamRoute
     }
     '/_app/jobs/$id': {
       id: '/_app/jobs/$id'
@@ -508,11 +563,25 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppTeamRouteChildren {
+  AppTeamInvitesRoute: typeof AppTeamInvitesRoute
+  AppTeamIndexRoute: typeof AppTeamIndexRoute
+}
+
+const AppTeamRouteChildren: AppTeamRouteChildren = {
+  AppTeamInvitesRoute: AppTeamInvitesRoute,
+  AppTeamIndexRoute: AppTeamIndexRoute,
+}
+
+const AppTeamRouteWithChildren =
+  AppTeamRoute._addFileChildren(AppTeamRouteChildren)
+
 interface AppRouteChildren {
   AppCatalogRoute: typeof AppCatalogRoute
   AppClientsRoute: typeof AppClientsRoute
   AppPriceBooksRoute: typeof AppPriceBooksRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppTeamRoute: typeof AppTeamRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppJobsIdRoute: typeof AppJobsIdRoute
   AppJobsIndexRoute: typeof AppJobsIndexRoute
@@ -523,6 +592,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppClientsRoute: AppClientsRoute,
   AppPriceBooksRoute: AppPriceBooksRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppTeamRoute: AppTeamRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppJobsIdRoute: AppJobsIdRoute,
   AppJobsIndexRoute: AppJobsIndexRoute,

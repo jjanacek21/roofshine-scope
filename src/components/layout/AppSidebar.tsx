@@ -8,10 +8,12 @@ import {
   Library,
   Settings,
   LogOut,
+  UserCog,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/lib/utils";
 
 const WORKSPACE_NAV = [
@@ -29,19 +31,11 @@ const ADMIN_NAV = [
 export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
-
-  const { data: profile } = useQuery({
-    queryKey: ["sidebar-profile", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("first_name, last_name, email")
-        .eq("id", user!.id)
-        .maybeSingle();
-      return data;
-    },
-  });
+  const { data: profile } = useProfile();
+  const isCompanyAdmin =
+    profile?.role === "owner" ||
+    profile?.role === "admin" ||
+    profile?.role === "super_admin";
 
   const { data: jobsCount = 0 } = useQuery({
     queryKey: ["sidebar-jobs-count"],
@@ -149,6 +143,20 @@ export function AppSidebar() {
               </Link>
             );
           })}
+          {isCompanyAdmin && (
+            <Link
+              to="/team"
+              className={cn(
+                "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors",
+                isActive("/team")
+                  ? "nav-active"
+                  : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
+              )}
+            >
+              <UserCog className="h-4 w-4 shrink-0" strokeWidth={2} />
+              <span>Team</span>
+            </Link>
+          )}
         </nav>
       </div>
 
