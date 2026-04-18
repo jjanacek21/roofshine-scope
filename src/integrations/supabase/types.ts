@@ -14,64 +14,449 @@ export type Database = {
   }
   public: {
     Tables: {
-      estimates: {
+      clients: {
         Row: {
+          address: string | null
+          company_id: string
           created_at: string
-          customer_email: string | null
-          customer_name: string
-          customer_phone: string | null
+          email: string | null
           id: string
           name: string
-          project_address: string
-          property_type: Database["public"]["Enums"]["property_type"]
-          scope_summary: string | null
-          status: Database["public"]["Enums"]["estimate_status"]
-          total: number
+          notes: string | null
+          phone: string | null
           updated_at: string
-          user_id: string
         }
         Insert: {
+          address?: string | null
+          company_id: string
           created_at?: string
-          customer_email?: string | null
-          customer_name: string
-          customer_phone?: string | null
+          email?: string | null
           id?: string
           name: string
-          project_address: string
-          property_type?: Database["public"]["Enums"]["property_type"]
-          scope_summary?: string | null
-          status?: Database["public"]["Enums"]["estimate_status"]
-          total?: number
+          notes?: string | null
+          phone?: string | null
           updated_at?: string
-          user_id: string
         }
         Update: {
+          address?: string | null
+          company_id?: string
           created_at?: string
-          customer_email?: string | null
-          customer_name?: string
-          customer_phone?: string | null
+          email?: string | null
           id?: string
           name?: string
-          project_address?: string
-          property_type?: Database["public"]["Enums"]["property_type"]
-          scope_summary?: string | null
-          status?: Database["public"]["Enums"]["estimate_status"]
-          total?: number
+          notes?: string | null
+          phone?: string | null
           updated_at?: string
-          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          address: string | null
+          created_at: string
+          default_markup: number
+          default_tax_rate: number
+          email: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          phone: string | null
+          trades: Database["public"]["Enums"]["trade_type"][]
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          default_markup?: number
+          default_tax_rate?: number
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          phone?: string | null
+          trades?: Database["public"]["Enums"]["trade_type"][]
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          default_markup?: number
+          default_tax_rate?: number
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          trades?: Database["public"]["Enums"]["trade_type"][]
+          updated_at?: string
+          website?: string | null
         }
         Relationships: []
+      }
+      estimate_line_items: {
+        Row: {
+          code: string | null
+          created_at: string
+          estimate_id: string
+          id: string
+          line_item_id: string | null
+          name: string
+          qty: number
+          sort_order: number
+          total: number
+          trade: Database["public"]["Enums"]["trade_type"]
+          unit: string
+          unit_price: number
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          estimate_id: string
+          id?: string
+          line_item_id?: string | null
+          name: string
+          qty?: number
+          sort_order?: number
+          total?: number
+          trade: Database["public"]["Enums"]["trade_type"]
+          unit?: string
+          unit_price?: number
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          estimate_id?: string
+          id?: string
+          line_item_id?: string | null
+          name?: string
+          qty?: number
+          sort_order?: number
+          total?: number
+          trade?: Database["public"]["Enums"]["trade_type"]
+          unit?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_line_items_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_line_items_line_item_id_fkey"
+            columns: ["line_item_id"]
+            isOneToOne: false
+            referencedRelation: "line_item_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimates: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          job_id: string
+          name: string
+          status: Database["public"]["Enums"]["estimate_doc_status"]
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          job_id: string
+          name: string
+          status?: Database["public"]["Enums"]["estimate_doc_status"]
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["estimate_doc_status"]
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimates_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          client_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          job_number: string | null
+          name: string
+          notes: string | null
+          primary_trade: Database["public"]["Enums"]["trade_type"] | null
+          property_address: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          total_estimate: number
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          job_number?: string | null
+          name: string
+          notes?: string | null
+          primary_trade?: Database["public"]["Enums"]["trade_type"] | null
+          property_address?: string | null
+          status?: Database["public"]["Enums"]["job_status"]
+          total_estimate?: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          job_number?: string | null
+          name?: string
+          notes?: string | null
+          primary_trade?: Database["public"]["Enums"]["trade_type"] | null
+          property_address?: string | null
+          status?: Database["public"]["Enums"]["job_status"]
+          total_estimate?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      line_item_master: {
+        Row: {
+          category: string | null
+          code: string
+          company_id: string
+          created_at: string
+          default_price: number
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["catalog_status"]
+          trade: Database["public"]["Enums"]["trade_type"]
+          unit: string
+          updated_at: string
+          waste_pct: number
+        }
+        Insert: {
+          category?: string | null
+          code: string
+          company_id: string
+          created_at?: string
+          default_price?: number
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["catalog_status"]
+          trade: Database["public"]["Enums"]["trade_type"]
+          unit?: string
+          updated_at?: string
+          waste_pct?: number
+        }
+        Update: {
+          category?: string | null
+          code?: string
+          company_id?: string
+          created_at?: string
+          default_price?: number
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["catalog_status"]
+          trade?: Database["public"]["Enums"]["trade_type"]
+          unit?: string
+          updated_at?: string
+          waste_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_item_master_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_books: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          item_count: number
+          name: string
+          region: string | null
+          source: string | null
+          status: Database["public"]["Enums"]["price_book_status"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          item_count?: number
+          name: string
+          region?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["price_book_status"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          item_count?: number
+          name?: string
+          region?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["price_book_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_books_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          email: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      auth_company_id: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_company_admin: { Args: never; Returns: boolean }
     }
     Enums: {
+      app_role: "owner" | "admin" | "estimator" | "member"
+      catalog_status: "active" | "inactive"
+      estimate_doc_status: "draft" | "sent" | "approved" | "rejected"
       estimate_status: "draft" | "sent" | "approved" | "rejected"
+      job_status:
+        | "lead"
+        | "inspected"
+        | "estimated"
+        | "proposed"
+        | "signed"
+        | "in_progress"
+        | "complete"
+      price_book_status: "active" | "archived"
       property_type: "residential" | "commercial"
+      trade_type:
+        | "roofing"
+        | "exterior"
+        | "windows"
+        | "interior"
+        | "hvac"
+        | "plumbing"
+        | "electrical"
+        | "mitigation"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -199,8 +584,31 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["owner", "admin", "estimator", "member"],
+      catalog_status: ["active", "inactive"],
+      estimate_doc_status: ["draft", "sent", "approved", "rejected"],
       estimate_status: ["draft", "sent", "approved", "rejected"],
+      job_status: [
+        "lead",
+        "inspected",
+        "estimated",
+        "proposed",
+        "signed",
+        "in_progress",
+        "complete",
+      ],
+      price_book_status: ["active", "archived"],
       property_type: ["residential", "commercial"],
+      trade_type: [
+        "roofing",
+        "exterior",
+        "windows",
+        "interior",
+        "hvac",
+        "plumbing",
+        "electrical",
+        "mitigation",
+      ],
     },
   },
 } as const
