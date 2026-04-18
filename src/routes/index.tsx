@@ -1,15 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Check, Calculator, FileText, Zap, ShieldCheck, ArrowRight } from "lucide-react";
+import { Check, Calculator, FileText, Zap, ShieldCheck, ArrowRight, Layers } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "GCN Estimator — Estimating Software for Roofing Contractors" },
+      { title: "GCN Estimator — All-Trade Estimating Software for Contractors" },
       {
         name: "description",
         content:
-          "Build accurate roofing estimates in minutes. The modern estimating platform built for professional roofing contractors.",
+          "Estimate every trade on a residential or commercial property — roofing, siding, framing, MEP, restoration, and more. Built for general contractors and estimators.",
       },
     ],
   }),
@@ -67,7 +67,7 @@ function Hero() {
         <div className="mx-auto max-w-3xl text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-elevated px-3 py-1 text-xs font-medium text-muted-foreground shadow-[var(--shadow-sm)]">
             <span className="h-1.5 w-1.5 rounded-full bg-success" />
-            Built for professional roofing contractors
+            Every trade. Every property. One estimator.
           </div>
           <h1 className="mt-6 text-5xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
             Estimates that close{" "}
@@ -76,8 +76,9 @@ function Hero() {
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Stop wrestling with spreadsheets. GCN Estimator turns roof measurements into
-            polished, accurate estimates your customers will actually sign — in minutes, not hours.
+            From roofing and siding to framing, MEP, and restoration — GCN Estimator handles
+            every trade on a residential or commercial property. Build complete, line-itemized
+            scopes of work in minutes, not days.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link to="/auth">
@@ -97,9 +98,9 @@ function Hero() {
             <div className="rounded-xl bg-[image:var(--gradient-hero)] p-12 text-primary-foreground">
               <div className="grid grid-cols-3 gap-6">
                 {[
-                  { label: "Avg. estimate time", value: "8 min" },
-                  { label: "Win rate uplift", value: "+34%" },
-                  { label: "Contractors trust us", value: "2,400+" },
+                  { label: "Trades covered", value: "20+" },
+                  { label: "Faster estimates", value: "10×" },
+                  { label: "Estimators trust us", value: "2,400+" },
                 ].map((s) => (
                   <div key={s.label}>
                     <div className="text-3xl font-bold tracking-tight sm:text-4xl">{s.value}</div>
@@ -118,24 +119,29 @@ function Hero() {
 function Features() {
   const features = [
     {
+      icon: Layers,
+      title: "All trades, one catalog",
+      desc: "Roofing, siding, framing, MEP, concrete, restoration, and more — every trade ready out of the box.",
+    },
+    {
       icon: Calculator,
-      title: "Smart calculations",
-      desc: "Automatic material counts, waste factors, and labor pricing tailored to your business.",
+      title: "Smart line-item pricing",
+      desc: "Material, labor, and equipment costs with markup, waste, and overhead applied automatically.",
     },
     {
       icon: FileText,
-      title: "Beautiful proposals",
-      desc: "Branded, itemized estimates that look professional and convert at a higher rate.",
+      title: "Professional proposals",
+      desc: "Branded, itemized scopes of work that look polished and convert at a higher rate.",
     },
     {
       icon: Zap,
       title: "Built for speed",
-      desc: "From measurement to signed contract in minutes. No more late-night spreadsheet sessions.",
+      desc: "From property walk to signed contract in minutes. No more late-night spreadsheet sessions.",
     },
     {
       icon: ShieldCheck,
       title: "Audit-ready records",
-      desc: "Every estimate, revision, and approval is tracked. Stay organized for taxes and disputes.",
+      desc: "Every estimate, revision, and approval is tracked. Stay organized for insurance, taxes, and disputes.",
     },
   ];
 
@@ -144,9 +150,9 @@ function Features() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">Features</p>
-          <h2 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Everything you need to estimate faster</h2>
+          <h2 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Everything you need to estimate every trade</h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Purpose-built for roofers. No bloat, no learning curve.
+            Purpose-built for general contractors and estimators. No bloat, no learning curve.
           </p>
         </div>
         <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-2">
@@ -170,8 +176,8 @@ function Features() {
 
 function HowItWorks() {
   const steps = [
-    { n: "01", t: "Add your customer", d: "Capture contact info and project address in seconds." },
-    { n: "02", t: "Enter roof details", d: "Square footage, pitch, and any job-specific notes." },
+    { n: "01", t: "Add the property", d: "Capture customer info and the job site in seconds." },
+    { n: "02", t: "Build the scope", d: "Add line items across every trade — materials, labor, equipment." },
     { n: "03", t: "Send the estimate", d: "Polished, branded, signature-ready. Win the job." },
   ];
   return (
@@ -204,7 +210,7 @@ function CTA() {
             Ready to estimate faster?
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-primary-foreground/85">
-            Join thousands of contractors winning more jobs with GCN Estimator.
+            Join thousands of estimators and general contractors winning more jobs with GCN Estimator.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link to="/auth">
