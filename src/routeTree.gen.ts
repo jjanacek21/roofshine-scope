@@ -12,8 +12,22 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AdminTrainingRouteImport } from './routes/admin.training'
+import { Route as AdminSupportRouteImport } from './routes/admin.support'
+import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
+import { Route as AdminMembershipsRouteImport } from './routes/admin.memberships'
+import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
+import { Route as AdminEmailsRouteImport } from './routes/admin.emails'
+import { Route as AdminContentRouteImport } from './routes/admin.content'
+import { Route as AdminCompaniesRouteImport } from './routes/admin.companies'
+import { Route as AdminAuditRouteImport } from './routes/admin.audit'
+import { Route as AdminAnnouncementsRouteImport } from './routes/admin.announcements'
+import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
@@ -36,14 +50,84 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTrainingRoute = AdminTrainingRouteImport.update({
+  id: '/training',
+  path: '/training',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSupportRoute = AdminSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReviewsRoute = AdminReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMembershipsRoute = AdminMembershipsRouteImport.update({
+  id: '/memberships',
+  path: '/memberships',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFeaturesRoute = AdminFeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEmailsRoute = AdminEmailsRouteImport.update({
+  id: '/emails',
+  path: '/emails',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminContentRoute = AdminContentRouteImport.update({
+  id: '/content',
+  path: '/content',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCompaniesRoute = AdminCompaniesRouteImport.update({
+  id: '/companies',
+  path: '/companies',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAnnouncementsRoute = AdminAnnouncementsRouteImport.update({
+  id: '/announcements',
+  path: '/announcements',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
@@ -78,6 +162,7 @@ const AppJobsIdRoute = AppJobsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
@@ -85,6 +170,19 @@ export interface FileRoutesByFullPath {
   '/clients': typeof AppClientsRoute
   '/price-books': typeof AppPriceBooksRoute
   '/settings': typeof AppSettingsRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/announcements': typeof AdminAnnouncementsRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/content': typeof AdminContentRoute
+  '/admin/emails': typeof AdminEmailsRoute
+  '/admin/features': typeof AdminFeaturesRoute
+  '/admin/memberships': typeof AdminMembershipsRoute
+  '/admin/reviews': typeof AdminReviewsRoute
+  '/admin/support': typeof AdminSupportRoute
+  '/admin/training': typeof AdminTrainingRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin/': typeof AdminIndexRoute
   '/jobs/$id': typeof AppJobsIdRoute
   '/jobs/': typeof AppJobsIndexRoute
 }
@@ -96,13 +194,27 @@ export interface FileRoutesByTo {
   '/clients': typeof AppClientsRoute
   '/price-books': typeof AppPriceBooksRoute
   '/settings': typeof AppSettingsRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/announcements': typeof AdminAnnouncementsRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/content': typeof AdminContentRoute
+  '/admin/emails': typeof AdminEmailsRoute
+  '/admin/features': typeof AdminFeaturesRoute
+  '/admin/memberships': typeof AdminMembershipsRoute
+  '/admin/reviews': typeof AdminReviewsRoute
+  '/admin/support': typeof AdminSupportRoute
+  '/admin/training': typeof AdminTrainingRoute
+  '/admin/users': typeof AdminUsersRoute
   '/': typeof AppIndexRoute
+  '/admin': typeof AdminIndexRoute
   '/jobs/$id': typeof AppJobsIdRoute
   '/jobs': typeof AppJobsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
@@ -110,7 +222,20 @@ export interface FileRoutesById {
   '/_app/clients': typeof AppClientsRoute
   '/_app/price-books': typeof AppPriceBooksRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/announcements': typeof AdminAnnouncementsRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/content': typeof AdminContentRoute
+  '/admin/emails': typeof AdminEmailsRoute
+  '/admin/features': typeof AdminFeaturesRoute
+  '/admin/memberships': typeof AdminMembershipsRoute
+  '/admin/reviews': typeof AdminReviewsRoute
+  '/admin/support': typeof AdminSupportRoute
+  '/admin/training': typeof AdminTrainingRoute
+  '/admin/users': typeof AdminUsersRoute
   '/_app/': typeof AppIndexRoute
+  '/admin/': typeof AdminIndexRoute
   '/_app/jobs/$id': typeof AppJobsIdRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
 }
@@ -118,6 +243,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/login'
     | '/onboarding'
     | '/signup'
@@ -125,6 +251,19 @@ export interface FileRouteTypes {
     | '/clients'
     | '/price-books'
     | '/settings'
+    | '/admin/analytics'
+    | '/admin/announcements'
+    | '/admin/audit'
+    | '/admin/companies'
+    | '/admin/content'
+    | '/admin/emails'
+    | '/admin/features'
+    | '/admin/memberships'
+    | '/admin/reviews'
+    | '/admin/support'
+    | '/admin/training'
+    | '/admin/users'
+    | '/admin/'
     | '/jobs/$id'
     | '/jobs/'
   fileRoutesByTo: FileRoutesByTo
@@ -136,12 +275,26 @@ export interface FileRouteTypes {
     | '/clients'
     | '/price-books'
     | '/settings'
+    | '/admin/analytics'
+    | '/admin/announcements'
+    | '/admin/audit'
+    | '/admin/companies'
+    | '/admin/content'
+    | '/admin/emails'
+    | '/admin/features'
+    | '/admin/memberships'
+    | '/admin/reviews'
+    | '/admin/support'
+    | '/admin/training'
+    | '/admin/users'
     | '/'
+    | '/admin'
     | '/jobs/$id'
     | '/jobs'
   id:
     | '__root__'
     | '/_app'
+    | '/admin'
     | '/login'
     | '/onboarding'
     | '/signup'
@@ -149,13 +302,27 @@ export interface FileRouteTypes {
     | '/_app/clients'
     | '/_app/price-books'
     | '/_app/settings'
+    | '/admin/analytics'
+    | '/admin/announcements'
+    | '/admin/audit'
+    | '/admin/companies'
+    | '/admin/content'
+    | '/admin/emails'
+    | '/admin/features'
+    | '/admin/memberships'
+    | '/admin/reviews'
+    | '/admin/support'
+    | '/admin/training'
+    | '/admin/users'
     | '/_app/'
+    | '/admin/'
     | '/_app/jobs/$id'
     | '/_app/jobs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   SignupRoute: typeof SignupRoute
@@ -184,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app': {
       id: '/_app'
       path: ''
@@ -191,12 +365,103 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_app/': {
       id: '/_app/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/training': {
+      id: '/admin/training'
+      path: '/training'
+      fullPath: '/admin/training'
+      preLoaderRoute: typeof AdminTrainingRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/support': {
+      id: '/admin/support'
+      path: '/support'
+      fullPath: '/admin/support'
+      preLoaderRoute: typeof AdminSupportRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reviews': {
+      id: '/admin/reviews'
+      path: '/reviews'
+      fullPath: '/admin/reviews'
+      preLoaderRoute: typeof AdminReviewsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/memberships': {
+      id: '/admin/memberships'
+      path: '/memberships'
+      fullPath: '/admin/memberships'
+      preLoaderRoute: typeof AdminMembershipsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/features': {
+      id: '/admin/features'
+      path: '/features'
+      fullPath: '/admin/features'
+      preLoaderRoute: typeof AdminFeaturesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/emails': {
+      id: '/admin/emails'
+      path: '/emails'
+      fullPath: '/admin/emails'
+      preLoaderRoute: typeof AdminEmailsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/content': {
+      id: '/admin/content'
+      path: '/content'
+      fullPath: '/admin/content'
+      preLoaderRoute: typeof AdminContentRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/companies': {
+      id: '/admin/companies'
+      path: '/companies'
+      fullPath: '/admin/companies'
+      preLoaderRoute: typeof AdminCompaniesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/announcements': {
+      id: '/admin/announcements'
+      path: '/announcements'
+      fullPath: '/admin/announcements'
+      preLoaderRoute: typeof AdminAnnouncementsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/analytics': {
+      id: '/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AdminAnalyticsRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/_app/settings': {
       id: '/_app/settings'
@@ -265,8 +530,43 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface AdminRouteChildren {
+  AdminAnalyticsRoute: typeof AdminAnalyticsRoute
+  AdminAnnouncementsRoute: typeof AdminAnnouncementsRoute
+  AdminAuditRoute: typeof AdminAuditRoute
+  AdminCompaniesRoute: typeof AdminCompaniesRoute
+  AdminContentRoute: typeof AdminContentRoute
+  AdminEmailsRoute: typeof AdminEmailsRoute
+  AdminFeaturesRoute: typeof AdminFeaturesRoute
+  AdminMembershipsRoute: typeof AdminMembershipsRoute
+  AdminReviewsRoute: typeof AdminReviewsRoute
+  AdminSupportRoute: typeof AdminSupportRoute
+  AdminTrainingRoute: typeof AdminTrainingRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAnalyticsRoute: AdminAnalyticsRoute,
+  AdminAnnouncementsRoute: AdminAnnouncementsRoute,
+  AdminAuditRoute: AdminAuditRoute,
+  AdminCompaniesRoute: AdminCompaniesRoute,
+  AdminContentRoute: AdminContentRoute,
+  AdminEmailsRoute: AdminEmailsRoute,
+  AdminFeaturesRoute: AdminFeaturesRoute,
+  AdminMembershipsRoute: AdminMembershipsRoute,
+  AdminReviewsRoute: AdminReviewsRoute,
+  AdminSupportRoute: AdminSupportRoute,
+  AdminTrainingRoute: AdminTrainingRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   SignupRoute: SignupRoute,
@@ -274,3 +574,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
