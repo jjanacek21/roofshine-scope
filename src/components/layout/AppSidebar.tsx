@@ -143,6 +143,20 @@ export function AppSidebar() {
               </Link>
             );
           })}
+          {isCompanyAdmin && (
+            <Link
+              to="/team"
+              className={cn(
+                "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors",
+                isActive("/team")
+                  ? "nav-active"
+                  : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
+              )}
+            >
+              <UserCog className="h-4 w-4 shrink-0" strokeWidth={2} />
+              <span>Team</span>
+            </Link>
+          )}
         </nav>
       </div>
 
