@@ -174,6 +174,45 @@ export type Database = {
         }
         Relationships: []
       }
+      companion_rules: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          jurisdiction: string | null
+          notes: string | null
+          rule_type: Database["public"]["Enums"]["companion_rule_type"]
+          suggested_codes: string[]
+          trigger_category: string
+          trigger_trade: Database["public"]["Enums"]["trade_type"] | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          jurisdiction?: string | null
+          notes?: string | null
+          rule_type?: Database["public"]["Enums"]["companion_rule_type"]
+          suggested_codes?: string[]
+          trigger_category: string
+          trigger_trade?: Database["public"]["Enums"]["trade_type"] | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          jurisdiction?: string | null
+          notes?: string | null
+          rule_type?: Database["public"]["Enums"]["companion_rule_type"]
+          suggested_codes?: string[]
+          trigger_category?: string
+          trigger_trade?: Database["public"]["Enums"]["trade_type"] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       company_invites: {
         Row: {
           accepted_at: string | null
@@ -334,43 +373,58 @@ export type Database = {
       }
       jobs: {
         Row: {
+          claim_number: string | null
           client_id: string | null
           company_id: string
           created_at: string
           id: string
+          insurance_carrier: string | null
           job_number: string | null
+          job_type: string | null
           name: string
           notes: string | null
+          price_book_id: string | null
           primary_trade: Database["public"]["Enums"]["trade_type"] | null
           property_address: string | null
+          property_id: string | null
           status: Database["public"]["Enums"]["job_status"]
           total_estimate: number
           updated_at: string
         }
         Insert: {
+          claim_number?: string | null
           client_id?: string | null
           company_id: string
           created_at?: string
           id?: string
+          insurance_carrier?: string | null
           job_number?: string | null
+          job_type?: string | null
           name: string
           notes?: string | null
+          price_book_id?: string | null
           primary_trade?: Database["public"]["Enums"]["trade_type"] | null
           property_address?: string | null
+          property_id?: string | null
           status?: Database["public"]["Enums"]["job_status"]
           total_estimate?: number
           updated_at?: string
         }
         Update: {
+          claim_number?: string | null
           client_id?: string | null
           company_id?: string
           created_at?: string
           id?: string
+          insurance_carrier?: string | null
           job_number?: string | null
+          job_type?: string | null
           name?: string
           notes?: string | null
+          price_book_id?: string | null
           primary_trade?: Database["public"]["Enums"]["trade_type"] | null
           property_address?: string | null
+          property_id?: string | null
           status?: Database["public"]["Enums"]["job_status"]
           total_estimate?: number
           updated_at?: string
@@ -399,9 +453,11 @@ export type Database = {
           company_id: string
           created_at: string
           default_price: number
+          description: string | null
           id: string
           name: string
           status: Database["public"]["Enums"]["catalog_status"]
+          tags: string[]
           trade: Database["public"]["Enums"]["trade_type"]
           unit: string
           updated_at: string
@@ -413,9 +469,11 @@ export type Database = {
           company_id: string
           created_at?: string
           default_price?: number
+          description?: string | null
           id?: string
           name: string
           status?: Database["public"]["Enums"]["catalog_status"]
+          tags?: string[]
           trade: Database["public"]["Enums"]["trade_type"]
           unit?: string
           updated_at?: string
@@ -427,9 +485,11 @@ export type Database = {
           company_id?: string
           created_at?: string
           default_price?: number
+          description?: string | null
           id?: string
           name?: string
           status?: Database["public"]["Enums"]["catalog_status"]
+          tags?: string[]
           trade?: Database["public"]["Enums"]["trade_type"]
           unit?: string
           updated_at?: string
@@ -445,39 +505,93 @@ export type Database = {
           },
         ]
       }
+      line_item_prices: {
+        Row: {
+          created_at: string
+          equipment_pct: number | null
+          id: string
+          labor_pct: number | null
+          line_item_master_id: string
+          material_pct: number | null
+          price_book_id: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          equipment_pct?: number | null
+          id?: string
+          labor_pct?: number | null
+          line_item_master_id: string
+          material_pct?: number | null
+          price_book_id: string
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          equipment_pct?: number | null
+          id?: string
+          labor_pct?: number | null
+          line_item_master_id?: string
+          material_pct?: number | null
+          price_book_id?: string
+          unit_price?: number
+        }
+        Relationships: []
+      }
       price_books: {
         Row: {
           company_id: string
           created_at: string
+          created_by: string | null
+          effective_month: string | null
           id: string
+          is_active: boolean
           item_count: number
+          jurisdiction: string | null
           name: string
+          notes: string | null
           region: string | null
           source: string | null
+          source_file_url: string | null
           status: Database["public"]["Enums"]["price_book_status"]
           updated_at: string
+          zip_codes: string[]
         }
         Insert: {
           company_id: string
           created_at?: string
+          created_by?: string | null
+          effective_month?: string | null
           id?: string
+          is_active?: boolean
           item_count?: number
+          jurisdiction?: string | null
           name: string
+          notes?: string | null
           region?: string | null
           source?: string | null
+          source_file_url?: string | null
           status?: Database["public"]["Enums"]["price_book_status"]
           updated_at?: string
+          zip_codes?: string[]
         }
         Update: {
           company_id?: string
           created_at?: string
+          created_by?: string | null
+          effective_month?: string | null
           id?: string
+          is_active?: boolean
           item_count?: number
+          jurisdiction?: string | null
           name?: string
+          notes?: string | null
           region?: string | null
           source?: string | null
+          source_file_url?: string | null
           status?: Database["public"]["Enums"]["price_book_status"]
           updated_at?: string
+          zip_codes?: string[]
         }
         Relationships: [
           {
@@ -533,6 +647,60 @@ export type Database = {
           },
         ]
       }
+      properties: {
+        Row: {
+          address: string
+          city: string | null
+          client_id: string
+          company_id: string
+          created_at: string
+          id: string
+          lat: number | null
+          lng: number | null
+          notes: string | null
+          property_type: string | null
+          roof_type: string | null
+          state: string | null
+          updated_at: string
+          year_built: number | null
+          zip: string | null
+        }
+        Insert: {
+          address: string
+          city?: string | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          notes?: string | null
+          property_type?: string | null
+          roof_type?: string | null
+          state?: string | null
+          updated_at?: string
+          year_built?: number | null
+          zip?: string | null
+        }
+        Update: {
+          address?: string
+          city?: string | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          notes?: string | null
+          property_type?: string | null
+          roof_type?: string | null
+          state?: string | null
+          updated_at?: string
+          year_built?: number | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -554,6 +722,7 @@ export type Database = {
     Enums: {
       app_role: "owner" | "admin" | "estimator" | "member" | "super_admin"
       catalog_status: "active" | "inactive"
+      companion_rule_type: "required" | "recommended" | "conditional"
       estimate_doc_status: "draft" | "sent" | "approved" | "rejected"
       estimate_status: "draft" | "sent" | "approved" | "rejected"
       job_status:
@@ -704,6 +873,7 @@ export const Constants = {
     Enums: {
       app_role: ["owner", "admin", "estimator", "member", "super_admin"],
       catalog_status: ["active", "inactive"],
+      companion_rule_type: ["required", "recommended", "conditional"],
       estimate_doc_status: ["draft", "sent", "approved", "rejected"],
       estimate_status: ["draft", "sent", "approved", "rejected"],
       job_status: [
