@@ -55,7 +55,7 @@ function AppLayout() {
       <aside className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[image:var(--gradient-hero)]">
-            <span className="text-sm font-bold text-primary-foreground">R</span>
+            <span className="text-sm font-bold text-primary-foreground">G</span>
           </div>
           <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">GCN Estimator</span>
         </div>
@@ -94,7 +94,7 @@ function AppLayout() {
         <header className="flex h-16 items-center justify-between border-b border-border bg-background px-6">
           <div className="flex items-center gap-2 lg:hidden">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[image:var(--gradient-hero)]">
-              <span className="text-xs font-bold text-primary-foreground">R</span>
+              <span className="text-xs font-bold text-primary-foreground">G</span>
             </div>
             <span className="text-sm font-semibold">GCN Estimator</span>
           </div>

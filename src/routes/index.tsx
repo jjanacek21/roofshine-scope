@@ -37,7 +37,7 @@ function Header() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[image:var(--gradient-hero)] shadow-[var(--shadow-glow)]">
-            <span className="text-sm font-bold text-primary-foreground">R</span>
+            <span className="text-sm font-bold text-primary-foreground">G</span>
           </div>
           <span className="text-lg font-semibold tracking-tight">GCN Estimator</span>
         </Link>
