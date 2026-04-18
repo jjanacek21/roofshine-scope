@@ -86,7 +86,7 @@ function Dashboard() {
       <div className="mt-10 rounded-xl border border-dashed border-border bg-card p-10 text-center">
         <FileText className="mx-auto h-10 w-10 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">Get started with your first estimate</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Capture a customer, enter roof details, and you're done.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Add a property, build the scope of work across any trade, and you're done.</p>
         <Link to="/app/estimates/new" className="mt-4 inline-block">
           <Button className="gap-2">
             Create estimate <ArrowRight className="h-4 w-4" />
