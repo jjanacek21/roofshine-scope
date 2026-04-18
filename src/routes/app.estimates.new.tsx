@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -16,12 +17,13 @@ export const Route = createFileRoute("/app/estimates/new")({
 });
 
 const schema = z.object({
+  name: z.string().trim().min(1, "Estimate name is required").max(160),
   customer_name: z.string().trim().min(1, "Customer name is required").max(120),
   customer_email: z.string().trim().email("Invalid email").max(255).or(z.literal("")),
   customer_phone: z.string().trim().max(40).optional(),
   project_address: z.string().trim().min(1, "Project address is required").max(255),
-  roof_sqft: z.coerce.number().min(0).max(1000000),
-  roof_pitch: z.string().trim().max(20).optional(),
+  property_type: z.enum(["residential", "commercial"]),
+  scope_summary: z.string().trim().max(2000).optional(),
   status: z.enum(["draft", "sent", "approved", "rejected"]),
 });
 
@@ -30,33 +32,36 @@ function NewEstimate() {
   const { user } = useAuth();
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
+    name: "",
     customer_name: "",
     customer_email: "",
     customer_phone: "",
     project_address: "",
-    roof_sqft: "",
-    roof_pitch: "",
+    property_type: "residential" as "residential" | "commercial",
+    scope_summary: "",
     status: "draft" as "draft" | "sent" | "approved" | "rejected",
   });
 
-  const update = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const update = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
+    setForm((f) => ({ ...f, [k]: v }));
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    const parse = schema.safeParse({ ...form, roof_sqft: form.roof_sqft || 0 });
+    const parse = schema.safeParse(form);
     if (!parse.success) return toast.error(parse.error.issues[0].message);
 
     setBusy(true);
     const { error } = await supabase.from("estimates").insert({
       user_id: user.id,
+      name: parse.data.name,
       customer_name: parse.data.customer_name,
       customer_email: parse.data.customer_email || null,
       customer_phone: parse.data.customer_phone || null,
       project_address: parse.data.project_address,
-      roof_sqft: parse.data.roof_sqft,
-      roof_pitch: parse.data.roof_pitch || null,
+      property_type: parse.data.property_type,
+      scope_summary: parse.data.scope_summary || null,
       status: parse.data.status,
       total: 0,
     });
@@ -74,10 +79,21 @@ function NewEstimate() {
 
       <div className="mt-4">
         <h1 className="text-3xl font-bold tracking-tight">New estimate</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Capture the basics. You can refine line items and pricing later.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Capture the basics for any trade. You can add line items, materials, and labor next.</p>
       </div>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-8">
+        <Section title="Estimate" desc="Give this estimate a name to find it later.">
+          <Field label="Estimate name" required>
+            <Input
+              value={form.name}
+              onChange={(e) => update("name", e.target.value)}
+              placeholder="e.g. Smith Residence — Roof & Siding Replacement"
+              required
+            />
+          </Field>
+        </Section>
+
         <Section title="Customer" desc="Who is this estimate for?">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Full name" required>
@@ -94,26 +110,37 @@ function NewEstimate() {
           </div>
         </Section>
 
-        <Section title="Project" desc="Where is the job site?">
-          <Field label="Project address" required>
-            <Input value={form.project_address} onChange={(e) => update("project_address", e.target.value)} placeholder="123 Main St, Austin, TX 78701" required />
-          </Field>
-        </Section>
-
-        <Section title="Roof details" desc="Rough measurements — refine later.">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Roof area (sq ft)">
-              <Input type="number" min="0" step="1" value={form.roof_sqft} onChange={(e) => update("roof_sqft", e.target.value)} placeholder="2400" />
+        <Section title="Property" desc="Where is the job site?">
+          <div className="grid grid-cols-1 gap-4">
+            <Field label="Project address" required>
+              <Input value={form.project_address} onChange={(e) => update("project_address", e.target.value)} placeholder="123 Main St, Austin, TX 78701" required />
             </Field>
-            <Field label="Pitch">
-              <Input value={form.roof_pitch} onChange={(e) => update("roof_pitch", e.target.value)} placeholder="6/12" />
+            <Field label="Property type" required>
+              <Select value={form.property_type} onValueChange={(v) => update("property_type", v as typeof form.property_type)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="residential">Residential</SelectItem>
+                  <SelectItem value="commercial">Commercial</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
           </div>
         </Section>
 
+        <Section title="Scope of work" desc="Summarize the trades and work involved. Add detailed line items after creating.">
+          <Field label="Scope summary">
+            <Textarea
+              rows={4}
+              value={form.scope_summary}
+              onChange={(e) => update("scope_summary", e.target.value)}
+              placeholder="e.g. Tear-off and replace roof, replace gutters, paint exterior, repair drywall in living room…"
+            />
+          </Field>
+        </Section>
+
         <Section title="Status" desc="Track this estimate's progress.">
           <Field label="Status">
-            <Select value={form.status} onValueChange={(v) => update("status", v)}>
+            <Select value={form.status} onValueChange={(v) => update("status", v as typeof form.status)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="draft">Draft</SelectItem>
