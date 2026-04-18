@@ -31,17 +31,17 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "GCN Estimator — Estimating Software for Roofing Contractors" },
+      { title: "GCN Estimator — All-Trade Estimating Software for Contractors" },
       {
         name: "description",
         content:
-          "Build accurate roofing estimates in minutes. GCN Estimator is the modern estimating platform for professional contractors.",
+          "Estimate every trade on a residential or commercial property. Built for general contractors and estimators.",
       },
       { name: "author", content: "GCN Estimator" },
-      { property: "og:title", content: "GCN Estimator — Estimating Software for Roofing Contractors" },
+      { property: "og:title", content: "GCN Estimator — All-Trade Estimating Software for Contractors" },
       {
         property: "og:description",
-        content: "Build accurate roofing estimates in minutes.",
+        content: "Estimate every trade on any property — built for general contractors and estimators.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
