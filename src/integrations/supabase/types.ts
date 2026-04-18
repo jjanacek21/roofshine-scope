@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          audience_company_id: string | null
+          body: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          severity: string
+          title: string
+        }
+        Insert: {
+          audience_company_id?: string | null
+          body: string
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          severity?: string
+          title: string
+        }
+        Update: {
+          audience_company_id?: string | null
+          body?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          severity?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_audience_company_id_fkey"
+            columns: ["audience_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string | null
@@ -432,9 +503,10 @@ export type Database = {
         Returns: boolean
       }
       is_company_admin: { Args: never; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "owner" | "admin" | "estimator" | "member"
+      app_role: "owner" | "admin" | "estimator" | "member" | "super_admin"
       catalog_status: "active" | "inactive"
       estimate_doc_status: "draft" | "sent" | "approved" | "rejected"
       estimate_status: "draft" | "sent" | "approved" | "rejected"
@@ -584,7 +656,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["owner", "admin", "estimator", "member"],
+      app_role: ["owner", "admin", "estimator", "member", "super_admin"],
       catalog_status: ["active", "inactive"],
       estimate_doc_status: ["draft", "sent", "approved", "rejected"],
       estimate_status: ["draft", "sent", "approved", "rejected"],
