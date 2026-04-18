@@ -14,7 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      estimates: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          name: string
+          project_address: string
+          property_type: Database["public"]["Enums"]["property_type"]
+          scope_summary: string | null
+          status: Database["public"]["Enums"]["estimate_status"]
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          name: string
+          project_address: string
+          property_type?: Database["public"]["Enums"]["property_type"]
+          scope_summary?: string | null
+          status?: Database["public"]["Enums"]["estimate_status"]
+          total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          name?: string
+          project_address?: string
+          property_type?: Database["public"]["Enums"]["property_type"]
+          scope_summary?: string | null
+          status?: Database["public"]["Enums"]["estimate_status"]
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +70,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      estimate_status: "draft" | "sent" | "approved" | "rejected"
+      property_type: "residential" | "commercial"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +198,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      estimate_status: ["draft", "sent", "approved", "rejected"],
+      property_type: ["residential", "commercial"],
+    },
   },
 } as const
