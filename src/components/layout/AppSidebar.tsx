@@ -8,10 +8,12 @@ import {
   Library,
   Settings,
   LogOut,
+  UserCog,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/lib/utils";
 
 const WORKSPACE_NAV = [
@@ -29,19 +31,11 @@ const ADMIN_NAV = [
 export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
-
-  const { data: profile } = useQuery({
-    queryKey: ["sidebar-profile", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("first_name, last_name, email")
-        .eq("id", user!.id)
-        .maybeSingle();
-      return data;
-    },
-  });
+  const { data: profile } = useProfile();
+  const isCompanyAdmin =
+    profile?.role === "owner" ||
+    profile?.role === "admin" ||
+    profile?.role === "super_admin";
 
   const { data: jobsCount = 0 } = useQuery({
     queryKey: ["sidebar-jobs-count"],
