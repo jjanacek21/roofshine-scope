@@ -19,7 +19,7 @@ const XACTIMATE_CAT_TO_TRADE: Record<string, Trade> = {
 
 export function detectTradeFromCode(code: string): Trade | null {
   if (!code) return null;
-  const prefix = code.trim().toUpperCase().split(/[\s\-]/)[0].slice(0, 3);
+  const prefix = code.trim().toUpperCase().split(/[\s-]/)[0].slice(0, 3);
   return XACTIMATE_CAT_TO_TRADE[prefix] ?? null;
 }
 
