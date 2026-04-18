@@ -71,13 +71,34 @@ function Dashboard() {
   });
   const clientMap = new Map(clients.map((c) => [c.id, c.name]));
 
+  // Estimates this month (count + total quoted)
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+  const startISO = startOfMonth.toISOString();
+
   const { data: estimatesCount = 0 } = useQuery({
-    queryKey: ["estimates-count"],
+    queryKey: ["estimates-mtd-count", startISO],
+    staleTime: 5 * 60_000,
     queryFn: async () => {
       const { count } = await supabase
         .from("estimates")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", startISO);
       return count ?? 0;
+    },
+  });
+
+  const { data: quotedMTD = 0 } = useQuery({
+    queryKey: ["estimates-quoted-mtd", startISO],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("estimates")
+        .select("total, status, created_at")
+        .gte("created_at", startISO)
+        .in("status", ["sent", "approved"]);
+      return (data ?? []).reduce((s, e) => s + Number(e.total ?? 0), 0);
     },
   });
 
@@ -91,11 +112,15 @@ function Dashboard() {
     if (j.primary_trade) tradeMix[j.primary_trade as Trade] += 1;
   }
   const activeTradeCount = Object.values(tradeMix).filter((n) => n > 0).length;
-  const totalQuoted = jobs.reduce(
-    (sum, j) => sum + Number(j.total_estimate ?? 0),
-    0,
-  );
-  const avgJob = jobs.length ? totalQuoted / jobs.length : 0;
+
+  // Avg job value: avg of jobs.total_estimate over last 30 days
+  const last30 = jobs.filter((j) => {
+    return Date.now() - new Date(j.updated_at).getTime() < 30 * 24 * 60 * 60 * 1000;
+  });
+  const totalQuoted = quotedMTD;
+  const avgJob = last30.length
+    ? last30.reduce((s, j) => s + Number(j.total_estimate ?? 0), 0) / last30.length
+    : 0;
 
   function fmtMoney(n: number, compact = false) {
     if (compact && n >= 1000) {
