@@ -3,12 +3,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { TRADES, type Trade } from "@/lib/trades";
+import { STARTER_RULES } from "@/lib/starter-rules";
+import { TradeBadge } from "@/components/brand/TradeBadge";
+import { Plus, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const TABS = ["Company", "Branding", "Defaults", "Trades", "Users", "Integrations"] as const;
+const TABS = ["Company", "Branding", "Defaults", "Trades", "Rules", "Users", "Integrations"] as const;
 type Tab = (typeof TABS)[number];
+const RULE_TYPES = ["required", "recommended", "conditional"] as const;
+type RuleType = (typeof RULE_TYPES)[number];
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
@@ -51,6 +57,7 @@ function SettingsPage() {
         {tab === "Branding" && <Placeholder name="Branding" />}
         {tab === "Defaults" && <Placeholder name="Defaults" />}
         {tab === "Trades" && <TradesTab />}
+        {tab === "Rules" && <RulesTab />}
         {tab === "Users" && <Placeholder name="Users" />}
         {tab === "Integrations" && <Placeholder name="Integrations" />}
       </div>
