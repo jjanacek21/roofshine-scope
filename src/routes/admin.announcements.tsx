@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 
-export const Route = createFileRoute("/_admin/announcements")({
+export const Route = createFileRoute("/admin/announcements")({
   component: AdminAnnouncements,
 });
 

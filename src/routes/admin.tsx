@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Shield, Users, Building2, Megaphone, Mail, FileText, Video, Star, CreditCard, Flag, BarChart3, LifeBuoy, ScrollText, ArrowLeft } from "lucide-react";
 
-export const Route = createFileRoute("/_admin")({
+export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
