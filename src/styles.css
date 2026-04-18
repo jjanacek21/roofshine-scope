@@ -97,6 +97,22 @@
   --chart-3: var(--trade-interior);
   --chart-4: var(--trade-hvac);
   --chart-5: var(--trade-plumbing);
+
+  /* Legacy aliases (kept so existing components keep working) */
+  --surface: var(--bg-card);
+  --surface-elevated: var(--bg-elevated);
+  --surface-hover: var(--bg-hover);
+  --border-strong: var(--border-bright);
+  --brand-deep: var(--brand-dim);
+  --brand-hover: #3aa0ff;
+  --gradient-brand: linear-gradient(180deg, #2aa0ff, var(--brand));
+  --gradient-brand-soft: linear-gradient(135deg, rgba(30, 144, 255, 0.18) 0%, rgba(0, 102, 214, 0.05) 100%);
+  --gradient-chrome: linear-gradient(180deg, var(--chrome-1), var(--chrome-2));
+  --gradient-stat-glow: radial-gradient(circle at top right, rgba(30, 144, 255, 0.18) 0%, transparent 60%);
+  --gradient-sidebar: linear-gradient(180deg, #0d0d10 0%, #070708 100%);
+  --shadow-md: var(--shadow);
+  --shadow-glow: 0 4px 14px rgba(30, 144, 255, 0.3);
+  --shadow-chrome: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 @theme inline {
