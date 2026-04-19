@@ -146,6 +146,7 @@ function ClientDetailPage() {
                     <th className="px-6 py-3 font-semibold">Type</th>
                     <th className="px-6 py-3 font-semibold">Year Built</th>
                     <th className="px-6 py-3 text-right font-semibold">Jobs</th>
+                    <th className="px-6 py-3 text-right font-semibold">Roof</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -155,6 +156,14 @@ function ClientDetailPage() {
                       <td className="px-6 py-3 capitalize text-muted-foreground">{p.property_type ?? "—"}</td>
                       <td className="px-6 py-3 font-mono-num text-muted-foreground">{p.year_built ?? "—"}</td>
                       <td className="px-6 py-3 text-right font-mono-num text-muted-foreground">{propertyJobCount(p.id)}</td>
+                      <td className="px-6 py-3 text-right">
+                        <button
+                          onClick={() => setRoofProp({ id: p.id, lat: p.lat ? Number(p.lat) : null, lng: p.lng ? Number(p.lng) : null })}
+                          className="text-xs font-semibold text-[var(--brand)] hover:underline"
+                        >
+                          Measure →
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
