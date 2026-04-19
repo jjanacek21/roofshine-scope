@@ -90,7 +90,12 @@ function PriceBooksPage() {
             <tbody>
               {books.map((b) => (
                 <tr key={b.id} className="border-t hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border)" }}>
-                  <td className="px-6 py-3 font-medium text-foreground">{b.name}</td>
+                  <td className="px-6 py-3 font-medium text-foreground">
+                    <div className="flex items-center gap-2">
+                      <span>{b.name}</span>
+                      <PricingTypeBadge type={b.pricing_type} isDefault={b.is_default} />
+                    </div>
+                  </td>
                   <td className="px-6 py-3">
                     {b.jurisdiction ? (
                       <span className="rounded-md border px-2 py-0.5 text-xs text-foreground" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}>
