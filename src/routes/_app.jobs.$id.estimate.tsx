@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Sparkles, Layers } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -24,6 +24,8 @@ import {
   type EstimatePctEdits,
 } from "@/components/estimate/EstimateTotalsPanel";
 import { StatusBadge } from "@/components/brand/StatusBadge";
+import { MacroPicker, type MacroPickerItem } from "@/components/estimate/MacroPicker";
+import { AISuggestionsPanel } from "@/components/estimate/AISuggestionsPanel";
 import type { Trade } from "@/lib/trades";
 
 export const Route = createFileRoute("/_app/jobs/$id/estimate")({
