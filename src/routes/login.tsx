@@ -78,12 +78,20 @@ function LoginPage() {
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label
-              className="text-xs font-semibold"
-              style={{ color: "var(--text-dim)" }}
-            >
-              Password
-            </label>
+            <div className="flex items-center justify-between">
+              <label
+                className="text-xs font-semibold"
+                style={{ color: "var(--text-dim)" }}
+              >
+                Password
+              </label>
+              <Link
+                to="/forgot-password"
+                className="text-xs font-semibold text-[var(--brand)] hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <input
               type="password"
               required
