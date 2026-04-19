@@ -371,6 +371,59 @@ export type Database = {
           },
         ]
       }
+      job_photos: {
+        Row: {
+          ai_analysis: Json
+          caption: string | null
+          company_id: string
+          created_at: string
+          id: string
+          job_id: string
+          matched_line_items: Json
+          status: string
+          storage_path: string
+          trade_hint: string | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          ai_analysis?: Json
+          caption?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          job_id: string
+          matched_line_items?: Json
+          status?: string
+          storage_path: string
+          trade_hint?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          ai_analysis?: Json
+          caption?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          matched_line_items?: Json
+          status?: string
+          storage_path?: string
+          trade_hint?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_photos_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           claim_number: string | null
