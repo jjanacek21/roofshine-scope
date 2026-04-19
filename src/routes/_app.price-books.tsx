@@ -10,6 +10,19 @@ export const Route = createFileRoute("/_app/price-books")({
   component: PriceBooksPage,
 });
 
+function PricingTypeBadge({ type, isDefault }: { type: string | null; isDefault: boolean | null }) {
+  const label = isDefault ? "Default" : type === "retail" ? "Retail" : "Insurance";
+  const color = isDefault ? "#a855f7" : type === "retail" ? "#10b981" : "#3b82f6";
+  return (
+    <span
+      className="rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+      style={{ borderColor: color, color }}
+    >
+      {label}
+    </span>
+  );
+}
+
 function PriceBooksPage() {
   const { data: books = [], isLoading } = useQuery({
     queryKey: ["price-books"],
