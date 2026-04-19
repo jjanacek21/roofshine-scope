@@ -1,58 +1,96 @@
 
-User picked option (b): global Mapbox token via edge function, with a reminder to switch to per-company before scaling past 10 users. Continue Phase B.
+This is a meaty feature request. Let me unpack what's actually being asked.
 
-Save the reminder to memory, then plan the Phase B build.
+## Decomposing the request
 
-## Phase B Plan
+User wants:
+1. **Master admin portal** — upload price list **PDFs** (not Xactimate spreadsheets) per zip code/region
+2. **AI extracts pricing** from those PDFs into structured line items (zip-coded)
+3. **Photo → line item matching** — when end user uploads job photos, AI matches what's visible to line items in the price book for that zip
+4. **Prompt for extra details** — quantity, size, dimensions… **except roofing**, where measurements should already exist (from a roof report — EagleView, Hover, manual sketch?)
+5. **Manual product search** — type product name → add to estimate (for things not photographed)
+6. **AI suggests companion line items** — based on what's already on the estimate + photos + trade + insurance requirements + building codes
 
-### B0. Memory
-Save reminder to `mem://index.md` Core: "Mapbox token served via global edge function. Switch to per-company storage before 10+ active companies."
+## What already exists
 
-### B1. Mapbox token endpoint
-- Server route `src/routes/api.mapbox-token.ts` (GET) — requires auth via `requireSupabaseAuth` pattern, returns `{ token: process.env.MAPBOX_API_TOKEN }`. No CORS needed (same origin).
-- `src/hooks/useMapboxToken.ts` — React Query hook fetching the token, 1hr staleTime.
-- Install `mapbox-gl` + `@mapbox/mapbox-gl-geocoder` + types.
+From schema/files I can see:
+- `price_books` + `line_item_prices` + `line_item_master` — already wired for Xactimate xlsx upload
+- `companion_rules` table — manual rule system, not AI-driven yet
+- `properties` with lat/lng/zip
+- `jobs` linked to `price_book_id` (auto-resolved by zip)
+- `estimates` + `estimate_line_items`
+- `LOVABLE_API_KEY` available → Lovable AI (Gemini/GPT-5 with vision)
+- `xactimate-uploads` storage bucket (private)
+- No `job_photos` table, no roof measurements table, no AI suggestion log
 
-### B2. Address autocomplete component
-- `src/components/maps/AddressAutocomplete.tsx` — wraps `MapboxGeocoder` in a styled input. Emits `{ address, city, state, zip, lat, lng }` on selection. Skeleton while token loads.
+## Three big gaps
 
-### B3. Price Book wizard (`/price-books/new`) — 3 steps
-New files:
-- `src/routes/_app.price-books.new.tsx` — wizard shell with progress dots
-- `src/components/pricebook/MetadataStep.tsx` — name, jurisdiction dropdown, zip chip input, effective month, notes
-- `src/components/pricebook/UploadParseStep.tsx` — react-dropzone, xlsx parse first 50 rows, column-mapping UI with auto-detect via `detectColumnMapping()` from `xactimate-parser.ts`
-- `src/components/pricebook/MatchConfirmStep.tsx` — 3 tabs (Update / New / Ignored), trade auto-detect using `detectTradeFromCode()`, summary, Confirm button
-- Bulk insert: chunk 500 rows via `Promise.all`, upload source to `xactimate-uploads/{company_id}/{ts}-{filename}`, insert price_book → batch insert line_item_master for new → batch insert line_item_prices for all.
+**Gap 1 — PDF parsing.** Xactimate xlsx parsing is already built. PDF price lists are different. PDFs need either text extraction + LLM structuring, or vision-LLM page-by-page. PDFs from carriers/manufacturers vary wildly in format. Solution: edge function that downloads the PDF, runs it through Gemini 2.5 Pro (vision + long context), uses tool-calling to return `[{code, name, unit, unit_price, category, …}]`. Then UI shows a review/match step (just like the existing xlsx wizard's step 3) before commit.
 
-### B4. Price Books list (`/price-books`) — full rewrite
-Update existing `src/routes/_app.price-books.tsx`:
-- 3 stat cards (Active Books, Last Reprice, Total Items Priced)
-- Table: name, jurisdiction badge, zip chips, effective_month formatted, item_count, status, created_by/at
-- Per-row actions: View (modal with prices), Duplicate & Reprice (→ `/price-books/new?dup=ID`), Toggle Active, Download Source
-- "Upload New Book" chrome button → `/price-books/new`
+**Gap 2 — Master admin scope.** Currently price books are company-scoped (`company_id` required). User wants **master admin** to upload price lists that apply across companies (or at least a "platform price book" that companies can adopt). Need a decision: are these admin-uploaded books **shared/global** or **per-company seeded by admin**?
 
-### B5. Client detail page (`/clients/$id`)
-New file `src/routes/_app.clients.$id.tsx`:
-- Header with client name + contact meta
-- Tabs: Properties | Jobs
-- Properties: table + "Add Property" drawer using `AddressAutocomplete` + property_type/year_built/roof_type/notes
-- Jobs: filtered jobs table + "New Job for this client" → `/jobs/new?client_id=ID`
-- Update existing `_app.clients.tsx` rows to link to detail page
+**Gap 3 — Roof measurements.** "Don't prompt for size if it's the roof, you should have measurements." Where do measurements come from? Three options:
+- (a) User uploads a roof report PDF (EagleView/Hover/RoofR) → AI extracts squares/LF/pitch
+- (b) Manual sketch tool (out of scope this round)
+- (c) User types them in a roof-measurements form once per property
 
-### B6. New Job wizard (`/jobs/new`) — 4 steps
-New files:
-- `src/routes/_app.jobs.new.tsx` — wizard shell, reads `?client_id=` query param to skip step 1
-- `src/components/job/ClientStep.tsx` — existing search OR inline new client form
-- `src/components/job/PropertyStep.tsx` — selectable property cards or new property form
-- `src/components/job/JobDetailsStep.tsx` — auto-gen job_number `JOB-YYYYMM-XXXX` (count this month + 1), primary_trade dropdown, job_type, conditional claim/carrier, notes
-- `src/components/job/ReviewStep.tsx` — summary + price book lookup query (filter active where zip in zip_codes, ordered by effective_month DESC), warning if none, Create button
-- On submit: insert property if new, insert job with `price_book_id` + `primary_trade`, redirect to `/jobs/$id`
+## Things to ask the user before planning further
 
-### B7. Sidebar/route updates
-- `routeTree.gen.ts` is auto-regenerated, don't touch manually
-- Verify sidebar links still resolve
+I'll group into 3 questions max so we don't ping-pong.
 
-### Files to add: ~14 components, ~6 routes, 1 hook, 1 server route
+## Plan once decided
 
-### Not in this round
-Job detail page (Build 3), Mapbox satellite drawing, photo upload, estimate builder, PDF.
+**Phase 1 — PDF price book ingestion (admin)**
+- New route `admin.price-lists.tsx` (super_admin only)
+- Upload PDF → store in new `admin-price-lists` bucket
+- Edge function `extract-price-list-pdf`: pulls PDF, sends to `google/gemini-2.5-pro` with vision + tool-calling, returns line items
+- Review screen with same 3-tab match/confirm UI as xlsx flow
+- Commit creates a `price_books` row (with new flag `is_global = true` and `company_id = null` allowed) + `line_item_prices`
+- RLS: global price books readable by all authenticated users
+
+**Phase 2 — Photo analysis + line item suggestion**
+- New `job_photos` table (job_id, storage_path, ai_analysis jsonb, created_at)
+- New storage bucket `job-photos` (private, company-scoped path)
+- Estimate builder UI: photo gallery + "Analyze with AI" button
+- Edge function `analyze-job-photos`:
+  - Inputs: photo URLs, job's `price_book_id`, primary trade, current estimate line items
+  - Sends to `google/gemini-2.5-pro` with vision + structured output
+  - Returns: `{detected_items: [{matched_line_item_id, confidence, needs_dimensions: bool, suggested_qty?, notes}], companion_suggestions: [{code, reason, code_or_insurance_basis}]}`
+- For each detected item: if `needs_dimensions` → modal asks user for qty/size; if trade is roofing AND roof measurements exist → auto-fill; otherwise prompt
+- Add to estimate via existing `estimate_line_items` insert
+
+**Phase 3 — Roof measurements**
+- New `roof_measurements` table on `properties` (squares, eaves_lf, rakes_lf, ridges_lf, hips_lf, valleys_lf, pitch, source: 'manual'|'eagleview'|'hover')
+- Either manual form OR upload report PDF → AI extract (similar to price list flow)
+
+**Phase 4 — Manual line item search + add**
+- Estimate builder: typeahead search across active price book's line items by code/name
+- Add → estimate row, prompt for qty (or use measurement if roofing)
+
+**Phase 5 — Companion suggestions**
+- After each line item added/photo analyzed, fire `suggest-companion-items` edge function
+- Inputs: current estimate items, trade, jurisdiction, photos
+- Prompt the AI specifically about insurance carrier requirements (dump fees, permits, code-required items) + Florida building code essentials
+- Surface suggestions as a sidebar "Recommended additions" with one-click add
+
+**Database additions needed**
+- Allow `price_books.company_id` to be nullable + add `is_global boolean default false` + adjust RLS so global books are readable by all
+- New tables: `job_photos`, `roof_measurements`
+- New storage buckets: `admin-price-lists` (private, super_admin), `job-photos` (private, company-scoped)
+
+**Edge functions needed**
+- `extract-price-list-pdf` (PDF → structured line items)
+- `analyze-job-photos` (photos + price book → matched items + suggestions)
+- `extract-roof-report` (optional, for EagleView/Hover PDFs)
+- `suggest-companion-items` (current estimate → recommended additions)
+
+All four will use Lovable AI Gateway with `google/gemini-2.5-pro` (vision + long context + tool-calling).
+
+## Scope reality
+
+This is realistically **3 build rounds**, not one. I'll propose splitting:
+- **Round 1**: Admin PDF price-list upload + extraction + global price book support
+- **Round 2**: Job photos table/upload + photo-to-line-item matching + manual product search in estimate
+- **Round 3**: Roof measurements + AI companion suggestions sidebar
+
+Need answers to 3 questions before kicking off Round 1.
