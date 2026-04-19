@@ -1,32 +1,18 @@
-import { useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
-import { Camera, Loader2, Sparkles, Trash2, ImageIcon } from "lucide-react";
-
-type Photo = {
-  id: string;
-  storage_path: string;
-  caption: string | null;
-  trade_hint: string | null;
-  status: string;
-  ai_analysis: Record<string, unknown>;
-  matched_line_items: Array<{
-    description: string;
-    suggested_code?: string;
-    suggested_qty?: number;
-    unit?: string;
-    confidence: string;
-    needs_user_input?: string[];
-  }>;
-};
+import { ImageIcon } from "lucide-react";
+import { PhotoUploader } from "./PhotoUploader";
+import { PhotoFilterBar, DEFAULT_FILTERS, type PhotoFilters } from "./PhotoFilterBar";
+import { PhotoCard, type PhotoRow } from "./PhotoCard";
+import { PhotoLightbox } from "./PhotoLightbox";
 
 export function JobPhotosPanel({ jobId }: { jobId: string }) {
-  const { data: profile } = useProfile();
   const qc = useQueryClient();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [filters, setFilters] = useState<PhotoFilters>(DEFAULT_FILTERS);
+  const [lightboxId, setLightboxId] = useState<string | null>(null);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
 
   const { data: photos = [] } = useQuery({
     queryKey: ["job-photos", jobId],
@@ -36,69 +22,47 @@ export function JobPhotosPanel({ jobId }: { jobId: string }) {
         .select("*")
         .eq("job_id", jobId)
         .order("created_at", { ascending: false });
-      const list = (data ?? []) as unknown as Photo[];
-      // Sign URLs in parallel
-      const urls: Record<string, string> = {};
-      await Promise.all(
-        list.map(async (p) => {
-          const { data: s } = await supabase.storage
-            .from("roof-photos")
-            .createSignedUrl(p.storage_path, 3600);
-          if (s?.signedUrl) urls[p.id] = s.signedUrl;
-        }),
-      );
-      setSignedUrls(urls);
-      return list;
+      return (data ?? []) as unknown as PhotoRow[];
     },
   });
 
-  const upload = useMutation({
-    mutationFn: async (files: FileList) => {
-      if (!profile?.company_id) throw new Error("No company");
-      const ts = Date.now();
-      for (let i = 0; i < files.length; i++) {
-        const f = files[i];
-        const ext = f.name.split(".").pop() ?? "jpg";
-        const path = `${profile.company_id}/${jobId}/${ts}-${i}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("roof-photos").upload(path, f, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-        if (upErr) throw upErr;
-        const { error: insErr } = await supabase.from("job_photos").insert({
-          job_id: jobId,
-          company_id: profile.company_id,
-          uploaded_by: profile.id,
-          storage_path: path,
-        });
-        if (insErr) throw insErr;
+  const filtered = useMemo(() => {
+    return photos.filter((p) => {
+      if (filters.tag !== "all" && p.tag !== filters.tag) return false;
+      if (filters.trade !== "all") {
+        const trade = p.ai_analysis?.trade_detected ?? p.trade_hint;
+        if (trade !== filters.trade) return false;
       }
-    },
-    onSuccess: () => {
-      toast.success("Photos uploaded");
-      qc.invalidateQueries({ queryKey: ["job-photos", jobId] });
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Upload failed"),
-  });
+      if (filters.analyzed === "analyzed" && p.status !== "analyzed") return false;
+      if (filters.analyzed === "unanalyzed" && p.status === "analyzed") return false;
+      return true;
+    });
+  }, [photos, filters]);
+
+  const unanalyzedCount = photos.filter((p) => p.status !== "analyzed").length;
+  const lightboxPhoto = photos.find((p) => p.id === lightboxId) ?? null;
+
+  const callAnalyze = async (photoId: string) => {
+    const { data: s } = await supabase.auth.getSession();
+    const token = s.session?.access_token;
+    if (!token) throw new Error("Not authenticated");
+    const r = await fetch("/api/analyze-job-photos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ photo_id: photoId }),
+    });
+    if (!r.ok) throw new Error((await r.text()) || "AI analysis failed");
+    return r.json();
+  };
 
   const analyze = useMutation({
     mutationFn: async (photoId: string) => {
-      const { data: s } = await supabase.auth.getSession();
-      const accessToken = s.session?.access_token;
-      if (!accessToken) throw new Error("Not authenticated");
-      const r = await fetch("/api/analyze-job-photos", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ photo_id: photoId }),
-      });
-      if (!r.ok) {
-        const txt = await r.text();
-        throw new Error(txt || "AI analysis failed");
+      setAnalyzingId(photoId);
+      try {
+        return await callAnalyze(photoId);
+      } finally {
+        setAnalyzingId(null);
       }
-      return r.json();
     },
     onSuccess: () => {
       toast.success("Analysis complete");
@@ -107,42 +71,58 @@ export function JobPhotosPanel({ jobId }: { jobId: string }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Analysis failed"),
   });
 
+  const analyzeAll = useMutation({
+    mutationFn: async () => {
+      const targets = photos.filter((p) => p.status !== "analyzed");
+      for (const p of targets) {
+        try {
+          setAnalyzingId(p.id);
+          await callAnalyze(p.id);
+        } catch (e) {
+          console.error("analyze failed", p.id, e);
+        }
+      }
+      setAnalyzingId(null);
+      return targets.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`Analyzed ${n} photo${n === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["job-photos", jobId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Batch analysis failed"),
+  });
+
   const del = useMutation({
-    mutationFn: async (p: Photo) => {
-      await supabase.storage.from("roof-photos").remove([p.storage_path]);
+    mutationFn: async (p: PhotoRow) => {
+      const base = p.storage_path.replace(/\.[^.]+$/, "");
+      await supabase.storage.from("roof-photos").remove([p.storage_path, `${base}_thumb.jpg`]);
       await supabase.from("job_photos").delete().eq("id", p.id);
     },
     onSuccess: () => {
+      toast.success("Photo deleted");
       qc.invalidateQueries({ queryKey: ["job-photos", jobId] });
     },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
   });
+
+  const handleAddToEstimate = () => {
+    toast.info("Open the Estimate tab to apply suggested line items");
+  };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Job Photos ({photos.length})
-        </h2>
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={upload.isPending}
-          className="btn-brand inline-flex h-9 items-center gap-2 rounded-md px-4 text-xs font-semibold disabled:opacity-40"
-        >
-          {upload.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-          Upload Photos
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          multiple
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files?.length) upload.mutate(e.target.files);
-            e.target.value = "";
-          }}
+      <PhotoUploader jobId={jobId} />
+
+      {photos.length > 0 && (
+        <PhotoFilterBar
+          filters={filters}
+          onChange={setFilters}
+          count={filtered.length}
+          onAnalyzeAll={() => analyzeAll.mutate()}
+          analyzeAllPending={analyzeAll.isPending}
+          unanalyzedCount={unanalyzedCount}
         />
-      </div>
+      )}
 
       {photos.length === 0 ? (
         <div
@@ -153,74 +133,31 @@ export function JobPhotosPanel({ jobId }: { jobId: string }) {
           <p className="text-sm text-muted-foreground">No photos yet — upload to start AI analysis.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {photos.map((p) => (
-            <div
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {filtered.map((p) => (
+            <PhotoCard
               key={p.id}
-              className="overflow-hidden rounded-xl border"
-              style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
-            >
-              {signedUrls[p.id] ? (
-                <img src={signedUrls[p.id]} alt={p.caption ?? ""} className="h-44 w-full object-cover" />
-              ) : (
-                <div className="h-44 w-full animate-pulse bg-[var(--surface)]" />
-              )}
-              <div className="space-y-2 p-3">
-                <div className="flex items-center justify-between">
-                  <span
-                    className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase"
-                    style={{
-                      color: p.status === "analyzed" ? "var(--brand)" : "var(--muted-foreground)",
-                      backgroundColor: "var(--surface)",
-                    }}
-                  >
-                    {p.status}
-                  </span>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => analyze.mutate(p.id)}
-                      disabled={analyze.isPending}
-                      className="inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] hover:bg-[var(--surface-hover)] disabled:opacity-40"
-                      style={{ borderColor: "var(--border)" }}
-                    >
-                      <Sparkles className="h-3 w-3" />
-                      Analyze
-                    </button>
-                    <button
-                      onClick={() => del.mutate(p)}
-                      className="inline-flex h-7 items-center justify-center rounded-md border px-2 text-muted-foreground hover:text-red-400"
-                      style={{ borderColor: "var(--border)" }}
-                      aria-label="Delete photo"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-                {p.matched_line_items?.length > 0 && (
-                  <div className="space-y-1">
-                    {p.matched_line_items.slice(0, 4).map((m, i) => (
-                      <div key={i} className="text-[11px] text-muted-foreground">
-                        <span className="font-semibold text-foreground">
-                          {m.suggested_code ? `[${m.suggested_code}] ` : ""}
-                          {m.description}
-                        </span>
-                        {m.suggested_qty && m.unit && (
-                          <span className="ml-1 font-mono-num">
-                            · {m.suggested_qty} {m.unit}
-                          </span>
-                        )}
-                        <span className="ml-1 text-[10px] uppercase tracking-wide opacity-60">
-                          {m.confidence}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+              photo={p}
+              onView={() => setLightboxId(p.id)}
+              onAnalyze={() => analyze.mutate(p.id)}
+              onDelete={() => {
+                if (confirm("Delete this photo?")) del.mutate(p);
+              }}
+              onAddToEstimate={handleAddToEstimate}
+              analyzing={analyzingId === p.id}
+            />
           ))}
         </div>
       )}
+
+      <PhotoLightbox
+        photo={lightboxPhoto}
+        onClose={() => setLightboxId(null)}
+        onUpdated={() => qc.invalidateQueries({ queryKey: ["job-photos", jobId] })}
+        onReAnalyze={(id) => analyze.mutate(id)}
+        onAddToEstimate={handleAddToEstimate}
+        analyzing={analyzingId === lightboxPhoto?.id}
+      />
     </div>
   );
 }

@@ -38,7 +38,6 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
         const { photo_id } = body;
         if (!photo_id) return Response.json({ error: "photo_id required" }, { status: 400 });
 
-        // Load photo + job + price book context
         const { data: photo } = await supabase
           .from("job_photos")
           .select("*, jobs!inner(id, primary_trade, price_book_id, company_id)")
@@ -46,7 +45,6 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
           .maybeSingle();
         if (!photo) return Response.json({ error: "Photo not found" }, { status: 404 });
 
-        // Signed URL for the photo
         const { data: signed } = await supabase.storage
           .from("roof-photos")
           .createSignedUrl(photo.storage_path, 600);
@@ -54,7 +52,6 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
           return Response.json({ error: "Could not sign photo URL" }, { status: 500 });
         }
 
-        // Fetch line item catalog (limit + filter by trade hint when present)
         const job = (photo as unknown as { jobs: { primary_trade: string | null; price_book_id: string | null; company_id: string } }).jobs;
         let q = supabase
           .from("line_item_master")
@@ -73,13 +70,31 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
           {
             type: "function",
             function: {
-              name: "match_line_items",
-              description: "Match photo content to catalog line items",
+              name: "analyze_photo",
+              description: "Records a structured construction/damage analysis of a single photo.",
               parameters: {
                 type: "object",
                 properties: {
+                  trade_detected: {
+                    type: "string",
+                    enum: ["roofing", "exterior", "windows", "interior", "hvac", "plumbing", "electrical", "mitigation", "other"],
+                  },
+                  asset_type: { type: "string", description: "e.g. asphalt shingle roof, vinyl siding, double-hung window" },
+                  material: { type: "string" },
+                  condition_score: { type: "integer", minimum: 0, maximum: 100, description: "0=destroyed, 100=new" },
+                  estimated_age_range: { type: "string", description: "e.g. 5-10 years, 15-20 years" },
+                  observed_defects: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Only defects ACTUALLY visible in photo. Never invent.",
+                  },
+                  severity: { type: "string", enum: ["cosmetic", "minor", "moderate", "major", "critical"] },
+                  probable_cause: { type: "string" },
+                  recommended_actions: { type: "array", items: { type: "string" } },
+                  safety_concerns: { type: "array", items: { type: "string" } },
                   observed_items: {
                     type: "array",
+                    description: "Suggested line items keyed to the catalog when possible.",
                     items: {
                       type: "object",
                       properties: {
@@ -96,16 +111,27 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
                       required: ["description", "confidence"],
                     },
                   },
-                  trade_detected: { type: "string" },
                   damage_notes: { type: "string" },
+                  overall_confidence: { type: "number", minimum: 0, maximum: 1 },
                 },
-                required: ["observed_items"],
+                required: ["observed_items", "trade_detected", "condition_score", "observed_defects"],
               },
             },
           },
         ];
 
-        const userPrompt = `You are an experienced field estimator. Look at this job photo and identify roofing/construction items visible. For each, suggest the best matching line-item code from the catalog below. If you cannot guess size or quantity from the photo, list them in needs_user_input so we can prompt the user.\n\nCATALOG:\n${catalogText || "(no items)"}\n\nReturn JSON via match_line_items.`;
+        const userPrompt = `You are a senior field estimator and damage inspector. Analyze this photo:
+1. Detect the trade (roofing/exterior/windows/interior/hvac/plumbing/electrical/mitigation).
+2. Score the condition 0-100 (0 destroyed, 100 brand new). Be conservative if photo is unclear.
+3. List ONLY defects you actually see — do not invent.
+4. Estimate severity and probable cause.
+5. Suggest line items matching the catalog below when possible. Use needs_user_input for missing dimensions.
+
+CATALOG:
+${catalogText || "(no items)"}
+
+Florida-specific notes: hurricane patterns, HVHZ uplift, stucco cracking, humidity-driven mold, flat roof ponding.
+Return your analysis via the analyze_photo tool.`;
 
         const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -125,7 +151,7 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
               },
             ],
             tools,
-            tool_choice: { type: "function", function: { name: "match_line_items" } },
+            tool_choice: { type: "function", function: { name: "analyze_photo" } },
           }),
         });
         if (!r.ok) {
@@ -133,9 +159,7 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
           return Response.json({ error: "AI gateway error", status: r.status, detail: txt.slice(0, 500) }, { status: 502 });
         }
         const ai = (await r.json()) as {
-          choices?: Array<{
-            message?: { tool_calls?: Array<{ function?: { arguments?: string } }> };
-          }>;
+          choices?: Array<{ message?: { tool_calls?: Array<{ function?: { arguments?: string } }> } }>;
         };
         const args = ai.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
         let parsed: Record<string, unknown> = {};
@@ -150,6 +174,7 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
           .update({
             ai_analysis: parsed,
             matched_line_items: (parsed.observed_items as unknown) ?? [],
+            trade_hint: (parsed.trade_detected as string) ?? photo.trade_hint,
             status: "analyzed",
           })
           .eq("id", photo_id);
