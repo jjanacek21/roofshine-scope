@@ -16,7 +16,8 @@ function PriceBooksPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("price_books")
-        .select("id, name, jurisdiction, zip_codes, effective_month, item_count, status, is_active, created_at, source_file_url")
+        .select("id, name, jurisdiction, zip_codes, effective_month, item_count, status, is_active, created_at, source_file_url, pricing_type, is_default, company_id")
+        .order("is_default", { ascending: false })
         .order("effective_month", { ascending: false, nullsFirst: false });
       return data ?? [];
     },
