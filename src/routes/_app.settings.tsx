@@ -55,11 +55,83 @@ function SettingsPage() {
       >
         {tab === "Company" && <CompanyTab />}
         {tab === "Branding" && <Placeholder name="Branding" />}
-        {tab === "Defaults" && <Placeholder name="Defaults" />}
+        {tab === "Defaults" && <DefaultsTab />}
         {tab === "Trades" && <TradesTab />}
         {tab === "Rules" && <RulesTab />}
         {tab === "Users" && <Placeholder name="Users" />}
         {tab === "Integrations" && <Placeholder name="Integrations" />}
+      </div>
+    </div>
+  );
+}
+
+function DefaultsTab() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const { data: company } = useQuery({
+    queryKey: ["company"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user!.id)
+        .maybeSingle();
+      if (!prof?.company_id) return null;
+      const { data } = await supabase.from("companies").select("*").eq("id", prof.company_id).maybeSingle();
+      return data;
+    },
+  });
+
+  const [autoAdd, setAutoAdd] = useState(false);
+  useEffect(() => {
+    if (company) setAutoAdd(Boolean(company.auto_add_photo_suggestions));
+  }, [company]);
+
+  const save = useMutation({
+    mutationFn: async (next: boolean) => {
+      if (!company) return;
+      const { error } = await supabase
+        .from("companies")
+        .update({ auto_add_photo_suggestions: next })
+        .eq("id", company.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Defaults updated");
+      qc.invalidateQueries({ queryKey: ["company"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (!company) return <p className="text-sm text-muted-foreground">No company on file.</p>;
+
+  return (
+    <div className="max-w-xl space-y-6">
+      <div>
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+          Photo AI
+        </h2>
+        <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-lg border p-4 hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border)" }}>
+          <input
+            type="checkbox"
+            checked={autoAdd}
+            onChange={(e) => {
+              const next = e.target.checked;
+              setAutoAdd(next);
+              save.mutate(next);
+            }}
+            className="mt-0.5 h-4 w-4"
+          />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-foreground">
+              Auto-add AI suggestions to estimate
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              When ON, line items detected from job photos are automatically inserted into the active estimate as drafts (marked with an ✨ AI chip). When OFF, suggestions appear in a review panel at the top of the estimate for you to approve.
+            </p>
+          </div>
+        </label>
       </div>
     </div>
   );
