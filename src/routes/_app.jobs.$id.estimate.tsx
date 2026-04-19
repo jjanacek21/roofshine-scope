@@ -367,7 +367,7 @@ function JobEstimate() {
   useEffect(() => {
     if (codesAppliedRef.current) return;
     if (!activeId || !search.codes) return;
-    const codes = search.codes.split(",").map((c) => c.trim()).filter(Boolean);
+    const codes = search.codes.split(",").map((c: string) => c.trim()).filter(Boolean);
     if (codes.length === 0) return;
     codesAppliedRef.current = true;
     addCodes(codes, "ai_photo");
