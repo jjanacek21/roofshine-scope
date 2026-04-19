@@ -15,13 +15,14 @@ export type LineItem = {
   unit_price: number;
   total: number;
   sort_order: number;
+  source?: string | null;
 };
 
 type Source = "catalog" | "ai" | "rule" | "custom";
 
 function inferSource(item: LineItem): Source {
+  if (item.source === "ai_photo") return "ai";
   if (!item.line_item_id) return "custom";
-  // We don't store source explicitly; default to catalog. Future: add source column.
   return "catalog";
 }
 

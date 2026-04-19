@@ -25,7 +25,7 @@ const WORKSPACE_NAV = [
 
 const ADMIN_NAV = [
   { to: "/catalog", label: "Catalog", icon: BookOpen },
-  { to: "/price-books", label: "Price Books", icon: Library },
+  { to: "/price-books", label: "Pricing", icon: Library },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 

@@ -53,12 +53,15 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
         }
 
         const job = (photo as unknown as { jobs: { primary_trade: string | null; price_book_id: string | null; company_id: string } }).jobs;
+
+        // Pull both company-scoped catalog AND master fallback so suggestions resolve cleanly.
+        const tradeHint = photo.trade_hint ?? job.primary_trade;
         let q = supabase
           .from("line_item_master")
           .select("id, code, name, unit, default_price, trade, category")
           .eq("status", "active")
-          .limit(150);
-        const tradeHint = photo.trade_hint ?? job.primary_trade;
+          .or(`company_id.eq.${job.company_id},company_id.is.null`)
+          .limit(250);
         if (tradeHint) q = q.eq("trade", tradeHint as never);
         const { data: catalog = [] } = await q;
 
@@ -79,14 +82,14 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
                     type: "string",
                     enum: ["roofing", "exterior", "windows", "interior", "hvac", "plumbing", "electrical", "mitigation", "other"],
                   },
-                  asset_type: { type: "string", description: "e.g. asphalt shingle roof, vinyl siding, double-hung window" },
+                  asset_type: { type: "string", description: "e.g. asphalt shingle roof, vinyl siding, double-hung window, drywall ceiling" },
                   material: { type: "string" },
                   condition_score: { type: "integer", minimum: 0, maximum: 100, description: "0=destroyed, 100=new" },
-                  estimated_age_range: { type: "string", description: "e.g. 5-10 years, 15-20 years" },
+                  estimated_age_range: { type: "string" },
                   observed_defects: {
                     type: "array",
                     items: { type: "string" },
-                    description: "Only defects ACTUALLY visible in photo. Never invent.",
+                    description: "Only defects ACTUALLY visible. Never invent.",
                   },
                   severity: { type: "string", enum: ["cosmetic", "minor", "moderate", "major", "critical"] },
                   probable_cause: { type: "string" },
@@ -94,21 +97,17 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
                   safety_concerns: { type: "array", items: { type: "string" } },
                   observed_items: {
                     type: "array",
-                    description: "Suggested line items keyed to the catalog when possible.",
+                    description: "Suggested line items keyed to the catalog. ALWAYS include suggested_qty (estimate from photo if unsure, mark confidence=low).",
                     items: {
                       type: "object",
                       properties: {
                         description: { type: "string" },
-                        suggested_code: { type: "string" },
-                        suggested_qty: { type: "number" },
+                        suggested_code: { type: "string", description: "MUST be a code from the catalog list when possible" },
+                        suggested_qty: { type: "number", description: "Always provide. Estimate visible area/length/count even if approximate." },
                         unit: { type: "string" },
                         confidence: { type: "string", enum: ["low", "medium", "high"] },
-                        needs_user_input: {
-                          type: "array",
-                          items: { type: "string", enum: ["size", "quantity", "length", "area"] },
-                        },
                       },
-                      required: ["description", "confidence"],
+                      required: ["description", "suggested_code", "suggested_qty", "unit", "confidence"],
                     },
                   },
                   damage_notes: { type: "string" },
@@ -120,17 +119,22 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
           },
         ];
 
-        const userPrompt = `You are a senior field estimator and damage inspector. Analyze this photo:
-1. Detect the trade (roofing/exterior/windows/interior/hvac/plumbing/electrical/mitigation).
-2. Score the condition 0-100 (0 destroyed, 100 brand new). Be conservative if photo is unclear.
-3. List ONLY defects you actually see — do not invent.
-4. Estimate severity and probable cause.
-5. Suggest line items matching the catalog below when possible. Use needs_user_input for missing dimensions.
+        const userPrompt = `You are a senior residential restoration estimator. Analyze this jobsite photo for damage and required repairs.
 
-CATALOG:
+GUIDANCE:
+- Identify the trade (roofing, exterior siding/stucco, windows, interior drywall/flooring, HVAC, plumbing, electrical, water mitigation).
+- Score condition 0-100. Be conservative when image is unclear.
+- For ROOF photos: estimate squares of damage when visible (1 SQ = 100 SF), call out missing/lifted shingles, hail bruises, exposed underlayment, flashing failures.
+- For SIDING/STUCCO photos: estimate sqft of affected wall sections; flag impact damage, cracks, water staining.
+- For INTERIOR photos: estimate sqft of water-damaged drywall/ceiling, affected flooring, and call out mold patterns.
+- For WINDOWS: count units and identify glass type if visible.
+- ALWAYS suggest at least 2-3 line items per photo when damage is present, picking codes from the catalog when possible.
+- ALWAYS include suggested_qty — estimate from what you see (square footage, linear footage, or count). Mark confidence=low when guessing.
+- Florida-specific: hurricane uplift patterns, HVHZ requirements, stucco hairline cracking, flat-roof ponding, humidity-driven mold.
+
+CATALOG (use these codes when matching):
 ${catalogText || "(no items)"}
 
-Florida-specific notes: hurricane patterns, HVHZ uplift, stucco cracking, humidity-driven mold, flat roof ponding.
 Return your analysis via the analyze_photo tool.`;
 
         const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

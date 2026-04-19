@@ -53,10 +53,21 @@ function NewPriceBookPage() {
     if (!companyId || !parsed) return;
     setSubmitting(true);
     try {
-      // 1. Upload source file
-      const path = `${companyId}/${Date.now()}-${parsed.file.name}`;
-      const { error: upErr } = await supabase.storage.from("xactimate-uploads").upload(path, parsed.file);
-      if (upErr) throw upErr;
+      // 1. Upload source file (best-effort — don't block book creation if storage fails)
+      let path: string | null = null;
+      try {
+        const safeName = parsed.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const candidatePath = `${companyId}/${Date.now()}-${safeName}`;
+        const { error: upErr } = await supabase.storage.from("xactimate-uploads").upload(candidatePath, parsed.file);
+        if (upErr) {
+          console.warn("Source file upload failed:", upErr.message);
+          toast.warning(`Source file not stored: ${upErr.message}. Continuing with line items.`);
+        } else {
+          path = candidatePath;
+        }
+      } catch (storageErr) {
+        console.warn("Source file upload threw:", storageErr);
+      }
 
       // 2. Create price book
       const { data: pb, error: pbErr } = await supabase
@@ -79,7 +90,10 @@ function NewPriceBookPage() {
         })
         .select("id")
         .single();
-      if (pbErr || !pb) throw pbErr ?? new Error("Failed to create price book");
+      if (pbErr || !pb) {
+        const detail = pbErr?.message ?? "Failed to create price book";
+        throw new Error(`Could not create price book: ${detail}`);
+      }
 
       // 3. Resolve all line items: insert new ones, get IDs for existing
       const byCode = new Map(existing.map((e) => [e.code.toUpperCase(), e]));
@@ -136,12 +150,19 @@ function NewPriceBookPage() {
       toast.success(`Price book created with ${priceRows.length} items`);
       navigate({ to: "/price-books" });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Upload failed";
-      toast.error(msg);
+      const msg = e instanceof Error ? e.message : JSON.stringify(e);
+      console.error("Price book create failed:", e);
+      toast.error(msg, { duration: 8000 });
     } finally {
       setSubmitting(false);
     }
   }
+
+  const next1Missing: string[] = [];
+  if (!meta.name) next1Missing.push("Name");
+  if (!meta.jurisdiction) next1Missing.push("Jurisdiction");
+  if (!meta.effective_month) next1Missing.push("Effective month");
+  if (meta.zip_codes.length === 0) next1Missing.push("at least 1 ZIP");
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -202,13 +223,21 @@ function NewPriceBookPage() {
           <ArrowLeft className="h-3.5 w-3.5" /> Back
         </button>
         {step < 3 ? (
-          <button
-            onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
-            disabled={(step === 1 && !canNext1) || (step === 2 && !canNext2)}
-            className="btn-brand inline-flex h-9 items-center gap-1 rounded-md px-4 text-sm font-semibold disabled:opacity-40"
-          >
-            Next <ArrowRight className="h-3.5 w-3.5" />
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
+              disabled={(step === 1 && !canNext1) || (step === 2 && !canNext2)}
+              className="btn-brand inline-flex h-9 items-center gap-1 rounded-md px-4 text-sm font-semibold disabled:opacity-40"
+            >
+              Next <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+            {step === 1 && !canNext1 && (
+              <p className="text-[11px] text-muted-foreground">Missing: {next1Missing.join(", ")}</p>
+            )}
+            {step === 2 && !canNext2 && parsed && (
+              <p className="text-[11px] text-muted-foreground">Map columns: code, name, unit_price</p>
+            )}
+          </div>
         ) : (
           <button
             onClick={handleConfirm}
