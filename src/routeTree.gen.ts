@@ -46,6 +46,11 @@ import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.
 import { Route as AppJobsNewRouteImport } from './routes/_app.jobs.new'
 import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
+import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
+import { Route as AppJobsIdReportRouteImport } from './routes/_app.jobs.$id.report'
+import { Route as AppJobsIdPhotosRouteImport } from './routes/_app.jobs.$id.photos'
+import { Route as AppJobsIdMeasureRouteImport } from './routes/_app.jobs.$id.measure'
+import { Route as AppJobsIdEstimateRouteImport } from './routes/_app.jobs.$id.estimate'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -231,6 +236,31 @@ const AppClientsIdRoute = AppClientsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppClientsRoute,
 } as any)
+const AppJobsIdIndexRoute = AppJobsIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppJobsIdRoute,
+} as any)
+const AppJobsIdReportRoute = AppJobsIdReportRouteImport.update({
+  id: '/report',
+  path: '/report',
+  getParentRoute: () => AppJobsIdRoute,
+} as any)
+const AppJobsIdPhotosRoute = AppJobsIdPhotosRouteImport.update({
+  id: '/photos',
+  path: '/photos',
+  getParentRoute: () => AppJobsIdRoute,
+} as any)
+const AppJobsIdMeasureRoute = AppJobsIdMeasureRouteImport.update({
+  id: '/measure',
+  path: '/measure',
+  getParentRoute: () => AppJobsIdRoute,
+} as any)
+const AppJobsIdEstimateRoute = AppJobsIdEstimateRouteImport.update({
+  id: '/estimate',
+  path: '/estimate',
+  getParentRoute: () => AppJobsIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -263,12 +293,17 @@ export interface FileRoutesByFullPath {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/admin/': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
-  '/jobs/$id': typeof AppJobsIdRoute
+  '/jobs/$id': typeof AppJobsIdRouteWithChildren
   '/jobs/new': typeof AppJobsNewRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/jobs/': typeof AppJobsIndexRoute
   '/team/': typeof AppTeamIndexRoute
+  '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
+  '/jobs/$id/measure': typeof AppJobsIdMeasureRoute
+  '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
+  '/jobs/$id/report': typeof AppJobsIdReportRoute
+  '/jobs/$id/': typeof AppJobsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
@@ -299,12 +334,16 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
-  '/jobs/$id': typeof AppJobsIdRoute
   '/jobs/new': typeof AppJobsNewRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/jobs': typeof AppJobsIndexRoute
   '/team': typeof AppTeamIndexRoute
+  '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
+  '/jobs/$id/measure': typeof AppJobsIdMeasureRoute
+  '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
+  '/jobs/$id/report': typeof AppJobsIdReportRoute
+  '/jobs/$id': typeof AppJobsIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -339,12 +378,17 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/_app/clients/$id': typeof AppClientsIdRoute
-  '/_app/jobs/$id': typeof AppJobsIdRoute
+  '/_app/jobs/$id': typeof AppJobsIdRouteWithChildren
   '/_app/jobs/new': typeof AppJobsNewRoute
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
   '/_app/team/': typeof AppTeamIndexRoute
+  '/_app/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
+  '/_app/jobs/$id/measure': typeof AppJobsIdMeasureRoute
+  '/_app/jobs/$id/photos': typeof AppJobsIdPhotosRoute
+  '/_app/jobs/$id/report': typeof AppJobsIdReportRoute
+  '/_app/jobs/$id/': typeof AppJobsIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -385,6 +429,11 @@ export interface FileRouteTypes {
     | '/team/invites'
     | '/jobs/'
     | '/team/'
+    | '/jobs/$id/estimate'
+    | '/jobs/$id/measure'
+    | '/jobs/$id/photos'
+    | '/jobs/$id/report'
+    | '/jobs/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/forgot-password'
@@ -415,12 +464,16 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/clients/$id'
-    | '/jobs/$id'
     | '/jobs/new'
     | '/price-books/new'
     | '/team/invites'
     | '/jobs'
     | '/team'
+    | '/jobs/$id/estimate'
+    | '/jobs/$id/measure'
+    | '/jobs/$id/photos'
+    | '/jobs/$id/report'
+    | '/jobs/$id'
   id:
     | '__root__'
     | '/_app'
@@ -460,6 +513,11 @@ export interface FileRouteTypes {
     | '/_app/team/invites'
     | '/_app/jobs/'
     | '/_app/team/'
+    | '/_app/jobs/$id/estimate'
+    | '/_app/jobs/$id/measure'
+    | '/_app/jobs/$id/photos'
+    | '/_app/jobs/$id/report'
+    | '/_app/jobs/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -737,6 +795,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsIdRouteImport
       parentRoute: typeof AppClientsRoute
     }
+    '/_app/jobs/$id/': {
+      id: '/_app/jobs/$id/'
+      path: '/'
+      fullPath: '/jobs/$id/'
+      preLoaderRoute: typeof AppJobsIdIndexRouteImport
+      parentRoute: typeof AppJobsIdRoute
+    }
+    '/_app/jobs/$id/report': {
+      id: '/_app/jobs/$id/report'
+      path: '/report'
+      fullPath: '/jobs/$id/report'
+      preLoaderRoute: typeof AppJobsIdReportRouteImport
+      parentRoute: typeof AppJobsIdRoute
+    }
+    '/_app/jobs/$id/photos': {
+      id: '/_app/jobs/$id/photos'
+      path: '/photos'
+      fullPath: '/jobs/$id/photos'
+      preLoaderRoute: typeof AppJobsIdPhotosRouteImport
+      parentRoute: typeof AppJobsIdRoute
+    }
+    '/_app/jobs/$id/measure': {
+      id: '/_app/jobs/$id/measure'
+      path: '/measure'
+      fullPath: '/jobs/$id/measure'
+      preLoaderRoute: typeof AppJobsIdMeasureRouteImport
+      parentRoute: typeof AppJobsIdRoute
+    }
+    '/_app/jobs/$id/estimate': {
+      id: '/_app/jobs/$id/estimate'
+      path: '/estimate'
+      fullPath: '/jobs/$id/estimate'
+      preLoaderRoute: typeof AppJobsIdEstimateRouteImport
+      parentRoute: typeof AppJobsIdRoute
+    }
   }
 }
 
@@ -777,6 +870,26 @@ const AppTeamRouteChildren: AppTeamRouteChildren = {
 const AppTeamRouteWithChildren =
   AppTeamRoute._addFileChildren(AppTeamRouteChildren)
 
+interface AppJobsIdRouteChildren {
+  AppJobsIdEstimateRoute: typeof AppJobsIdEstimateRoute
+  AppJobsIdMeasureRoute: typeof AppJobsIdMeasureRoute
+  AppJobsIdPhotosRoute: typeof AppJobsIdPhotosRoute
+  AppJobsIdReportRoute: typeof AppJobsIdReportRoute
+  AppJobsIdIndexRoute: typeof AppJobsIdIndexRoute
+}
+
+const AppJobsIdRouteChildren: AppJobsIdRouteChildren = {
+  AppJobsIdEstimateRoute: AppJobsIdEstimateRoute,
+  AppJobsIdMeasureRoute: AppJobsIdMeasureRoute,
+  AppJobsIdPhotosRoute: AppJobsIdPhotosRoute,
+  AppJobsIdReportRoute: AppJobsIdReportRoute,
+  AppJobsIdIndexRoute: AppJobsIdIndexRoute,
+}
+
+const AppJobsIdRouteWithChildren = AppJobsIdRoute._addFileChildren(
+  AppJobsIdRouteChildren,
+)
+
 interface AppRouteChildren {
   AppCatalogRoute: typeof AppCatalogRoute
   AppClientsRoute: typeof AppClientsRouteWithChildren
@@ -784,7 +897,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppTeamRoute: typeof AppTeamRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
-  AppJobsIdRoute: typeof AppJobsIdRoute
+  AppJobsIdRoute: typeof AppJobsIdRouteWithChildren
   AppJobsNewRoute: typeof AppJobsNewRoute
   AppJobsIndexRoute: typeof AppJobsIndexRoute
 }
@@ -796,7 +909,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppTeamRoute: AppTeamRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
-  AppJobsIdRoute: AppJobsIdRoute,
+  AppJobsIdRoute: AppJobsIdRouteWithChildren,
   AppJobsNewRoute: AppJobsNewRoute,
   AppJobsIndexRoute: AppJobsIndexRoute,
 }

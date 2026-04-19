@@ -134,42 +134,60 @@ export type Database = {
           address: string | null
           created_at: string
           default_markup: number
+          default_markup_pct: number
+          default_overhead_pct: number
+          default_profit_pct: number
           default_tax_rate: number
           email: string | null
+          financing_blurb: string | null
           id: string
+          license_numbers: string[]
           logo_url: string | null
           name: string
           phone: string | null
           trades: Database["public"]["Enums"]["trade_type"][]
           updated_at: string
+          warranty_blurb: string | null
           website: string | null
         }
         Insert: {
           address?: string | null
           created_at?: string
           default_markup?: number
+          default_markup_pct?: number
+          default_overhead_pct?: number
+          default_profit_pct?: number
           default_tax_rate?: number
           email?: string | null
+          financing_blurb?: string | null
           id?: string
+          license_numbers?: string[]
           logo_url?: string | null
           name: string
           phone?: string | null
           trades?: Database["public"]["Enums"]["trade_type"][]
           updated_at?: string
+          warranty_blurb?: string | null
           website?: string | null
         }
         Update: {
           address?: string | null
           created_at?: string
           default_markup?: number
+          default_markup_pct?: number
+          default_overhead_pct?: number
+          default_profit_pct?: number
           default_tax_rate?: number
           email?: string | null
+          financing_blurb?: string | null
           id?: string
+          license_numbers?: string[]
           logo_url?: string | null
           name?: string
           phone?: string | null
           trades?: Database["public"]["Enums"]["trade_type"][]
           updated_at?: string
+          warranty_blurb?: string | null
           website?: string | null
         }
         Relationships: []
@@ -321,36 +339,57 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          hide_pricing: boolean
           id: string
           job_id: string
+          markup_pct: number
           name: string
+          notes: string | null
+          overhead_pct: number
+          profit_pct: number
           status: Database["public"]["Enums"]["estimate_doc_status"]
           subtotal: number
           tax: number
+          tax_pct: number
+          tier: string
           total: number
           updated_at: string
         }
         Insert: {
           company_id: string
           created_at?: string
+          hide_pricing?: boolean
           id?: string
           job_id: string
+          markup_pct?: number
           name: string
+          notes?: string | null
+          overhead_pct?: number
+          profit_pct?: number
           status?: Database["public"]["Enums"]["estimate_doc_status"]
           subtotal?: number
           tax?: number
+          tax_pct?: number
+          tier?: string
           total?: number
           updated_at?: string
         }
         Update: {
           company_id?: string
           created_at?: string
+          hide_pricing?: boolean
           id?: string
           job_id?: string
+          markup_pct?: number
           name?: string
+          notes?: string | null
+          overhead_pct?: number
+          profit_pct?: number
           status?: Database["public"]["Enums"]["estimate_doc_status"]
           subtotal?: number
           tax?: number
+          tax_pct?: number
+          tier?: string
           total?: number
           updated_at?: string
         }
@@ -371,17 +410,53 @@ export type Database = {
           },
         ]
       }
+      generated_reports: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          estimate_id: string | null
+          hide_pricing: boolean
+          id: string
+          job_id: string
+          pdf_path: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          estimate_id?: string | null
+          hide_pricing?: boolean
+          id?: string
+          job_id: string
+          pdf_path: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          estimate_id?: string | null
+          hide_pricing?: boolean
+          id?: string
+          job_id?: string
+          pdf_path?: string
+        }
+        Relationships: []
+      }
       job_photos: {
         Row: {
           ai_analysis: Json
           caption: string | null
           company_id: string
           created_at: string
+          exif_gps: Json | null
           id: string
           job_id: string
           matched_line_items: Json
           status: string
           storage_path: string
+          tag: string | null
+          taken_at: string | null
           trade_hint: string | null
           updated_at: string
           uploaded_by: string | null
@@ -391,11 +466,14 @@ export type Database = {
           caption?: string | null
           company_id: string
           created_at?: string
+          exif_gps?: Json | null
           id?: string
           job_id: string
           matched_line_items?: Json
           status?: string
           storage_path: string
+          tag?: string | null
+          taken_at?: string | null
           trade_hint?: string | null
           updated_at?: string
           uploaded_by?: string | null
@@ -405,11 +483,14 @@ export type Database = {
           caption?: string | null
           company_id?: string
           created_at?: string
+          exif_gps?: Json | null
           id?: string
           job_id?: string
           matched_line_items?: Json
           status?: string
           storage_path?: string
+          tag?: string | null
+          taken_at?: string | null
           trade_hint?: string | null
           updated_at?: string
           uploaded_by?: string | null
@@ -434,6 +515,7 @@ export type Database = {
           insurance_carrier: string | null
           job_number: string | null
           job_type: string | null
+          jurisdiction: string | null
           name: string
           notes: string | null
           price_book_id: string | null
@@ -453,6 +535,7 @@ export type Database = {
           insurance_carrier?: string | null
           job_number?: string | null
           job_type?: string | null
+          jurisdiction?: string | null
           name: string
           notes?: string | null
           price_book_id?: string | null
@@ -472,6 +555,7 @@ export type Database = {
           insurance_carrier?: string | null
           job_number?: string | null
           job_type?: string | null
+          jurisdiction?: string | null
           name?: string
           notes?: string | null
           price_book_id?: string | null

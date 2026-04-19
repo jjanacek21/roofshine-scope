@@ -1,6 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -171,6 +170,14 @@ function JobCard({ job }: { job: Job }) {
           ${Number(job.total_estimate).toLocaleString(undefined, { maximumFractionDigits: 0 })}
         </span>
       </div>
+      <Link
+        to="/jobs/$id"
+        params={{ id: job.id }}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="mt-2 block text-[11px] font-semibold uppercase tracking-wider text-[var(--brand)] hover:underline"
+      >
+        Open →
+      </Link>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -257,23 +257,29 @@ function Dashboard() {
                 {jobs.slice(0, 8).map((j) => (
                   <tr
                     key={j.id}
-                    className="cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
+                    className="transition-colors hover:bg-[var(--bg-hover)]"
                     style={{ borderBottom: "1px solid var(--border)" }}
                   >
                     <td
                       className="px-3 py-3.5 font-mono-num text-[12px]"
                       style={{ color: "var(--text-dim)" }}
                     >
-                      {j.job_number ?? "—"}
+                      <Link to="/jobs/$id" params={{ id: j.id }} className="hover:text-foreground">
+                        {j.job_number ?? "—"}
+                      </Link>
                     </td>
                     <td className="px-3 py-3.5 text-[13px] font-medium text-foreground">
-                      {j.client_id ? clientMap.get(j.client_id) ?? "—" : "—"}
+                      <Link to="/jobs/$id" params={{ id: j.id }} className="hover:text-[var(--brand)]">
+                        {j.client_id ? clientMap.get(j.client_id) ?? "—" : "—"}
+                      </Link>
                     </td>
                     <td
                       className="px-3 py-3.5 text-[13px]"
                       style={{ color: "var(--text-dim)" }}
                     >
-                      {j.property_address ?? j.name}
+                      <Link to="/jobs/$id" params={{ id: j.id }} className="hover:text-foreground">
+                        {j.property_address ?? j.name}
+                      </Link>
                     </td>
                     <td className="px-3 py-3.5">
                       {j.primary_trade ? <TradeBadge trade={j.primary_trade} /> : "—"}
