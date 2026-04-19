@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImageIcon } from "lucide-react";
@@ -10,6 +11,7 @@ import { PhotoLightbox } from "./PhotoLightbox";
 
 export function JobPhotosPanel({ jobId }: { jobId: string }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<PhotoFilters>(DEFAULT_FILTERS);
   const [lightboxId, setLightboxId] = useState<string | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
@@ -105,8 +107,20 @@ export function JobPhotosPanel({ jobId }: { jobId: string }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
   });
 
-  const handleAddToEstimate = () => {
-    toast.info("Open the Estimate tab to apply suggested line items");
+  const handleAddToEstimate = (p?: PhotoRow) => {
+    const photo = p ?? lightboxPhoto;
+    const codes = (photo?.matched_line_items ?? [])
+      .map((it) => it.suggested_code)
+      .filter((c): c is string => !!c);
+    if (codes.length === 0) {
+      toast.info("No suggested codes on this photo yet");
+      return;
+    }
+    navigate({
+      to: "/jobs/$id/estimate",
+      params: { id: jobId },
+      search: { codes: codes.join(",") },
+    });
   };
 
   return (
@@ -143,7 +157,7 @@ export function JobPhotosPanel({ jobId }: { jobId: string }) {
               onDelete={() => {
                 if (confirm("Delete this photo?")) del.mutate(p);
               }}
-              onAddToEstimate={handleAddToEstimate}
+              onAddToEstimate={() => handleAddToEstimate(p)}
               analyzing={analyzingId === p.id}
             />
           ))}
