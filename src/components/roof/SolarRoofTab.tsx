@@ -116,7 +116,12 @@ export function SolarRoofTab({
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: false }), "top-right");
 
     map.on("click", (e) => {
-      // Ignore clicks on existing markers (mapbox handles those separately)
+      // If we're in draw-mode for a pin, append a vertex instead of dropping a new pin.
+      if (drawingPinIdRef.current) {
+        const next = [...drawPointsRef.current, [e.lngLat.lng, e.lngLat.lat]];
+        setDrawPoints(next);
+        return;
+      }
       const newPin: Pin = {
         id: rid(),
         name: `Structure ${pinsStateRef.current.length + 1}`,
@@ -131,6 +136,35 @@ export function SolarRoofTab({
       setActivePinId(newPin.id);
     });
 
+    // Add a source/layer for the in-progress draw polygon
+    map.on("load", () => {
+      if (!map.getSource("ai-draw")) {
+        map.addSource("ai-draw", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+        map.addLayer({
+          id: "ai-draw-fill",
+          type: "fill",
+          source: "ai-draw",
+          paint: { "fill-color": "#3b82f6", "fill-opacity": 0.25 },
+        });
+        map.addLayer({
+          id: "ai-draw-line",
+          type: "line",
+          source: "ai-draw",
+          paint: { "line-color": "#3b82f6", "line-width": 2, "line-dasharray": [2, 2] },
+        });
+        map.addLayer({
+          id: "ai-draw-points",
+          type: "circle",
+          source: "ai-draw",
+          filter: ["==", "$type", "Point"],
+          paint: { "circle-radius": 4, "circle-color": "#fff", "circle-stroke-color": "#3b82f6", "circle-stroke-width": 2 },
+        });
+      }
+    });
+
     mapRef.current = map;
     return () => {
       map.remove();
@@ -138,20 +172,46 @@ export function SolarRoofTab({
     };
   }, [token, center.lng, center.lat]);
 
-  // Sync markers with pins
+  // Update draw-polygon visualization when points change
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const existing = markersRef.current;
-    const seen = new Set<string>();
+    const src = map.getSource("ai-draw") as mapboxgl.GeoJSONSource | undefined;
+    if (!src) return;
+    const features: GeoJSON.Feature[] = drawPoints.map((p) => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: p },
+      properties: {},
+    }));
+    if (drawPoints.length >= 2) {
+      features.push({
+        type: "Feature",
+        geometry: { type: "LineString", coordinates: drawPoints },
+        properties: {},
+      });
+    }
+    if (drawPoints.length >= 3) {
+      features.push({
+        type: "Feature",
+        geometry: { type: "Polygon", coordinates: [[...drawPoints, drawPoints[0]]] },
+        properties: {},
+      });
+    }
+    src.setData({ type: "FeatureCollection", features });
+  }, [drawPoints]);
 
-    pins.forEach((pin, i) => {
-      seen.add(pin.id);
-      const color = KIND_COLORS[pin.kind];
-      let marker = existing[pin.id];
-      if (!marker) {
-        const el = document.createElement("div");
-        el.style.cssText = `width:28px;height:28px;border-radius:50%;background:${color};color:white;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer;`;
+  // ESC exits draw-mode
+  useEffect(() => {
+    if (!drawingPinId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setDrawingPinId(null);
+        setDrawPoints([]);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawingPinId]);
         el.textContent = String(i + 1);
         el.addEventListener("click", (ev) => {
           ev.stopPropagation();
