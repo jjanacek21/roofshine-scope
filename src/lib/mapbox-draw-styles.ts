@@ -1,0 +1,97 @@
+// Custom Mapbox GL Draw styles. Polygons get a brand-blue translucent fill,
+// lines are colored by feature.properties.edge_type, points are brand-blue dots.
+
+export const MAPBOX_DRAW_STYLES = [
+  // ---------- Polygon fill ----------
+  {
+    id: "gl-draw-polygon-fill",
+    type: "fill",
+    filter: ["all", ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
+    paint: {
+      "fill-color": "#1e90ff",
+      "fill-outline-color": "#1e90ff",
+      "fill-opacity": 0.15,
+    },
+  },
+  {
+    id: "gl-draw-polygon-stroke-active",
+    type: "line",
+    filter: ["all", ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": "#1e90ff", "line-width": 2 },
+  },
+
+  // ---------- Lines (colored per edge_type) ----------
+  {
+    id: "gl-draw-line",
+    type: "line",
+    filter: ["all", ["==", "$type", "LineString"], ["!=", "mode", "static"]],
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: {
+      "line-color": [
+        "match",
+        ["get", "user_edge_type"],
+        "eave", "#22c55e",
+        "rake", "#a855f7",
+        "ridge", "#eab308",
+        "hip", "#d4a574",
+        "valley", "#ef4444",
+        "gutter", "#06b6d4",
+        "wall_flashing", "#a855f7",
+        "step_flashing", "#ec4899",
+        "transition", "#94a3b8",
+        "#ffffff",
+      ],
+      "line-width": 3,
+    },
+  },
+
+  // ---------- Vertex points ----------
+  {
+    id: "gl-draw-polygon-and-line-vertex-halo-active",
+    type: "circle",
+    filter: ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"], ["!=", "mode", "static"]],
+    paint: { "circle-radius": 6, "circle-color": "#ffffff" },
+  },
+  {
+    id: "gl-draw-polygon-and-line-vertex-active",
+    type: "circle",
+    filter: ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"], ["!=", "mode", "static"]],
+    paint: { "circle-radius": 4, "circle-color": "#1e90ff" },
+  },
+
+  // ---------- Standalone points (penetrations) ----------
+  {
+    id: "gl-draw-point",
+    type: "circle",
+    filter: ["all", ["==", "$type", "Point"], ["!=", "meta", "midpoint"], ["!=", "meta", "vertex"], ["!=", "mode", "static"]],
+    paint: {
+      "circle-radius": 7,
+      "circle-color": "#1e90ff",
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": 2,
+    },
+  },
+];
+
+// Penetration types (separate from edge types — these go on Point features)
+export const PENETRATION_TYPES = [
+  "pipe_boot",
+  "vent",
+  "skylight",
+  "chimney",
+  "hvac_curb",
+  "satellite",
+  "solar_mount",
+] as const;
+export type PenetrationType = (typeof PENETRATION_TYPES)[number];
+
+export const PENETRATION_LABELS: Record<PenetrationType, string> = {
+  pipe_boot: "Pipe Boot",
+  vent: "Vent",
+  skylight: "Skylight",
+  chimney: "Chimney",
+  hvac_curb: "HVAC Curb",
+  satellite: "Satellite",
+  solar_mount: "Solar Mount",
+};
