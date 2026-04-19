@@ -7,31 +7,11 @@ import { createFileRoute } from "@tanstack/react-router";
 const HEADERS = ["Code", "Description", "Unit", "Unit Price", "Category"] as const;
 
 async function extractPdfText(buffer: ArrayBuffer): Promise<string> {
-  // pdfjs-dist legacy build works in Workers (no DOM dependency).
-  const pdfjs = (await import("pdfjs-dist/legacy/build/pdf.mjs")) as unknown as {
-    GlobalWorkerOptions: { workerSrc: string };
-    getDocument: (params: Record<string, unknown>) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: unknown[] }> }> }> };
-  };
-  // Disable worker — run inline (Workers don't allow nested workers).
-  pdfjs.GlobalWorkerOptions.workerSrc = "";
-
-  const loadingTask = pdfjs.getDocument({
-    data: new Uint8Array(buffer),
-    isEvalSupported: false,
-    useSystemFonts: false,
-  });
-  const doc = await loadingTask.promise;
-
-  const parts: string[] = [];
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    const text = content.items
-      .map((it: unknown) => (typeof (it as { str?: string }).str === "string" ? (it as { str: string }).str : ""))
-      .join(" ");
-    parts.push(text);
-  }
-  return parts.join("\n\n");
+  // unpdf is a Worker-compatible PDF text extractor (no DOM, no native deps).
+  const { extractText, getDocumentProxy } = await import("unpdf");
+  const pdf = await getDocumentProxy(new Uint8Array(buffer));
+  const { text } = await extractText(pdf, { mergePages: true });
+  return Array.isArray(text) ? text.join("\n\n") : text;
 }
 
 interface ExtractedRow {
