@@ -1,142 +1,100 @@
 
 
-This is a massive build — let me first explore key existing pieces I haven't yet seen, so the plan accurately reflects what's there vs what needs building.
-<lov-tool-use id="toolu_vrtx_015XNyRMSEq7ncUgGRcpPgt5" name="code--view" integration-id="code" data="{\"file_path\": \"src/routes/_app.jobs.index.tsx\"}">
-</lov-tool-use>
+## Plan: Pricing System Overhaul (Master + Per-Company + ZIP-aware + Retail Cost Build)
 
-<lov-tool-use id="toolu_vrtx_01FBvbXjcuCGsCEHLhT9obye" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/jobs/JobPhotosPanel.tsx\"}">
-</lov-tool-use>
+What you have today does almost everything you described — it just needs a few additions to become the full vision. Here's what's already in place and what's missing:
 
-<lov-tool-use id="toolu_vrtx_014RN88DnV9EGA1SUQBhoXUn" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/roof/RoofMeasurementPanel.tsx\"}">
-</lov-tool-use>
+### Already built (good news)
+- `price_books` table with `pricing_type` (insurance/retail), `is_default`, `jurisdiction`, `zip_codes[]`, `effective_month`
+- 3-step Xactimate upload wizard (`/price-books/new`) — metadata → parse columns → match/confirm
+- Trade auto-detection from Xactimate codes (RFG → roofing, WDW → windows, etc.)
+- Per-company catalog (`line_item_master`) auto-organized by trade
+- Estimate combobox that joins `line_item_master` ↔ `line_item_prices` for a chosen book
+- Photo AI analyzer that already returns matched line items by trade
 
-<lov-tool-use id="toolu_vrtx_01H6RszpLqFs4V3qNTZJ4h5J" name="code--view" integration-id="code" data="{\"file_path\": \"src/lib/roof-math.ts\"}">
-</lov-tool-use>
+### What's missing → 4 focused changes
 
-<lov-tool-use id="toolu_vrtx_01W8Y4tkJPKjhsYQEjzoNEH1" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/roof/RoofSectionCard.tsx\"}">
-</lov-tool-use>
+---
 
-<lov-tool-use id="toolu_vrtx_01Gdx7K5tUypF2S56fgUZ28d" name="code--list_dir" integration-id="code" data="{\"dir_path\": \"supabase/migrations\"}">
-</lov-tool-use>
+**1. Super-admin "Master Price Books" page** (`/admin/price-books`)
 
-<lov-tool-use id="toolu_vrtx_01Pwsw5CVXDknqySK2HgP6y6" name="code--view" integration-id="code" data="{\"file_path\": \"src/integrations/supabase/types.ts\", \"lines\": \"1-100\"}">
-</lov-tool-use>
+A new admin page mirroring the company-level wizard but writing **global default** books (`company_id = NULL`, `is_default = true`). Every company will see + use these as fallback. Add to admin sidebar.
 
-<lov-tool-use id="toolu_vrtx_013LE4WHbyPnZtAcgje13hCv" name="code--view" integration-id="code" data="{\"file_path\": \"src/routes/_app.jobs.$id.tsx\"}">
-</lov-tool-use>
+- Reuses existing `MetadataStep`, `UploadParseStep`, `MatchConfirmStep` components — only difference is the insert sets `company_id = null, is_default = true` and writes to a new `master_line_item_master` set OR (simpler) keeps using `line_item_master` with `company_id = null`.
+- **DB migration**: allow `line_item_master.company_id` to be nullable + add RLS policy "everyone can read global catalog items" (rows where `company_id IS NULL`).
+- Same for `price_books` (already nullable for defaults).
 
-<lov-tool-use id="toolu_vrtx_01FMyKyJZeTQqwcbcgD4R5qs" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/jobs/JobPhotosPanel.tsx\"}">
-</lov-tool-use>
+**2. ZIP-code-aware price book auto-selection on jobs**
 
-<lov-tool-use id="toolu_vrtx_01TVChdKzUuEz9x8fbuaGK6p" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/roof/RoofMeasurementPanel.tsx\"}">
-</lov-tool-use>
+Right now estimates pick whatever `price_book_id` is on the job. We'll add resolution logic:
 
-<lov-tool-use id="toolu_vrtx_01SEDYVqCpBEzCZbYXeUGEKM" name="code--view" integration-id="code" data="{\"file_path\": \"src/lib/roof-math.ts\"}">
-</lov-tool-use>
+- **Job creation / property step**: when address is set, parse ZIP → find best matching price book in priority order:
+  1. Company retail/insurance book where `zip_codes` contains job ZIP
+  2. Company book where `jurisdiction` matches job county
+  3. Global default book matching ZIP/jurisdiction
+  4. Global default book (any)
+- New helper `src/lib/resolve-price-book.ts` + a "Price Book" picker on the job edit screen that shows the resolved book with an override dropdown.
+- The estimate combobox already takes `priceBookId` — no change needed there.
 
-<lov-tool-use id="toolu_vrtx_015gwJQ5bGxjBkBC1u5wPXSc" name="code--list_dir" integration-id="code" data="{\"dir_path\": \"supabase/migrations\"}">
-</lov-tool-use>
+**3. Retail cost-build pricing** (the big new feature)
 
-<lov-tool-use id="toolu_vrtx_01L7n9GQ8maAhCt2g5dsnjn9" name="code--view" integration-id="code" data="{\"file_path\": \"src/routes/api.analyze-job-photos.ts\"}">
-</lov-tool-use>
+Retail books today only store one `unit_price` per item. To get true cost, we need cost components.
 
-<lov-tool-use id="toolu_vrtx_019sZHRRgTDRSk1eyzUciwhA" name="code--view" integration-id="code" data="{\"file_path\": \"package.json\"}">
-</lov-tool-use>
-I have enough context. Let me check a couple more critical things quickly: the estimates schema for tier names, jobs list current state, and existing report structure.
-<lov-tool-use id="toolu_vrtx_01XRrZAtefxKFEC5jAALTeHU" name="code--view" integration-id="code" data="{\"file_path\": \"src/routes/_app.jobs.index.tsx\", \"lines\": \"1-80\"}">
-</lov-tool-use>
+- **DB migration** — extend `line_item_prices` with: `material_cost`, `labor_cost`, `equipment_cost`, `overhead_pct`, `misc_cost` (taxes/permits/dump/fees), and a generated/computed `unit_price = material + labor + equipment + misc + overhead%`.
+- **New retail upload wizard step**: when `pricing_type = "retail"`, the column-mapping step exposes extra mappable roles: `material_cost`, `labor_cost`, `equipment_cost`, `misc_cost`. Lets you upload a supplier material list, then in a second pass upload a labor list, and the system merges by code.
+- **New "Cost Breakdown" view** on retail line items showing material / labor / equipment / overhead / misc → true unit cost.
 
-<lov-tool-use id="toolu_vrtx_013xYxktxVwwATVQ93BeCKt4" name="code--exec" integration-id="code" data="{\"command\": \"ls supabase/functions/ 2>/dev/null; psql -c \\\"SELECT bucket_id, name FROM storage.buckets WHERE id IN ('roof-photos','generated-pdfs');\\\" 2>/dev/null || echo \\\"no psql\\\"\", \"user_facing_description\": \"Checking existing buckets and functions\"}">
-</lov-tool-use>
-I have enough. Let me present the plan.
+**4. Photo→Estimate auto-add wiring** (small finishing touch)
 
-<lov-plan>
+The AI analyzer already returns matched line items. Wire the existing `PhotoLightbox` "Add suggestions to estimate" button to actually push them into the active estimate using the resolved price book — same logic as `AddLineItemCombobox`.
 
-## Build 3: Job Workspace — Plan
+---
 
-This is a large build. I'll lay it out as 5 sequential stages so it's manageable and you can verify each before the next.
+### Files
 
-### Adaptations from your prompt to this codebase
+**New**
+- `src/routes/admin.price-books.tsx` — list of master books + link to upload
+- `src/routes/admin.price-books.new.tsx` — wizard for global books (thin wrapper around existing components)
+- `src/lib/resolve-price-book.ts` — ZIP/jurisdiction resolution helper
+- `src/components/pricebook/CostBreakdownStep.tsx` — extra step for retail
+- `src/components/pricebook/PriceBookPicker.tsx` — auto-resolves + lets user override on a job
+- `supabase/migrations/<ts>_master_pricing_and_cost_build.sql`
 
-A few things in your prompt don't match this project's actual stack — I'll adapt them rather than break what works:
+**Modified**
+- `src/routes/admin.tsx` — add "Price Books" to admin nav
+- `src/routes/_app.price-books.tsx` — show global books as read-only rows above company books
+- `src/components/pricebook/UploadParseStep.tsx` — add `material_cost`, `labor_cost`, `equipment_cost`, `misc_cost` column roles for retail
+- `src/components/pricebook/MatchConfirmStep.tsx` — accept new cost fields
+- `src/routes/_app.price-books.new.tsx` — pass cost fields through on insert
+- `src/routes/_app.jobs.new.tsx` — call `resolve-price-book` after address entry
+- `src/routes/_app.jobs.$id.estimate.tsx` — use resolved book; add `PriceBookPicker` UI
+- `src/components/jobs/PhotoLightbox.tsx` — wire "Add to estimate"
+- `src/integrations/supabase/types.ts` — auto-regenerated by migration
 
-- **Mapbox token**: use the existing `useMapboxToken()` hook (server route `/api/mapbox-token`), NOT `import.meta.env.VITE_MAPBOX_TOKEN`.
-- **AI**: use Lovable AI Gateway (`google/gemini-2.5-pro`, key already set) like the existing `analyze-job-photos` route. NOT Claude/Anthropic. This avoids needing a new API key and matches your other routes.
-- **Tables**: schema uses `job_photos` (not `photos`/`photo_analyses`), `roof_measurements`/`roof_sections`/`roof_lines`/`roof_edges` (not a single `measurements` table), `estimates`/`estimate_line_items`. I'll work with what exists and add only what's missing.
-- **Routing**: TanStack file-based routing with flat dot-notation (e.g. `_app.jobs.$id.tsx`, `_app.jobs.$id.measure.tsx`).
-- **PDF**: jsPDF + html2canvas as you specified.
+### DB migration summary
 
-### What's missing in DB → small migration
+```sql
+-- 1. Allow global catalog items
+ALTER TABLE line_item_master ALTER COLUMN company_id DROP NOT NULL;
+-- + RLS: select where company_id IS NULL OR company_id = auth_company_id()
 
-- `jobs.jurisdiction` (text) — for companion_rules zip/jurisdiction matching
-- `estimates.tier` (text: 'good'|'better'|'best'|'supplement'|'original'), `estimates.markup_pct`, `estimates.overhead_pct`, `estimates.profit_pct`, `estimates.tax_pct`, `estimates.notes`, `estimates.hide_pricing` (bool)
-- `job_photos.tag` (text: 'roof_overview'|'front_elevation'|etc), `job_photos.taken_at` (timestamptz), `job_photos.exif_gps` (jsonb)
-- `companies.default_markup_pct`, `default_overhead_pct`, `default_profit_pct`, `warranty_blurb`, `financing_blurb`, `license_numbers` (text[])
-- New `generated_reports` table: id, job_id, estimate_id, company_id, pdf_path, created_by, created_at
-- New storage bucket `generated-pdfs` (private) + RLS policies for company members
+-- 2. Cost-build columns on prices
+ALTER TABLE line_item_prices
+  ADD COLUMN material_cost numeric,
+  ADD COLUMN labor_cost numeric,
+  ADD COLUMN equipment_cost numeric,
+  ADD COLUMN misc_cost numeric,
+  ADD COLUMN overhead_pct numeric;
 
-### Stage 1 — Job detail shell + Overview tab + nested routes
+-- 3. Index for ZIP lookup performance
+CREATE INDEX price_books_zip_codes_gin ON price_books USING gin(zip_codes);
+```
 
-**Files:**
-- `src/routes/_app.jobs.$id.tsx` — rewrite as a layout route with `<Outlet />`; renders header (thumbnail, job number, status badge, price book badge, title, address, meta row, Share + Generate PDF buttons) and tab strip linking to 5 sub-routes
-- `src/routes/_app.jobs.$id.index.tsx` — Overview tab (client/property/job info cards, editable status + trade dropdowns, autosaving notes textarea, Mapbox Static API map preview, activity timeline from created_at/updated_at)
-- `src/components/jobs/JobHeader.tsx` — shared header component
-- `src/components/jobs/JobTabs.tsx` — tab strip (Overview / Measurements / Photos / Estimate / Report)
-
-### Stage 2 — Measurements tab (full Mapbox draw workspace)
-
-**Files:**
-- `src/routes/_app.jobs.$id.measure.tsx` — wraps existing `MapboxRoofDraw` plus a totals panel
-- `src/lib/mapbox-draw-styles.ts` — custom draw styles per your spec (edge_type colors)
-- `src/components/roof/MapboxRoofDraw.tsx` — extend existing component:
-  - floating glass-morph toolbar with 6 buttons (Polygon/Line/Point/Select/Undo/Clear)
-  - on draw.create polygon → pitch prompt with presets
-  - on draw.create line → edge type dropdown
-  - on draw.create point → penetration type dropdown
-  - turf.js for area/length (replace haversine math with `@turf/turf` already installed)
-- `src/components/roof/MeasurementTotalsPanel.tsx` — IMAGERY / ROOF TOTALS / EDGES (color dots) / PENETRATIONS / WASTE FACTOR slider + save button
-- Hydrate from existing `roof_measurements` + `roof_sections` + `roof_lines` on mount
-
-### Stage 3 — Photos tab (upload, EXIF, AI analyze, lightbox)
-
-**Files:**
-- `src/routes/_app.jobs.$id.photos.tsx` — full photos workspace
-- `src/components/jobs/PhotoUploader.tsx` — drag-drop + camera capture, client-side thumbnail (canvas resize to 400px), `exifr` GPS extraction, upload to `roof-photos` bucket
-- `src/components/jobs/PhotoGrid.tsx` — grid with tag overlay, analyzed checkmark, condition score with color coding, defects list, View/Add-to-Estimate buttons
-- `src/components/jobs/PhotoFilterBar.tsx` — filter by tag/trade/analyzed
-- `src/components/jobs/PhotoLightbox.tsx` — full-screen modal with editable tag/notes, full analysis details, Re-analyze + Add-to-estimate buttons
-- Extend existing `/api/analyze-job-photos` route to also return condition_score, defects, severity, age range (already structured similarly — just expand the tool schema)
-
-### Stage 4 — Estimate tab (tiers, line items, companion rules, totals)
-
-**Files:**
-- `src/routes/_app.jobs.$id.estimate.tsx` — main estimate workspace
-- `src/components/estimate/TierTabs.tsx` — Good/Better/Best/Supplement chrome buttons + Duplicate
-- `src/components/estimate/CompanionRulesBanner.tsx` — amber banner triggered on item add, queries `companion_rules` by category + jurisdiction
-- `src/components/estimate/LineItemTable.tsx` — grouped by trade→category, inline-editable qty/price, source icon, delete with confirm
-- `src/components/estimate/AddLineItemCombobox.tsx` — searches `line_item_master` joined with `line_item_prices` for the estimate's price book
-- `src/components/estimate/AddCustomItemDrawer.tsx` — one-off items
-- `src/components/estimate/EstimateTotalsPanel.tsx` — sticky right panel with markup/overhead/profit/tax inputs + Generate PDF + Send to Client (toast stub)
-- Debounced (500ms) saves on all line-item edits; "Saved" indicator with relative timestamp
-
-### Stage 5 — Report tab + PDF generation
-
-**Files:**
-- `src/routes/_app.jobs.$id.report.tsx` — live preview of all 9 PDF sections (Cover, Executive Summary, Damage Summary, Measurement Report, Investment, Documentation, Good/Better/Best, Terms & Signature, Footer); each wrapped in `.pdf-section` divs
-- `src/components/report/ReportSections/*` — one component per section
-- `src/lib/pdf-generator.ts` — html2canvas + jsPDF logic, uploads to `generated-pdfs` bucket, inserts `generated_reports` row, triggers download, shows toast
-- "Hide Pricing" toggle that conditionally strips price columns from preview + PDF
-
-### Other small updates
-- **Jobs list / Dashboard**: ensure kanban cards and dashboard recent-jobs rows link to `/jobs/$id` via `<Link>` (some currently aren't clickable)
-- **`src/main.tsx`** equivalent: ensure `mapbox-gl-draw.css` is imported globally (it's currently imported inside MapboxRoofDraw — fine, but verify)
-
-### Out of scope for this build (will say so explicitly when done)
-- Real Send-to-Client email (toast stub as you specified)
-- Multi-page Good/Better/Best wizard (single tier table for now; tiers are separate estimate rows you can switch between)
-- Client-side image compression beyond thumbnail (Lovable AI Gateway handles full-size images fine)
-- Audit-log-driven activity timeline (uses created_at/updated_at as you specified)
+### Out of scope (call out so we agree)
+- Bulk re-pricing UI (you described uploading the same Xactimate file with different ZIPs — that already works today, each upload creates a new book). Could add a "clone book + change ZIPs" shortcut later.
+- Supplier API integrations (just CSV/XLSX upload for now).
+- Per-line-item ZIP overrides (price varies by item not whole book) — not needed yet.
 
 ### Build order
-I'll do Stages 1–5 in order in the next turn(s). If a single turn gets too long I'll pause between stages. I'll tell you exactly what shipped and what didn't at the end.
+Single turn, in this order: migration → admin master-pricebook pages → resolve-price-book helper + picker → retail cost-build columns in wizard → photo-to-estimate wiring. Will report what shipped at the end.
 
