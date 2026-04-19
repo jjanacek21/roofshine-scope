@@ -27,6 +27,7 @@ function NewPriceBookPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [meta, setMeta] = useState<MetadataValue>({
     name: "", jurisdiction: "", zip_codes: [], effective_month: "", notes: "",
+    pricing_type: "insurance",
   });
   const [parsed, setParsed] = useState<ParsedFile | null>(null);
   const [tab, setTab] = useState<"update" | "new" | "ignored">("update");
@@ -72,6 +73,8 @@ function NewPriceBookPage() {
           is_active: true,
           status: "active",
           item_count: normalized.length,
+          pricing_type: meta.pricing_type,
+          is_default: false,
           created_by: profile!.id,
         })
         .select("id")
