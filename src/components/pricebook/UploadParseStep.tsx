@@ -178,6 +178,18 @@ export function UploadParseStep({ value, onChange, pricingType = "insurance" }: 
         </button>
       </div>
 
+      {isPdf && (
+        <div
+          className="flex items-start gap-2 rounded-md border p-3 text-xs"
+          style={{ borderColor: "var(--success, #10b981)", color: "var(--success, #10b981)" }}
+        >
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            ✓ AI extracted <strong>{value.rows.length}</strong> line items. Click <strong>Next</strong> to review &amp; confirm.
+          </span>
+        </div>
+      )}
+
       {missing.length > 0 && (
         <div className="rounded-md border p-3 text-xs" style={{ borderColor: "var(--warning)", color: "var(--warning)" }}>
           Map columns for: <strong>{missing.join(", ")}</strong> before continuing.
