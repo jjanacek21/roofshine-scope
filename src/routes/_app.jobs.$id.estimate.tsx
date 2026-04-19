@@ -218,13 +218,21 @@ function JobEstimate() {
     const existing = itemTimers.current.get(itemId);
     if (existing) clearTimeout(existing);
     const t = setTimeout(async () => {
-      const updated = { ...patch } as Record<string, unknown>;
       const current = localItems.find((i) => i.id === itemId);
-      if (current) {
-        const merged = { ...current, ...patch };
-        updated.total = merged.qty * merged.unit_price;
-      }
-      await supabase.from("estimate_line_items").update(updated).eq("id", itemId);
+      const merged = current ? { ...current, ...patch } : null;
+      const updates: {
+        name?: string;
+        unit?: string;
+        qty?: number;
+        unit_price?: number;
+        total?: number;
+      } = {};
+      if (patch.name !== undefined) updates.name = patch.name;
+      if (patch.unit !== undefined) updates.unit = patch.unit;
+      if (patch.qty !== undefined) updates.qty = patch.qty;
+      if (patch.unit_price !== undefined) updates.unit_price = patch.unit_price;
+      if (merged) updates.total = merged.qty * merged.unit_price;
+      await supabase.from("estimate_line_items").update(updates).eq("id", itemId);
       setSavedAt(Date.now());
       qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
     }, 500);
@@ -244,7 +252,7 @@ function JobEstimate() {
   });
 
   // Companion rule check
-  const checkCompanion = async (category: string | null, trade: string) => {
+  const checkCompanion = async (category: string | null) => {
     if (!category || !job?.company_id) return;
     const { data } = await supabase
       .from("companion_rules")
@@ -286,7 +294,7 @@ function JobEstimate() {
     qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
     setPickerOpen(false);
     toast.success(`Added ${item.code}`);
-    void checkCompanion(item.category, item.trade);
+    void checkCompanion(item.category);
   };
 
   const addCodes = async (codes: string[]) => {
@@ -319,7 +327,7 @@ function JobEstimate() {
       line_item_id: m.id,
       code: m.code,
       name: m.name,
-      trade: m.trade,
+      trade: m.trade as Trade,
       unit: m.unit,
       qty: 1,
       unit_price: priceMap[m.id] ?? Number(m.default_price ?? 0),
@@ -409,7 +417,7 @@ function JobEstimate() {
           line_item_id: i.line_item_id,
           code: i.code,
           name: i.name,
-          trade: i.trade,
+          trade: i.trade as Trade,
           unit: i.unit,
           qty: i.qty,
           unit_price: i.unit_price,
