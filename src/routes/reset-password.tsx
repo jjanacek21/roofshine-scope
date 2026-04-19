@@ -14,19 +14,92 @@ function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Supabase parses the recovery token from the URL hash and fires PASSWORD_RECOVERY.
-    const { data } = supabase.auth.onAuthStateChange((event) => {
+    let cancelled = false;
+
+    async function init() {
+      // 1. Check query string for explicit error params (expired/used links)
+      const search = new URLSearchParams(window.location.search);
+      const hashRaw = window.location.hash.startsWith("#")
+        ? window.location.hash.slice(1)
+        : window.location.hash;
+      const hash = new URLSearchParams(hashRaw);
+
+      const errorCode =
+        search.get("error_code") ||
+        search.get("error") ||
+        hash.get("error_code") ||
+        hash.get("error");
+      const errorDesc =
+        search.get("error_description") || hash.get("error_description");
+
+      if (errorCode) {
+        const msg = errorDesc
+          ? decodeURIComponent(errorDesc.replace(/\+/g, " "))
+          : "This reset link is invalid or has expired.";
+        if (!cancelled) setLinkError(msg);
+        return;
+      }
+
+      // 2. If hash has tokens, set the session explicitly (don't depend on auto-detect race)
+      const accessToken = hash.get("access_token");
+      const refreshToken = hash.get("refresh_token");
+      const type = hash.get("type");
+
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (!cancelled) {
+          if (error) {
+            setLinkError(error.message);
+          } else {
+            setReady(true);
+            // Clean tokens from URL so a refresh doesn't re-process them
+            window.history.replaceState(
+              null,
+              "",
+              window.location.pathname
+            );
+          }
+        }
+        return;
+      }
+
+      // 3. Fallback: maybe the SDK already auto-consumed the hash and stored a session
+      const { data } = await supabase.auth.getSession();
+      if (!cancelled) {
+        if (data.session) {
+          setReady(true);
+        } else if (type === "recovery") {
+          setLinkError(
+            "Reset link could not be verified. Please request a new one."
+          );
+        } else {
+          setLinkError(
+            "No active reset session. Please request a new password reset link."
+          );
+        }
+      }
+    }
+
+    init();
+
+    // Also listen for late-firing events
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        setLinkError(null);
         setReady(true);
       }
     });
-    // Also check existing session in case the event fired before mount.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
-    return () => data.subscription.unsubscribe();
+
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   async function onSubmit(e: FormEvent) {
@@ -76,18 +149,29 @@ function ResetPasswordPage() {
           className="font-bold text-foreground"
           style={{ fontSize: 24, letterSpacing: "-0.5px" }}
         >
-          Set a new password
+          {linkError ? "Link problem" : "Set a new password"}
         </h1>
         <p
           className="mb-7 mt-1.5 text-[13px]"
           style={{ color: "var(--text-muted)" }}
         >
-          {ready
-            ? "Choose a new password for your account."
-            : "Verifying your reset link…"}
+          {linkError
+            ? linkError
+            : ready
+              ? "Choose a new password for your account."
+              : "Verifying your reset link…"}
         </p>
 
-        {ready && (
+        {linkError && (
+          <Link
+            to="/forgot-password"
+            className="btn-brand mt-2 inline-flex h-10 w-full items-center justify-center rounded-lg text-[13px] font-semibold"
+          >
+            Request a new link
+          </Link>
+        )}
+
+        {!linkError && ready && (
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="flex flex-col gap-1.5">
               <label
