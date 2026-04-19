@@ -9,5 +9,5 @@ Design system: Archivo for UI, JetBrains Mono for numbers/codes. Trade colors fr
 Always use semantic CSS tokens from src/styles.css; never hardcode colors.
 Use react-hook-form + zod for forms. sonner toasts for async actions. Skeletons for loading.
 Lovable Cloud (Supabase) backend. RLS enforced via auth_company_id() and is_company_admin().
-Price books: super-admin uploads global "default" books (company_id=null, is_default=true, pricing_type='default') visible to everyone. Companies add their own with pricing_type='insurance' or 'retail'. Job price-book resolution: prefer company match by zip+type, fallback to default global.
-Roof measurements: 5 input methods — manual numeric form, Mapbox polygon draw, Google Solar API auto, third-party report PDF (EagleView/Hover), photo AI. One roof_measurements row per property; multiple roof_sections (polygons with pitch); roof_edges label each polygon edge (eave/rake/hip/ridge/valley/gutter/wall_flashing/step_flashing/transition); roof_lines for free-floating labeled lines. Pitch multiplier: actual_area = plan_area × √(1+(rise/run)²). Waste options 10/15/20%.
+AI providers: Anthropic Claude (claude-sonnet-4-5-20250929) for roof condition/damage vision via direct ANTHROPIC_API_KEY. Gemini 2.5 Pro via Lovable AI Gateway (LOVABLE_API_KEY) for photo→line-item matching. Google Solar API uses GOOGLE_MAPS_API_KEY (Solar API enabled on same GCP project).
+Storage: roof-photos bucket is private, keyed `{company_id}/{job_id}/{filename}`. RLS scopes by first folder = company_id.
