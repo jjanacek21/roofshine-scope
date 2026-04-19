@@ -107,7 +107,7 @@ function NewPriceBookPage() {
         inserted?.forEach((i) => idMap.set(i.code.toUpperCase(), i.id));
       }
 
-      // 4. Insert all line_item_prices
+      // 4. Insert all line_item_prices (with optional retail cost-build columns)
       const priceRows = normalized
         .map((r) => {
           const id = idMap.get(r.code.toUpperCase());
@@ -119,6 +119,11 @@ function NewPriceBookPage() {
             labor_pct: r.labor_pct,
             material_pct: r.material_pct,
             equipment_pct: r.equipment_pct,
+            material_cost: r.material_cost,
+            labor_cost: r.labor_cost,
+            equipment_cost: r.equipment_cost,
+            misc_cost: r.misc_cost,
+            overhead_pct: r.overhead_pct_val,
           };
         })
         .filter((x): x is NonNullable<typeof x> => x !== null);
@@ -174,7 +179,7 @@ function NewPriceBookPage() {
 
       <div className="rounded-xl border p-6" style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}>
         {step === 1 && <MetadataStep value={meta} onChange={setMeta} />}
-        {step === 2 && <UploadParseStep value={parsed} onChange={setParsed} />}
+        {step === 2 && <UploadParseStep value={parsed} onChange={setParsed} pricingType={meta.pricing_type} />}
         {step === 3 && parsed && (
           <MatchConfirmStep
             parsed={parsed}
@@ -182,6 +187,7 @@ function NewPriceBookPage() {
             activeTab={tab}
             onTabChange={setTab}
             onChange={setNormalized}
+            pricingType={meta.pricing_type}
           />
         )}
       </div>
