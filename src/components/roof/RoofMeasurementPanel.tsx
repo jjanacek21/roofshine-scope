@@ -24,7 +24,7 @@ type Tab = "manual" | "mapbox" | "solar" | "condition" | "report";
 const TAB_LABELS: Record<Tab, { label: string; icon: typeof MapIcon }> = {
   manual: { label: "Manual Entry", icon: Pencil },
   mapbox: { label: "Mapbox Draw", icon: MapIcon },
-  solar: { label: "Google Solar", icon: Sparkles },
+  solar: { label: "AI Measurements", icon: Sparkles },
   condition: { label: "AI Condition", icon: Sparkles },
   report: { label: "Upload Report", icon: FileText },
 };
