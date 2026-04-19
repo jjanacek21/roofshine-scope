@@ -129,7 +129,8 @@ export function RoofMeasurementPanel({
         for (let i = 0; i < mapboxData.sections.length; i++) {
           const s = mapboxData.sections[i];
           const planArea = s.plan_area_sqft;
-          const mult = s.plan_area_sqft > 0 ? totals.actual_area_for_section(s) : 1;
+          const mult = pitchMult(s.pitch);
+          const actualArea = planArea * mult;
           const { data: secRow, error: secErr } = await supabase
             .from("roof_sections")
             .insert({
@@ -139,8 +140,8 @@ export function RoofMeasurementPanel({
               polygon_geojson: { type: "Polygon", coordinates: [s.ring] },
               plan_area_sqft: planArea,
               pitch: s.pitch,
-              pitch_multiplier: mult / Math.max(1, planArea),
-              actual_area_sqft: mult,
+              pitch_multiplier: mult,
+              actual_area_sqft: actualArea,
               sort_order: i,
             })
             .select()
