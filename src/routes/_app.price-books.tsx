@@ -57,7 +57,8 @@ function PriceBooksPage() {
         <StatCard
           label="Last Reprice"
           value={lastReDays != null ? `${lastReDays}d ago` : "—"}
-          hint={lastReprice?.name ?? undefined}
+          delta={lastReprice?.name ?? undefined}
+          deltaDirection="neutral"
         />
         <StatCard label="Total Items Priced" value={totalItems.toLocaleString()} />
       </div>
