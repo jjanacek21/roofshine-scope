@@ -22,6 +22,7 @@ function ClientDetailPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<"properties" | "jobs">("properties");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [roofProp, setRoofProp] = useState<{ id: string; lat: number | null; lng: number | null } | null>(null);
 
   const { data: client } = useQuery({
     queryKey: ["client", id],
