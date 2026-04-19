@@ -38,7 +38,9 @@ import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
+import { Route as AppJobsNewRouteImport } from './routes/_app.jobs.new'
 import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
+import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -184,10 +186,20 @@ const AppPriceBooksNewRoute = AppPriceBooksNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AppPriceBooksRoute,
 } as any)
+const AppJobsNewRoute = AppJobsNewRouteImport.update({
+  id: '/jobs/new',
+  path: '/jobs/new',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppJobsIdRoute = AppJobsIdRouteImport.update({
   id: '/jobs/$id',
   path: '/jobs/$id',
   getParentRoute: () => AppRoute,
+} as any)
+const AppClientsIdRoute = AppClientsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppClientsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -197,7 +209,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
   '/catalog': typeof AppCatalogRoute
-  '/clients': typeof AppClientsRoute
+  '/clients': typeof AppClientsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
   '/team': typeof AppTeamRouteWithChildren
@@ -215,7 +227,9 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/admin/': typeof AdminIndexRoute
+  '/clients/$id': typeof AppClientsIdRoute
   '/jobs/$id': typeof AppJobsIdRoute
+  '/jobs/new': typeof AppJobsNewRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/jobs/': typeof AppJobsIndexRoute
@@ -226,7 +240,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
   '/catalog': typeof AppCatalogRoute
-  '/clients': typeof AppClientsRoute
+  '/clients': typeof AppClientsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -244,7 +258,9 @@ export interface FileRoutesByTo {
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
+  '/clients/$id': typeof AppClientsIdRoute
   '/jobs/$id': typeof AppJobsIdRoute
+  '/jobs/new': typeof AppJobsNewRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/jobs': typeof AppJobsIndexRoute
@@ -258,7 +274,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
   '/_app/catalog': typeof AppCatalogRoute
-  '/_app/clients': typeof AppClientsRoute
+  '/_app/clients': typeof AppClientsRouteWithChildren
   '/_app/price-books': typeof AppPriceBooksRouteWithChildren
   '/_app/settings': typeof AppSettingsRoute
   '/_app/team': typeof AppTeamRouteWithChildren
@@ -277,7 +293,9 @@ export interface FileRoutesById {
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/_app/clients/$id': typeof AppClientsIdRoute
   '/_app/jobs/$id': typeof AppJobsIdRoute
+  '/_app/jobs/new': typeof AppJobsNewRoute
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
@@ -310,7 +328,9 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/api/mapbox-token'
     | '/admin/'
+    | '/clients/$id'
     | '/jobs/$id'
+    | '/jobs/new'
     | '/price-books/new'
     | '/team/invites'
     | '/jobs/'
@@ -339,7 +359,9 @@ export interface FileRouteTypes {
     | '/api/mapbox-token'
     | '/'
     | '/admin'
+    | '/clients/$id'
     | '/jobs/$id'
+    | '/jobs/new'
     | '/price-books/new'
     | '/team/invites'
     | '/jobs'
@@ -371,7 +393,9 @@ export interface FileRouteTypes {
     | '/api/mapbox-token'
     | '/_app/'
     | '/admin/'
+    | '/_app/clients/$id'
     | '/_app/jobs/$id'
+    | '/_app/jobs/new'
     | '/_app/price-books/new'
     | '/_app/team/invites'
     | '/_app/jobs/'
@@ -592,6 +616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPriceBooksNewRouteImport
       parentRoute: typeof AppPriceBooksRoute
     }
+    '/_app/jobs/new': {
+      id: '/_app/jobs/new'
+      path: '/jobs/new'
+      fullPath: '/jobs/new'
+      preLoaderRoute: typeof AppJobsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/jobs/$id': {
       id: '/_app/jobs/$id'
       path: '/jobs/$id'
@@ -599,8 +630,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJobsIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/clients/$id': {
+      id: '/_app/clients/$id'
+      path: '/$id'
+      fullPath: '/clients/$id'
+      preLoaderRoute: typeof AppClientsIdRouteImport
+      parentRoute: typeof AppClientsRoute
+    }
   }
 }
+
+interface AppClientsRouteChildren {
+  AppClientsIdRoute: typeof AppClientsIdRoute
+}
+
+const AppClientsRouteChildren: AppClientsRouteChildren = {
+  AppClientsIdRoute: AppClientsIdRoute,
+}
+
+const AppClientsRouteWithChildren = AppClientsRoute._addFileChildren(
+  AppClientsRouteChildren,
+)
 
 interface AppPriceBooksRouteChildren {
   AppPriceBooksNewRoute: typeof AppPriceBooksNewRoute
@@ -629,23 +679,25 @@ const AppTeamRouteWithChildren =
 
 interface AppRouteChildren {
   AppCatalogRoute: typeof AppCatalogRoute
-  AppClientsRoute: typeof AppClientsRoute
+  AppClientsRoute: typeof AppClientsRouteWithChildren
   AppPriceBooksRoute: typeof AppPriceBooksRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRoute
   AppTeamRoute: typeof AppTeamRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppJobsIdRoute: typeof AppJobsIdRoute
+  AppJobsNewRoute: typeof AppJobsNewRoute
   AppJobsIndexRoute: typeof AppJobsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppCatalogRoute: AppCatalogRoute,
-  AppClientsRoute: AppClientsRoute,
+  AppClientsRoute: AppClientsRouteWithChildren,
   AppPriceBooksRoute: AppPriceBooksRouteWithChildren,
   AppSettingsRoute: AppSettingsRoute,
   AppTeamRoute: AppTeamRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppJobsIdRoute: AppJobsIdRoute,
+  AppJobsNewRoute: AppJobsNewRoute,
   AppJobsIndexRoute: AppJobsIndexRoute,
 }
 
@@ -696,3 +748,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
