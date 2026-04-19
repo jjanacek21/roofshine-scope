@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AddressAutocomplete, type AddressResult } from "@/components/maps/AddressAutocomplete";
 import { StatusBadge } from "@/components/brand/StatusBadge";
+import { RoofMeasurementPanel } from "@/components/roof/RoofMeasurementPanel";
 
 export const Route = createFileRoute("/_app/clients/$id")({
   component: ClientDetailPage,
