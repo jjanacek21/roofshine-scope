@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Sparkles } from "lucide-react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TierTabs, type EstimateRow } from "@/components/estimate/TierTabs";
@@ -26,6 +27,7 @@ import { StatusBadge } from "@/components/brand/StatusBadge";
 import type { Trade } from "@/lib/trades";
 
 export const Route = createFileRoute("/_app/jobs/$id/estimate")({
+  validateSearch: z.object({ codes: z.string().optional() }),
   component: JobEstimate,
 });
 
@@ -42,6 +44,7 @@ type EstimateRowFull = EstimateRow & {
 
 function JobEstimate() {
   const { id: jobId } = Route.useParams();
+  const search = Route.useSearch();
   const qc = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -50,6 +53,7 @@ function JobEstimate() {
     null,
   );
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const codesAppliedRef = useRef(false);
 
   // Load job for company / price book / jurisdiction
   const { data: job } = useQuery({

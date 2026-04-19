@@ -32,7 +32,13 @@ export type ColumnRole =
   | "category"
   | "labor_pct"
   | "material_pct"
-  | "equipment_pct";
+  | "equipment_pct"
+  // Retail cost-build columns (true cost components)
+  | "material_cost"
+  | "labor_cost"
+  | "equipment_cost"
+  | "misc_cost"
+  | "overhead_pct_val";
 
 export function autoMapHeader(header: string): ColumnRole {
   const h = (header ?? "").toString().trim().toUpperCase();
@@ -40,6 +46,11 @@ export function autoMapHeader(header: string): ColumnRole {
   if (/^(SEL|SELECTOR|CODE)$/.test(h)) return "code";
   if (/(DESCRIPTION|ITEM|NAME)/.test(h)) return "name";
   if (/^(UNIT|U\/M|MEASURE)$/.test(h)) return "unit";
+  if (/MATERIAL\s*COST/.test(h)) return "material_cost";
+  if (/LABOR\s*COST/.test(h)) return "labor_cost";
+  if (/(EQUIPMENT|EQP)\s*COST/.test(h)) return "equipment_cost";
+  if (/(MISC|TAX|PERMIT|FEE|DUMP)/.test(h)) return "misc_cost";
+  if (/(OVERHEAD|OH\s*%|OH%)/.test(h)) return "overhead_pct_val";
   if (/(UNIT PRICE|RETAIL|PRICE|USD)/.test(h)) return "unit_price";
   if (/^(LAB|LABOR)/.test(h)) return "labor_pct";
   if (/^(MAT|MATERIAL)/.test(h)) return "material_pct";

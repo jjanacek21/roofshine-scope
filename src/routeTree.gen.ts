@@ -26,6 +26,7 @@ import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTrainingRouteImport } from './routes/admin.training'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
+import { Route as AdminPriceBooksRouteImport } from './routes/admin.price-books'
 import { Route as AdminMembershipsRouteImport } from './routes/admin.memberships'
 import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
 import { Route as AdminEmailsRouteImport } from './routes/admin.emails'
@@ -41,6 +42,7 @@ import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCatalogRouteImport } from './routes/_app.catalog'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
+import { Route as AdminPriceBooksNewRouteImport } from './routes/admin.price-books.new'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
 import { Route as AppJobsNewRouteImport } from './routes/_app.jobs.new'
@@ -136,6 +138,11 @@ const AdminReviewsRoute = AdminReviewsRouteImport.update({
   path: '/reviews',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPriceBooksRoute = AdminPriceBooksRouteImport.update({
+  id: '/price-books',
+  path: '/price-books',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMembershipsRoute = AdminMembershipsRouteImport.update({
   id: '/memberships',
   path: '/memberships',
@@ -211,6 +218,11 @@ const AppJobsIndexRoute = AppJobsIndexRouteImport.update({
   path: '/jobs/',
   getParentRoute: () => AppRoute,
 } as any)
+const AdminPriceBooksNewRoute = AdminPriceBooksNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AdminPriceBooksRoute,
+} as any)
 const AppTeamInvitesRoute = AppTeamInvitesRouteImport.update({
   id: '/invites',
   path: '/invites',
@@ -283,6 +295,7 @@ export interface FileRoutesByFullPath {
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
   '/admin/memberships': typeof AdminMembershipsRoute
+  '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/training': typeof AdminTrainingRoute
@@ -297,6 +310,7 @@ export interface FileRoutesByFullPath {
   '/jobs/new': typeof AppJobsNewRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
+  '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/jobs/': typeof AppJobsIndexRoute
   '/team/': typeof AppTeamIndexRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -323,6 +337,7 @@ export interface FileRoutesByTo {
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
   '/admin/memberships': typeof AdminMembershipsRoute
+  '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/training': typeof AdminTrainingRoute
@@ -337,6 +352,7 @@ export interface FileRoutesByTo {
   '/jobs/new': typeof AppJobsNewRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
+  '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/jobs': typeof AppJobsIndexRoute
   '/team': typeof AppTeamIndexRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -367,6 +383,7 @@ export interface FileRoutesById {
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
   '/admin/memberships': typeof AdminMembershipsRoute
+  '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/training': typeof AdminTrainingRoute
@@ -382,6 +399,7 @@ export interface FileRoutesById {
   '/_app/jobs/new': typeof AppJobsNewRoute
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
+  '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
   '/_app/team/': typeof AppTeamIndexRoute
   '/_app/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -413,6 +431,7 @@ export interface FileRouteTypes {
     | '/admin/emails'
     | '/admin/features'
     | '/admin/memberships'
+    | '/admin/price-books'
     | '/admin/reviews'
     | '/admin/support'
     | '/admin/training'
@@ -427,6 +446,7 @@ export interface FileRouteTypes {
     | '/jobs/new'
     | '/price-books/new'
     | '/team/invites'
+    | '/admin/price-books/new'
     | '/jobs/'
     | '/team/'
     | '/jobs/$id/estimate'
@@ -453,6 +473,7 @@ export interface FileRouteTypes {
     | '/admin/emails'
     | '/admin/features'
     | '/admin/memberships'
+    | '/admin/price-books'
     | '/admin/reviews'
     | '/admin/support'
     | '/admin/training'
@@ -467,6 +488,7 @@ export interface FileRouteTypes {
     | '/jobs/new'
     | '/price-books/new'
     | '/team/invites'
+    | '/admin/price-books/new'
     | '/jobs'
     | '/team'
     | '/jobs/$id/estimate'
@@ -496,6 +518,7 @@ export interface FileRouteTypes {
     | '/admin/emails'
     | '/admin/features'
     | '/admin/memberships'
+    | '/admin/price-books'
     | '/admin/reviews'
     | '/admin/support'
     | '/admin/training'
@@ -511,6 +534,7 @@ export interface FileRouteTypes {
     | '/_app/jobs/new'
     | '/_app/price-books/new'
     | '/_app/team/invites'
+    | '/admin/price-books/new'
     | '/_app/jobs/'
     | '/_app/team/'
     | '/_app/jobs/$id/estimate'
@@ -655,6 +679,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminReviewsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/price-books': {
+      id: '/admin/price-books'
+      path: '/price-books'
+      fullPath: '/admin/price-books'
+      preLoaderRoute: typeof AdminPriceBooksRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/memberships': {
       id: '/admin/memberships'
       path: '/memberships'
@@ -759,6 +790,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/jobs/'
       preLoaderRoute: typeof AppJobsIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/admin/price-books/new': {
+      id: '/admin/price-books/new'
+      path: '/new'
+      fullPath: '/admin/price-books/new'
+      preLoaderRoute: typeof AdminPriceBooksNewRouteImport
+      parentRoute: typeof AdminPriceBooksRoute
     }
     '/_app/team/invites': {
       id: '/_app/team/invites'
@@ -916,6 +954,18 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface AdminPriceBooksRouteChildren {
+  AdminPriceBooksNewRoute: typeof AdminPriceBooksNewRoute
+}
+
+const AdminPriceBooksRouteChildren: AdminPriceBooksRouteChildren = {
+  AdminPriceBooksNewRoute: AdminPriceBooksNewRoute,
+}
+
+const AdminPriceBooksRouteWithChildren = AdminPriceBooksRoute._addFileChildren(
+  AdminPriceBooksRouteChildren,
+)
+
 interface AdminRouteChildren {
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminAnnouncementsRoute: typeof AdminAnnouncementsRoute
@@ -925,6 +975,7 @@ interface AdminRouteChildren {
   AdminEmailsRoute: typeof AdminEmailsRoute
   AdminFeaturesRoute: typeof AdminFeaturesRoute
   AdminMembershipsRoute: typeof AdminMembershipsRoute
+  AdminPriceBooksRoute: typeof AdminPriceBooksRouteWithChildren
   AdminReviewsRoute: typeof AdminReviewsRoute
   AdminSupportRoute: typeof AdminSupportRoute
   AdminTrainingRoute: typeof AdminTrainingRoute
@@ -941,6 +992,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEmailsRoute: AdminEmailsRoute,
   AdminFeaturesRoute: AdminFeaturesRoute,
   AdminMembershipsRoute: AdminMembershipsRoute,
+  AdminPriceBooksRoute: AdminPriceBooksRouteWithChildren,
   AdminReviewsRoute: AdminReviewsRoute,
   AdminSupportRoute: AdminSupportRoute,
   AdminTrainingRoute: AdminTrainingRoute,

@@ -9,8 +9,8 @@ import { MetadataStep, type MetadataValue } from "@/components/pricebook/Metadat
 import { UploadParseStep, type ParsedFile } from "@/components/pricebook/UploadParseStep";
 import { MatchConfirmStep, type ExistingItem, type NormalizedRow } from "@/components/pricebook/MatchConfirmStep";
 
-export const Route = createFileRoute("/_app/price-books/new")({
-  component: NewPriceBookPage,
+export const Route = createFileRoute("/admin/price-books/new")({
+  component: NewMasterPriceBookPage,
 });
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -19,10 +19,9 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-function NewPriceBookPage() {
+function NewMasterPriceBookPage() {
   const navigate = useNavigate();
   const { data: profile } = useProfile();
-  const companyId = profile?.company_id;
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [meta, setMeta] = useState<MetadataValue>({
@@ -35,36 +34,34 @@ function NewPriceBookPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const { data: existing = [] } = useQuery({
-    queryKey: ["catalog-existing", companyId],
-    enabled: !!companyId && step === 3,
+    queryKey: ["master-catalog-existing"],
+    enabled: step === 3,
     queryFn: async (): Promise<ExistingItem[]> => {
       const { data } = await supabase
         .from("line_item_master")
         .select("id, code, name, default_price")
-        .eq("company_id", companyId!);
+        .is("company_id", null);
       return (data ?? []).map((r) => ({ id: r.id, code: r.code, name: r.name, current_price: r.default_price }));
     },
   });
 
-  const canNext1 = meta.name && meta.jurisdiction && meta.effective_month && meta.zip_codes.length > 0;
+  const canNext1 = meta.name && meta.effective_month;
   const canNext2 = parsed && ["code", "name", "unit_price"].every((r) => parsed.mapping.includes(r as never));
 
   async function handleConfirm() {
-    if (!companyId || !parsed) return;
+    if (!parsed) return;
     setSubmitting(true);
     try {
-      // 1. Upload source file
-      const path = `${companyId}/${Date.now()}-${parsed.file.name}`;
+      const path = `master/${Date.now()}-${parsed.file.name}`;
       const { error: upErr } = await supabase.storage.from("xactimate-uploads").upload(path, parsed.file);
       if (upErr) throw upErr;
 
-      // 2. Create price book
       const { data: pb, error: pbErr } = await supabase
         .from("price_books")
         .insert({
-          company_id: companyId,
+          company_id: null,
           name: meta.name,
-          jurisdiction: meta.jurisdiction,
+          jurisdiction: meta.jurisdiction || null,
           zip_codes: meta.zip_codes,
           effective_month: meta.effective_month || null,
           notes: meta.notes || null,
@@ -74,23 +71,21 @@ function NewPriceBookPage() {
           status: "active",
           item_count: normalized.length,
           pricing_type: meta.pricing_type,
-          is_default: false,
+          is_default: true,
           created_by: profile!.id,
         })
         .select("id")
         .single();
-      if (pbErr || !pb) throw pbErr ?? new Error("Failed to create price book");
+      if (pbErr || !pb) throw pbErr ?? new Error("Failed to create master price book");
 
-      // 3. Resolve all line items: insert new ones, get IDs for existing
       const byCode = new Map(existing.map((e) => [e.code.toUpperCase(), e]));
       const toCreate = normalized.filter((r) => !byCode.has(r.code.toUpperCase()));
-      const idMap = new Map<string, string>(); // code -> line_item_master.id
+      const idMap = new Map<string, string>();
       existing.forEach((e) => idMap.set(e.code.toUpperCase(), e.id));
 
-      // Bulk insert new line items in chunks
       for (const batch of chunk(toCreate, 500)) {
         const rows = batch.map((r) => ({
-          company_id: companyId,
+          company_id: null,
           code: r.code,
           name: r.name,
           unit: r.unit,
@@ -107,7 +102,6 @@ function NewPriceBookPage() {
         inserted?.forEach((i) => idMap.set(i.code.toUpperCase(), i.id));
       }
 
-      // 4. Insert all line_item_prices (with optional retail cost-build columns)
       const priceRows = normalized
         .map((r) => {
           const id = idMap.get(r.code.toUpperCase());
@@ -133,11 +127,10 @@ function NewPriceBookPage() {
         if (error) throw error;
       }
 
-      toast.success(`Price book created with ${priceRows.length} items`);
-      navigate({ to: "/price-books" });
+      toast.success(`Master price book created with ${priceRows.length} items`);
+      navigate({ to: "/admin/price-books" });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Upload failed";
-      toast.error(msg);
+      toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setSubmitting(false);
     }
@@ -147,15 +140,15 @@ function NewPriceBookPage() {
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <button
-          onClick={() => navigate({ to: "/price-books" })}
+          onClick={() => navigate({ to: "/admin/price-books" })}
           className="mb-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-3 w-3" /> Price Books
+          <ArrowLeft className="h-3 w-3" /> Master Price Books
         </button>
-        <h1 className="text-3xl font-bold text-foreground">New Price Book</h1>
+        <h1 className="text-2xl font-semibold">New Master Price Book</h1>
+        <p className="text-sm text-muted-foreground">This book will be available to every company on the platform.</p>
       </div>
 
-      {/* Progress dots */}
       <div className="flex items-center gap-2">
         {[1, 2, 3].map((n) => (
           <div key={n} className="flex flex-1 items-center gap-2">
@@ -215,7 +208,7 @@ function NewPriceBookPage() {
             disabled={submitting || normalized.length === 0}
             className="btn-chrome inline-flex h-9 items-center gap-1 rounded-md px-4 text-sm font-semibold disabled:opacity-40"
           >
-            {submitting ? "Creating…" : "Create Price Book"}
+            {submitting ? "Creating…" : "Create Master Price Book"}
           </button>
         )}
       </div>

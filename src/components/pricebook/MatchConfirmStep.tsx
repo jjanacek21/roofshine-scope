@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { TradeBadge } from "@/components/brand/TradeBadge";
 import { detectTradeFromCode } from "@/lib/xactimate-parser";
 import type { Trade } from "@/lib/trades";
@@ -21,12 +21,24 @@ export interface NormalizedRow {
   labor_pct: number | null;
   material_pct: number | null;
   equipment_pct: number | null;
+  // Retail cost-build extras
+  material_cost: number | null;
+  labor_cost: number | null;
+  equipment_cost: number | null;
+  misc_cost: number | null;
+  overhead_pct_val: number | null;
 }
 
 export interface MatchResult {
   toUpdate: Array<{ existing: ExistingItem; row: NormalizedRow; oldPrice: number | null }>;
   toCreate: NormalizedRow[];
   ignored: Array<{ row: Record<string, unknown>; reason: string }>;
+}
+
+function num(v: unknown): number | null {
+  if (v == null || v === "") return null;
+  const n = typeof v === "number" ? v : Number(String(v).replace(/[$,%]/g, ""));
+  return isFinite(n) ? n : null;
 }
 
 export function normalizeRows(parsed: ParsedFile): { valid: NormalizedRow[]; ignored: MatchResult["ignored"] } {
@@ -37,13 +49,25 @@ export function normalizeRows(parsed: ParsedFile): { valid: NormalizedRow[]; ign
   const idx = (role: string) => map.findIndex((m) => m === role);
   const codeI = idx("code"), nameI = idx("name"), unitI = idx("unit"), priceI = idx("unit_price");
   const catI = idx("category"), labI = idx("labor_pct"), matI = idx("material_pct"), eqI = idx("equipment_pct");
+  const matCostI = idx("material_cost"), labCostI = idx("labor_cost"), eqCostI = idx("equipment_cost");
+  const miscI = idx("misc_cost"), ohI = idx("overhead_pct_val");
 
   for (const row of parsed.rows) {
     const code = codeI >= 0 ? String(row[headers[codeI]] ?? "").trim() : "";
     const name = nameI >= 0 ? String(row[headers[nameI]] ?? "").trim() : "";
-    const priceRaw = priceI >= 0 ? row[headers[priceI]] : null;
-    const price = typeof priceRaw === "number" ? priceRaw : Number(String(priceRaw ?? "").replace(/[$,]/g, ""));
-    if (!code || !name || !isFinite(price)) {
+    const matCost = matCostI >= 0 ? num(row[headers[matCostI]]) : null;
+    const labCost = labCostI >= 0 ? num(row[headers[labCostI]]) : null;
+    const eqCost = eqCostI >= 0 ? num(row[headers[eqCostI]]) : null;
+    const miscCost = miscI >= 0 ? num(row[headers[miscI]]) : null;
+    const ohPctVal = ohI >= 0 ? num(row[headers[ohI]]) : null;
+
+    let price = priceI >= 0 ? num(row[headers[priceI]]) : null;
+    // Derive unit_price from cost components if not provided directly
+    if (price == null && (matCost != null || labCost != null || eqCost != null || miscCost != null)) {
+      const subtotal = (matCost ?? 0) + (labCost ?? 0) + (eqCost ?? 0) + (miscCost ?? 0);
+      price = subtotal + (subtotal * (ohPctVal ?? 0)) / 100;
+    }
+    if (!code || !name || price == null) {
       ignored.push({ row, reason: !code ? "Missing code" : !name ? "Missing name" : "Invalid price" });
       continue;
     }
@@ -54,9 +78,14 @@ export function normalizeRows(parsed: ParsedFile): { valid: NormalizedRow[]; ign
       unit_price: price,
       category: catI >= 0 ? (String(row[headers[catI]] ?? "").trim() || null) : null,
       trade: detectTradeFromCode(code) ?? "exterior",
-      labor_pct: labI >= 0 ? Number(row[headers[labI]]) || null : null,
-      material_pct: matI >= 0 ? Number(row[headers[matI]]) || null : null,
-      equipment_pct: eqI >= 0 ? Number(row[headers[eqI]]) || null : null,
+      labor_pct: labI >= 0 ? num(row[headers[labI]]) : null,
+      material_pct: matI >= 0 ? num(row[headers[matI]]) : null,
+      equipment_pct: eqI >= 0 ? num(row[headers[eqI]]) : null,
+      material_cost: matCost,
+      labor_cost: labCost,
+      equipment_cost: eqCost,
+      misc_cost: miscCost,
+      overhead_pct_val: ohPctVal,
     });
   }
   return { valid, ignored };
@@ -68,9 +97,10 @@ interface Props {
   activeTab: "update" | "new" | "ignored";
   onTabChange: (t: "update" | "new" | "ignored") => void;
   onChange: (newItems: NormalizedRow[]) => void;
+  pricingType?: "insurance" | "retail";
 }
 
-export function MatchConfirmStep({ parsed, existing, activeTab, onTabChange, onChange }: Props) {
+export function MatchConfirmStep({ parsed, existing, activeTab, onTabChange, onChange, pricingType = "insurance" }: Props) {
   const result = useMemo<MatchResult>(() => {
     const { valid, ignored } = normalizeRows(parsed);
     const byCode = new Map(existing.map((e) => [e.code.toUpperCase(), e]));
@@ -84,8 +114,14 @@ export function MatchConfirmStep({ parsed, existing, activeTab, onTabChange, onC
     return { toUpdate, toCreate, ignored };
   }, [parsed, existing]);
 
-  // Notify parent of normalized results so it can use on confirm
-  useMemo(() => onChange([...result.toUpdate.map((u) => u.row), ...result.toCreate]), [result, onChange]);
+  // Notify parent of normalized results so it can use on confirm (effect, not memo)
+  useEffect(() => {
+    onChange([...result.toUpdate.map((u) => u.row), ...result.toCreate]);
+  }, [result, onChange]);
+
+  const showCostCols = pricingType === "retail" && result.toCreate.some(
+    (r) => r.material_cost != null || r.labor_cost != null || r.equipment_cost != null || r.misc_cost != null,
+  );
 
   return (
     <div className="space-y-4">
@@ -145,7 +181,15 @@ export function MatchConfirmStep({ parsed, existing, activeTab, onTabChange, onC
           <table className="w-full text-xs">
             <thead style={{ backgroundColor: "var(--bg-card)" }}>
               <tr className="text-left text-[10px] uppercase tracking-wider text-muted-foreground">
-                <th className="px-3 py-2">Code</th><th className="px-3 py-2">Name</th><th className="px-3 py-2">Trade</th><th className="px-3 py-2">Unit</th><th className="px-3 py-2 text-right">Price</th>
+                <th className="px-3 py-2">Code</th><th className="px-3 py-2">Name</th><th className="px-3 py-2">Trade</th><th className="px-3 py-2">Unit</th>
+                {showCostCols && <>
+                  <th className="px-3 py-2 text-right">Mat</th>
+                  <th className="px-3 py-2 text-right">Lab</th>
+                  <th className="px-3 py-2 text-right">Eq</th>
+                  <th className="px-3 py-2 text-right">Misc</th>
+                  <th className="px-3 py-2 text-right">OH%</th>
+                </>}
+                <th className="px-3 py-2 text-right">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -155,6 +199,13 @@ export function MatchConfirmStep({ parsed, existing, activeTab, onTabChange, onC
                   <td className="px-3 py-1.5 text-muted-foreground">{r.name}</td>
                   <td className="px-3 py-1.5"><TradeBadge trade={r.trade} /></td>
                   <td className="px-3 py-1.5 font-mono-num text-muted-foreground">{r.unit}</td>
+                  {showCostCols && <>
+                    <td className="px-3 py-1.5 text-right font-mono-num text-muted-foreground">{r.material_cost != null ? `$${r.material_cost.toFixed(2)}` : "—"}</td>
+                    <td className="px-3 py-1.5 text-right font-mono-num text-muted-foreground">{r.labor_cost != null ? `$${r.labor_cost.toFixed(2)}` : "—"}</td>
+                    <td className="px-3 py-1.5 text-right font-mono-num text-muted-foreground">{r.equipment_cost != null ? `$${r.equipment_cost.toFixed(2)}` : "—"}</td>
+                    <td className="px-3 py-1.5 text-right font-mono-num text-muted-foreground">{r.misc_cost != null ? `$${r.misc_cost.toFixed(2)}` : "—"}</td>
+                    <td className="px-3 py-1.5 text-right font-mono-num text-muted-foreground">{r.overhead_pct_val != null ? `${r.overhead_pct_val}%` : "—"}</td>
+                  </>}
                   <td className="px-3 py-1.5 text-right font-mono-num text-foreground">${r.unit_price.toFixed(2)}</td>
                 </tr>
               ))}
