@@ -8,14 +8,15 @@ const HEADERS = ["Code", "Description", "Unit", "Unit Price", "Category"] as con
 
 async function extractPdfText(buffer: ArrayBuffer): Promise<string> {
   // pdfjs-dist legacy build works in Workers (no DOM dependency).
-  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const pdfjs = (await import("pdfjs-dist/legacy/build/pdf.mjs")) as unknown as {
+    GlobalWorkerOptions: { workerSrc: string };
+    getDocument: (params: Record<string, unknown>) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: unknown[] }> }> }> };
+  };
   // Disable worker — run inline (Workers don't allow nested workers).
-  // @ts-expect-error - GlobalWorkerOptions exists at runtime
   pdfjs.GlobalWorkerOptions.workerSrc = "";
 
   const loadingTask = pdfjs.getDocument({
     data: new Uint8Array(buffer),
-    disableWorker: true,
     isEvalSupported: false,
     useSystemFonts: false,
   });

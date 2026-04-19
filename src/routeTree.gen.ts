@@ -19,6 +19,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
+import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xactimate-pdf'
 import { Route as ApiMapboxTokenRouteImport } from './routes/api.mapbox-token'
 import { Route as ApiAnalyzeRoofConditionRouteImport } from './routes/api.analyze-roof-condition'
 import { Route as ApiAnalyzeJobPhotosRouteImport } from './routes/api.analyze-job-photos'
@@ -101,6 +102,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const ApiSolarRoofExtractRoute = ApiSolarRoofExtractRouteImport.update({
   id: '/api/solar-roof-extract',
   path: '/api/solar-roof-extract',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiParseXactimatePdfRoute = ApiParseXactimatePdfRouteImport.update({
+  id: '/api/parse-xactimate-pdf',
+  path: '/api/parse-xactimate-pdf',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMapboxTokenRoute = ApiMapboxTokenRouteImport.update({
@@ -303,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/api/analyze-job-photos': typeof ApiAnalyzeJobPhotosRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
+  '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/admin/': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
@@ -345,6 +352,7 @@ export interface FileRoutesByTo {
   '/api/analyze-job-photos': typeof ApiAnalyzeJobPhotosRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
+  '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
@@ -391,6 +399,7 @@ export interface FileRoutesById {
   '/api/analyze-job-photos': typeof ApiAnalyzeJobPhotosRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
+  '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -439,6 +448,7 @@ export interface FileRouteTypes {
     | '/api/analyze-job-photos'
     | '/api/analyze-roof-condition'
     | '/api/mapbox-token'
+    | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
     | '/admin/'
     | '/clients/$id'
@@ -481,6 +491,7 @@ export interface FileRouteTypes {
     | '/api/analyze-job-photos'
     | '/api/analyze-roof-condition'
     | '/api/mapbox-token'
+    | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
     | '/'
     | '/admin'
@@ -526,6 +537,7 @@ export interface FileRouteTypes {
     | '/api/analyze-job-photos'
     | '/api/analyze-roof-condition'
     | '/api/mapbox-token'
+    | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
     | '/_app/'
     | '/admin/'
@@ -555,6 +567,7 @@ export interface RootRouteChildren {
   ApiAnalyzeJobPhotosRoute: typeof ApiAnalyzeJobPhotosRoute
   ApiAnalyzeRoofConditionRoute: typeof ApiAnalyzeRoofConditionRoute
   ApiMapboxTokenRoute: typeof ApiMapboxTokenRoute
+  ApiParseXactimatePdfRoute: typeof ApiParseXactimatePdfRoute
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
 }
 
@@ -628,6 +641,13 @@ declare module '@tanstack/react-router' {
       path: '/api/solar-roof-extract'
       fullPath: '/api/solar-roof-extract'
       preLoaderRoute: typeof ApiSolarRoofExtractRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/parse-xactimate-pdf': {
+      id: '/api/parse-xactimate-pdf'
+      path: '/api/parse-xactimate-pdf'
+      fullPath: '/api/parse-xactimate-pdf'
+      preLoaderRoute: typeof ApiParseXactimatePdfRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mapbox-token': {
@@ -1013,6 +1033,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAnalyzeJobPhotosRoute: ApiAnalyzeJobPhotosRoute,
   ApiAnalyzeRoofConditionRoute: ApiAnalyzeRoofConditionRoute,
   ApiMapboxTokenRoute: ApiMapboxTokenRoute,
+  ApiParseXactimatePdfRoute: ApiParseXactimatePdfRoute,
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
 }
 export const routeTree = rootRouteImport
