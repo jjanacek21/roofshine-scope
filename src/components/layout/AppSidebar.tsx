@@ -33,10 +33,11 @@ export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
+  const isSuperAdmin = profile?.role === "super_admin";
   const isCompanyAdmin =
     profile?.role === "owner" ||
     profile?.role === "admin" ||
-    profile?.role === "super_admin";
+    isSuperAdmin;
 
   const { data: jobsCount = 0 } = useQuery({
     queryKey: ["sidebar-jobs-count"],
