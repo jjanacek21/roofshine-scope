@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { toast } from "sonner";
-import { Loader2, Satellite, Sparkles, Trash2, Plus, Info, Ruler, Pencil, AlertCircle, Check } from "lucide-react";
+import { Loader2, Satellite, Sparkles, Trash2, Plus, Info, Ruler, Pencil, AlertCircle, Check, X } from "lucide-react";
 import type { MapboxRoofData } from "./MapboxRoofDraw";
 import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares, polygonAreaSqft } from "@/lib/roof-math";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -501,16 +501,45 @@ export function SolarRoofTab({
           </div>
         )}
         <div ref={containerRef} className="h-full w-full" />
-        <div
-          className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-md border px-3 py-1.5 text-[11px] backdrop-blur"
-          style={{
-            borderColor: "var(--border)",
-            backgroundColor: "color-mix(in oklab, var(--bg-card) 85%, transparent)",
-          }}
-        >
-          <Info className="h-3 w-3 text-muted-foreground" />
-          <span className="text-muted-foreground">Click map to drop a pin on any structure</span>
-        </div>
+        {drawingPinId ? (
+          <div
+            className="absolute left-3 top-3 z-10 flex items-center gap-3 rounded-md border px-3 py-2 text-[11px] backdrop-blur"
+            style={{
+              borderColor: "#3b82f6",
+              backgroundColor: "color-mix(in oklab, var(--bg-card) 90%, transparent)",
+            }}
+          >
+            <Pencil className="h-3.5 w-3.5 text-[#3b82f6]" />
+            <span className="text-foreground font-semibold">
+              Drawing: click {drawPoints.length < 3 ? `${3 - drawPoints.length} more point${3 - drawPoints.length === 1 ? "" : "s"}` : `(${drawPoints.length} points)`}
+            </span>
+            <button
+              onClick={finishDraw}
+              disabled={drawPoints.length < 3}
+              className="inline-flex items-center gap-1 rounded bg-[#3b82f6] px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-40"
+            >
+              <Check className="h-3 w-3" /> Done
+            </button>
+            <button
+              onClick={cancelDraw}
+              className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <X className="h-3 w-3" /> Cancel
+            </button>
+          </div>
+        ) : (
+          <div
+            className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-md border px-3 py-1.5 text-[11px] backdrop-blur"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "color-mix(in oklab, var(--bg-card) 85%, transparent)",
+            }}
+          >
+            <Info className="h-3 w-3 text-muted-foreground" />
+            <span className="text-muted-foreground">Click map to drop a pin on any structure</span>
+          </div>
+        )}
         {imageryQuality && (
           <div
             className="absolute right-3 top-3 z-10 rounded-md border px-2 py-1 text-[10px] uppercase tracking-wider backdrop-blur"
@@ -621,6 +650,46 @@ export function SolarRoofTab({
               />
             </Field>
           </div>
+
+          {/* Measurement actions */}
+          {activePin.kind !== "ignore" && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: "var(--border)" }}>
+              <button
+                onClick={() => measureOne.mutate(activePin)}
+                disabled={measureOne.isPending || drawingPinId === activePin.id}
+                className="btn-brand inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-semibold disabled:opacity-40"
+              >
+                {measureOne.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Ruler className="h-3.5 w-3.5" />
+                )}
+                Measure area at this location
+              </button>
+              {drawingPinId === activePin.id ? (
+                <button
+                  onClick={cancelDraw}
+                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <X className="h-3.5 w-3.5" /> Cancel draw
+                </button>
+              ) : (
+                <button
+                  onClick={() => startDraw(activePin.id)}
+                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Draw area on map
+                </button>
+              )}
+              {(activePin.plan_area_sqft || 0) === 0 && (
+                <span className="inline-flex items-center gap-1 text-[11px] text-amber-500">
+                  <AlertCircle className="h-3 w-3" /> Not yet measured
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
 
