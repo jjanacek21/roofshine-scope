@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import * as XLSX from "xlsx";
-import { Upload, FileSpreadsheet } from "lucide-react";
+import { Upload, FileSpreadsheet, Sparkles, AlertCircle } from "lucide-react";
 import { autoMapHeader, type ColumnRole } from "@/lib/xactimate-parser";
 
 const BASE_ROLES: { value: ColumnRole; label: string }[] = [
