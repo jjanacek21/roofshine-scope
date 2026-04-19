@@ -35,7 +35,7 @@ export type ColumnRole =
   | "equipment_pct";
 
 export function autoMapHeader(header: string): ColumnRole {
-  const h = header.trim().toUpperCase();
+  const h = (header ?? "").toString().trim().toUpperCase();
   if (/^(CAT|CATEGORY)$/.test(h)) return "category";
   if (/^(SEL|SELECTOR|CODE)$/.test(h)) return "code";
   if (/(DESCRIPTION|ITEM|NAME)/.test(h)) return "name";
@@ -46,3 +46,14 @@ export function autoMapHeader(header: string): ColumnRole {
   if (/^(EQU|EQP|EQUIPMENT)/.test(h)) return "equipment_pct";
   return "ignore";
 }
+
+export function detectColumnMapping(headers: string[]): ColumnRole[] {
+  return headers.map((h) => autoMapHeader(h));
+}
+
+export const UNIT_OPTIONS = ["SQ", "LF", "EA", "HR", "SF", "ROLL", "CY", "TON", "GAL", "DAY", "BDL", "BOX"] as const;
+
+export const JURISDICTION_OPTIONS = [
+  "Miami-Dade", "Broward", "Palm Beach", "Martin", "St. Lucie",
+  "Pinellas", "Hillsborough", "Orange", "Lee", "Collier", "Other",
+] as const;
