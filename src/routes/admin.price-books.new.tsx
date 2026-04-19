@@ -52,9 +52,20 @@ function NewMasterPriceBookPage() {
     if (!parsed) return;
     setSubmitting(true);
     try {
-      const path = `master/${Date.now()}-${parsed.file.name}`;
-      const { error: upErr } = await supabase.storage.from("xactimate-uploads").upload(path, parsed.file);
-      if (upErr) throw upErr;
+      // Source-file upload is best-effort — keep going even if storage fails.
+      let path: string | null = null;
+      try {
+        const candidatePath = `master/${Date.now()}-${parsed.file.name}`;
+        const { error: upErr } = await supabase.storage.from("xactimate-uploads").upload(candidatePath, parsed.file);
+        if (upErr) {
+          console.warn("Source file upload failed:", upErr.message);
+          toast.warning(`Source file not stored: ${upErr.message}. Continuing with line items.`);
+        } else {
+          path = candidatePath;
+        }
+      } catch (storageErr) {
+        console.warn("Source file upload threw:", storageErr);
+      }
 
       const { data: pb, error: pbErr } = await supabase
         .from("price_books")
