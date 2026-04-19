@@ -536,6 +536,13 @@ function JobEstimate() {
           />
         )}
 
+        <AISuggestionsPanel
+          jobId={jobId}
+          onApprove={async (items) => {
+            await addCodes(items, "ai_photo");
+          }}
+        />
+
         <LineItemTable
           items={localItems}
           onPatch={patchItem}
@@ -558,6 +565,14 @@ function JobEstimate() {
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add line item
+              </button>
+              <button
+                onClick={() => setMacroOpen(true)}
+                disabled={!activeId}
+                className="btn-ghost flex h-9 items-center gap-2 rounded-lg px-3.5 text-[13px] font-semibold disabled:opacity-50"
+              >
+                <Layers className="h-3.5 w-3.5" />
+                Insert macro
               </button>
               <button
                 onClick={() => setCustomOpen(true)}
@@ -590,6 +605,14 @@ function JobEstimate() {
         onClose={() => setCustomOpen(false)}
         onAdd={addCustom}
       />
+
+      {macroOpen && job?.company_id && (
+        <MacroPicker
+          companyId={job.company_id}
+          onPick={insertMacro}
+          onClose={() => setMacroOpen(false)}
+        />
+      )}
     </div>
   );
 }
