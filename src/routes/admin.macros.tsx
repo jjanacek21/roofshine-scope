@@ -21,7 +21,7 @@ type MasterMacro = {
   company_id: string | null;
 };
 
-function AdminMacrosPage() {
+export default function AdminMacrosPage() {
   const { data: profile } = useProfile();
   const isSuper = profile?.role === "super_admin";
   const qc = useQueryClient();

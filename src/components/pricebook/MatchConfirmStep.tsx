@@ -48,6 +48,7 @@ export function normalizeRows(parsed: ParsedFile): { valid: NormalizedRow[]; ign
   const headers = parsed.headers;
   const idx = (role: string) => map.findIndex((m) => m === role);
   const codeI = idx("code"), nameI = idx("name"), unitI = idx("unit"), priceI = idx("unit_price");
+  const qtyI = idx("qty"), totalI = idx("line_total");
   const catI = idx("category"), labI = idx("labor_pct"), matI = idx("material_pct"), eqI = idx("equipment_pct");
   const matCostI = idx("material_cost"), labCostI = idx("labor_cost"), eqCostI = idx("equipment_cost");
   const miscI = idx("misc_cost"), ohI = idx("overhead_pct_val");
@@ -60,6 +61,8 @@ export function normalizeRows(parsed: ParsedFile): { valid: NormalizedRow[]; ign
     const eqCost = eqCostI >= 0 ? num(row[headers[eqCostI]]) : null;
     const miscCost = miscI >= 0 ? num(row[headers[miscI]]) : null;
     const ohPctVal = ohI >= 0 ? num(row[headers[ohI]]) : null;
+    const qty = qtyI >= 0 ? num(row[headers[qtyI]]) : null;
+    const lineTotal = totalI >= 0 ? num(row[headers[totalI]]) : null;
 
     let price = priceI >= 0 ? num(row[headers[priceI]]) : null;
     // Derive unit_price from cost components if not provided directly
@@ -67,8 +70,21 @@ export function normalizeRows(parsed: ParsedFile): { valid: NormalizedRow[]; ign
       const subtotal = (matCost ?? 0) + (labCost ?? 0) + (eqCost ?? 0) + (miscCost ?? 0);
       price = subtotal + (subtotal * (ohPctVal ?? 0)) / 100;
     }
-    if (!code || !name || price == null) {
-      ignored.push({ row, reason: !code ? "Missing code" : !name ? "Missing name" : "Invalid price" });
+    // Derive unit_price from qty + line_total if still missing
+    if (price == null && qty != null && qty > 0 && lineTotal != null) {
+      price = lineTotal / qty;
+    }
+    // Last resort: if we have line_total but no qty, treat as a 1-unit item
+    if (price == null && lineTotal != null && qty == null) {
+      price = lineTotal;
+    }
+    if (!code || !name || price == null || !isFinite(price)) {
+      ignored.push({
+        row,
+        reason: !code ? "Missing code/selector"
+          : !name ? "Missing description/activity"
+          : "No usable price (need unit price, OR qty + total, OR cost components)",
+      });
       continue;
     }
     valid.push({

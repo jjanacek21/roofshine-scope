@@ -1,14 +1,59 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Library, Upload } from "lucide-react";
+import { Library, Upload, Layers, DollarSign } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import AdminMacrosPage from "@/routes/admin.macros";
 
 export const Route = createFileRoute("/admin/price-books")({
-  component: AdminPriceBooks,
+  component: AdminPricing,
 });
 
-function AdminPriceBooks() {
+function AdminPricing() {
+  const [tab, setTab] = useState<"insurance" | "macros">("insurance");
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Master Pricing</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Insurance pricing libraries from Xactimate uploads, plus reusable Master Macros for retail pricing.
+        </p>
+      </div>
+
+      <div className="flex gap-1 border-b" style={{ borderColor: "var(--border)" }}>
+        <button
+          onClick={() => setTab("insurance")}
+          className={cn(
+            "flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors",
+            tab === "insurance"
+              ? "border-[var(--brand)] text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Layers className="h-4 w-4" /> Insurance Pricing
+        </button>
+        <button
+          onClick={() => setTab("macros")}
+          className={cn(
+            "flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors",
+            tab === "macros"
+              ? "border-[var(--brand)] text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <DollarSign className="h-4 w-4" /> Master Macros (Retail)
+        </button>
+      </div>
+
+      {tab === "insurance" ? <InsuranceList /> : <AdminMacrosPage />}
+    </div>
+  );
+}
+
+function InsuranceList() {
   const { data: books = [], isLoading } = useQuery({
     queryKey: ["admin-master-pricebooks"],
     queryFn: async () => {
@@ -23,20 +68,17 @@ function AdminPriceBooks() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Master Price Books</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Global default pricing libraries available to every company as a fallback.
-          </p>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Master insurance libraries are available to every company as a fallback when their own pricing isn't set.
+        </p>
         <Link
           to="/admin/price-books/new"
           className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-semibold hover:bg-accent"
         >
           <Upload className="h-4 w-4" />
-          Upload master book
+          Upload estimate file
         </Link>
       </div>
 
@@ -46,9 +88,9 @@ function AdminPriceBooks() {
         ) : books.length === 0 ? (
           <div className="p-12 text-center">
             <Library className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">No master price books yet.</p>
+            <p className="text-sm text-muted-foreground">No master pricing libraries yet.</p>
             <Link to="/admin/price-books/new" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
-              Upload your first master book →
+              Upload your first Xactimate estimate →
             </Link>
           </div>
         ) : (

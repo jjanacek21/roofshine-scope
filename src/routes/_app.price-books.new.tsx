@@ -47,7 +47,17 @@ function NewPriceBookPage() {
   });
 
   const canNext1 = meta.name && meta.jurisdiction && meta.effective_month && meta.zip_codes.length > 0;
-  const canNext2 = parsed && ["code", "name", "unit_price"].every((r) => parsed.mapping.includes(r as never));
+  const canNext2 =
+    parsed &&
+    parsed.mapping.includes("code" as never) &&
+    parsed.mapping.includes("name" as never) &&
+    (
+      parsed.mapping.includes("unit_price" as never) ||
+      parsed.mapping.includes("line_total" as never) ||
+      parsed.mapping.includes("material_cost" as never) ||
+      parsed.mapping.includes("labor_cost" as never) ||
+      parsed.mapping.includes("equipment_cost" as never)
+    );
 
   async function handleConfirm() {
     if (!companyId || !parsed) return;
@@ -147,7 +157,7 @@ function NewPriceBookPage() {
         if (error) throw error;
       }
 
-      toast.success(`Price book created with ${priceRows.length} items`);
+      toast.success(`Extracted & saved ${priceRows.length} line items into your pricing library`);
       navigate({ to: "/price-books" });
     } catch (e) {
       const msg = e instanceof Error ? e.message : JSON.stringify(e);
@@ -171,9 +181,12 @@ function NewPriceBookPage() {
           onClick={() => navigate({ to: "/price-books" })}
           className="mb-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-3 w-3" /> Price Books
+          <ArrowLeft className="h-3 w-3" /> Pricing
         </button>
-        <h1 className="text-3xl font-bold text-foreground">New Price Book</h1>
+        <h1 className="text-3xl font-bold text-foreground">Upload Estimate File</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Upload a Xactimate estimate (PDF, Excel, or CSV) and we'll extract every line item into your pricing library.
+        </p>
       </div>
 
       {/* Progress dots */}
@@ -191,7 +204,7 @@ function NewPriceBookPage() {
               {step > n ? <Check className="h-3.5 w-3.5" /> : n}
             </div>
             <span className="text-xs font-medium" style={{ color: step >= n ? "var(--text)" : "var(--text-muted)" }}>
-              {n === 1 ? "Metadata" : n === 2 ? "Upload & Parse" : "Match & Confirm"}
+              {n === 1 ? "Details" : n === 2 ? "Upload & Extract" : "Review & Save"}
             </span>
             {n < 3 && <div className="h-px flex-1" style={{ backgroundColor: "var(--border)" }} />}
           </div>
@@ -235,7 +248,7 @@ function NewPriceBookPage() {
               <p className="text-[11px] text-muted-foreground">Missing: {next1Missing.join(", ")}</p>
             )}
             {step === 2 && !canNext2 && parsed && (
-              <p className="text-[11px] text-muted-foreground">Map columns: code, name, unit_price</p>
+              <p className="text-[11px] text-muted-foreground">Need: code/selector, description, and a price column (unit price OR qty + total OR cost components)</p>
             )}
           </div>
         ) : (
@@ -244,7 +257,7 @@ function NewPriceBookPage() {
             disabled={submitting || normalized.length === 0}
             className="btn-chrome inline-flex h-9 items-center gap-1 rounded-md px-4 text-sm font-semibold disabled:opacity-40"
           >
-            {submitting ? "Creating…" : "Create Price Book"}
+            {submitting ? "Saving…" : `Save ${normalized.length} Line Items`}
           </button>
         )}
       </div>

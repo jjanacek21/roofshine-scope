@@ -1,15 +1,16 @@
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import * as XLSX from "xlsx";
-import { Upload, FileSpreadsheet, Sparkles, AlertCircle } from "lucide-react";
-import { autoMapHeader, type ColumnRole } from "@/lib/xactimate-parser";
+import { Upload, FileSpreadsheet, Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
+import { autoMapHeader, extractEstimateFromSpreadsheet, type ColumnRole } from "@/lib/xactimate-parser";
 
 const BASE_ROLES: { value: ColumnRole; label: string }[] = [
   { value: "ignore", label: "Ignore" },
-  { value: "code", label: "Code" },
-  { value: "name", label: "Name/Description" },
+  { value: "code", label: "Code / Selector" },
+  { value: "name", label: "Description / Activity" },
   { value: "unit", label: "Unit" },
+  { value: "qty", label: "Qty" },
   { value: "unit_price", label: "Unit Price" },
+  { value: "line_total", label: "Line Total / RCV" },
   { value: "category", label: "Category" },
   { value: "labor_pct", label: "Labor %" },
   { value: "material_pct", label: "Material %" },
@@ -29,6 +30,8 @@ export interface ParsedFile {
   headers: string[];
   rows: Record<string, unknown>[];
   mapping: ColumnRole[];
+  sheetName?: string;
+  source: "pdf" | "spreadsheet";
 }
 
 interface Props {
@@ -58,22 +61,29 @@ export function UploadParseStep({ value, onChange, pricingType = "insurance" }: 
           const resp = await fetch("/api/parse-xactimate-pdf", { method: "POST", body: fd });
           const data = await resp.json();
           if (!resp.ok) {
-            setError(data?.error ?? "Failed to parse PDF");
+            setError(data?.error ?? "Failed to extract line items from PDF");
             return;
           }
           const headers: string[] = data.headers ?? ["Code", "Description", "Unit", "Unit Price", "Category"];
           const rows: Record<string, unknown>[] = data.rows ?? [];
           const mapping = headers.map((h) => autoMapHeader(h));
-          onChange({ file, headers, rows, mapping });
+          onChange({ file, headers, rows, mapping, source: "pdf" });
         } else {
           setParseStage("spreadsheet");
           const buf = await file.arrayBuffer();
-          const wb = XLSX.read(buf, { type: "array" });
-          const sheet = wb.Sheets[wb.SheetNames[0]];
-          const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null });
-          const headers = json.length > 0 ? Object.keys(json[0]) : [];
-          const mapping = headers.map((h) => autoMapHeader(h));
-          onChange({ file, headers, rows: json, mapping });
+          const extracted = extractEstimateFromSpreadsheet(buf);
+          if (extracted.rows.length === 0) {
+            setError("No line items found in this file. Make sure the sheet has a header row with at least Code/Selector and Description/Activity columns.");
+            return;
+          }
+          onChange({
+            file,
+            headers: extracted.headers,
+            rows: extracted.rows,
+            mapping: extracted.mapping,
+            sheetName: extracted.sheetName,
+            source: "spreadsheet",
+          });
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to read file");
@@ -124,14 +134,14 @@ export function UploadParseStep({ value, onChange, pricingType = "insurance" }: 
             {parseStage === "pdf-ai"
               ? "Extracting line items with AI… (10–30 s)"
               : parsing
-                ? "Parsing…"
+                ? "Reading file & detecting columns…"
                 : isDragActive
-                  ? "Drop the file here"
-                  : "Drag & drop or click to upload"}
+                  ? "Drop your estimate here"
+                  : "Drop your Xactimate estimate file here"}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">.xlsx, .xls, .csv, .pdf</p>
+          <p className="mt-1 text-xs text-muted-foreground">PDF · Excel (.xlsx, .xls) · CSV</p>
           <p className="mt-2 max-w-md text-[11px] text-muted-foreground">
-            PDFs are auto-parsed with AI. Spreadsheets let you map columns manually.
+            We'll scan every sheet, find the header row (Selector / Activity / Qty / Unit Price / RCV…), and extract every line item.
           </p>
           {pricingType === "retail" && (
             <p className="mt-3 max-w-md text-[11px] text-muted-foreground">
@@ -153,10 +163,22 @@ export function UploadParseStep({ value, onChange, pricingType = "insurance" }: 
     );
   }
 
-  const isPdf = value.file.type === "application/pdf" || value.file.name.toLowerCase().endsWith(".pdf");
+  const isPdf = value.source === "pdf";
 
-  const requiredRoles: ColumnRole[] = ["code", "name", "unit_price"];
-  const missing = requiredRoles.filter((r) => !value.mapping.includes(r));
+  // Need code + name + at least one of (unit_price | line_total | cost components)
+  const hasCode = value.mapping.includes("code");
+  const hasName = value.mapping.includes("name");
+  const hasPriceish =
+    value.mapping.includes("unit_price") ||
+    value.mapping.includes("line_total") ||
+    value.mapping.includes("material_cost") ||
+    value.mapping.includes("labor_cost") ||
+    value.mapping.includes("equipment_cost");
+  const missing: string[] = [];
+  if (!hasCode) missing.push("code/selector");
+  if (!hasName) missing.push("description/activity");
+  if (!hasPriceish) missing.push("a price column (unit price, line total / RCV, or cost components)");
+
   const previewRows = value.rows.slice(0, 5);
 
   return (
@@ -170,6 +192,7 @@ export function UploadParseStep({ value, onChange, pricingType = "insurance" }: 
           <p className="text-sm font-medium text-foreground">{value.file.name}</p>
           <p className="text-xs text-muted-foreground">
             <span className="font-mono-num">{value.rows.length.toLocaleString()}</span> rows · {value.headers.length} columns
+            {value.sheetName ? ` · sheet: ${value.sheetName}` : ""}
             {pricingType === "retail" && " · retail cost-build mode"}
           </p>
         </div>
@@ -178,21 +201,31 @@ export function UploadParseStep({ value, onChange, pricingType = "insurance" }: 
         </button>
       </div>
 
-      {isPdf && (
+      {isPdf ? (
         <div
           className="flex items-start gap-2 rounded-md border p-3 text-xs"
           style={{ borderColor: "var(--success, #10b981)", color: "var(--success, #10b981)" }}
         >
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            ✓ AI extracted <strong>{value.rows.length}</strong> line items. Click <strong>Next</strong> to review &amp; confirm.
+            ✓ AI extracted <strong>{value.rows.length}</strong> line items from your PDF estimate. Click <strong>Next</strong> to review.
           </span>
         </div>
-      )}
+      ) : missing.length === 0 ? (
+        <div
+          className="flex items-start gap-2 rounded-md border p-3 text-xs"
+          style={{ borderColor: "var(--success, #10b981)", color: "var(--success, #10b981)" }}
+        >
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            ✓ Detected <strong>{value.rows.length}</strong> rows with all required columns mapped. Click <strong>Next</strong> to review.
+          </span>
+        </div>
+      ) : null}
 
       {missing.length > 0 && (
         <div className="rounded-md border p-3 text-xs" style={{ borderColor: "var(--warning)", color: "var(--warning)" }}>
-          Map columns for: <strong>{missing.join(", ")}</strong> before continuing.
+          Map columns for: <strong>{missing.join(", ")}</strong> before continuing. (If you have <em>Qty</em> + <em>Total/RCV</em> but no unit price, that works too — we'll derive it.)
         </div>
       )}
 
