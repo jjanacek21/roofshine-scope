@@ -1,21 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { Save, Map as MapIcon, FileText, Sparkles, Pencil } from "lucide-react";
+import type { Feature, Polygon, LineString, Point } from "geojson";
 import {
   ManualMeasurementForm,
   type ManualValues,
   blankManualValues,
 } from "./ManualMeasurementForm";
-import { MapboxRoofDraw, type MapboxRoofData } from "./MapboxRoofDraw";
+import { MapboxRoofDraw, type MapboxRoofData, type AnyFeature } from "./MapboxRoofDraw";
 import { SolarRoofTab } from "./SolarRoofTab";
 import { ConditionAITab } from "./ConditionAITab";
 import {
-  squares, withWaste, bundles, lineStringLengthFeet, polygonEdgeLengths,
+  squares, polygonEdgeLengths,
   type EdgeType,
 } from "@/lib/roof-math";
+import type { FeatureProps } from "@/lib/measurement-utils";
 
 type Tab = "manual" | "mapbox" | "solar" | "condition" | "report";
 
@@ -50,10 +52,50 @@ export function RoofMeasurementPanel({
     },
   });
 
+  // Load saved sections + lines for hydration into Mapbox draw
+  const { data: savedShapes } = useQuery({
+    queryKey: ["roof-shapes", existing?.id],
+    enabled: !!existing?.id,
+    queryFn: async () => {
+      const [sections, lines] = await Promise.all([
+        supabase.from("roof_sections").select("*, roof_edges(*)").eq("measurement_id", existing!.id),
+        supabase.from("roof_lines").select("*").eq("measurement_id", existing!.id),
+      ]);
+      return { sections: sections.data ?? [], lines: lines.data ?? [] };
+    },
+  });
+
+  const initialFeatures = useMemo<AnyFeature[]>(() => {
+    if (!savedShapes) return [];
+    const feats: AnyFeature[] = [];
+    for (const s of savedShapes.sections) {
+      const geo = s.polygon_geojson as { type: string; coordinates: number[][][] } | null;
+      if (!geo?.coordinates) continue;
+      feats.push({
+        type: "Feature",
+        id: `sec-${s.id}`,
+        geometry: { type: "Polygon", coordinates: geo.coordinates } as Polygon,
+        properties: { pitch: s.pitch ?? "6/12" } as FeatureProps,
+      } as Feature<Polygon, FeatureProps>);
+    }
+    for (const l of savedShapes.lines) {
+      const geo = l.line_geojson as { type: string; coordinates: number[][] } | null;
+      if (!geo?.coordinates) continue;
+      feats.push({
+        type: "Feature",
+        id: `line-${l.id}`,
+        geometry: { type: "LineString", coordinates: geo.coordinates } as LineString,
+        properties: { edge_type: l.line_type as EdgeType } as FeatureProps,
+      } as Feature<LineString, FeatureProps>);
+    }
+    return feats;
+  }, [savedShapes]);
+
   const [manual, setManual] = useState<ManualValues>(blankManualValues);
   const [mapboxData, setMapboxData] = useState<MapboxRoofData>({ sections: [], lines: [] });
+  const [wastePct, setWastePct] = useState<number>(15);
 
-  // Hydrate manual form from existing
+  // Hydrate manual form + waste from existing
   useEffect(() => {
     if (existing) {
       setManual({
@@ -70,11 +112,9 @@ export function RoofMeasurementPanel({
         step_flashing_lf: Number(existing.step_flashing_lf ?? 0),
         transition_lf: Number(existing.transition_lf ?? 0),
       });
+      setWastePct(Number(existing.waste_pct ?? 15));
     }
   }, [existing]);
-
-  // Compute totals from Mapbox data when in that tab
-  const mapboxTotals = computeMapboxTotals(mapboxData);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -82,26 +122,28 @@ export function RoofMeasurementPanel({
       const isMapbox = tab === "mapbox";
       const source = isMapbox ? "mapbox_draw" : "manual";
 
-      const totals = isMapbox ? mapboxTotals : {
-        total_area_sqft: manual.total_area_sqft,
-        squares: squares(manual.total_area_sqft),
-        eaves_lf: manual.eaves_lf,
-        rakes_lf: manual.rakes_lf,
-        ridges_lf: manual.ridges_lf,
-        hips_lf: manual.hips_lf,
-        valleys_lf: manual.valleys_lf,
-        gutters_lf: manual.gutters_lf,
-        wall_flashing_lf: manual.wall_flashing_lf,
-        step_flashing_lf: manual.step_flashing_lf,
-        transition_lf: manual.transition_lf,
-      };
+      const totals = isMapbox
+        ? mapboxTotalsFromFeatures(mapboxData.features ?? [])
+        : {
+            total_area_sqft: manual.total_area_sqft,
+            squares: squares(manual.total_area_sqft),
+            eaves_lf: manual.eaves_lf,
+            rakes_lf: manual.rakes_lf,
+            ridges_lf: manual.ridges_lf,
+            hips_lf: manual.hips_lf,
+            valleys_lf: manual.valleys_lf,
+            gutters_lf: manual.gutters_lf,
+            wall_flashing_lf: manual.wall_flashing_lf,
+            step_flashing_lf: manual.step_flashing_lf,
+            transition_lf: manual.transition_lf,
+          };
 
       const payload = {
         property_id: propertyId,
         company_id: profile.company_id,
         source: source as "manual" | "mapbox_draw",
         predominant_pitch: manual.predominant_pitch,
-        waste_pct: manual.waste_pct,
+        waste_pct: isMapbox ? wastePct : manual.waste_pct,
         total_area_sqft: totals.total_area_sqft,
         squares: totals.squares,
         eaves_lf: totals.eaves_lf,
@@ -116,7 +158,6 @@ export function RoofMeasurementPanel({
         created_by: profile.id,
       };
 
-      // Upsert measurement
       const { data: m, error: mErr } = await supabase
         .from("roof_measurements")
         .upsert(payload, { onConflict: "property_id" })
@@ -124,25 +165,35 @@ export function RoofMeasurementPanel({
         .single();
       if (mErr) throw mErr;
 
-      // If mapbox: replace sections/edges/lines
       if (isMapbox) {
         await supabase.from("roof_sections").delete().eq("measurement_id", m.id);
         await supabase.from("roof_lines").delete().eq("measurement_id", m.id);
 
-        for (let i = 0; i < mapboxData.sections.length; i++) {
-          const s = mapboxData.sections[i];
-          const planArea = s.plan_area_sqft;
-          const mult = pitchMult(s.pitch);
+        const features = mapboxData.features ?? [];
+        const polygons = features.filter(
+          (f): f is Feature<Polygon, FeatureProps> => f.geometry.type === "Polygon",
+        );
+        const lines = features.filter(
+          (f): f is Feature<LineString, FeatureProps> => f.geometry.type === "LineString",
+        );
+
+        for (let i = 0; i < polygons.length; i++) {
+          const poly = polygons[i];
+          const ring = poly.geometry.coordinates[0];
+          const pitch = poly.properties?.pitch ?? "6/12";
+          const mult = pitchMult(pitch);
+          // Use turf for area accuracy via library; here approximate from ring helper
+          const planArea = polygonAreaFromRing(ring);
           const actualArea = planArea * mult;
-          const { data: secRow, error: secErr } = await supabase
+          const { error: secErr } = await supabase
             .from("roof_sections")
             .insert({
               measurement_id: m.id,
-              name: s.name,
-              color: s.color,
-              polygon_geojson: { type: "Polygon", coordinates: [s.ring] },
+              name: `Section ${i + 1}`,
+              color: "#3b82f6",
+              polygon_geojson: { type: "Polygon", coordinates: poly.geometry.coordinates },
               plan_area_sqft: planArea,
-              pitch: s.pitch,
+              pitch,
               pitch_multiplier: mult,
               actual_area_sqft: actualArea,
               sort_order: i,
@@ -150,32 +201,34 @@ export function RoofMeasurementPanel({
             .select()
             .single();
           if (secErr) throw secErr;
-
-          const lengths = polygonEdgeLengths(s.ring);
-          const edgeRows = s.edges
-            .map((e, idx) => e ? { section_id: secRow.id, edge_index: idx, edge_type: e, length_lf: lengths[idx] ?? 0 } : null)
-            .filter((x): x is NonNullable<typeof x> => x !== null);
-          if (edgeRows.length) {
-            const { error: eErr } = await supabase.from("roof_edges").insert(edgeRows);
-            if (eErr) throw eErr;
-          }
         }
 
-        if (mapboxData.lines.length) {
-          const lineRows = mapboxData.lines.map((l) => ({
-            measurement_id: m.id,
-            line_geojson: { type: "LineString", coordinates: l.coords },
-            line_type: l.type,
-            length_lf: lineStringLengthFeet(l.coords),
-          }));
-          const { error: lErr } = await supabase.from("roof_lines").insert(lineRows);
-          if (lErr) throw lErr;
+        if (lines.length) {
+          const lineRows = lines
+            .filter((l) => l.properties?.edge_type)
+            .map((l) => {
+              const lengths = polygonEdgeLengths([
+                ...l.geometry.coordinates,
+                l.geometry.coordinates[0],
+              ]);
+              return {
+                measurement_id: m.id,
+                line_geojson: { type: "LineString", coordinates: l.geometry.coordinates },
+                line_type: l.properties!.edge_type as EdgeType,
+                length_lf: lengths.reduce((s, n) => s + n, 0),
+              };
+            });
+          if (lineRows.length) {
+            const { error: lErr } = await supabase.from("roof_lines").insert(lineRows);
+            if (lErr) throw lErr;
+          }
         }
       }
     },
     onSuccess: () => {
       toast.success("Roof measurements saved");
       qc.invalidateQueries({ queryKey: ["roof-measurement", propertyId] });
+      qc.invalidateQueries({ queryKey: ["roof-shapes"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
   });
@@ -195,7 +248,7 @@ export function RoofMeasurementPanel({
                 tab === k
                   ? "border-[var(--brand)] text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
-              } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
+              } ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
               title={disabled ? "Property has no coordinates" : undefined}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -206,17 +259,30 @@ export function RoofMeasurementPanel({
       </div>
 
       {tab === "manual" && (
-        <ManualMeasurementForm values={manual} onChange={setManual} />
-      )}
-      {tab === "mapbox" && center && (
         <>
-          <MapboxRoofDraw center={center} onChange={setMapboxData} />
-          <div className="grid grid-cols-3 gap-3 rounded-xl border p-4" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}>
-            <Stat label="Total Squares" value={squares(mapboxTotals.total_area_sqft).toFixed(2)} />
-            <Stat label={`+ ${manual.waste_pct}% waste`} value={squares(withWaste(mapboxTotals.total_area_sqft, manual.waste_pct)).toFixed(2)} />
-            <Stat label="Bundles" value={bundles(mapboxTotals.total_area_sqft, manual.waste_pct).toString()} />
+          <ManualMeasurementForm values={manual} onChange={setManual} />
+          <div className="flex justify-end">
+            <button
+              onClick={() => save.mutate()}
+              disabled={save.isPending}
+              className="btn-brand inline-flex h-10 items-center gap-2 rounded-md px-5 text-sm font-semibold disabled:opacity-40"
+            >
+              <Save className="h-4 w-4" />
+              {save.isPending ? "Saving…" : "Save Measurements"}
+            </button>
           </div>
         </>
+      )}
+      {tab === "mapbox" && center && (
+        <MapboxRoofDraw
+          center={center}
+          initialFeatures={initialFeatures}
+          onChange={setMapboxData}
+          wastePct={wastePct}
+          onWasteChange={setWastePct}
+          onSave={() => save.mutate()}
+          isSaving={save.isPending}
+        />
       )}
       {tab === "solar" && center && (
         <SolarRoofTab center={center} onApply={(d) => { setMapboxData(d); setTab("mapbox"); }} />
@@ -238,26 +304,6 @@ export function RoofMeasurementPanel({
           Third-party report PDF upload (EagleView, Hover) — coming in Round C.
         </div>
       )}
-
-      <div className="flex justify-end">
-        <button
-          onClick={() => save.mutate()}
-          disabled={save.isPending}
-          className="btn-brand inline-flex h-10 items-center gap-2 rounded-md px-5 text-sm font-semibold disabled:opacity-40"
-        >
-          <Save className="h-4 w-4" />
-          {save.isPending ? "Saving…" : "Save Measurements"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="font-mono-num text-2xl text-foreground">{value}</p>
     </div>
   );
 }
@@ -278,31 +324,54 @@ const EDGE_KEY_MAP: Record<EdgeType, EdgeKey> = {
   transition: "transition_lf",
 };
 
-function computeMapboxTotals(data: MapboxRoofData) {
+function mapboxTotalsFromFeatures(features: AnyFeature[]) {
   const totals: Record<EdgeKey, number> = {
     eaves_lf: 0, rakes_lf: 0, ridges_lf: 0, hips_lf: 0, valleys_lf: 0,
     gutters_lf: 0, wall_flashing_lf: 0, step_flashing_lf: 0, transition_lf: 0,
   };
   let total_area_sqft = 0;
-  // sections — include actual area (with pitch) and edge contributions
-  for (const s of data.sections) {
-    const lengths = polygonEdgeLengths(s.ring);
-    // actual area uses pitch multiplier from roof-math (recomputed here for safety)
-    const actualArea = s.plan_area_sqft * pitchMult(s.pitch);
-    total_area_sqft += actualArea;
-    s.edges.forEach((e, i) => {
-      if (e) totals[EDGE_KEY_MAP[e]] += lengths[i] ?? 0;
-    });
+  for (const f of features) {
+    if (f.geometry.type === "Polygon") {
+      const ring = (f as Feature<Polygon, FeatureProps>).geometry.coordinates[0];
+      const pitch = (f as Feature<Polygon, FeatureProps>).properties?.pitch ?? "6/12";
+      total_area_sqft += polygonAreaFromRing(ring) * pitchMult(pitch);
+    } else if (f.geometry.type === "LineString") {
+      const t = (f as Feature<LineString, FeatureProps>).properties?.edge_type;
+      if (!t) continue;
+      const coords = (f as Feature<LineString, FeatureProps>).geometry.coordinates;
+      const lens = polygonEdgeLengths([...coords, coords[0]]);
+      // Subtract the closing leg which polygonEdgeLengths added
+      const len = lens.slice(0, -1).reduce((s, n) => s + n, 0);
+      totals[EDGE_KEY_MAP[t]] += len;
+    } else if (f.geometry.type === "Point") {
+      // Penetrations don't contribute to LF totals.
+      void (f as Feature<Point, FeatureProps>);
+    }
   }
-  // free lines
-  for (const l of data.lines) {
-    totals[EDGE_KEY_MAP[l.type]] += lineStringLengthFeet(l.coords);
+  return { total_area_sqft, squares: total_area_sqft / 100, ...totals };
+}
+
+function polygonAreaFromRing(ring: number[][]): number {
+  // Equirectangular shoelace, returns sqft. Mirrors lib/roof-math but local
+  // to avoid an extra import cycle.
+  if (ring.length < 3) return 0;
+  const closed =
+    ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+      ? ring
+      : [...ring, ring[0]];
+  const lat0 = (closed[0][1] * Math.PI) / 180;
+  const cosLat = Math.cos(lat0);
+  const ftPerDegLat = 364320;
+  const ftPerDegLng = ftPerDegLat * cosLat;
+  const pts = closed.map(([lng, lat]) => ({
+    x: (lng - closed[0][0]) * ftPerDegLng,
+    y: (lat - closed[0][1]) * ftPerDegLat,
+  }));
+  let s = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    s += pts[i].x * pts[i + 1].y - pts[i + 1].x * pts[i].y;
   }
-  return {
-    total_area_sqft,
-    squares: squares(total_area_sqft),
-    ...totals,
-  };
+  return Math.abs(s) / 2;
 }
 
 function pitchMult(pitch: string): number {
