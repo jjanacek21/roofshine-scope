@@ -37,6 +37,7 @@ import { Route as AppCatalogRouteImport } from './routes/_app.catalog'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
+import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
 import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
 
 const SignupRoute = SignupRouteImport.update({
@@ -178,6 +179,11 @@ const AppTeamInvitesRoute = AppTeamInvitesRouteImport.update({
   path: '/invites',
   getParentRoute: () => AppTeamRoute,
 } as any)
+const AppPriceBooksNewRoute = AppPriceBooksNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppPriceBooksRoute,
+} as any)
 const AppJobsIdRoute = AppJobsIdRouteImport.update({
   id: '/jobs/$id',
   path: '/jobs/$id',
@@ -192,7 +198,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/catalog': typeof AppCatalogRoute
   '/clients': typeof AppClientsRoute
-  '/price-books': typeof AppPriceBooksRoute
+  '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
   '/team': typeof AppTeamRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -210,6 +216,7 @@ export interface FileRoutesByFullPath {
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/admin/': typeof AdminIndexRoute
   '/jobs/$id': typeof AppJobsIdRoute
+  '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/jobs/': typeof AppJobsIndexRoute
   '/team/': typeof AppTeamIndexRoute
@@ -220,7 +227,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/catalog': typeof AppCatalogRoute
   '/clients': typeof AppClientsRoute
-  '/price-books': typeof AppPriceBooksRoute
+  '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
@@ -238,6 +245,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
   '/jobs/$id': typeof AppJobsIdRoute
+  '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/jobs': typeof AppJobsIndexRoute
   '/team': typeof AppTeamIndexRoute
@@ -251,7 +259,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_app/catalog': typeof AppCatalogRoute
   '/_app/clients': typeof AppClientsRoute
-  '/_app/price-books': typeof AppPriceBooksRoute
+  '/_app/price-books': typeof AppPriceBooksRouteWithChildren
   '/_app/settings': typeof AppSettingsRoute
   '/_app/team': typeof AppTeamRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -270,6 +278,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/_app/jobs/$id': typeof AppJobsIdRoute
+  '/_app/price-books/new': typeof AppPriceBooksNewRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
   '/_app/team/': typeof AppTeamIndexRoute
@@ -302,6 +311,7 @@ export interface FileRouteTypes {
     | '/api/mapbox-token'
     | '/admin/'
     | '/jobs/$id'
+    | '/price-books/new'
     | '/team/invites'
     | '/jobs/'
     | '/team/'
@@ -330,6 +340,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/jobs/$id'
+    | '/price-books/new'
     | '/team/invites'
     | '/jobs'
     | '/team'
@@ -361,6 +372,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/admin/'
     | '/_app/jobs/$id'
+    | '/_app/price-books/new'
     | '/_app/team/invites'
     | '/_app/jobs/'
     | '/_app/team/'
@@ -573,6 +585,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTeamInvitesRouteImport
       parentRoute: typeof AppTeamRoute
     }
+    '/_app/price-books/new': {
+      id: '/_app/price-books/new'
+      path: '/new'
+      fullPath: '/price-books/new'
+      preLoaderRoute: typeof AppPriceBooksNewRouteImport
+      parentRoute: typeof AppPriceBooksRoute
+    }
     '/_app/jobs/$id': {
       id: '/_app/jobs/$id'
       path: '/jobs/$id'
@@ -582,6 +601,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AppPriceBooksRouteChildren {
+  AppPriceBooksNewRoute: typeof AppPriceBooksNewRoute
+}
+
+const AppPriceBooksRouteChildren: AppPriceBooksRouteChildren = {
+  AppPriceBooksNewRoute: AppPriceBooksNewRoute,
+}
+
+const AppPriceBooksRouteWithChildren = AppPriceBooksRoute._addFileChildren(
+  AppPriceBooksRouteChildren,
+)
 
 interface AppTeamRouteChildren {
   AppTeamInvitesRoute: typeof AppTeamInvitesRoute
@@ -599,7 +630,7 @@ const AppTeamRouteWithChildren =
 interface AppRouteChildren {
   AppCatalogRoute: typeof AppCatalogRoute
   AppClientsRoute: typeof AppClientsRoute
-  AppPriceBooksRoute: typeof AppPriceBooksRoute
+  AppPriceBooksRoute: typeof AppPriceBooksRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRoute
   AppTeamRoute: typeof AppTeamRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
@@ -610,7 +641,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppCatalogRoute: AppCatalogRoute,
   AppClientsRoute: AppClientsRoute,
-  AppPriceBooksRoute: AppPriceBooksRoute,
+  AppPriceBooksRoute: AppPriceBooksRouteWithChildren,
   AppSettingsRoute: AppSettingsRoute,
   AppTeamRoute: AppTeamRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
@@ -665,3 +696,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

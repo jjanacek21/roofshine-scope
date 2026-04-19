@@ -1,0 +1,153 @@
+import { useCallback, useState } from "react";
+import { useDropzone } from "react-dropzone";
+import * as XLSX from "xlsx";
+import { Upload, FileSpreadsheet } from "lucide-react";
+import { autoMapHeader, type ColumnRole } from "@/lib/xactimate-parser";
+
+const ROLE_OPTIONS: { value: ColumnRole; label: string }[] = [
+  { value: "ignore", label: "Ignore" },
+  { value: "code", label: "Code" },
+  { value: "name", label: "Name/Description" },
+  { value: "unit", label: "Unit" },
+  { value: "unit_price", label: "Unit Price" },
+  { value: "category", label: "Category" },
+  { value: "labor_pct", label: "Labor %" },
+  { value: "material_pct", label: "Material %" },
+  { value: "equipment_pct", label: "Equipment %" },
+];
+
+export interface ParsedFile {
+  file: File;
+  headers: string[];
+  rows: Record<string, unknown>[];
+  mapping: ColumnRole[];
+}
+
+interface Props {
+  value: ParsedFile | null;
+  onChange: (v: ParsedFile | null) => void;
+}
+
+export function UploadParseStep({ value, onChange }: Props) {
+  const [parsing, setParsing] = useState(false);
+
+  const onDrop = useCallback(
+    async (files: File[]) => {
+      const file = files[0];
+      if (!file) return;
+      setParsing(true);
+      try {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null });
+        const headers = json.length > 0 ? Object.keys(json[0]) : [];
+        const mapping = headers.map((h) => autoMapHeader(h));
+        onChange({ file, headers, rows: json, mapping });
+      } finally {
+        setParsing(false);
+      }
+    },
+    [onChange],
+  );
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+      "application/vnd.ms-excel": [".xls"],
+      "text/csv": [".csv"],
+    },
+    maxFiles: 1,
+  });
+
+  function updateMapping(idx: number, role: ColumnRole) {
+    if (!value) return;
+    const next = [...value.mapping];
+    next[idx] = role;
+    onChange({ ...value, mapping: next });
+  }
+
+  if (!value) {
+    return (
+      <div
+        {...getRootProps()}
+        className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 text-center transition-colors"
+        style={{
+          borderColor: isDragActive ? "var(--brand)" : "var(--border)",
+          backgroundColor: isDragActive ? "var(--bg-hover)" : "var(--bg-card)",
+        }}
+      >
+        <input {...getInputProps()} />
+        <Upload className="mb-3 h-10 w-10 text-muted-foreground" />
+        <p className="text-sm font-medium text-foreground">
+          {parsing ? "Parsing…" : isDragActive ? "Drop the file here" : "Drag & drop or click to upload"}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">.xlsx, .xls, .csv</p>
+      </div>
+    );
+  }
+
+  const requiredRoles: ColumnRole[] = ["code", "name", "unit_price"];
+  const missing = requiredRoles.filter((r) => !value.mapping.includes(r));
+  const previewRows = value.rows.slice(0, 5);
+
+  return (
+    <div className="space-y-4">
+      <div
+        className="flex items-center gap-3 rounded-md border p-3"
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
+      >
+        <FileSpreadsheet className="h-5 w-5 text-[var(--brand)]" />
+        <div className="flex-1">
+          <p className="text-sm font-medium text-foreground">{value.file.name}</p>
+          <p className="text-xs text-muted-foreground">
+            <span className="font-mono-num">{value.rows.length.toLocaleString()}</span> rows · {value.headers.length} columns
+          </p>
+        </div>
+        <button onClick={() => onChange(null)} className="text-xs text-muted-foreground hover:text-foreground">
+          Replace
+        </button>
+      </div>
+
+      {missing.length > 0 && (
+        <div className="rounded-md border p-3 text-xs" style={{ borderColor: "var(--warning)", color: "var(--warning)" }}>
+          Map columns for: <strong>{missing.join(", ")}</strong> before continuing.
+        </div>
+      )}
+
+      <div className="overflow-x-auto rounded-md border" style={{ borderColor: "var(--border)" }}>
+        <table className="w-full text-xs">
+          <thead style={{ backgroundColor: "var(--bg-card)" }}>
+            <tr>
+              {value.headers.map((h, i) => (
+                <th key={i} className="border-b px-3 py-2 text-left" style={{ borderColor: "var(--border)" }}>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{h}</div>
+                  <select
+                    value={value.mapping[i]}
+                    onChange={(e) => updateMapping(i, e.target.value as ColumnRole)}
+                    className="mt-1 h-7 w-full rounded border bg-[var(--bg-elevated)] px-1 text-[11px] text-foreground"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    {ROLE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {previewRows.map((r, i) => (
+              <tr key={i} className="border-b" style={{ borderColor: "var(--border)" }}>
+                {value.headers.map((h, j) => (
+                  <td key={j} className="px-3 py-1.5 text-muted-foreground">{String(r[h] ?? "—").slice(0, 40)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
