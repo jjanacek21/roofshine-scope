@@ -4,7 +4,7 @@ import * as XLSX from "xlsx";
 import { Upload, FileSpreadsheet } from "lucide-react";
 import { autoMapHeader, type ColumnRole } from "@/lib/xactimate-parser";
 
-const ROLE_OPTIONS: { value: ColumnRole; label: string }[] = [
+const BASE_ROLES: { value: ColumnRole; label: string }[] = [
   { value: "ignore", label: "Ignore" },
   { value: "code", label: "Code" },
   { value: "name", label: "Name/Description" },
@@ -14,6 +14,14 @@ const ROLE_OPTIONS: { value: ColumnRole; label: string }[] = [
   { value: "labor_pct", label: "Labor %" },
   { value: "material_pct", label: "Material %" },
   { value: "equipment_pct", label: "Equipment %" },
+];
+
+const RETAIL_EXTRA_ROLES: { value: ColumnRole; label: string }[] = [
+  { value: "material_cost", label: "Material Cost ($)" },
+  { value: "labor_cost", label: "Labor Cost ($)" },
+  { value: "equipment_cost", label: "Equipment Cost ($)" },
+  { value: "misc_cost", label: "Misc/Tax/Permit/Dump ($)" },
+  { value: "overhead_pct_val", label: "Overhead %" },
 ];
 
 export interface ParsedFile {
@@ -26,10 +34,12 @@ export interface ParsedFile {
 interface Props {
   value: ParsedFile | null;
   onChange: (v: ParsedFile | null) => void;
+  pricingType?: "insurance" | "retail";
 }
 
-export function UploadParseStep({ value, onChange }: Props) {
+export function UploadParseStep({ value, onChange, pricingType = "insurance" }: Props) {
   const [parsing, setParsing] = useState(false);
+  const roleOptions = pricingType === "retail" ? [...BASE_ROLES, ...RETAIL_EXTRA_ROLES] : BASE_ROLES;
 
   const onDrop = useCallback(
     async (files: File[]) => {
@@ -84,6 +94,12 @@ export function UploadParseStep({ value, onChange }: Props) {
           {parsing ? "Parsing…" : isDragActive ? "Drop the file here" : "Drag & drop or click to upload"}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">.xlsx, .xls, .csv</p>
+        {pricingType === "retail" && (
+          <p className="mt-3 max-w-md text-[11px] text-muted-foreground">
+            Retail uploads can include cost columns (material, labor, equipment, misc, overhead %).
+            Re-upload the same items with different cost columns to merge by code.
+          </p>
+        )}
       </div>
     );
   }
@@ -103,6 +119,7 @@ export function UploadParseStep({ value, onChange }: Props) {
           <p className="text-sm font-medium text-foreground">{value.file.name}</p>
           <p className="text-xs text-muted-foreground">
             <span className="font-mono-num">{value.rows.length.toLocaleString()}</span> rows · {value.headers.length} columns
+            {pricingType === "retail" && " · retail cost-build mode"}
           </p>
         </div>
         <button onClick={() => onChange(null)} className="text-xs text-muted-foreground hover:text-foreground">
@@ -129,7 +146,7 @@ export function UploadParseStep({ value, onChange }: Props) {
                     className="mt-1 h-7 w-full rounded border bg-[var(--bg-elevated)] px-1 text-[11px] text-foreground"
                     style={{ borderColor: "var(--border)" }}
                   >
-                    {ROLE_OPTIONS.map((o) => (
+                    {roleOptions.map((o) => (
                       <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
                   </select>
