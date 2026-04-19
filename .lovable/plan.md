@@ -1,37 +1,43 @@
 
+
 ## Diagnosis
 
-Looking at the logs, here's exactly what happened:
+Two distinct bugs:
 
-1. **You typed the wrong email** when requesting the reset. The network log shows the request went to:
-   `jared@globalcontractor.netwrok` (note the typo: **netwrok** instead of **network**)
-   
-   Supabase returned `200 OK` (it always does, to prevent email enumeration), but no email was actually sent because that address doesn't exist.
+### Bug 1 — Email link sends users to a Lovable login page
+The Supabase project has the managed Lovable email hook turned ON, but no custom auth templates have been scaffolded in this codebase. Result: Supabase uses Lovable's default-branded recovery email, whose link goes through `api.lovable.dev/.../email-hook` and lands on a Lovable account screen before forwarding to your app. End users (your contractors) don't have Lovable accounts, so they're stuck.
 
-2. **Login attempts**:
-   - `jared@globalcontractor.network` with password `Billion$26` → **401 invalid_credentials** (this account either doesn't exist or has a different password)
-   - `jaredjjanacek@gmail.com` with password `Billion$26` → **200 OK, logged in successfully** ✅
+### Bug 2 — `/reset-password` page sometimes fails to accept a new password
+The page only sets `ready = true` on `PASSWORD_RECOVERY` / `SIGNED_IN` events. But Supabase's `detectSessionInUrl` (default ON) may have already consumed the URL hash and established the session before our `onAuthStateChange` listener mounted. We DO have a `getSession()` fallback, but it doesn't tell us "this is a recovery flow," so when no session is found we just sit on "Verifying…" forever. We also need to handle the `?error=...` querystring Supabase appends when a link is expired/invalid.
 
-So the account that actually exists under your name is `jaredjjanacek@gmail.com`, and that password works.
+## Plan
 
-## What's going on with `jared@globalcontractor.network`
+### 1. Scaffold custom Lovable Auth Email templates (fixes Bug 1)
+Use the project's existing email infrastructure to generate branded auth email templates. The scaffolded "recovery" template will send users straight to **your** app's `/reset-password` page with the recovery tokens — no Lovable login screen in the middle.
 
-The auth logs show one earlier signup attempt for that email returned `user_already_exists` — meaning the account does exist, you just don't remember the right password for it.
+Steps the agent will run in default mode:
+- Check current email-domain status. The project already has `LOVABLE_API_KEY` and the email hook is firing, so a domain is wired up.
+- Scaffold the 6 Lovable auth email templates (recovery, magic link, signup confirmation, email change, invite, reauthentication). The recovery template's CTA links directly to `https://<your-app>/reset-password#access_token=…&type=recovery`.
+- Apply the project's brand styling (dark UI, Archivo font, brand blue) to the templates, with white email body background per email standards.
 
-## Recommended fix path (no code changes needed)
+### 2. Harden `/reset-password` page (fixes Bug 2)
+Rewrite the page so it works regardless of timing:
+- On mount, parse both the URL **hash** (`#access_token=…&type=recovery`) AND **query string** (`?error=…&error_description=…`).
+- If the hash contains a recovery token, call `supabase.auth.setSession({ access_token, refresh_token })` explicitly so we don't depend on the auto-detector's race.
+- If the URL contains an error param (link expired, already used), show a clear message + a "Request a new link" button → `/forgot-password`.
+- Mark `ready = true` as soon as either (a) we successfully set the session, or (b) `getSession()` returns an existing session.
+- After successful `updateUser({ password })`, sign out and redirect to `/login` (already correct).
 
-**Option A — easiest:** Just use `jaredjjanacek@gmail.com` to log in. That account works right now.
+### 3. Harden `/forgot-password` redirect URL
+Currently uses `window.location.origin`. In production behind the published domain that's fine, but in the lovableproject preview the recovery email may redirect to a stale origin. Keep `window.location.origin` (correct) and add a small note for the user to always click the link in the SAME browser they requested it from (Supabase recovery tokens are tied to the browser session that requested them).
 
-**Option B — reset the company email password properly:**
-1. Go to `/forgot-password`
-2. Carefully type `jared@globalcontractor.network` (with the correct spelling — **net‑work**, not **net‑wrok**)
-3. Check inbox AND spam folder for an email from Supabase's default sender (`noreply@mail.app.supabase.io` or similar). It can take 1–2 minutes.
-4. Click the link → you'll land on `/reset-password` → set a new password.
+### Files
+- New: 6 auth email template files + `auth-email-hook` server route (created by scaffold tool)
+- Edit: `src/routes/reset-password.tsx` (robust token handling)
+- No changes needed to `forgot-password.tsx` or `login.tsx`
 
-## Why the email might still not arrive even with the correct address
+### What you'll see after this ships
+1. Click "Forgot password" → enter email → receive a branded email from your domain
+2. Click the email link → land directly on **your** `/reset-password` page (no Lovable login)
+3. Type new password + confirm → success → redirected to `/login`
 
-Supabase's default mailer has a strict rate limit (a few emails per hour per project) and emails sometimes land in spam. If Option B still doesn't deliver after the correct spelling, the next step is to set up a custom branded sender domain (Lovable Emails) so resets always deliver from your own domain — that's a one-time setup and I can do it in a follow-up if you want.
-
-## No code changes in this turn
-
-Your code is working correctly — the reset flow ran end-to-end (request returned 200, redirect URL was correct). The miss was the typo in the email address.
