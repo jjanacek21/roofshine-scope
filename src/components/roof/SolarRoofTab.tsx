@@ -318,6 +318,103 @@ export function SolarRoofTab({
   function removePin(id: string) {
     setPins((p) => p.filter((x) => x.id !== id));
     if (activePinId === id) setActivePinId(null);
+    if (drawingPinId === id) {
+      setDrawingPinId(null);
+      setDrawPoints([]);
+    }
+  }
+
+  /** Hit the Solar API at a single pin's coordinates and merge its closest segment back into the pin. */
+  async function measurePinAt(pin: Pin): Promise<{ ok: boolean; reason?: string }> {
+    const { data: s } = await supabase.auth.getSession();
+    const accessToken = s.session?.access_token;
+    if (!accessToken) return { ok: false, reason: "Not authenticated" };
+    const r = await fetch("/api/solar-roof-extract", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ lat: pin.lat, lng: pin.lng }),
+    });
+    if (!r.ok) return { ok: false, reason: "No building data here" };
+    const data = (await r.json()) as SolarResponse;
+    if (!data.segments?.length) return { ok: false, reason: "No structure detected here" };
+
+    // Find segment whose center is closest to the pin
+    const best = data.segments.reduce(
+      (acc, seg) => {
+        const c = seg.center ?? (seg.ring[0] ? { latitude: seg.ring[0][1], longitude: seg.ring[0][0] } : null);
+        if (!c) return acc;
+        const dLng = c.longitude - pin.lng;
+        const dLat = c.latitude - pin.lat;
+        const d2 = dLng * dLng + dLat * dLat;
+        return !acc || d2 < acc.d2 ? { d2, seg } : acc;
+      },
+      null as null | { d2: number; seg: SolarSegment },
+    );
+    if (!best) return { ok: false, reason: "No structure detected here" };
+    setImageryQuality(data.imagery_quality);
+    updatePin(pin.id, {
+      plan_area_sqft: Math.round(best.seg.plan_area_sqft),
+      pitch: pin.kind === "pitched" ? best.seg.pitch || pin.pitch : pin.pitch,
+      ring: best.seg.ring,
+      source: pin.source === "manual" ? "manual" : "solar",
+    });
+    return { ok: true };
+  }
+
+  const measureOne = useMutation({
+    mutationFn: async (pin: Pin) => {
+      const res = await measurePinAt(pin);
+      if (!res.ok) throw new Error(res.reason ?? "Measurement failed");
+    },
+    onSuccess: () => toast.success("Measured"),
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Couldn't measure", {
+        description: "Try the Draw area tool, enter sqft manually, or refine on the Mapbox tab.",
+      }),
+  });
+
+  const measureAll = useMutation({
+    mutationFn: async () => {
+      const targets = pins.filter((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0);
+      let success = 0;
+      let failed = 0;
+      for (const pin of targets) {
+        const res = await measurePinAt(pin);
+        if (res.ok) success++;
+        else failed++;
+      }
+      return { success, failed, total: targets.length };
+    },
+    onSuccess: ({ success, failed, total }) => {
+      if (total === 0) toast.info("All pins already measured");
+      else if (failed === 0) toast.success(`Measured ${success} of ${total} pins`);
+      else toast.warning(`Measured ${success}/${total} — ${failed} need manual entry or draw`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Bulk measure failed"),
+  });
+
+  function startDraw(pinId: string) {
+    setDrawingPinId(pinId);
+    setDrawPoints([]);
+    setActivePinId(pinId);
+    toast.info("Click 3+ points around the structure, then press Done");
+  }
+  function cancelDraw() {
+    setDrawingPinId(null);
+    setDrawPoints([]);
+  }
+  function finishDraw() {
+    if (!drawingPinId) return;
+    if (drawPoints.length < 3) {
+      toast.error("Need at least 3 points to outline an area");
+      return;
+    }
+    const ring = [...drawPoints, drawPoints[0]];
+    const area = polygonAreaSqft(ring);
+    updatePin(drawingPinId, { plan_area_sqft: Math.round(area), ring });
+    setDrawingPinId(null);
+    setDrawPoints([]);
+    toast.success(`Outlined ${Math.round(area).toLocaleString()} sqft`);
   }
 
   const totals = useMemo(() => {
