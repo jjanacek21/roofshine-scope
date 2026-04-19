@@ -46,7 +46,17 @@ function NewMasterPriceBookPage() {
   });
 
   const canNext1 = meta.name && meta.effective_month;
-  const canNext2 = parsed && ["code", "name", "unit_price"].every((r) => parsed.mapping.includes(r as never));
+  const canNext2 =
+    parsed &&
+    parsed.mapping.includes("code" as never) &&
+    parsed.mapping.includes("name" as never) &&
+    (
+      parsed.mapping.includes("unit_price" as never) ||
+      parsed.mapping.includes("line_total" as never) ||
+      parsed.mapping.includes("material_cost" as never) ||
+      parsed.mapping.includes("labor_cost" as never) ||
+      parsed.mapping.includes("equipment_cost" as never)
+    );
 
   async function handleConfirm() {
     if (!parsed) return;
@@ -138,7 +148,7 @@ function NewMasterPriceBookPage() {
         if (error) throw error;
       }
 
-      toast.success(`Master price book created with ${priceRows.length} items`);
+      toast.success(`Extracted & published ${priceRows.length} line items as master pricing`);
       navigate({ to: "/admin/price-books" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
@@ -154,10 +164,10 @@ function NewMasterPriceBookPage() {
           onClick={() => navigate({ to: "/admin/price-books" })}
           className="mb-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-3 w-3" /> Master Price Books
+          <ArrowLeft className="h-3 w-3" /> Master Pricing
         </button>
-        <h1 className="text-2xl font-semibold">New Master Price Book</h1>
-        <p className="text-sm text-muted-foreground">This book will be available to every company on the platform.</p>
+        <h1 className="text-2xl font-semibold">Upload Master Estimate File</h1>
+        <p className="text-sm text-muted-foreground">Extract line items from a Xactimate estimate (PDF, Excel, CSV) and publish them as a master pricing library every company can fall back to.</p>
       </div>
 
       <div className="flex items-center gap-2">
@@ -174,7 +184,7 @@ function NewMasterPriceBookPage() {
               {step > n ? <Check className="h-3.5 w-3.5" /> : n}
             </div>
             <span className="text-xs font-medium" style={{ color: step >= n ? "var(--text)" : "var(--text-muted)" }}>
-              {n === 1 ? "Metadata" : n === 2 ? "Upload & Parse" : "Match & Confirm"}
+              {n === 1 ? "Details" : n === 2 ? "Upload & Extract" : "Review & Save"}
             </span>
             {n < 3 && <div className="h-px flex-1" style={{ backgroundColor: "var(--border)" }} />}
           </div>
@@ -219,7 +229,7 @@ function NewMasterPriceBookPage() {
             disabled={submitting || normalized.length === 0}
             className="btn-chrome inline-flex h-9 items-center gap-1 rounded-md px-4 text-sm font-semibold disabled:opacity-40"
           >
-            {submitting ? "Creating…" : "Create Master Price Book"}
+            {submitting ? "Saving…" : `Save ${normalized.length} Line Items as Master Pricing`}
           </button>
         )}
       </div>
