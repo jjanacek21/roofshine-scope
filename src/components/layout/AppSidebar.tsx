@@ -9,6 +9,7 @@ import {
   Settings,
   LogOut,
   UserCog,
+  Shield,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,10 +33,11 @@ export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
+  const isSuperAdmin = profile?.role === "super_admin";
   const isCompanyAdmin =
     profile?.role === "owner" ||
     profile?.role === "admin" ||
-    profile?.role === "super_admin";
+    isSuperAdmin;
 
   const { data: jobsCount = 0 } = useQuery({
     queryKey: ["sidebar-jobs-count"],
@@ -155,6 +157,20 @@ export function AppSidebar() {
             >
               <UserCog className="h-4 w-4 shrink-0" strokeWidth={2} />
               <span>Team</span>
+            </Link>
+          )}
+          {isSuperAdmin && (
+            <Link
+              to="/admin"
+              className={cn(
+                "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors",
+                isActive("/admin")
+                  ? "nav-active"
+                  : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
+              )}
+            >
+              <Shield className="h-4 w-4 shrink-0" strokeWidth={2} />
+              <span>Admin Portal</span>
             </Link>
           )}
         </nav>
