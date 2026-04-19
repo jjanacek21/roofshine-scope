@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Mail, Phone, MapPin, Building2, Calendar, FileText } from "lucide-react";
-import { TRADES, JOB_STATUSES, type JobStatus, type Trade } from "@/lib/trades";
+import { Mail, Phone, MapPin, Calendar, FileText } from "lucide-react";
+import { TRADES, JOB_STATUSES, type JobStatus } from "@/lib/trades";
 import { MapPreview } from "@/components/jobs/MapPreview";
 
 export const Route = createFileRoute("/_app/jobs/$id/")({
@@ -61,8 +61,15 @@ function JobOverview() {
   });
 
   const updateJob = useMutation({
-    mutationFn: async (patch: Record<string, unknown>) => {
-      const { error } = await supabase.from("jobs").update(patch).eq("id", id);
+    mutationFn: async (patch: {
+      status?: JobStatus;
+      primary_trade?: string | null;
+      notes?: string | null;
+    }) => {
+      const { error } = await supabase
+        .from("jobs")
+        .update(patch as never)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
