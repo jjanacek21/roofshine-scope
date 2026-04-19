@@ -85,10 +85,22 @@ export function SolarRoofTab({
   const [wastePct, setWastePct] = useState(15);
   const [imageryQuality, setImageryQuality] = useState<string | null>(null);
 
-  // Keep ref synced for marker click handlers
+  // Draw-mode state: when active, map clicks build a polygon for the targeted pin
+  const [drawingPinId, setDrawingPinId] = useState<string | null>(null);
+  const [drawPoints, setDrawPoints] = useState<number[][]>([]);
+  const drawingPinIdRef = useRef<string | null>(null);
+  const drawPointsRef = useRef<number[][]>([]);
+
+  // Keep refs synced for marker/map click handlers (which capture stale state)
   useEffect(() => {
     pinsStateRef.current = pins;
   }, [pins]);
+  useEffect(() => {
+    drawingPinIdRef.current = drawingPinId;
+  }, [drawingPinId]);
+  useEffect(() => {
+    drawPointsRef.current = drawPoints;
+  }, [drawPoints]);
 
   // Init map
   useEffect(() => {
