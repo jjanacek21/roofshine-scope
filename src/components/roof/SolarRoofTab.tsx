@@ -4,9 +4,9 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { toast } from "sonner";
-import { Loader2, Satellite, Sparkles, Trash2, Plus, Info } from "lucide-react";
+import { Loader2, Satellite, Sparkles, Trash2, Plus, Info, Ruler, Pencil, AlertCircle, Check, X } from "lucide-react";
 import type { MapboxRoofData } from "./MapboxRoofDraw";
-import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares } from "@/lib/roof-math";
+import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares, polygonAreaSqft } from "@/lib/roof-math";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 type PinKind = "pitched" | "flat" | "ignore";
@@ -85,10 +85,22 @@ export function SolarRoofTab({
   const [wastePct, setWastePct] = useState(15);
   const [imageryQuality, setImageryQuality] = useState<string | null>(null);
 
-  // Keep ref synced for marker click handlers
+  // Draw-mode state: when active, map clicks build a polygon for the targeted pin
+  const [drawingPinId, setDrawingPinId] = useState<string | null>(null);
+  const [drawPoints, setDrawPoints] = useState<number[][]>([]);
+  const drawingPinIdRef = useRef<string | null>(null);
+  const drawPointsRef = useRef<number[][]>([]);
+
+  // Keep refs synced for marker/map click handlers (which capture stale state)
   useEffect(() => {
     pinsStateRef.current = pins;
   }, [pins]);
+  useEffect(() => {
+    drawingPinIdRef.current = drawingPinId;
+  }, [drawingPinId]);
+  useEffect(() => {
+    drawPointsRef.current = drawPoints;
+  }, [drawPoints]);
 
   // Init map
   useEffect(() => {
@@ -104,7 +116,12 @@ export function SolarRoofTab({
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: false }), "top-right");
 
     map.on("click", (e) => {
-      // Ignore clicks on existing markers (mapbox handles those separately)
+      // If we're in draw-mode for a pin, append a vertex instead of dropping a new pin.
+      if (drawingPinIdRef.current) {
+        const next = [...drawPointsRef.current, [e.lngLat.lng, e.lngLat.lat]];
+        setDrawPoints(next);
+        return;
+      }
       const newPin: Pin = {
         id: rid(),
         name: `Structure ${pinsStateRef.current.length + 1}`,
@@ -119,12 +136,82 @@ export function SolarRoofTab({
       setActivePinId(newPin.id);
     });
 
+    // Add a source/layer for the in-progress draw polygon
+    map.on("load", () => {
+      if (!map.getSource("ai-draw")) {
+        map.addSource("ai-draw", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+        map.addLayer({
+          id: "ai-draw-fill",
+          type: "fill",
+          source: "ai-draw",
+          paint: { "fill-color": "#3b82f6", "fill-opacity": 0.25 },
+        });
+        map.addLayer({
+          id: "ai-draw-line",
+          type: "line",
+          source: "ai-draw",
+          paint: { "line-color": "#3b82f6", "line-width": 2, "line-dasharray": [2, 2] },
+        });
+        map.addLayer({
+          id: "ai-draw-points",
+          type: "circle",
+          source: "ai-draw",
+          filter: ["==", "$type", "Point"],
+          paint: { "circle-radius": 4, "circle-color": "#fff", "circle-stroke-color": "#3b82f6", "circle-stroke-width": 2 },
+        });
+      }
+    });
+
     mapRef.current = map;
     return () => {
       map.remove();
       mapRef.current = null;
     };
   }, [token, center.lng, center.lat]);
+
+  // Update draw-polygon visualization when points change
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const src = map.getSource("ai-draw") as mapboxgl.GeoJSONSource | undefined;
+    if (!src) return;
+    const features: GeoJSON.Feature[] = drawPoints.map((p) => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: p },
+      properties: {},
+    }));
+    if (drawPoints.length >= 2) {
+      features.push({
+        type: "Feature",
+        geometry: { type: "LineString", coordinates: drawPoints },
+        properties: {},
+      });
+    }
+    if (drawPoints.length >= 3) {
+      features.push({
+        type: "Feature",
+        geometry: { type: "Polygon", coordinates: [[...drawPoints, drawPoints[0]]] },
+        properties: {},
+      });
+    }
+    src.setData({ type: "FeatureCollection", features });
+  }, [drawPoints]);
+
+  // ESC exits draw-mode
+  useEffect(() => {
+    if (!drawingPinId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setDrawingPinId(null);
+        setDrawPoints([]);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawingPinId]);
 
   // Sync markers with pins
   useEffect(() => {
@@ -136,11 +223,18 @@ export function SolarRoofTab({
     pins.forEach((pin, i) => {
       seen.add(pin.id);
       const color = KIND_COLORS[pin.kind];
+      const unmeasured = pin.kind !== "ignore" && (pin.plan_area_sqft || 0) === 0;
       let marker = existing[pin.id];
       if (!marker) {
         const el = document.createElement("div");
-        el.style.cssText = `width:28px;height:28px;border-radius:50%;background:${color};color:white;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer;`;
+        el.style.cssText = `position:relative;width:28px;height:28px;border-radius:50%;background:${color};color:white;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer;`;
         el.textContent = String(i + 1);
+        if (unmeasured) {
+          const dot = document.createElement("span");
+          dot.className = "ai-pin-warn";
+          dot.style.cssText = "position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid white;";
+          el.appendChild(dot);
+        }
         el.addEventListener("click", (ev) => {
           ev.stopPropagation();
           setActivePinId(pin.id);
@@ -150,7 +244,18 @@ export function SolarRoofTab({
       } else {
         const el = marker.getElement();
         el.style.background = color;
-        el.textContent = String(i + 1);
+        const textNode = Array.from(el.childNodes).find((n) => n.nodeType === 3);
+        if (textNode) textNode.textContent = String(i + 1);
+        else el.insertBefore(document.createTextNode(String(i + 1)), el.firstChild);
+        const existingDot = el.querySelector(".ai-pin-warn");
+        if (unmeasured && !existingDot) {
+          const dot = document.createElement("span");
+          dot.className = "ai-pin-warn";
+          dot.style.cssText = "position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid white;";
+          el.appendChild(dot);
+        } else if (!unmeasured && existingDot) {
+          existingDot.remove();
+        }
         marker.setLngLat([pin.lng, pin.lat]);
       }
     });
@@ -213,6 +318,103 @@ export function SolarRoofTab({
   function removePin(id: string) {
     setPins((p) => p.filter((x) => x.id !== id));
     if (activePinId === id) setActivePinId(null);
+    if (drawingPinId === id) {
+      setDrawingPinId(null);
+      setDrawPoints([]);
+    }
+  }
+
+  /** Hit the Solar API at a single pin's coordinates and merge its closest segment back into the pin. */
+  async function measurePinAt(pin: Pin): Promise<{ ok: boolean; reason?: string }> {
+    const { data: s } = await supabase.auth.getSession();
+    const accessToken = s.session?.access_token;
+    if (!accessToken) return { ok: false, reason: "Not authenticated" };
+    const r = await fetch("/api/solar-roof-extract", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ lat: pin.lat, lng: pin.lng }),
+    });
+    if (!r.ok) return { ok: false, reason: "No building data here" };
+    const data = (await r.json()) as SolarResponse;
+    if (!data.segments?.length) return { ok: false, reason: "No structure detected here" };
+
+    // Find segment whose center is closest to the pin
+    const best = data.segments.reduce(
+      (acc, seg) => {
+        const c = seg.center ?? (seg.ring[0] ? { latitude: seg.ring[0][1], longitude: seg.ring[0][0] } : null);
+        if (!c) return acc;
+        const dLng = c.longitude - pin.lng;
+        const dLat = c.latitude - pin.lat;
+        const d2 = dLng * dLng + dLat * dLat;
+        return !acc || d2 < acc.d2 ? { d2, seg } : acc;
+      },
+      null as null | { d2: number; seg: SolarSegment },
+    );
+    if (!best) return { ok: false, reason: "No structure detected here" };
+    setImageryQuality(data.imagery_quality);
+    updatePin(pin.id, {
+      plan_area_sqft: Math.round(best.seg.plan_area_sqft),
+      pitch: pin.kind === "pitched" ? best.seg.pitch || pin.pitch : pin.pitch,
+      ring: best.seg.ring,
+      source: pin.source === "manual" ? "manual" : "solar",
+    });
+    return { ok: true };
+  }
+
+  const measureOne = useMutation({
+    mutationFn: async (pin: Pin) => {
+      const res = await measurePinAt(pin);
+      if (!res.ok) throw new Error(res.reason ?? "Measurement failed");
+    },
+    onSuccess: () => toast.success("Measured"),
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Couldn't measure", {
+        description: "Try the Draw area tool, enter sqft manually, or refine on the Mapbox tab.",
+      }),
+  });
+
+  const measureAll = useMutation({
+    mutationFn: async () => {
+      const targets = pins.filter((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0);
+      let success = 0;
+      let failed = 0;
+      for (const pin of targets) {
+        const res = await measurePinAt(pin);
+        if (res.ok) success++;
+        else failed++;
+      }
+      return { success, failed, total: targets.length };
+    },
+    onSuccess: ({ success, failed, total }) => {
+      if (total === 0) toast.info("All pins already measured");
+      else if (failed === 0) toast.success(`Measured ${success} of ${total} pins`);
+      else toast.warning(`Measured ${success}/${total} — ${failed} need manual entry or draw`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Bulk measure failed"),
+  });
+
+  function startDraw(pinId: string) {
+    setDrawingPinId(pinId);
+    setDrawPoints([]);
+    setActivePinId(pinId);
+    toast.info("Click 3+ points around the structure, then press Done");
+  }
+  function cancelDraw() {
+    setDrawingPinId(null);
+    setDrawPoints([]);
+  }
+  function finishDraw() {
+    if (!drawingPinId) return;
+    if (drawPoints.length < 3) {
+      toast.error("Need at least 3 points to outline an area");
+      return;
+    }
+    const ring = [...drawPoints, drawPoints[0]];
+    const area = polygonAreaSqft(ring);
+    updatePin(drawingPinId, { plan_area_sqft: Math.round(area), ring });
+    setDrawingPinId(null);
+    setDrawPoints([]);
+    toast.success(`Outlined ${Math.round(area).toLocaleString()} sqft`);
   }
 
   const totals = useMemo(() => {
@@ -299,16 +501,45 @@ export function SolarRoofTab({
           </div>
         )}
         <div ref={containerRef} className="h-full w-full" />
-        <div
-          className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-md border px-3 py-1.5 text-[11px] backdrop-blur"
-          style={{
-            borderColor: "var(--border)",
-            backgroundColor: "color-mix(in oklab, var(--bg-card) 85%, transparent)",
-          }}
-        >
-          <Info className="h-3 w-3 text-muted-foreground" />
-          <span className="text-muted-foreground">Click map to drop a pin on any structure</span>
-        </div>
+        {drawingPinId ? (
+          <div
+            className="absolute left-3 top-3 z-10 flex items-center gap-3 rounded-md border px-3 py-2 text-[11px] backdrop-blur"
+            style={{
+              borderColor: "#3b82f6",
+              backgroundColor: "color-mix(in oklab, var(--bg-card) 90%, transparent)",
+            }}
+          >
+            <Pencil className="h-3.5 w-3.5 text-[#3b82f6]" />
+            <span className="text-foreground font-semibold">
+              Drawing: click {drawPoints.length < 3 ? `${3 - drawPoints.length} more point${3 - drawPoints.length === 1 ? "" : "s"}` : `(${drawPoints.length} points)`}
+            </span>
+            <button
+              onClick={finishDraw}
+              disabled={drawPoints.length < 3}
+              className="inline-flex items-center gap-1 rounded bg-[#3b82f6] px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-40"
+            >
+              <Check className="h-3 w-3" /> Done
+            </button>
+            <button
+              onClick={cancelDraw}
+              className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <X className="h-3 w-3" /> Cancel
+            </button>
+          </div>
+        ) : (
+          <div
+            className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-md border px-3 py-1.5 text-[11px] backdrop-blur"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "color-mix(in oklab, var(--bg-card) 85%, transparent)",
+            }}
+          >
+            <Info className="h-3 w-3 text-muted-foreground" />
+            <span className="text-muted-foreground">Click map to drop a pin on any structure</span>
+          </div>
+        )}
         {imageryQuality && (
           <div
             className="absolute right-3 top-3 z-10 rounded-md border px-2 py-1 text-[10px] uppercase tracking-wider backdrop-blur"
@@ -419,6 +650,46 @@ export function SolarRoofTab({
               />
             </Field>
           </div>
+
+          {/* Measurement actions */}
+          {activePin.kind !== "ignore" && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: "var(--border)" }}>
+              <button
+                onClick={() => measureOne.mutate(activePin)}
+                disabled={measureOne.isPending || drawingPinId === activePin.id}
+                className="btn-brand inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-semibold disabled:opacity-40"
+              >
+                {measureOne.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Ruler className="h-3.5 w-3.5" />
+                )}
+                Measure area at this location
+              </button>
+              {drawingPinId === activePin.id ? (
+                <button
+                  onClick={cancelDraw}
+                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <X className="h-3.5 w-3.5" /> Cancel draw
+                </button>
+              ) : (
+                <button
+                  onClick={() => startDraw(activePin.id)}
+                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Draw area on map
+                </button>
+              )}
+              {(activePin.plan_area_sqft || 0) === 0 && (
+                <span className="inline-flex items-center gap-1 text-[11px] text-amber-500">
+                  <AlertCircle className="h-3 w-3" /> Not yet measured
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -429,41 +700,72 @@ export function SolarRoofTab({
           style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
         >
           <div
-            className="flex items-center justify-between border-b px-4 py-2.5"
+            className="flex items-center justify-between gap-3 border-b px-4 py-2.5"
             style={{ borderColor: "var(--border)" }}
           >
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Pins ({pins.length})
+              {pins.some((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0) && (
+                <span className="ml-2 inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500">
+                  <AlertCircle className="h-2.5 w-2.5" />
+                  {pins.filter((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0).length} unmeasured
+                </span>
+              )}
             </h4>
-            <span className="text-[11px] text-muted-foreground">Click a pin to edit</span>
+            {pins.some((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0) && (
+              <button
+                onClick={() => measureAll.mutate()}
+                disabled={measureAll.isPending}
+                className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-white/5 disabled:opacity-40"
+                style={{ borderColor: "var(--border)" }}
+              >
+                {measureAll.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Ruler className="h-3 w-3" />
+                )}
+                Measure all unmeasured
+              </button>
+            )}
           </div>
           <div className="divide-y" style={{ borderColor: "var(--border)" }}>
-            {pins.map((p, i) => (
-              <button
-                key={p.id}
-                onClick={() => setActivePinId(p.id)}
-                className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-xs transition hover:bg-white/5 ${
-                  activePinId === p.id ? "bg-white/5" : ""
-                }`}
-              >
-                <div
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                  style={{ backgroundColor: KIND_COLORS[p.kind] }}
+            {pins.map((p, i) => {
+              const unmeasured = p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setActivePinId(p.id)}
+                  className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-xs transition hover:bg-white/5 ${
+                    activePinId === p.id ? "bg-white/5" : ""
+                  }`}
                 >
-                  {i + 1}
-                </div>
-                <div className="flex-1 truncate">
-                  <p className="truncate font-semibold text-foreground">{p.name}</p>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {p.kind === "ignore"
-                      ? "Ignored"
-                      : `${p.kind === "flat" ? "Flat" : `Pitched ${p.pitch}`} · ${(
-                          p.plan_area_sqft || 0
-                        ).toLocaleString()} sqft plan`}
-                  </p>
-                </div>
-              </button>
-            ))}
+                  <div
+                    className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                    style={{ backgroundColor: KIND_COLORS[p.kind] }}
+                  >
+                    {i + 1}
+                    {unmeasured && (
+                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-[var(--bg-card)]" />
+                    )}
+                  </div>
+                  <div className="flex-1 truncate">
+                    <p className="truncate font-semibold text-foreground">{p.name}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {p.kind === "ignore"
+                        ? "Ignored"
+                        : unmeasured
+                          ? `${p.kind === "flat" ? "Flat" : `Pitched ${p.pitch}`} · not measured yet`
+                          : `${p.kind === "flat" ? "Flat" : `Pitched ${p.pitch}`} · ${(
+                              p.plan_area_sqft || 0
+                            ).toLocaleString()} sqft plan`}
+                    </p>
+                  </div>
+                  {unmeasured && (
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
