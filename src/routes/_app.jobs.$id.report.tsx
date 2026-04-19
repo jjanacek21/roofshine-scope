@@ -26,7 +26,7 @@ type JobRow = {
 
 function JobReport() {
   const { id: jobId } = Route.useParams();
-  const { token: mapboxToken } = useMapboxToken();
+  const { data: mapboxToken } = useMapboxToken();
   const [hidePricing, setHidePricing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
