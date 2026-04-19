@@ -1,100 +1,17 @@
 
 
-## Plan: Pricing System Overhaul (Master + Per-Company + ZIP-aware + Retail Cost Build)
+## Fix: wire "New Job" buttons to the existing wizard
 
-What you have today does almost everything you described — it just needs a few additions to become the full vision. Here's what's already in place and what's missing:
+The `/jobs/new` 4-step wizard route is fully built, but two "New Job" buttons still call a stub `toast.info("New Job wizard — coming soon")` instead of navigating to it.
 
-### Already built (good news)
-- `price_books` table with `pricing_type` (insurance/retail), `is_default`, `jurisdiction`, `zip_codes[]`, `effective_month`
-- 3-step Xactimate upload wizard (`/price-books/new`) — metadata → parse columns → match/confirm
-- Trade auto-detection from Xactimate codes (RFG → roofing, WDW → windows, etc.)
-- Per-company catalog (`line_item_master`) auto-organized by trade
-- Estimate combobox that joins `line_item_master` ↔ `line_item_prices` for a chosen book
-- Photo AI analyzer that already returns matched line items by trade
+### Changes
 
-### What's missing → 4 focused changes
+**`src/components/layout/Topbar.tsx`** (line 87-90)
+- Replace the `<button onClick={toast}>` with a TanStack `<Link to="/jobs/new">` (keep the same `btn-brand` styling and Plus icon).
+- Remove the now-unused `toast` import if nothing else in the file uses it.
 
----
+**`src/routes/_app.index.tsx`** (line 162-165)
+- Same fix: swap the placeholder button for `<Link to="/jobs/new">`.
 
-**1. Super-admin "Master Price Books" page** (`/admin/price-books`)
-
-A new admin page mirroring the company-level wizard but writing **global default** books (`company_id = NULL`, `is_default = true`). Every company will see + use these as fallback. Add to admin sidebar.
-
-- Reuses existing `MetadataStep`, `UploadParseStep`, `MatchConfirmStep` components — only difference is the insert sets `company_id = null, is_default = true` and writes to a new `master_line_item_master` set OR (simpler) keeps using `line_item_master` with `company_id = null`.
-- **DB migration**: allow `line_item_master.company_id` to be nullable + add RLS policy "everyone can read global catalog items" (rows where `company_id IS NULL`).
-- Same for `price_books` (already nullable for defaults).
-
-**2. ZIP-code-aware price book auto-selection on jobs**
-
-Right now estimates pick whatever `price_book_id` is on the job. We'll add resolution logic:
-
-- **Job creation / property step**: when address is set, parse ZIP → find best matching price book in priority order:
-  1. Company retail/insurance book where `zip_codes` contains job ZIP
-  2. Company book where `jurisdiction` matches job county
-  3. Global default book matching ZIP/jurisdiction
-  4. Global default book (any)
-- New helper `src/lib/resolve-price-book.ts` + a "Price Book" picker on the job edit screen that shows the resolved book with an override dropdown.
-- The estimate combobox already takes `priceBookId` — no change needed there.
-
-**3. Retail cost-build pricing** (the big new feature)
-
-Retail books today only store one `unit_price` per item. To get true cost, we need cost components.
-
-- **DB migration** — extend `line_item_prices` with: `material_cost`, `labor_cost`, `equipment_cost`, `overhead_pct`, `misc_cost` (taxes/permits/dump/fees), and a generated/computed `unit_price = material + labor + equipment + misc + overhead%`.
-- **New retail upload wizard step**: when `pricing_type = "retail"`, the column-mapping step exposes extra mappable roles: `material_cost`, `labor_cost`, `equipment_cost`, `misc_cost`. Lets you upload a supplier material list, then in a second pass upload a labor list, and the system merges by code.
-- **New "Cost Breakdown" view** on retail line items showing material / labor / equipment / overhead / misc → true unit cost.
-
-**4. Photo→Estimate auto-add wiring** (small finishing touch)
-
-The AI analyzer already returns matched line items. Wire the existing `PhotoLightbox` "Add suggestions to estimate" button to actually push them into the active estimate using the resolved price book — same logic as `AddLineItemCombobox`.
-
----
-
-### Files
-
-**New**
-- `src/routes/admin.price-books.tsx` — list of master books + link to upload
-- `src/routes/admin.price-books.new.tsx` — wizard for global books (thin wrapper around existing components)
-- `src/lib/resolve-price-book.ts` — ZIP/jurisdiction resolution helper
-- `src/components/pricebook/CostBreakdownStep.tsx` — extra step for retail
-- `src/components/pricebook/PriceBookPicker.tsx` — auto-resolves + lets user override on a job
-- `supabase/migrations/<ts>_master_pricing_and_cost_build.sql`
-
-**Modified**
-- `src/routes/admin.tsx` — add "Price Books" to admin nav
-- `src/routes/_app.price-books.tsx` — show global books as read-only rows above company books
-- `src/components/pricebook/UploadParseStep.tsx` — add `material_cost`, `labor_cost`, `equipment_cost`, `misc_cost` column roles for retail
-- `src/components/pricebook/MatchConfirmStep.tsx` — accept new cost fields
-- `src/routes/_app.price-books.new.tsx` — pass cost fields through on insert
-- `src/routes/_app.jobs.new.tsx` — call `resolve-price-book` after address entry
-- `src/routes/_app.jobs.$id.estimate.tsx` — use resolved book; add `PriceBookPicker` UI
-- `src/components/jobs/PhotoLightbox.tsx` — wire "Add to estimate"
-- `src/integrations/supabase/types.ts` — auto-regenerated by migration
-
-### DB migration summary
-
-```sql
--- 1. Allow global catalog items
-ALTER TABLE line_item_master ALTER COLUMN company_id DROP NOT NULL;
--- + RLS: select where company_id IS NULL OR company_id = auth_company_id()
-
--- 2. Cost-build columns on prices
-ALTER TABLE line_item_prices
-  ADD COLUMN material_cost numeric,
-  ADD COLUMN labor_cost numeric,
-  ADD COLUMN equipment_cost numeric,
-  ADD COLUMN misc_cost numeric,
-  ADD COLUMN overhead_pct numeric;
-
--- 3. Index for ZIP lookup performance
-CREATE INDEX price_books_zip_codes_gin ON price_books USING gin(zip_codes);
-```
-
-### Out of scope (call out so we agree)
-- Bulk re-pricing UI (you described uploading the same Xactimate file with different ZIPs — that already works today, each upload creates a new book). Could add a "clone book + change ZIPs" shortcut later.
-- Supplier API integrations (just CSV/XLSX upload for now).
-- Per-line-item ZIP overrides (price varies by item not whole book) — not needed yet.
-
-### Build order
-Single turn, in this order: migration → admin master-pricebook pages → resolve-price-book helper + picker → retail cost-build columns in wizard → photo-to-estimate wiring. Will report what shipped at the end.
+That's it — one-line wiring fix in two files. The wizard itself, the route, and the navigation flow already work.
 
