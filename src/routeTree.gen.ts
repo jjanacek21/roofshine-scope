@@ -29,6 +29,7 @@ import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
 import { Route as AdminPriceBooksRouteImport } from './routes/admin.price-books'
 import { Route as AdminMembershipsRouteImport } from './routes/admin.memberships'
+import { Route as AdminMacrosRouteImport } from './routes/admin.macros'
 import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
 import { Route as AdminEmailsRouteImport } from './routes/admin.emails'
 import { Route as AdminContentRouteImport } from './routes/admin.content'
@@ -152,6 +153,11 @@ const AdminPriceBooksRoute = AdminPriceBooksRouteImport.update({
 const AdminMembershipsRoute = AdminMembershipsRouteImport.update({
   id: '/memberships',
   path: '/memberships',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMacrosRoute = AdminMacrosRouteImport.update({
+  id: '/macros',
+  path: '/macros',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminFeaturesRoute = AdminFeaturesRouteImport.update({
@@ -300,6 +306,7 @@ export interface FileRoutesByFullPath {
   '/admin/content': typeof AdminContentRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
+  '/admin/macros': typeof AdminMacrosRoute
   '/admin/memberships': typeof AdminMembershipsRoute
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
@@ -343,6 +350,7 @@ export interface FileRoutesByTo {
   '/admin/content': typeof AdminContentRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
+  '/admin/macros': typeof AdminMacrosRoute
   '/admin/memberships': typeof AdminMembershipsRoute
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
@@ -390,6 +398,7 @@ export interface FileRoutesById {
   '/admin/content': typeof AdminContentRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
+  '/admin/macros': typeof AdminMacrosRoute
   '/admin/memberships': typeof AdminMembershipsRoute
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
@@ -439,6 +448,7 @@ export interface FileRouteTypes {
     | '/admin/content'
     | '/admin/emails'
     | '/admin/features'
+    | '/admin/macros'
     | '/admin/memberships'
     | '/admin/price-books'
     | '/admin/reviews'
@@ -482,6 +492,7 @@ export interface FileRouteTypes {
     | '/admin/content'
     | '/admin/emails'
     | '/admin/features'
+    | '/admin/macros'
     | '/admin/memberships'
     | '/admin/price-books'
     | '/admin/reviews'
@@ -528,6 +539,7 @@ export interface FileRouteTypes {
     | '/admin/content'
     | '/admin/emails'
     | '/admin/features'
+    | '/admin/macros'
     | '/admin/memberships'
     | '/admin/price-books'
     | '/admin/reviews'
@@ -711,6 +723,13 @@ declare module '@tanstack/react-router' {
       path: '/memberships'
       fullPath: '/admin/memberships'
       preLoaderRoute: typeof AdminMembershipsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/macros': {
+      id: '/admin/macros'
+      path: '/macros'
+      fullPath: '/admin/macros'
+      preLoaderRoute: typeof AdminMacrosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/features': {
@@ -994,6 +1013,7 @@ interface AdminRouteChildren {
   AdminContentRoute: typeof AdminContentRoute
   AdminEmailsRoute: typeof AdminEmailsRoute
   AdminFeaturesRoute: typeof AdminFeaturesRoute
+  AdminMacrosRoute: typeof AdminMacrosRoute
   AdminMembershipsRoute: typeof AdminMembershipsRoute
   AdminPriceBooksRoute: typeof AdminPriceBooksRouteWithChildren
   AdminReviewsRoute: typeof AdminReviewsRoute
@@ -1011,6 +1031,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContentRoute: AdminContentRoute,
   AdminEmailsRoute: AdminEmailsRoute,
   AdminFeaturesRoute: AdminFeaturesRoute,
+  AdminMacrosRoute: AdminMacrosRoute,
   AdminMembershipsRoute: AdminMembershipsRoute,
   AdminPriceBooksRoute: AdminPriceBooksRouteWithChildren,
   AdminReviewsRoute: AdminReviewsRoute,
