@@ -132,6 +132,7 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          auto_add_photo_suggestions: boolean
           created_at: string
           default_markup: number
           default_markup_pct: number
@@ -152,6 +153,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          auto_add_photo_suggestions?: boolean
           created_at?: string
           default_markup?: number
           default_markup_pct?: number
@@ -172,6 +174,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          auto_add_photo_suggestions?: boolean
           created_at?: string
           default_markup?: number
           default_markup_pct?: number
@@ -275,6 +278,58 @@ export type Database = {
           },
         ]
       }
+      company_macro_pricing: {
+        Row: {
+          company_id: string
+          id: string
+          line_item_master_id: string
+          macro_id: string
+          notes: string | null
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          id?: string
+          line_item_master_id: string
+          macro_id: string
+          notes?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          id?: string
+          line_item_master_id?: string
+          macro_id?: string
+          notes?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_macro_pricing_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_macro_pricing_line_item_master_id_fkey"
+            columns: ["line_item_master_id"]
+            isOneToOne: false
+            referencedRelation: "line_item_master"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_macro_pricing_macro_id_fkey"
+            columns: ["macro_id"]
+            isOneToOne: false
+            referencedRelation: "master_macros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_line_items: {
         Row: {
           code: string | null
@@ -285,6 +340,7 @@ export type Database = {
           name: string
           qty: number
           sort_order: number
+          source: string
           total: number
           trade: Database["public"]["Enums"]["trade_type"]
           unit: string
@@ -299,6 +355,7 @@ export type Database = {
           name: string
           qty?: number
           sort_order?: number
+          source?: string
           total?: number
           trade: Database["public"]["Enums"]["trade_type"]
           unit?: string
@@ -313,6 +370,7 @@ export type Database = {
           name?: string
           qty?: number
           sort_order?: number
+          source?: string
           total?: number
           trade?: Database["public"]["Enums"]["trade_type"]
           unit?: string
@@ -689,6 +747,98 @@ export type Database = {
           unit_price?: number
         }
         Relationships: []
+      }
+      master_macro_items: {
+        Row: {
+          created_at: string
+          id: string
+          line_item_master_id: string
+          macro_id: string
+          qty: number
+          sort_order: number
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_item_master_id: string
+          macro_id: string
+          qty?: number
+          sort_order?: number
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_item_master_id?: string
+          macro_id?: string
+          qty?: number
+          sort_order?: number
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_macro_items_line_item_master_id_fkey"
+            columns: ["line_item_master_id"]
+            isOneToOne: false
+            referencedRelation: "line_item_master"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_macro_items_macro_id_fkey"
+            columns: ["macro_id"]
+            isOneToOne: false
+            referencedRelation: "master_macros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      master_macros: {
+        Row: {
+          category: string | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_default: boolean
+          name: string
+          trade: Database["public"]["Enums"]["trade_type"] | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          trade?: Database["public"]["Enums"]["trade_type"] | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          trade?: Database["public"]["Enums"]["trade_type"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_macros_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       price_books: {
         Row: {
