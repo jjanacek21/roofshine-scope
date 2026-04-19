@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Sparkles, Layers } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -24,6 +24,8 @@ import {
   type EstimatePctEdits,
 } from "@/components/estimate/EstimateTotalsPanel";
 import { StatusBadge } from "@/components/brand/StatusBadge";
+import { MacroPicker, type MacroPickerItem } from "@/components/estimate/MacroPicker";
+import { AISuggestionsPanel } from "@/components/estimate/AISuggestionsPanel";
 import type { Trade } from "@/lib/trades";
 
 export const Route = createFileRoute("/_app/jobs/$id/estimate")({
@@ -49,6 +51,7 @@ function JobEstimate() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
+  const [macroOpen, setMacroOpen] = useState(false);
   const [companionSuggestion, setCompanionSuggestion] = useState<CompanionSuggestion | null>(
     null,
   );
@@ -301,12 +304,19 @@ function JobEstimate() {
     void checkCompanion(item.category);
   };
 
-  const addCodes = async (codes: string[]) => {
+  const addCodes = async (
+    input: Array<string | { code: string; qty?: number; unit?: string }>,
+    source: "manual" | "ai_photo" = "manual",
+  ) => {
     if (!activeId || !job) return;
+    const normalized = input.map((x) =>
+      typeof x === "string" ? { code: x, qty: 1, unit: undefined as string | undefined } : { code: x.code, qty: x.qty ?? 1, unit: x.unit },
+    );
+    const codes = normalized.map((n) => n.code);
     const { data: matches } = await supabase
       .from("line_item_master")
       .select("id, code, name, unit, trade, default_price, category")
-      .eq("company_id", job.company_id)
+      .or(`company_id.eq.${job.company_id},company_id.is.null`)
       .in("code", codes);
     if (!matches?.length) {
       toast.warning("Codes not found in catalog");
@@ -326,18 +336,24 @@ function JobEstimate() {
         (prices ?? []).map((p) => [p.line_item_master_id, Number(p.unit_price)]),
       );
     }
-    const rows = matches.map((m, idx) => ({
-      estimate_id: activeId,
-      line_item_id: m.id,
-      code: m.code,
-      name: m.name,
-      trade: m.trade as Trade,
-      unit: m.unit,
-      qty: 1,
-      unit_price: priceMap[m.id] ?? Number(m.default_price ?? 0),
-      total: priceMap[m.id] ?? Number(m.default_price ?? 0),
-      sort_order: localItems.length + idx,
-    }));
+    const rows = matches.map((m, idx) => {
+      const norm = normalized.find((n) => n.code === m.code);
+      const qty = norm?.qty ?? 1;
+      const unit_price = priceMap[m.id] ?? Number(m.default_price ?? 0);
+      return {
+        estimate_id: activeId,
+        line_item_id: m.id,
+        code: m.code,
+        name: m.name,
+        trade: m.trade as Trade,
+        unit: norm?.unit ?? m.unit,
+        qty,
+        unit_price,
+        total: qty * unit_price,
+        source,
+        sort_order: localItems.length + idx,
+      };
+    });
     const { error } = await supabase.from("estimate_line_items").insert(rows);
     if (error) {
       toast.error("Could not add items");
@@ -345,6 +361,42 @@ function JobEstimate() {
     }
     qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
     toast.success(`Added ${rows.length} item${rows.length === 1 ? "" : "s"}`);
+  };
+
+  // Apply ?codes=... from search params (e.g. from a photo "Add to estimate" link)
+  useEffect(() => {
+    if (codesAppliedRef.current) return;
+    if (!activeId || !search.codes) return;
+    const codes = search.codes.split(",").map((c: string) => c.trim()).filter(Boolean);
+    if (codes.length === 0) return;
+    codesAppliedRef.current = true;
+    addCodes(codes, "ai_photo");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId, search.codes]);
+
+  const insertMacro = async (macroItems: MacroPickerItem[], macroName: string) => {
+    if (!activeId) return;
+    const rows = macroItems.map((it, idx) => ({
+      estimate_id: activeId,
+      line_item_id: it.line_item_master_id,
+      code: it.code,
+      name: it.name,
+      trade: it.trade as Trade,
+      unit: it.unit,
+      qty: it.qty,
+      unit_price: it.unit_price,
+      total: it.qty * it.unit_price,
+      source: "macro",
+      sort_order: localItems.length + idx,
+    }));
+    const { error } = await supabase.from("estimate_line_items").insert(rows);
+    if (error) {
+      toast.error("Could not insert macro");
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
+    toast.success(`Inserted "${macroName}" (${rows.length} items)`);
+    setMacroOpen(false);
   };
 
   const addCustom = async (draft: CustomItemDraft) => {
@@ -484,6 +536,13 @@ function JobEstimate() {
           />
         )}
 
+        <AISuggestionsPanel
+          jobId={jobId}
+          onApprove={async (items) => {
+            await addCodes(items, "ai_photo");
+          }}
+        />
+
         <LineItemTable
           items={localItems}
           onPatch={patchItem}
@@ -506,6 +565,14 @@ function JobEstimate() {
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add line item
+              </button>
+              <button
+                onClick={() => setMacroOpen(true)}
+                disabled={!activeId}
+                className="btn-ghost flex h-9 items-center gap-2 rounded-lg px-3.5 text-[13px] font-semibold disabled:opacity-50"
+              >
+                <Layers className="h-3.5 w-3.5" />
+                Insert macro
               </button>
               <button
                 onClick={() => setCustomOpen(true)}
@@ -538,6 +605,14 @@ function JobEstimate() {
         onClose={() => setCustomOpen(false)}
         onAdd={addCustom}
       />
+
+      {macroOpen && job?.company_id && (
+        <MacroPicker
+          companyId={job.company_id}
+          onPick={insertMacro}
+          onClose={() => setMacroOpen(false)}
+        />
+      )}
     </div>
   );
 }

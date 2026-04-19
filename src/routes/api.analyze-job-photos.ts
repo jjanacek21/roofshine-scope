@@ -183,6 +183,22 @@ Return your analysis via the analyze_photo tool.`;
           })
           .eq("id", photo_id);
 
+        // If company has auto-add enabled, fire-and-forget the auto-add endpoint.
+        // Reuses the same auth token so RLS still applies as the original user.
+        const { data: companyRow } = await supabase
+          .from("companies")
+          .select("auto_add_photo_suggestions")
+          .eq("id", job.company_id)
+          .maybeSingle();
+        if (companyRow?.auto_add_photo_suggestions) {
+          const origin = new URL(request.url).origin;
+          fetch(`${origin}/api/auto-add-photo-suggestions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ job_id: (photo as unknown as { job_id: string }).job_id }),
+          }).catch((err) => console.warn("auto-add suggestions failed", err));
+        }
+
         return Response.json({ analysis: parsed });
       },
     },
