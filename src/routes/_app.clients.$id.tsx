@@ -278,6 +278,20 @@ function ClientDetailPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <Sheet open={!!roofProp} onOpenChange={(o) => !o && setRoofProp(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-[1100px] overflow-y-auto">
+          <SheetHeader><SheetTitle>Roof Measurements</SheetTitle></SheetHeader>
+          <div className="mt-6">
+            {roofProp && (
+              <RoofMeasurementPanel
+                propertyId={roofProp.id}
+                center={roofProp.lat != null && roofProp.lng != null ? { lat: roofProp.lat, lng: roofProp.lng } : null}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
