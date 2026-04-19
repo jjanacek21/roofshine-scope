@@ -159,13 +159,13 @@ function Dashboard() {
             <Download className="h-3.5 w-3.5" strokeWidth={2.4} />
             Import
           </button>
-          <button
-            onClick={() => toast.info("New Job wizard — coming soon")}
+          <Link
+            to="/jobs/new"
             className="btn-brand flex h-9 items-center gap-2 rounded-lg px-3.5 text-[13px] font-semibold"
           >
             <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
             New Job
-          </button>
+          </Link>
         </div>
       </div>
 

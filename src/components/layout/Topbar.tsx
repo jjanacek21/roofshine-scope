@@ -1,4 +1,4 @@
-import { useLocation } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Search, Plus, Bell } from "lucide-react";
 import { toast } from "sonner";
 
@@ -84,13 +84,13 @@ export function Topbar() {
       </button>
 
       {/* New Job */}
-      <button
-        onClick={() => toast.info("New Job wizard — coming soon")}
+      <Link
+        to="/jobs/new"
         className="btn-brand flex h-9 items-center gap-2 rounded-lg px-3.5 text-[13px] font-semibold"
       >
         <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
         New Job
-      </button>
+      </Link>
     </header>
   );
 }
