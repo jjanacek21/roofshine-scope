@@ -66,7 +66,7 @@ export function SolarRoofTab({
         ring: seg.ring,
         plan_area_sqft: seg.plan_area_sqft,
         pitch: seg.pitch,
-        edges: seg.ring.length > 1 ? new Array(seg.ring.length - 1).fill(null) : [],
+        edges: seg.ring.length > 1 ? Array.from({ length: seg.ring.length - 1 }, () => null) : [],
       })),
       lines: [],
     };

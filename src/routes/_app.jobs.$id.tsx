@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { TradeBadge } from "@/components/brand/TradeBadge";
 import { StatusBadge } from "@/components/brand/StatusBadge";
+import { JobPhotosPanel } from "@/components/jobs/JobPhotosPanel";
 import { ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/_app/jobs/$id")({
@@ -64,9 +65,7 @@ function JobDetail() {
         </dl>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Measurements, Photos, Estimate, and Report tabs ship in the next build.
-      </p>
+      <JobPhotosPanel jobId={job.id} />
     </div>
   );
 }
