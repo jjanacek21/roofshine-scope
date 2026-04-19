@@ -587,7 +587,7 @@ export type Database = {
         Row: {
           category: string | null
           code: string
-          company_id: string
+          company_id: string | null
           created_at: string
           default_price: number
           description: string | null
@@ -603,7 +603,7 @@ export type Database = {
         Insert: {
           category?: string | null
           code: string
-          company_id: string
+          company_id?: string | null
           created_at?: string
           default_price?: number
           description?: string | null
@@ -619,7 +619,7 @@ export type Database = {
         Update: {
           category?: string | null
           code?: string
-          company_id?: string
+          company_id?: string | null
           created_at?: string
           default_price?: number
           description?: string | null
@@ -645,31 +645,46 @@ export type Database = {
       line_item_prices: {
         Row: {
           created_at: string
+          equipment_cost: number | null
           equipment_pct: number | null
           id: string
+          labor_cost: number | null
           labor_pct: number | null
           line_item_master_id: string
+          material_cost: number | null
           material_pct: number | null
+          misc_cost: number | null
+          overhead_pct: number | null
           price_book_id: string
           unit_price: number
         }
         Insert: {
           created_at?: string
+          equipment_cost?: number | null
           equipment_pct?: number | null
           id?: string
+          labor_cost?: number | null
           labor_pct?: number | null
           line_item_master_id: string
+          material_cost?: number | null
           material_pct?: number | null
+          misc_cost?: number | null
+          overhead_pct?: number | null
           price_book_id: string
           unit_price?: number
         }
         Update: {
           created_at?: string
+          equipment_cost?: number | null
           equipment_pct?: number | null
           id?: string
+          labor_cost?: number | null
           labor_pct?: number | null
           line_item_master_id?: string
+          material_cost?: number | null
           material_pct?: number | null
+          misc_cost?: number | null
+          overhead_pct?: number | null
           price_book_id?: string
           unit_price?: number
         }
