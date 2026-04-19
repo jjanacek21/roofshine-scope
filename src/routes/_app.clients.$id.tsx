@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AddressAutocomplete, type AddressResult } from "@/components/maps/AddressAutocomplete";
 import { StatusBadge } from "@/components/brand/StatusBadge";
+import { RoofMeasurementPanel } from "@/components/roof/RoofMeasurementPanel";
 
 export const Route = createFileRoute("/_app/clients/$id")({
   component: ClientDetailPage,
@@ -22,6 +23,7 @@ function ClientDetailPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<"properties" | "jobs">("properties");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [roofProp, setRoofProp] = useState<{ id: string; lat: number | null; lng: number | null } | null>(null);
 
   const { data: client } = useQuery({
     queryKey: ["client", id],
@@ -146,6 +148,7 @@ function ClientDetailPage() {
                     <th className="px-6 py-3 font-semibold">Type</th>
                     <th className="px-6 py-3 font-semibold">Year Built</th>
                     <th className="px-6 py-3 text-right font-semibold">Jobs</th>
+                    <th className="px-6 py-3 text-right font-semibold">Roof</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -155,6 +158,14 @@ function ClientDetailPage() {
                       <td className="px-6 py-3 capitalize text-muted-foreground">{p.property_type ?? "—"}</td>
                       <td className="px-6 py-3 font-mono-num text-muted-foreground">{p.year_built ?? "—"}</td>
                       <td className="px-6 py-3 text-right font-mono-num text-muted-foreground">{propertyJobCount(p.id)}</td>
+                      <td className="px-6 py-3 text-right">
+                        <button
+                          onClick={() => setRoofProp({ id: p.id, lat: p.lat ? Number(p.lat) : null, lng: p.lng ? Number(p.lng) : null })}
+                          className="text-xs font-semibold text-[var(--brand)] hover:underline"
+                        >
+                          Measure →
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -264,6 +275,20 @@ function ClientDetailPage() {
             >
               {addProperty.isPending ? "Saving…" : "Save Property"}
             </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={!!roofProp} onOpenChange={(o) => !o && setRoofProp(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-[1100px] overflow-y-auto">
+          <SheetHeader><SheetTitle>Roof Measurements</SheetTitle></SheetHeader>
+          <div className="mt-6">
+            {roofProp && (
+              <RoofMeasurementPanel
+                propertyId={roofProp.id}
+                center={roofProp.lat != null && roofProp.lng != null ? { lat: roofProp.lat, lng: roofProp.lng } : null}
+              />
+            )}
           </div>
         </SheetContent>
       </Sheet>

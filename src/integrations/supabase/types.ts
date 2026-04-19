@@ -540,16 +540,18 @@ export type Database = {
       }
       price_books: {
         Row: {
-          company_id: string
+          company_id: string | null
           created_at: string
           created_by: string | null
           effective_month: string | null
           id: string
           is_active: boolean
+          is_default: boolean
           item_count: number
           jurisdiction: string | null
           name: string
           notes: string | null
+          pricing_type: Database["public"]["Enums"]["price_book_pricing_type"]
           region: string | null
           source: string | null
           source_file_url: string | null
@@ -558,16 +560,18 @@ export type Database = {
           zip_codes: string[]
         }
         Insert: {
-          company_id: string
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           effective_month?: string | null
           id?: string
           is_active?: boolean
+          is_default?: boolean
           item_count?: number
           jurisdiction?: string | null
           name: string
           notes?: string | null
+          pricing_type?: Database["public"]["Enums"]["price_book_pricing_type"]
           region?: string | null
           source?: string | null
           source_file_url?: string | null
@@ -576,16 +580,18 @@ export type Database = {
           zip_codes?: string[]
         }
         Update: {
-          company_id?: string
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           effective_month?: string | null
           id?: string
           is_active?: boolean
+          is_default?: boolean
           item_count?: number
           jurisdiction?: string | null
           name?: string
           notes?: string | null
+          pricing_type?: Database["public"]["Enums"]["price_book_pricing_type"]
           region?: string | null
           source?: string | null
           source_file_url?: string | null
@@ -701,6 +707,215 @@ export type Database = {
         }
         Relationships: []
       }
+      roof_edges: {
+        Row: {
+          created_at: string
+          edge_index: number
+          edge_type: Database["public"]["Enums"]["roof_edge_type"]
+          id: string
+          length_lf: number
+          section_id: string
+        }
+        Insert: {
+          created_at?: string
+          edge_index: number
+          edge_type: Database["public"]["Enums"]["roof_edge_type"]
+          id?: string
+          length_lf?: number
+          section_id: string
+        }
+        Update: {
+          created_at?: string
+          edge_index?: number
+          edge_type?: Database["public"]["Enums"]["roof_edge_type"]
+          id?: string
+          length_lf?: number
+          section_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roof_edges_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "roof_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roof_lines: {
+        Row: {
+          created_at: string
+          id: string
+          length_lf: number
+          line_geojson: Json
+          line_type: Database["public"]["Enums"]["roof_edge_type"]
+          measurement_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          length_lf?: number
+          line_geojson: Json
+          line_type: Database["public"]["Enums"]["roof_edge_type"]
+          measurement_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          length_lf?: number
+          line_geojson?: Json
+          line_type?: Database["public"]["Enums"]["roof_edge_type"]
+          measurement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roof_lines_measurement_id_fkey"
+            columns: ["measurement_id"]
+            isOneToOne: false
+            referencedRelation: "roof_measurements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roof_measurements: {
+        Row: {
+          ai_analysis: Json
+          company_id: string
+          created_at: string
+          created_by: string | null
+          eaves_lf: number
+          gutters_lf: number
+          hips_lf: number
+          id: string
+          notes: string | null
+          predominant_pitch: string | null
+          property_id: string
+          rakes_lf: number
+          ridges_lf: number
+          source: Database["public"]["Enums"]["roof_measurement_source"]
+          source_file_url: string | null
+          squares: number
+          step_flashing_lf: number
+          total_area_sqft: number
+          transition_lf: number
+          updated_at: string
+          valleys_lf: number
+          wall_flashing_lf: number
+          waste_pct: number
+        }
+        Insert: {
+          ai_analysis?: Json
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          eaves_lf?: number
+          gutters_lf?: number
+          hips_lf?: number
+          id?: string
+          notes?: string | null
+          predominant_pitch?: string | null
+          property_id: string
+          rakes_lf?: number
+          ridges_lf?: number
+          source?: Database["public"]["Enums"]["roof_measurement_source"]
+          source_file_url?: string | null
+          squares?: number
+          step_flashing_lf?: number
+          total_area_sqft?: number
+          transition_lf?: number
+          updated_at?: string
+          valleys_lf?: number
+          wall_flashing_lf?: number
+          waste_pct?: number
+        }
+        Update: {
+          ai_analysis?: Json
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          eaves_lf?: number
+          gutters_lf?: number
+          hips_lf?: number
+          id?: string
+          notes?: string | null
+          predominant_pitch?: string | null
+          property_id?: string
+          rakes_lf?: number
+          ridges_lf?: number
+          source?: Database["public"]["Enums"]["roof_measurement_source"]
+          source_file_url?: string | null
+          squares?: number
+          step_flashing_lf?: number
+          total_area_sqft?: number
+          transition_lf?: number
+          updated_at?: string
+          valleys_lf?: number
+          wall_flashing_lf?: number
+          waste_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roof_measurements_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: true
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roof_sections: {
+        Row: {
+          actual_area_sqft: number
+          color: string
+          created_at: string
+          id: string
+          measurement_id: string
+          name: string
+          pitch: string
+          pitch_multiplier: number
+          plan_area_sqft: number
+          polygon_geojson: Json
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          actual_area_sqft?: number
+          color?: string
+          created_at?: string
+          id?: string
+          measurement_id: string
+          name?: string
+          pitch?: string
+          pitch_multiplier?: number
+          plan_area_sqft?: number
+          polygon_geojson: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          actual_area_sqft?: number
+          color?: string
+          created_at?: string
+          id?: string
+          measurement_id?: string
+          name?: string
+          pitch?: string
+          pitch_multiplier?: number
+          plan_area_sqft?: number
+          polygon_geojson?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roof_sections_measurement_id_fkey"
+            columns: ["measurement_id"]
+            isOneToOne: false
+            referencedRelation: "roof_measurements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -733,8 +948,25 @@ export type Database = {
         | "signed"
         | "in_progress"
         | "complete"
+      price_book_pricing_type: "default" | "insurance" | "retail"
       price_book_status: "active" | "archived"
       property_type: "residential" | "commercial"
+      roof_edge_type:
+        | "eave"
+        | "rake"
+        | "hip"
+        | "ridge"
+        | "valley"
+        | "gutter"
+        | "wall_flashing"
+        | "step_flashing"
+        | "transition"
+      roof_measurement_source:
+        | "manual"
+        | "mapbox_draw"
+        | "google_solar"
+        | "third_party_report"
+        | "photo_ai"
       trade_type:
         | "roofing"
         | "exterior"
@@ -885,8 +1117,27 @@ export const Constants = {
         "in_progress",
         "complete",
       ],
+      price_book_pricing_type: ["default", "insurance", "retail"],
       price_book_status: ["active", "archived"],
       property_type: ["residential", "commercial"],
+      roof_edge_type: [
+        "eave",
+        "rake",
+        "hip",
+        "ridge",
+        "valley",
+        "gutter",
+        "wall_flashing",
+        "step_flashing",
+        "transition",
+      ],
+      roof_measurement_source: [
+        "manual",
+        "mapbox_draw",
+        "google_solar",
+        "third_party_report",
+        "photo_ai",
+      ],
       trade_type: [
         "roofing",
         "exterior",

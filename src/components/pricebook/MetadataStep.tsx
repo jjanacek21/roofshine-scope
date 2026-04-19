@@ -11,6 +11,7 @@ export interface MetadataValue {
   zip_codes: string[];
   effective_month: string; // YYYY-MM-01
   notes: string;
+  pricing_type: "insurance" | "retail";
 }
 
 interface Props {
@@ -46,6 +47,29 @@ export function MetadataStep({ value, onChange }: Props) {
 
   return (
     <div className="space-y-5">
+      <div>
+        <Label>Pricing Type</Label>
+        <div className="mt-1 grid grid-cols-2 gap-2">
+          {(["insurance", "retail"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => onChange({ ...value, pricing_type: t })}
+              className={`h-10 rounded-md border text-sm font-semibold capitalize transition ${
+                value.pricing_type === t
+                  ? "bg-[var(--brand)] text-white"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              style={{ borderColor: "var(--border)" }}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Insurance pricing is used for claim estimates. Retail is used for cash quotes.
+        </p>
+      </div>
       <div>
         <Label>Name</Label>
         <Input

@@ -10,13 +10,27 @@ export const Route = createFileRoute("/_app/price-books")({
   component: PriceBooksPage,
 });
 
+function PricingTypeBadge({ type, isDefault }: { type: string | null; isDefault: boolean | null }) {
+  const label = isDefault ? "Default" : type === "retail" ? "Retail" : "Insurance";
+  const color = isDefault ? "#a855f7" : type === "retail" ? "#10b981" : "#3b82f6";
+  return (
+    <span
+      className="rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+      style={{ borderColor: color, color }}
+    >
+      {label}
+    </span>
+  );
+}
+
 function PriceBooksPage() {
   const { data: books = [], isLoading } = useQuery({
     queryKey: ["price-books"],
     queryFn: async () => {
       const { data } = await supabase
         .from("price_books")
-        .select("id, name, jurisdiction, zip_codes, effective_month, item_count, status, is_active, created_at, source_file_url")
+        .select("id, name, jurisdiction, zip_codes, effective_month, item_count, status, is_active, created_at, source_file_url, pricing_type, is_default, company_id")
+        .order("is_default", { ascending: false })
         .order("effective_month", { ascending: false, nullsFirst: false });
       return data ?? [];
     },
@@ -89,7 +103,12 @@ function PriceBooksPage() {
             <tbody>
               {books.map((b) => (
                 <tr key={b.id} className="border-t hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border)" }}>
-                  <td className="px-6 py-3 font-medium text-foreground">{b.name}</td>
+                  <td className="px-6 py-3 font-medium text-foreground">
+                    <div className="flex items-center gap-2">
+                      <span>{b.name}</span>
+                      <PricingTypeBadge type={b.pricing_type} isDefault={b.is_default} />
+                    </div>
+                  </td>
                   <td className="px-6 py-3">
                     {b.jurisdiction ? (
                       <span className="rounded-md border px-2 py-0.5 text-xs text-foreground" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}>
