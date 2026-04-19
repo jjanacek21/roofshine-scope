@@ -1,17 +1,33 @@
 
 
-## Fix: wire "New Job" buttons to the existing wizard
+## Add "Price Books" to the Admin sidebar
 
-The `/jobs/new` 4-step wizard route is fully built, but two "New Job" buttons still call a stub `toast.info("New Job wizard — coming soon")` instead of navigating to it.
+The master price book system is already fully built and live:
+- `/admin/price-books` — list of all global default books
+- `/admin/price-books/new` — 3-step wizard (metadata → upload → match) that inserts with `company_id = NULL` + `is_default = true`
+- DB + RLS already lets every company read these as fallback
+- Resolver (`resolve-price-book.ts`) already prefers company books, then falls back to master defaults by ZIP / jurisdiction / generic
 
-### Changes
+The only gap is **discoverability**: the admin sidebar in `src/routes/admin.tsx` (lines 12–26) does not list Price Books, so super-admins have no UI link to reach it.
 
-**`src/components/layout/Topbar.tsx`** (line 87-90)
-- Replace the `<button onClick={toast}>` with a TanStack `<Link to="/jobs/new">` (keep the same `btn-brand` styling and Plus icon).
-- Remove the now-unused `toast` import if nothing else in the file uses it.
+### Change
 
-**`src/routes/_app.index.tsx`** (line 162-165)
-- Same fix: swap the placeholder button for `<Link to="/jobs/new">`.
+**`src/routes/admin.tsx`** — add one entry to the `NAV` array:
 
-That's it — one-line wiring fix in two files. The wizard itself, the route, and the navigation flow already work.
+```ts
+{ to: "/admin/price-books", label: "Price Books", icon: Library }
+```
+
+- Add `Library` to the `lucide-react` import on line 5.
+- Insert the nav item between "Companies" and "Announcements" so it sits with other content-management items.
+
+That's the entire fix. Once it ships you'll see "Price Books" in the left admin nav → click → "Upload master book" → wizard. The book auto-applies to every company that doesn't have its own matching book.
+
+### How it works for end users (no extra work needed)
+- When any company creates a job, `resolvePriceBook()` runs in this priority: company-ZIP > company-jurisdiction > master-ZIP > master-jurisdiction > master-default.
+- The `PriceBookPicker` on the job shows the resolved book with a manual override dropdown, and labels master books with a ★.
+
+### Out of scope
+- No DB changes — schema, RLS, and routes are already in place.
+- No changes to the company-side `/price-books` page — it already shows master books mixed in (sorted with `is_default` first).
 
