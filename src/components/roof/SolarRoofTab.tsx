@@ -700,41 +700,72 @@ export function SolarRoofTab({
           style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
         >
           <div
-            className="flex items-center justify-between border-b px-4 py-2.5"
+            className="flex items-center justify-between gap-3 border-b px-4 py-2.5"
             style={{ borderColor: "var(--border)" }}
           >
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Pins ({pins.length})
+              {pins.some((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0) && (
+                <span className="ml-2 inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500">
+                  <AlertCircle className="h-2.5 w-2.5" />
+                  {pins.filter((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0).length} unmeasured
+                </span>
+              )}
             </h4>
-            <span className="text-[11px] text-muted-foreground">Click a pin to edit</span>
+            {pins.some((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0) && (
+              <button
+                onClick={() => measureAll.mutate()}
+                disabled={measureAll.isPending}
+                className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-white/5 disabled:opacity-40"
+                style={{ borderColor: "var(--border)" }}
+              >
+                {measureAll.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Ruler className="h-3 w-3" />
+                )}
+                Measure all unmeasured
+              </button>
+            )}
           </div>
           <div className="divide-y" style={{ borderColor: "var(--border)" }}>
-            {pins.map((p, i) => (
-              <button
-                key={p.id}
-                onClick={() => setActivePinId(p.id)}
-                className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-xs transition hover:bg-white/5 ${
-                  activePinId === p.id ? "bg-white/5" : ""
-                }`}
-              >
-                <div
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                  style={{ backgroundColor: KIND_COLORS[p.kind] }}
+            {pins.map((p, i) => {
+              const unmeasured = p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setActivePinId(p.id)}
+                  className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-xs transition hover:bg-white/5 ${
+                    activePinId === p.id ? "bg-white/5" : ""
+                  }`}
                 >
-                  {i + 1}
-                </div>
-                <div className="flex-1 truncate">
-                  <p className="truncate font-semibold text-foreground">{p.name}</p>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {p.kind === "ignore"
-                      ? "Ignored"
-                      : `${p.kind === "flat" ? "Flat" : `Pitched ${p.pitch}`} · ${(
-                          p.plan_area_sqft || 0
-                        ).toLocaleString()} sqft plan`}
-                  </p>
-                </div>
-              </button>
-            ))}
+                  <div
+                    className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                    style={{ backgroundColor: KIND_COLORS[p.kind] }}
+                  >
+                    {i + 1}
+                    {unmeasured && (
+                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-[var(--bg-card)]" />
+                    )}
+                  </div>
+                  <div className="flex-1 truncate">
+                    <p className="truncate font-semibold text-foreground">{p.name}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {p.kind === "ignore"
+                        ? "Ignored"
+                        : unmeasured
+                          ? `${p.kind === "flat" ? "Flat" : `Pitched ${p.pitch}`} · not measured yet`
+                          : `${p.kind === "flat" ? "Flat" : `Pitched ${p.pitch}`} · ${(
+                              p.plan_area_sqft || 0
+                            ).toLocaleString()} sqft plan`}
+                    </p>
+                  </div>
+                  {unmeasured && (
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
