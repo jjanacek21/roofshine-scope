@@ -212,7 +212,29 @@ export function SolarRoofTab({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [drawingPinId]);
+
+  // Sync markers with pins
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const existing = markersRef.current;
+    const seen = new Set<string>();
+
+    pins.forEach((pin, i) => {
+      seen.add(pin.id);
+      const color = KIND_COLORS[pin.kind];
+      const unmeasured = pin.kind !== "ignore" && (pin.plan_area_sqft || 0) === 0;
+      let marker = existing[pin.id];
+      if (!marker) {
+        const el = document.createElement("div");
+        el.style.cssText = `position:relative;width:28px;height:28px;border-radius:50%;background:${color};color:white;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer;`;
         el.textContent = String(i + 1);
+        if (unmeasured) {
+          const dot = document.createElement("span");
+          dot.className = "ai-pin-warn";
+          dot.style.cssText = "position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid white;";
+          el.appendChild(dot);
+        }
         el.addEventListener("click", (ev) => {
           ev.stopPropagation();
           setActivePinId(pin.id);
@@ -222,7 +244,18 @@ export function SolarRoofTab({
       } else {
         const el = marker.getElement();
         el.style.background = color;
-        el.textContent = String(i + 1);
+        const textNode = Array.from(el.childNodes).find((n) => n.nodeType === 3);
+        if (textNode) textNode.textContent = String(i + 1);
+        else el.insertBefore(document.createTextNode(String(i + 1)), el.firstChild);
+        const existingDot = el.querySelector(".ai-pin-warn");
+        if (unmeasured && !existingDot) {
+          const dot = document.createElement("span");
+          dot.className = "ai-pin-warn";
+          dot.style.cssText = "position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid white;";
+          el.appendChild(dot);
+        } else if (!unmeasured && existingDot) {
+          existingDot.remove();
+        }
         marker.setLngLat([pin.lng, pin.lat]);
       }
     });
