@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { toast } from "sonner";
-import { Loader2, Satellite, Sparkles, Trash2, Plus, Info } from "lucide-react";
+import { Loader2, Satellite, Sparkles, Trash2, Plus, Info, Ruler, Pencil, AlertCircle, Check } from "lucide-react";
 import type { MapboxRoofData } from "./MapboxRoofDraw";
-import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares } from "@/lib/roof-math";
+import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares, polygonAreaSqft } from "@/lib/roof-math";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 type PinKind = "pitched" | "flat" | "ignore";
