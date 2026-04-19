@@ -289,8 +289,6 @@ function computeMapboxTotals(data: MapboxRoofData) {
     total_area_sqft,
     squares: squares(total_area_sqft),
     ...totals,
-    actual_area_for_section: (s: { plan_area_sqft: number; pitch: string }) =>
-      s.plan_area_sqft * pitchMult(s.pitch),
   };
 }
 
