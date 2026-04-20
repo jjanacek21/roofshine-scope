@@ -61,8 +61,8 @@ function NewPriceBookPage() {
     },
   });
 
-  const canNext1 = meta.name && meta.jurisdiction && meta.effective_month && meta.zip_codes.length > 0;
-  const canNext2 =
+  // Step 1 = Upload & Extract: requires a successfully parsed file with usable columns.
+  const canNext1 =
     parsed &&
     parsed.mapping.includes("code" as never) &&
     parsed.mapping.includes("name" as never) &&
@@ -73,6 +73,8 @@ function NewPriceBookPage() {
       parsed.mapping.includes("labor_cost" as never) ||
       parsed.mapping.includes("equipment_cost" as never)
     );
+  // Step 2 = Details: only Name + Pricing Type are required.
+  const canNext2 = meta.name && meta.pricing_type;
 
   async function handleConfirm() {
     if (!companyId || !parsed) return;
