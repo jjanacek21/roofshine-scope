@@ -64,6 +64,10 @@ function PricingPage() {
   const insuranceBooks = books.filter((b) => (b.pricing_type ?? "insurance") === "insurance");
   const retailBooks = books.filter((b) => b.pricing_type === "retail");
 
+  if (isChild) {
+    return <Outlet />;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
