@@ -253,12 +253,12 @@ function JobReport() {
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-              <MiniStat label="Eaves" value={Number(measurement.eaves_lf ?? 0).toFixed(0)} />
-              <MiniStat label="Rakes" value={Number(measurement.rakes_lf ?? 0).toFixed(0)} />
-              <MiniStat label="Ridges" value={Number(measurement.ridges_lf ?? 0).toFixed(0)} />
-              <MiniStat label="Hips" value={Number(measurement.hips_lf ?? 0).toFixed(0)} />
-              <MiniStat label="Valleys" value={Number(measurement.valleys_lf ?? 0).toFixed(0)} />
-              <MiniStat label="Gutters" value={Number(measurement.gutters_lf ?? 0).toFixed(0)} />
+              <Stat label="Eaves" value={Number(measurement.eaves_lf ?? 0).toFixed(0)} />
+              <Stat label="Rakes" value={Number(measurement.rakes_lf ?? 0).toFixed(0)} />
+              <Stat label="Ridges" value={Number(measurement.ridges_lf ?? 0).toFixed(0)} />
+              <Stat label="Hips" value={Number(measurement.hips_lf ?? 0).toFixed(0)} />
+              <Stat label="Valleys" value={Number(measurement.valleys_lf ?? 0).toFixed(0)} />
+              <Stat label="Gutters" value={Number(measurement.gutters_lf ?? 0).toFixed(0)} />
             </div>
           </div>
         </div>
