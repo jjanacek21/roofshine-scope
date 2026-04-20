@@ -167,20 +167,117 @@ export function PropertyAnalysisPanel({
     });
   };
 
-  const addAll = () => {
-    const chosen = items.filter((_, i) => selected.has(i)).filter((it) => it.suggested_code);
+  const addAll = async () => {
+    const chosen = items.filter((_, i) => selected.has(i));
     if (chosen.length === 0) {
-      toast.info("Select at least one item with a catalog code");
+      toast.info("Select at least one item");
       return;
     }
-    const codes = chosen.map((c) => c.suggested_code!).join(",");
-    const qtys = chosen.map((c) => c.qty).join(",");
-    const units = chosen.map((c) => encodeURIComponent(c.unit)).join(",");
-    navigate({
-      to: "/jobs/$id/estimate",
-      params: { id: jobId },
-      search: { codes, qtys, units },
+
+    // Load job (for company_id, primary_trade, default pcts via company)
+    const { data: job } = await supabase
+      .from("jobs")
+      .select("id, company_id, primary_trade")
+      .eq("id", jobId)
+      .maybeSingle();
+    if (!job) {
+      toast.error("Job not found");
+      return;
+    }
+
+    // Find or create active estimate (latest by created_at)
+    const { data: existing } = await supabase
+      .from("estimates")
+      .select("id")
+      .eq("job_id", jobId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let estimateId = existing?.id ?? null;
+    if (!estimateId) {
+      const { data: company } = await supabase
+        .from("companies")
+        .select("default_markup_pct, default_overhead_pct, default_profit_pct, default_tax_rate")
+        .eq("id", job.company_id)
+        .maybeSingle();
+      const { data: created, error: cErr } = await supabase
+        .from("estimates")
+        .insert({
+          job_id: jobId,
+          company_id: job.company_id,
+          name: "Original",
+          tier: "original",
+          markup_pct: Number(company?.default_markup_pct ?? 10),
+          overhead_pct: Number(company?.default_overhead_pct ?? 10),
+          profit_pct: Number(company?.default_profit_pct ?? 10),
+          tax_pct: Number(company?.default_tax_rate ?? 0),
+        })
+        .select("id")
+        .single();
+      if (cErr || !created) {
+        toast.error("Could not create estimate");
+        return;
+      }
+      estimateId = created.id;
+    }
+
+    // Find current max sort_order
+    const { data: lastRow } = await supabase
+      .from("estimate_line_items")
+      .select("sort_order")
+      .eq("estimate_id", estimateId)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const startOrder = (lastRow?.sort_order ?? -1) + 1;
+
+    const fallbackTrade = (job.primary_trade ?? "roofing") as
+      | "roofing"
+      | "exterior"
+      | "windows"
+      | "interior"
+      | "hvac"
+      | "plumbing"
+      | "electrical"
+      | "mitigation";
+
+    const rows = chosen.map((it, idx) => {
+      const matched = !!it.catalog_name;
+      const unit_price = Number(it.unit_price ?? 0);
+      const qty = Number(it.qty ?? 0);
+      return {
+        estimate_id: estimateId!,
+        line_item_id: null,
+        code: matched ? it.suggested_code ?? null : null,
+        name: matched ? it.catalog_name! : it.description,
+        trade: ((it.catalog_trade as typeof fallbackTrade) ?? fallbackTrade),
+        unit: it.unit || "EA",
+        qty,
+        unit_price,
+        total: qty * unit_price,
+        source: "ai_property",
+        sort_order: startOrder + idx,
+      };
     });
+
+    const { error: insErr } = await supabase.from("estimate_line_items").insert(rows);
+    if (insErr) {
+      toast.error("Could not add items", { description: insErr.message });
+      return;
+    }
+
+    const customCount = rows.filter((r) => !r.code).length;
+    const matchedCount = rows.length - customCount;
+    qc.invalidateQueries({ queryKey: ["estimate-items", estimateId] });
+    qc.invalidateQueries({ queryKey: ["estimates", jobId] });
+    toast.success(`Added ${rows.length} item${rows.length === 1 ? "" : "s"}`, {
+      description:
+        customCount > 0
+          ? `${matchedCount} matched · ${customCount} inserted as custom (no catalog match)`
+          : undefined,
+    });
+    navigate({ to: "/jobs/$id/estimate", params: { id: jobId }, search: {} });
   };
 
   const summary = latest?.analysis?.property_summary;
