@@ -563,6 +563,44 @@ export type Database = {
           },
         ]
       }
+      job_property_analyses: {
+        Row: {
+          analysis: Json
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          job_id: string
+          photo_count: number
+        }
+        Insert: {
+          analysis?: Json
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id: string
+          photo_count?: number
+        }
+        Update: {
+          analysis?: Json
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id?: string
+          photo_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_property_analyses_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           claim_number: string | null
