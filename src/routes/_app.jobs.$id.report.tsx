@@ -375,6 +375,72 @@ function JobReport() {
                 crossOrigin="anonymous"
               />
             )}
+            {roofSections.length > 0 && (
+              <div className="mt-4">
+                <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-neutral-700">
+                  Roof Sections ({roofSections.length})
+                </div>
+                <table className="w-full text-[12px]">
+                  <thead>
+                    <tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
+                      <th className="border-b border-neutral-200 py-1.5">Name</th>
+                      <th className="border-b border-neutral-200 py-1.5">Pitch</th>
+                      <th className="border-b border-neutral-200 py-1.5 text-right">Plan SF</th>
+                      <th className="border-b border-neutral-200 py-1.5 text-right">Sloped SF</th>
+                      <th className="border-b border-neutral-200 py-1.5 text-right">Squares</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {roofSections.map((s) => {
+                      const plan = Number(s.plan_area_sqft ?? 0);
+                      const actual = Number(s.actual_area_sqft ?? 0);
+                      return (
+                        <tr key={s.id} className="border-b border-neutral-100">
+                          <td className="py-1.5">
+                            <span className="inline-flex items-center gap-2">
+                              <span
+                                className="h-2.5 w-2.5 rounded-full"
+                                style={{ backgroundColor: s.color }}
+                              />
+                              <span className="text-neutral-800">{s.name}</span>
+                            </span>
+                          </td>
+                          <td className="py-1.5 font-mono-num text-neutral-700">
+                            {s.pitch === "0/12" ? "Flat" : s.pitch}
+                          </td>
+                          <td className="py-1.5 text-right font-mono-num text-neutral-700">
+                            {plan.toFixed(0)}
+                          </td>
+                          <td className="py-1.5 text-right font-mono-num text-neutral-700">
+                            {actual.toFixed(0)}
+                          </td>
+                          <td className="py-1.5 text-right font-mono-num font-semibold text-neutral-900">
+                            {(actual / 100).toFixed(2)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="border-t-2 border-neutral-300">
+                      <td className="py-1.5 text-[11px] font-bold uppercase tracking-wider text-neutral-700">
+                        Combined
+                      </td>
+                      <td />
+                      <td className="py-1.5 text-right font-mono-num font-bold text-neutral-900">
+                        {roofSections.reduce((s, x) => s + Number(x.plan_area_sqft ?? 0), 0).toFixed(0)}
+                      </td>
+                      <td className="py-1.5 text-right font-mono-num font-bold text-neutral-900">
+                        {roofSections.reduce((s, x) => s + Number(x.actual_area_sqft ?? 0), 0).toFixed(0)}
+                      </td>
+                      <td className="py-1.5 text-right font-mono-num font-bold text-neutral-900">
+                        {(
+                          roofSections.reduce((s, x) => s + Number(x.actual_area_sqft ?? 0), 0) / 100
+                        ).toFixed(2)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
             <div className="mt-4 grid grid-cols-2 gap-3 text-[12px] sm:grid-cols-4">
               <Stat label="Squares" value={Number(measurement.squares ?? 0).toFixed(1)} />
               <Stat label="Area (SF)" value={Number(measurement.total_area_sqft ?? 0).toFixed(0)} />
