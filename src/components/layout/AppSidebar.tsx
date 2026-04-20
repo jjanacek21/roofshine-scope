@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Briefcase,
   Users,
-  BookOpen,
   Library,
   Settings,
   LogOut,
@@ -24,7 +23,6 @@ const WORKSPACE_NAV = [
 ] as const;
 
 const ADMIN_NAV = [
-  { to: "/catalog", label: "Catalog", icon: BookOpen },
   { to: "/price-books", label: "Pricing", icon: Library },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
