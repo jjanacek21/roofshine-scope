@@ -75,7 +75,11 @@ export function RoofMeasurementPanel({
         type: "Feature",
         id: `sec-${s.id}`,
         geometry: { type: "Polygon", coordinates: geo.coordinates } as Polygon,
-        properties: { pitch: s.pitch ?? "6/12" } as FeatureProps,
+        properties: {
+          pitch: s.pitch ?? "6/12",
+          section_name: s.name ?? undefined,
+          section_color: s.color ?? undefined,
+        } as FeatureProps,
       } as Feature<Polygon, FeatureProps>);
     }
     for (const l of savedShapes.lines) {
@@ -182,15 +186,16 @@ export function RoofMeasurementPanel({
           const ring = poly.geometry.coordinates[0];
           const pitch = poly.properties?.pitch ?? "6/12";
           const mult = pitchMult(pitch);
-          // Use turf for area accuracy via library; here approximate from ring helper
           const planArea = polygonAreaFromRing(ring);
           const actualArea = planArea * mult;
+          const sectionName = poly.properties?.section_name ?? `Roof ${i + 1}`;
+          const sectionColor = poly.properties?.section_color ?? "#1e90ff";
           const { error: secErr } = await supabase
             .from("roof_sections")
             .insert({
               measurement_id: m.id,
-              name: `Section ${i + 1}`,
-              color: "#3b82f6",
+              name: sectionName,
+              color: sectionColor,
               polygon_geojson: { type: "Polygon", coordinates: poly.geometry.coordinates },
               plan_area_sqft: planArea,
               pitch,
