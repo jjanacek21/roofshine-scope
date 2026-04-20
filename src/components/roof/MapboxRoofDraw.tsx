@@ -15,6 +15,7 @@ import {
 import { DrawToolbar } from "./DrawToolbar";
 import {
   computeTotals,
+  nextSectionColor,
   type AnyFeature,
   type FeatureProps,
 } from "@/lib/measurement-utils";
@@ -49,9 +50,8 @@ type Tool = "polygon" | "line" | "point" | "select";
 
 export function MapboxRoofDraw({
   center,
-  initial,
-  onChange,
   initialFeatures,
+  onChange,
   onSave,
   isSaving,
   wastePct,
@@ -81,18 +81,17 @@ export function MapboxRoofDraw({
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   useEffect(() => {
-    const totals = computeTotals(features);
-    // Reconstruct legacy shape for backwards compat
+    const totals = computeTotals(features, waste);
     const sections = features
       .filter((f): f is Feature<Polygon, FeatureProps> => f.geometry.type === "Polygon")
       .map((f, i) => {
         const ring = f.geometry.coordinates[0];
         return {
           id: String(f.id),
-          name: `Section ${i + 1}`,
-          color: "#3b82f6",
+          name: f.properties?.section_name ?? `Roof ${i + 1}`,
+          color: f.properties?.section_color ?? nextSectionColor(i),
           ring,
-          plan_area_sqft: totals.total_area_sqft,
+          plan_area_sqft: totals.sections[i]?.plan_area_sqft ?? 0,
           pitch: f.properties?.pitch ?? "6/12",
           edges: ring.slice(0, -1).map(() => null as EdgeType | null),
         };
@@ -105,7 +104,9 @@ export function MapboxRoofDraw({
         type: (f.properties?.edge_type ?? "ridge") as EdgeType,
       }));
     onChangeRef.current({ sections, lines: linesArr, features, totals });
-  }, [features]);
+  }, [features, waste]);
+
+  const polygonCount = features.filter((f) => f.geometry.type === "Polygon").length;
 
   // Init map
   useEffect(() => {
@@ -131,7 +132,6 @@ export function MapboxRoofDraw({
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
     map.on("load", () => {
-      // Hydrate initial features
       if (initialFeatures && initialFeatures.length) {
         const fc: FeatureCollection = {
           type: "FeatureCollection",
@@ -182,11 +182,23 @@ export function MapboxRoofDraw({
       };
 
       if (feature.geometry.type === "Polygon") {
+        const idx = draw
+          .getAll()
+          .features.filter((f) => f.geometry.type === "Polygon")
+          .findIndex((f) => f.id === feature.id);
+        const sectionIdx = idx >= 0 ? idx : polygonCount;
+        const defaultName = `Roof ${sectionIdx + 1}`;
+        const color = nextSectionColor(sectionIdx);
         setPrompt({
           type: "pitch",
-          onConfirm: (pitch) => {
+          defaultName,
+          onConfirm: (result) => {
             if (feature.id != null) {
-              draw.setFeatureProperty(String(feature.id), "pitch", pitch);
+              const id = String(feature.id);
+              draw.setFeatureProperty(id, "pitch", result.pitch);
+              draw.setFeatureProperty(id, "section_name", result.name);
+              draw.setFeatureProperty(id, "section_color", color);
+              draw.setFeatureProperty(id, "section_waste_pct", waste);
             }
             setPrompt(null);
             cleanup();
@@ -219,7 +231,7 @@ export function MapboxRoofDraw({
         });
       }
     },
-    [syncFromDraw],
+    [syncFromDraw, polygonCount, waste],
   );
 
   const chooseTool = (t: Tool) => {
@@ -251,6 +263,29 @@ export function MapboxRoofDraw({
     syncFromDraw(draw);
   };
 
+  const handleAddRoof = () => chooseTool("polygon");
+
+  const handleSectionWasteChange = (sectionId: string, n: number) => {
+    const draw = drawRef.current;
+    if (!draw) return;
+    draw.setFeatureProperty(sectionId, "section_waste_pct", n);
+    syncFromDraw(draw);
+  };
+
+  const handleSectionDelete = (sectionId: string) => {
+    const draw = drawRef.current;
+    if (!draw) return;
+    draw.delete(sectionId);
+    syncFromDraw(draw);
+  };
+
+  const handleSectionRename = (sectionId: string, name: string) => {
+    const draw = drawRef.current;
+    if (!draw) return;
+    draw.setFeatureProperty(sectionId, "section_name", name);
+    syncFromDraw(draw);
+  };
+
   if (isLoading) {
     return <div className="h-96 animate-pulse rounded-xl bg-[var(--surface)]" />;
   }
@@ -265,10 +300,10 @@ export function MapboxRoofDraw({
     );
   }
 
-  const totals = computeTotals(features);
+  const totals = computeTotals(features, waste);
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_340px]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
       <div className="relative">
         <div
           ref={containerRef}
@@ -289,6 +324,10 @@ export function MapboxRoofDraw({
         onWasteChange={setWaste}
         onSave={onSave ?? (() => {})}
         isSaving={isSaving ?? false}
+        onAddRoof={handleAddRoof}
+        onSectionWasteChange={handleSectionWasteChange}
+        onSectionDelete={handleSectionDelete}
+        onSectionRename={handleSectionRename}
       />
 
       <MeasurementPromptDialog prompt={prompt} />

@@ -1,7 +1,20 @@
 import { useMemo } from "react";
-import { Save } from "lucide-react";
+import { Save, Plus, Trash2 } from "lucide-react";
 import { EDGE_LABELS, EDGE_COLORS, type EdgeType } from "@/lib/roof-math";
 import { PENETRATION_LABELS, type PenetrationType } from "@/lib/mapbox-draw-styles";
+
+export type SectionTotal = {
+  id: string;
+  name: string;
+  color: string;
+  pitch: string;
+  pitch_multiplier: number;
+  plan_area_sqft: number;
+  sloped_area_sqft: number;
+  squares: number;
+  sloped_squares: number;
+  waste_pct: number;
+};
 
 export type MeasurementTotals = {
   total_area_sqft: number;
@@ -11,6 +24,7 @@ export type MeasurementTotals = {
   avg_pitch: string;
   edges: Partial<Record<EdgeType, number>>;
   penetrations: Partial<Record<PenetrationType, number>>;
+  sections: SectionTotal[];
 };
 
 export function MeasurementTotalsPanel({
@@ -19,16 +33,28 @@ export function MeasurementTotalsPanel({
   onWasteChange,
   onSave,
   isSaving,
+  onAddRoof,
+  onSectionWasteChange,
+  onSectionDelete,
+  onSectionRename,
 }: {
   totals: MeasurementTotals;
   wastePct: number;
   onWasteChange: (n: number) => void;
   onSave: () => void;
   isSaving: boolean;
+  onAddRoof?: () => void;
+  onSectionWasteChange?: (sectionId: string, n: number) => void;
+  onSectionDelete?: (sectionId: string) => void;
+  onSectionRename?: (sectionId: string, name: string) => void;
 }) {
-  const wastedSquares = useMemo(
-    () => totals.sloped_squares * (1 + wastePct / 100),
-    [totals.sloped_squares, wastePct],
+  const combinedAdjusted = useMemo(
+    () =>
+      totals.sections.reduce(
+        (s, sec) => s + sec.sloped_squares * (1 + sec.waste_pct / 100),
+        0,
+      ),
+    [totals.sections],
   );
 
   const edgeEntries = (Object.keys(EDGE_LABELS) as EdgeType[])
@@ -45,20 +71,113 @@ export function MeasurementTotalsPanel({
       style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
     >
       <Section label="Imagery">
-        <p className="text-xs text-muted-foreground">Mapbox Satellite · Q1 2026</p>
+        <p className="text-xs text-muted-foreground">Mapbox Satellite</p>
       </Section>
 
-      <Section label="Roof Totals">
-        <div className="space-y-2">
-          <BigStat
-            label="Area (Flat)"
-            value={`${totals.squares.toFixed(2)} SQ`}
-          />
-          <Row label="Area (Sloped)" value={`${totals.sloped_squares.toFixed(2)} SQ`} />
-          <Row label="Square Feet" value={`${Math.round(totals.sloped_area_sqft).toLocaleString()} sf`} />
-          <Row label="Avg. Pitch" value={totals.avg_pitch} />
-        </div>
+      <Section label={`Roof Sections (${totals.sections.length})`}>
+        {totals.sections.length === 0 ? (
+          <p className="text-xs text-muted-foreground/70">
+            Draw a polygon on the map to add your first roof section.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {totals.sections.map((sec) => {
+              const adjusted = sec.sloped_squares * (1 + sec.waste_pct / 100);
+              return (
+                <div
+                  key={sec.id}
+                  className="rounded-lg border p-2.5"
+                  style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-3 w-3 rounded-full ring-2 ring-white/10"
+                      style={{ backgroundColor: sec.color }}
+                    />
+                    {onSectionRename ? (
+                      <input
+                        value={sec.name}
+                        onChange={(e) => onSectionRename(sec.id, e.target.value)}
+                        className="h-6 flex-1 rounded border bg-transparent px-1.5 text-xs font-semibold text-foreground outline-none focus:border-[var(--brand)]"
+                        style={{ borderColor: "transparent" }}
+                      />
+                    ) : (
+                      <span className="flex-1 text-xs font-semibold text-foreground">{sec.name}</span>
+                    )}
+                    <span className="font-mono-num text-[10px] text-muted-foreground">
+                      {sec.pitch === "0/12" ? "Flat" : sec.pitch}
+                    </span>
+                    {onSectionDelete && (
+                      <button
+                        onClick={() => onSectionDelete(sec.id)}
+                        className="rounded p-1 text-muted-foreground hover:bg-[var(--surface-hover)] hover:text-red-400"
+                        aria-label="Delete section"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="mt-1.5 grid grid-cols-2 gap-1 text-[11px]">
+                    <RowMini label="Plan" value={`${Math.round(sec.plan_area_sqft).toLocaleString()} sf`} />
+                    <RowMini label="Sloped" value={`${sec.sloped_squares.toFixed(2)} SQ`} />
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Waste
+                    </span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={25}
+                      step={1}
+                      value={sec.waste_pct}
+                      onChange={(e) => onSectionWasteChange?.(sec.id, Number(e.target.value))}
+                      className="flex-1 accent-[var(--brand)]"
+                    />
+                    <span className="font-mono-num w-9 text-right text-[11px] text-foreground">
+                      {sec.waste_pct}%
+                    </span>
+                  </div>
+                  <div className="mt-1 flex justify-between text-[11px]">
+                    <span className="text-muted-foreground">w/ waste</span>
+                    <span className="font-mono-num font-semibold text-foreground">
+                      {adjusted.toFixed(2)} SQ
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {onAddRoof && (
+          <button
+            onClick={onAddRoof}
+            className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-dashed text-xs font-semibold text-foreground transition hover:bg-[var(--surface-hover)]"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Additional Roof
+          </button>
+        )}
       </Section>
+
+      {totals.sections.length > 0 && (
+        <Section label="Combined">
+          <div className="space-y-1">
+            <Row label="Plan area" value={`${Math.round(totals.total_area_sqft).toLocaleString()} sf`} />
+            <Row label="Sloped area" value={`${Math.round(totals.sloped_area_sqft).toLocaleString()} sf`} />
+            <Row label="Sloped squares" value={`${totals.sloped_squares.toFixed(2)} SQ`} />
+            <Row label="Avg pitch" value={totals.avg_pitch} />
+            <div className="mt-2 flex items-baseline justify-between border-t pt-2" style={{ borderColor: "var(--border)" }}>
+              <span className="text-xs font-semibold text-foreground">With waste</span>
+              <span className="font-mono-num text-lg font-bold text-foreground">
+                {combinedAdjusted.toFixed(2)} SQ
+              </span>
+            </div>
+          </div>
+        </Section>
+      )}
 
       <Section label="Edges">
         {edgeEntries.length === 0 ? (
@@ -93,8 +212,8 @@ export function MeasurementTotalsPanel({
         )}
       </Section>
 
-      <Section label="Waste Factor">
-        <div className="space-y-3">
+      <Section label="Default Waste (new sections)">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Waste %</span>
             <span className="font-mono-num text-sm text-foreground">{wastePct}%</span>
@@ -108,27 +227,6 @@ export function MeasurementTotalsPanel({
             onChange={(e) => onWasteChange(Number(e.target.value))}
             className="w-full accent-[var(--brand)]"
           />
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              { l: "Gable 10%", v: 10 },
-              { l: "Hip 12%", v: 12 },
-              { l: "Complex 15%", v: 15 },
-            ].map((p) => (
-              <button
-                key={p.v}
-                onClick={() => onWasteChange(p.v)}
-                className={`h-7 rounded-full border px-3 text-[11px] transition ${
-                  wastePct === p.v
-                    ? "border-[var(--brand)] bg-[var(--brand)]/10 text-foreground"
-                    : "text-muted-foreground hover:bg-[var(--surface-hover)]"
-                }`}
-                style={{ borderColor: wastePct === p.v ? undefined : "var(--border)" }}
-              >
-                {p.l}
-              </button>
-            ))}
-          </div>
-          <Row label="With waste" value={`${wastedSquares.toFixed(2)} SQ`} />
         </div>
       </Section>
 
@@ -155,19 +253,19 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-function BigStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="font-mono-num text-2xl font-semibold text-foreground">{value}</p>
-    </div>
-  );
-}
-
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between text-xs">
       <span className="text-muted-foreground">{label}</span>
+      <span className="font-mono-num text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function RowMini({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
       <span className="font-mono-num text-foreground">{value}</span>
     </div>
   );
