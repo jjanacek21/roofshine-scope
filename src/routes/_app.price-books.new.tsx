@@ -221,7 +221,7 @@ function NewPriceBookPage() {
               {step > n ? <Check className="h-3.5 w-3.5" /> : n}
             </div>
             <span className="text-xs font-medium" style={{ color: step >= n ? "var(--text)" : "var(--text-muted)" }}>
-              {n === 1 ? "Details" : n === 2 ? "Upload & Extract" : "Review & Save"}
+              {n === 1 ? "Upload & Extract" : n === 2 ? "Details" : "Review & Save"}
             </span>
             {n < 3 && <div className="h-px flex-1" style={{ backgroundColor: "var(--border)" }} />}
           </div>
