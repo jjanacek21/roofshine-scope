@@ -198,7 +198,7 @@ function NewMasterPriceBookPage() {
               {step > n ? <Check className="h-3.5 w-3.5" /> : n}
             </div>
             <span className="text-xs font-medium" style={{ color: step >= n ? "var(--text)" : "var(--text-muted)" }}>
-              {n === 1 ? "Details" : n === 2 ? "Upload & Extract" : "Review & Save"}
+              {n === 1 ? "Upload & Extract" : n === 2 ? "Details" : "Review & Save"}
             </span>
             {n < 3 && <div className="h-px flex-1" style={{ backgroundColor: "var(--border)" }} />}
           </div>
@@ -206,8 +206,8 @@ function NewMasterPriceBookPage() {
       </div>
 
       <div className="rounded-xl border p-6" style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}>
-        {step === 1 && <MetadataStep value={meta} onChange={setMeta} />}
-        {step === 2 && <UploadParseStep value={parsed} onChange={setParsed} pricingType={meta.pricing_type} />}
+        {step === 1 && <UploadParseStep value={parsed} onChange={setParsed} pricingType={meta.pricing_type} />}
+        {step === 2 && <MetadataStep value={meta} onChange={setMeta} />}
         {step === 3 && parsed && (
           <MatchConfirmStep
             parsed={parsed}
