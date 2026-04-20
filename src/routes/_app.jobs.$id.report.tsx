@@ -145,6 +145,19 @@ function JobReport() {
     },
   });
 
+  const { data: roofSections = [] } = useQuery({
+    queryKey: ["report-roof-sections", measurement?.id],
+    enabled: !!measurement?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("roof_sections")
+        .select("*")
+        .eq("measurement_id", measurement!.id)
+        .order("sort_order");
+      return data ?? [];
+    },
+  });
+
   const damageRows = useMemo(() => {
     type Damage = { severity: string; finding: string; location: string };
     const rows: Damage[] = [];
