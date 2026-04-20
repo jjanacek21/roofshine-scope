@@ -2,7 +2,7 @@ import * as turf from "@turf/turf";
 import type { Feature, Polygon, LineString, Point } from "geojson";
 import { type EdgeType } from "@/lib/roof-math";
 import { type PenetrationType } from "@/lib/mapbox-draw-styles";
-import type { MeasurementTotals } from "@/components/roof/MeasurementTotalsPanel";
+import type { MeasurementTotals, SectionTotal } from "@/components/roof/MeasurementTotalsPanel";
 
 const SQM_TO_SQFT = 10.7639;
 const KM_TO_FT = 3280.84;
@@ -20,11 +20,31 @@ export type FeatureProps = {
   pitch?: string;
   edge_type?: EdgeType;
   penetration_type?: PenetrationType;
+  // Per-section metadata (polygons only)
+  section_name?: string;
+  section_color?: string;
+  section_waste_pct?: number;
 };
 
 export type AnyFeature = Feature<Polygon | LineString | Point, FeatureProps>;
 
-export function computeTotals(features: AnyFeature[]): MeasurementTotals {
+// Rotating palette for new sections
+export const SECTION_COLORS = [
+  "#1e90ff", // blue
+  "#f59e0b", // amber
+  "#10b981", // emerald
+  "#a855f7", // violet
+  "#ef4444", // red
+  "#06b6d4", // cyan
+  "#ec4899", // pink
+  "#84cc16", // lime
+];
+
+export function nextSectionColor(index: number): string {
+  return SECTION_COLORS[index % SECTION_COLORS.length];
+}
+
+export function computeTotals(features: AnyFeature[], defaultWastePct = 15): MeasurementTotals {
   const polygons = features.filter(
     (f): f is Feature<Polygon, FeatureProps> => f.geometry.type === "Polygon",
   );
@@ -37,17 +57,34 @@ export function computeTotals(features: AnyFeature[]): MeasurementTotals {
 
   let flatSqft = 0;
   let slopedSqft = 0;
-  const pitchSamples: number[] = []; // [rise]
+  const pitchSamples: number[] = [];
 
-  for (const p of polygons) {
+  const sections: SectionTotal[] = [];
+
+  polygons.forEach((p, i) => {
     const flatM = turf.area(p);
     const flatFt = flatM * SQM_TO_SQFT;
-    flatSqft += flatFt;
     const pitch = p.properties?.pitch ?? "6/12";
-    slopedSqft += flatFt * pitchMultiplier(pitch);
+    const mult = pitchMultiplier(pitch);
+    const slopedFt = flatFt * mult;
+    flatSqft += flatFt;
+    slopedSqft += slopedFt;
     const rise = parseInt(pitch.split("/")[0] ?? "6", 10);
     if (!Number.isNaN(rise)) pitchSamples.push(rise);
-  }
+
+    sections.push({
+      id: String(p.id ?? `idx-${i}`),
+      name: p.properties?.section_name ?? `Roof ${i + 1}`,
+      color: p.properties?.section_color ?? nextSectionColor(i),
+      pitch,
+      pitch_multiplier: mult,
+      plan_area_sqft: flatFt,
+      sloped_area_sqft: slopedFt,
+      squares: flatFt / 100,
+      sloped_squares: slopedFt / 100,
+      waste_pct: p.properties?.section_waste_pct ?? defaultWastePct,
+    });
+  });
 
   const edges: Partial<Record<EdgeType, number>> = {};
   for (const l of lines) {
@@ -74,5 +111,6 @@ export function computeTotals(features: AnyFeature[]): MeasurementTotals {
     avg_pitch: avgRise > 0 ? `${avgRise}/12` : "—",
     edges,
     penetrations,
+    sections,
   };
 }

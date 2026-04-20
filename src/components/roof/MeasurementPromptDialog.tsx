@@ -7,21 +7,32 @@ import { Input } from "@/components/ui/input";
 import { EDGE_LABELS, EDGE_COLORS, type EdgeType } from "@/lib/roof-math";
 import { PENETRATION_LABELS, type PenetrationType } from "@/lib/mapbox-draw-styles";
 
-const PITCH_PRESETS = ["3/12", "4/12", "6/12", "8/12", "10/12", "12/12"];
+const PITCH_PRESETS = ["0/12", "3/12", "4/12", "6/12", "8/12", "10/12", "12/12"];
+
+export type PitchResult = { pitch: string; name: string };
 
 export type PromptKind =
-  | { type: "pitch"; onConfirm: (pitch: string) => void; onCancel: () => void }
+  | {
+      type: "pitch";
+      defaultName?: string;
+      onConfirm: (result: PitchResult) => void;
+      onCancel: () => void;
+    }
   | { type: "edge"; onConfirm: (edge: EdgeType) => void; onCancel: () => void }
   | { type: "penetration"; onConfirm: (p: PenetrationType) => void; onCancel: () => void };
 
 export function MeasurementPromptDialog({ prompt }: { prompt: PromptKind | null }) {
   const [pitch, setPitch] = useState("6/12");
+  const [name, setName] = useState("");
   const [customRise, setCustomRise] = useState("");
   const [edge, setEdge] = useState<EdgeType>("eave");
   const [penetration, setPenetration] = useState<PenetrationType>("pipe_boot");
 
   useEffect(() => {
-    if (prompt?.type === "pitch") setPitch("6/12");
+    if (prompt?.type === "pitch") {
+      setPitch("6/12");
+      setName(prompt.defaultName ?? "");
+    }
     if (prompt?.type === "edge") setEdge("eave");
     if (prompt?.type === "penetration") setPenetration("pipe_boot");
     setCustomRise("");
@@ -40,24 +51,36 @@ export function MeasurementPromptDialog({ prompt }: { prompt: PromptKind | null 
         {prompt.type === "pitch" && (
           <>
             <DialogHeader>
-              <DialogTitle>Roof pitch for this section</DialogTitle>
+              <DialogTitle>Roof section details</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
-              <div className="grid grid-cols-3 gap-2">
-                {PITCH_PRESETS.map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPitch(p)}
-                    className={`h-10 rounded-md border text-sm font-mono-num transition ${
-                      pitch === p
-                        ? "border-[var(--brand)] bg-[var(--brand)]/10 text-foreground"
-                        : "text-muted-foreground hover:bg-[var(--surface-hover)]"
-                    }`}
-                    style={{ borderColor: pitch === p ? undefined : "var(--border)" }}
-                  >
-                    {p}
-                  </button>
-                ))}
+              <div>
+                <Label>Section name</Label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={prompt.defaultName ?? "Roof 1"}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Pitch</Label>
+                <div className="mt-1 grid grid-cols-4 gap-2">
+                  {PITCH_PRESETS.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setPitch(p)}
+                      className={`h-10 rounded-md border text-sm font-mono-num transition ${
+                        pitch === p
+                          ? "border-[var(--brand)] bg-[var(--brand)]/10 text-foreground"
+                          : "text-muted-foreground hover:bg-[var(--surface-hover)]"
+                      }`}
+                      style={{ borderColor: pitch === p ? undefined : "var(--border)" }}
+                    >
+                      {p === "0/12" ? "Flat" : p}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <Label>Custom rise (over /12)</Label>
@@ -86,10 +109,15 @@ export function MeasurementPromptDialog({ prompt }: { prompt: PromptKind | null 
                 Cancel
               </button>
               <button
-                onClick={() => prompt.onConfirm(pitch)}
+                onClick={() =>
+                  prompt.onConfirm({
+                    pitch,
+                    name: name.trim() || prompt.defaultName || "Roof",
+                  })
+                }
                 className="btn-brand h-9 rounded-md px-4 text-sm font-semibold"
               >
-                Save pitch
+                Save section
               </button>
             </DialogFooter>
           </>
