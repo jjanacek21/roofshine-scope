@@ -207,7 +207,7 @@ CRITICAL RULES:
 - For SIDING/STUCCO: estimate total SF of affected wall sections.
 - For INTERIOR: estimate SF of damaged drywall ceiling/wall and LF of trim.
 - For WINDOWS / DOORS: count units.
-- ALWAYS match every consolidated_line_items[].suggested_code to a code from the CATALOG below when possible. Only invent a code when no catalog match exists.
+- Choose suggested_code ONLY from the CATALOG list below. If no catalog code reasonably fits, OMIT the suggested_code field entirely — DO NOT invent codes. A custom item without a code is preferable to a hallucinated code.
 - For each line item, list source_photo_indices using the index numbers shown below.
 - Mark confidence honestly (low when guessing).
 
@@ -264,6 +264,8 @@ Return ONE consolidated property analysis via the record_property_analysis tool.
         }
 
         const items = parsed.consolidated_line_items ?? [];
+        // Build set of valid catalog codes (company + master) so we can drop hallucinated codes
+        const validCodeSet = new Set(catalogRows.map((c) => c.code));
         const codes = items.map((i) => i.suggested_code).filter((c): c is string => !!c);
 
         let priceMap: Record<string, number> = {};
@@ -298,13 +300,19 @@ Return ONE consolidated property analysis via the record_property_analysis tool.
         }
 
         const enriched = items.map((it) => {
-          const cat = it.suggested_code ? codeToCatalog[it.suggested_code] : undefined;
+          // Drop hallucinated codes that don't exist in the catalog
+          const codeIfValid =
+            it.suggested_code && validCodeSet.has(it.suggested_code)
+              ? it.suggested_code
+              : undefined;
+          const cat = codeIfValid ? codeToCatalog[codeIfValid] : undefined;
           const sourceIds = (it.source_photo_indices ?? [])
             .map((idx) => signedPhotos[idx]?.id)
             .filter((id): id is string => !!id);
           return {
             ...it,
-            unit_price: it.suggested_code ? priceMap[it.suggested_code] ?? null : null,
+            suggested_code: codeIfValid,
+            unit_price: codeIfValid ? priceMap[codeIfValid] ?? null : null,
             catalog_name: cat?.name ?? null,
             catalog_trade: cat?.trade ?? null,
             source_photo_ids: sourceIds,

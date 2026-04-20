@@ -323,9 +323,13 @@ function JobEstimate() {
       .or(`company_id.eq.${job.company_id},company_id.is.null`)
       .in("code", codes);
     if (!matches?.length) {
-      toast.warning("Codes not found in catalog");
+      toast.warning(`0/${codes.length} codes found in catalog — nothing added`, {
+        description: codes.slice(0, 5).join(", ") + (codes.length > 5 ? "…" : ""),
+      });
       return;
     }
+    const matchedCodes = new Set(matches.map((m) => m.code));
+    const missingCodes = codes.filter((c) => !matchedCodes.has(c));
     let priceMap: Record<string, number> = {};
     if (job.price_book_id) {
       const { data: prices } = await supabase
@@ -364,7 +368,12 @@ function JobEstimate() {
       return;
     }
     qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
-    toast.success(`Added ${rows.length} item${rows.length === 1 ? "" : "s"}`);
+    toast.success(`Added ${rows.length} item${rows.length === 1 ? "" : "s"}`, {
+      description:
+        missingCodes.length > 0
+          ? `${missingCodes.length} code${missingCodes.length === 1 ? "" : "s"} not in catalog — skipped: ${missingCodes.slice(0, 3).join(", ")}${missingCodes.length > 3 ? "…" : ""}`
+          : undefined,
+    });
   };
 
   // Apply ?codes=... (and optional ?qtys= / ?units=) from search params
