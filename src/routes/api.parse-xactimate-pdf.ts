@@ -1,18 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-// Worker-compatible PDF text extraction + AI line-item structuring.
-// Accepts a multipart/form-data POST with a `file` field (PDF).
+// Worker-compatible Xactimate PDF line-item extraction.
+// Sends the PDF directly to Gemini via the Lovable AI Gateway as a base64
+// `application/pdf` part — no pdfjs / unpdf / native deps needed.
 // Returns { rows: [{ Code, Description, Unit, "Unit Price", Category }], headers: [...] }
 
 const HEADERS = ["Code", "Description", "Unit", "Unit Price", "Category"] as const;
-
-async function extractPdfText(buffer: ArrayBuffer): Promise<string> {
-  // unpdf is a Worker-compatible PDF text extractor (no DOM, no native deps).
-  const { extractText, getDocumentProxy } = await import("unpdf");
-  const pdf = await getDocumentProxy(new Uint8Array(buffer));
-  const { text } = await extractText(pdf, { mergePages: true });
-  return Array.isArray(text) ? text.join("\n\n") : text;
-}
 
 interface ExtractedRow {
   code: string;
@@ -22,12 +15,22 @@ interface ExtractedRow {
   category?: string;
 }
 
-async function callAIExtract(rawText: string): Promise<ExtractedRow[]> {
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
+  }
+  // btoa is available in the Worker runtime.
+  return btoa(binary);
+}
+
+async function callAIExtractFromPdf(pdfBuffer: ArrayBuffer): Promise<ExtractedRow[]> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
-  // Truncate to keep within model context (Gemini 2.5 Pro can handle a lot, but be safe).
-  const text = rawText.length > 180_000 ? rawText.slice(0, 180_000) : rawText;
+  const b64 = arrayBufferToBase64(pdfBuffer);
 
   const systemPrompt =
     "You are an expert at parsing Xactimate insurance estimates and contractor price lists. " +
@@ -46,7 +49,16 @@ async function callAIExtract(rawText: string): Promise<ExtractedRow[]> {
       model: "google/gemini-2.5-pro",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `Extract all line items from this Xactimate document:\n\n${text}` },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Extract every line item from this Xactimate estimate PDF." },
+            {
+              type: "image_url",
+              image_url: { url: `data:application/pdf;base64,${b64}` },
+            },
+          ],
+        },
       ],
       tools: [
         {
@@ -118,19 +130,7 @@ export const Route = createFileRoute("/api/parse-xactimate-pdf")({
           }
 
           const buf = await file.arrayBuffer();
-          const text = await extractPdfText(buf);
-
-          if (!text || text.trim().length < 50) {
-            return new Response(
-              JSON.stringify({
-                error:
-                  "Couldn't extract text from this PDF — it may be a scanned/image-only export. Try uploading the .xlsx export from Xactimate instead.",
-              }),
-              { status: 422, headers: { "Content-Type": "application/json" } },
-            );
-          }
-
-          const items = await callAIExtract(text);
+          const items = await callAIExtractFromPdf(buf);
 
           if (items.length < 5) {
             return new Response(

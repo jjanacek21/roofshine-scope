@@ -59,7 +59,16 @@ export function UploadParseStep({ value, onChange, pricingType = "insurance" }: 
           const fd = new FormData();
           fd.append("file", file);
           const resp = await fetch("/api/parse-xactimate-pdf", { method: "POST", body: fd });
-          const data = await resp.json();
+          const text = await resp.text();
+          const data = text
+            ? (() => {
+                try {
+                  return JSON.parse(text);
+                } catch {
+                  return { error: "Server returned an invalid response — try again, or upload the .xlsx export instead." };
+                }
+              })()
+            : { error: "Server returned an empty response — try again, or upload the .xlsx export instead." };
           if (!resp.ok) {
             setError(data?.error ?? "Failed to extract line items from PDF");
             return;
