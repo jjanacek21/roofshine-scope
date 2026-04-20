@@ -1,116 +1,55 @@
 
 
-## Goal
+## Two issues, two fixes
 
-Change the photo workflow from "analyze each photo in isolation → suggest items per photo" to **"upload all property photos → one AI pass over the entire set → produce a consolidated, deduplicated estimate with product details, condition, and quantities for the whole property."** Stop relying on the satellite-image roof measurement (it's inaccurate) and let the AI derive roof and surface quantities from the actual photos the user took on site.
+### Issue 1 — Photo upload silently fails / shows "0 photos uploaded"
 
-## What changes for the user
+**What's wrong**: I checked the database — `job_photos` for this job is **completely empty**, even though you've tried uploading. Storage and DB RLS policies are correct, and the upload code path looks fine in theory, but the current uploader has three weak spots that produce a silent failure with no useful error:
 
-On the Photos tab, after uploading photos, a new primary button:
+1. The whole upload runs in **one loop with one shared `try`** — if file #1 fails (HEIC decode, oversized file, network blip, EXIF parse hang on a weird file), the loop aborts and **none of the remaining files upload**. You see one generic toast and no diagnostics.
+2. **No console logging** of the actual Supabase error message — when the storage upload returns `{ error }`, we throw it but never log it, so the browser console stays empty.
+3. The thumbnail uses `<img>` which **cannot decode HEIC** in most browsers — iPhone photos will throw before they even reach the DB insert. Thumbnail is "best-effort" but the storage upload itself might also be failing on `.heic` extensions that the bucket validates oddly.
 
-**▶ Analyze Property (all photos)**
+**Fix in `src/components/jobs/PhotoUploader.tsx`**:
+- Wrap **each file** in its own try/catch so one bad photo doesn't kill the whole batch.
+- Track `failed` count alongside `succeeded`; toast shows `"X uploaded, Y failed"` instead of a single number.
+- `console.error` every failure with the file name + the real Supabase error message so you (and I) can see exactly what's wrong in DevTools.
+- Skip thumbnail generation entirely for HEIC/HEIF (they'll still be uploaded; we just don't try to make a thumb the browser can't decode).
+- For HEIC, force the stored extension to `.heic` (lowercase) and set `contentType: "image/heic"` on the storage upload so the bucket accepts it cleanly.
 
-Click it once. The AI looks at every photo in the job together, then returns a single consolidated panel:
+### Issue 2 — "Measurement report isn't saved anywhere"
 
-```text
-PROPERTY ANALYSIS · 14 photos analyzed
-─────────────────────────────────────────
-Roof          asphalt 3-tab  · 18-22 yrs · condition 38/100
-Siding        vinyl D4        · 12-15 yrs · condition 71/100
-Interior      drywall ceiling · water damage in 2 rooms
-─────────────────────────────────────────
-SUGGESTED LINE ITEMS  (matched to your price book)
-  ▸ RFG-220  R&R Laminated comp shingles      22.0 SQ   $XXX/SQ   high
-        Source: 6 roof photos · hail bruising, 3-tab
-  ▸ RFG-RDG  Ridge cap shingles                 78 LF   $XXX/LF   high
-        Source: 2 ridge close-ups
-  ▸ DRY-12   R&R 1/2" drywall – ceiling       240 SF   $XXX/SF   medium
-        Source: 3 interior photos · ceiling stains, sagging
-  …
-[ Review & add all to estimate ]   [ Edit individually ]
-```
+**What's actually happening**: I checked the database — your measurement **is saved**: `2,959 sqft, 29.6 squares, mapbox_draw, last updated 13:57 today`. The save worked. The problem is **discoverability** — after you click Save in the Mapbox tab, nothing in the UI confirms "here's your saved measurement, view it here." You navigate away and there's no obvious place that says "you have a saved measurement for this property."
 
-Each suggested line item shows: matched price-book code + name, aggregated quantity (not per-photo), unit price from the active price book, confidence, and the **photos it came from** (click to see thumbnails). Per-photo "Add to estimate" still works for power users, but the default flow is the consolidated rollup.
+**Fix in two places**:
 
-## How it works
+1. **`src/components/roof/RoofMeasurementPanel.tsx`** — add a "Saved measurement" summary card at the top of the panel (above the tabs) when an existing measurement is loaded:
+   ```
+   ┌─────────────────────────────────────────────────────────┐
+   │ ✓ Saved measurement · updated 2 min ago                 │
+   │ 29.6 SQ · 2,959 SF · 6/12 pitch · 15% waste             │
+   │ Source: Mapbox Draw                                     │
+   │                                  [ View in Report → ]   │
+   └─────────────────────────────────────────────────────────┘
+   ```
+   This makes it immediately obvious that the measurement saved and where it lives. The "View in Report" button navigates to `/jobs/$id/report` where the full Measurement Report section already renders (it's been there the whole time — you just couldn't tell).
 
-### 1) New endpoint: `POST /api/analyze-property`
+2. **`src/routes/_app.jobs.$id.report.tsx`** — the Measurement Report section currently only renders inside the proposal preview. Pull a small "Saved measurements" summary card to the **top of the Report page**, above the proposal preview, so when you land on Report you see at a glance: roof sections list, totals, "this came from your Mapbox Draw on April 20." Same data, just elevated so it isn't buried inside the styled preview.
 
-Takes `{ job_id }`. On the server:
+## Files touched
 
-- Load all `job_photos` for the job + signed URLs for each.
-- Load the catalog the same way `analyze-job-photos` does (company-scoped + master fallback, optionally filtered by `job.primary_trade`), and resolve unit prices from `job.price_book_id` so the AI's suggestions can be priced immediately.
-- Single multimodal call to `google/gemini-2.5-pro` via the AI gateway with **all photos in one user message** (text prompt + N `image_url` parts). Gemini handles multi-image input natively.
-- Tool-call schema returns one structured result for the whole property:
-  ```ts
-  {
-    property_summary: { roof, siding, interior, exterior, ... condition_score, age_estimate },
-    surfaces: [{ name, material, area_estimate_sf|squares|lf, condition_score, defects, source_photo_indices }],
-    consolidated_line_items: [{
-      suggested_code, description, qty, unit, confidence,
-      product_details: { material, brand_guess, color },
-      condition_notes,
-      source_photo_indices: number[]
-    }],
-  }
-  ```
-- The prompt instructs Gemini explicitly: "Treat the photos as ONE property. Deduplicate — if 5 photos show the same roof slope, that's still one roof. Aggregate quantities across photos. Estimate squares (1 SQ = 100 SF), LF, and counts directly from what you see in these photos. Match every line to a code from the catalog when possible."
-- Persist to a new `job_property_analyses` row (one per job, latest wins) and write the resolved photo IDs into each `consolidated_line_items[].source_photo_ids` so we can show "from these 6 photos."
-
-### 2) Client: new `PropertyAnalysisPanel` on the Photos tab
-
-- Renders the property summary (roof / siding / interior cards).
-- Lists `consolidated_line_items`, each with: code, description, qty + unit, unit price (resolved against the job's price book), confidence chip, product detail line, condition notes, and a row of source-photo thumbnails.
-- **Review & add all to estimate** button → navigates to `/jobs/$id/estimate?codes=...&qtys=...` (extends existing estimate query-string flow already used by per-photo "Add to estimate") and inserts all approved items in one shot, marked `source = 'ai_property'`.
-- Per-row checkbox so the user can uncheck things before adding.
-
-### 3) Per-photo flow stays, demoted
-
-- Keep `analyze-job-photos` and the per-card "Analyze" / "Add to estimate" buttons for spot use.
-- Remove the auto-analyze-on-upload trigger (it currently fires one Gemini call per photo on upload). Replace with a single banner: "14 photos uploaded — Analyze property" that calls the new endpoint once. This is *cheaper* and produces *better* results.
-
-### 4) Deprecate the satellite roof-measurement as the source of truth
-
-- Keep `ConditionAITab` (satellite Claude pass) but label it "Pre-visit screening — verify on site." Stop pulling its `area_squares` into the totals panel.
-- The new property analysis becomes the canonical source of measured quantities used in the estimate.
-
-## Files
-
-**New**
-- `src/routes/api.analyze-property.ts` — multi-image Gemini call, returns consolidated analysis.
-- `src/components/jobs/PropertyAnalysisPanel.tsx` — summary cards + consolidated line-item table with source-photo thumbnails and "Add all to estimate."
-
-**Edited**
-- `src/components/jobs/JobPhotosPanel.tsx` — add the "Analyze Property" button and mount `PropertyAnalysisPanel` above the per-photo grid.
-- `src/components/jobs/PhotoUploader.tsx` — drop the per-photo auto-analyze on upload; instead invalidate the property-analysis query so the user sees the prompt to run a single analysis.
-- `src/routes/_app.jobs.$id.estimate.tsx` — extend the existing `?codes=` query handler to also read `?qtys=` so consolidated items insert with their AI-estimated quantity (not 1).
-
-**DB migration** (one new table)
-```sql
-create table public.job_property_analyses (
-  id uuid primary key default gen_random_uuid(),
-  job_id uuid not null references public.jobs(id) on delete cascade,
-  company_id uuid not null,
-  analysis jsonb not null,        -- the full structured result
-  photo_count int not null,
-  created_at timestamptz not null default now(),
-  created_by uuid
-);
-create index on public.job_property_analyses (job_id, created_at desc);
-alter table public.job_property_analyses enable row level security;
--- standard company-scoped RLS via auth_company_id()
-```
-
-Plus add `source = 'ai_property'` as a recognized value in the existing `estimate_line_items.source` check (if it's a check constraint) or just write the new value if `source` is a free text column — will verify on implementation.
+- `src/components/jobs/PhotoUploader.tsx` — per-file try/catch, HEIC handling, real error logging, "X uploaded / Y failed" toast.
+- `src/components/roof/RoofMeasurementPanel.tsx` — "Saved measurement" summary banner with deep-link to Report.
+- `src/routes/_app.jobs.$id.report.tsx` — surface a top-of-page "Measurement Summary" card so it's findable.
 
 ## Out of scope
 
-- No changes to the per-photo Add-to-estimate path (kept as fallback).
-- No changes to the Mapbox roof-section drawing flow (stays as the manual measurement source).
-- No new dependencies. Same `google/gemini-2.5-pro` model already in use.
-- No streaming UI — single ~15-30 s call with a spinner; matches the existing per-photo UX.
+- No DB or RLS changes (both are correct).
+- No changes to the Mapbox draw flow itself or the property-wide AI analysis.
+- No changes to the report PDF generator.
 
-## Result
+## After this ships
 
-Upload all the property photos → one click "Analyze Property" → ~20 s later you see one consolidated panel: roof = X squares of 3-tab in poor condition, siding = Y SF of vinyl in fair condition, interior = Z SF of damaged drywall — each row already matched to a price-book code, priced from the active price book, with the source photos shown as thumbnails. Click **Add all to estimate**, the estimate populates in one shot with AI-derived quantities. The inaccurate satellite measurement no longer drives the numbers.
+- Drop photos → either they all upload (and the count is right), or you get a toast like **"3 uploaded, 1 failed — check console"** with the exact Supabase error printed, so we can diagnose any remaining bucket/MIME issue in one round trip.
+- Save a measurement → immediately see the green "Saved measurement" card with totals, plus a one-click jump to the Report tab where the full breakdown lives.
 
