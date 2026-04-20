@@ -28,10 +28,24 @@ function NewMasterPriceBookPage() {
     name: "", jurisdiction: "", zip_codes: [], effective_month: "", notes: "",
     pricing_type: "insurance",
   });
-  const [parsed, setParsed] = useState<ParsedFile | null>(null);
+  const [parsed, setParsedRaw] = useState<ParsedFile | null>(null);
   const [tab, setTab] = useState<"update" | "new" | "ignored">("update");
   const [normalized, setNormalized] = useState<NormalizedRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  function setParsed(p: ParsedFile | null) {
+    setParsedRaw(p);
+    if (p && !meta.name) {
+      const nameFromFile = p.file.name.replace(/\.[^.]+$/, "").trim();
+      const today = new Date();
+      const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+      setMeta((m) => ({
+        ...m,
+        name: m.name || nameFromFile,
+        effective_month: m.effective_month || defaultMonth,
+      }));
+    }
+  }
 
   const { data: existing = [] } = useQuery({
     queryKey: ["master-catalog-existing"],
