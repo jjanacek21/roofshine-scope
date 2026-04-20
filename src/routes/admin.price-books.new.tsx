@@ -59,8 +59,7 @@ function NewMasterPriceBookPage() {
     },
   });
 
-  const canNext1 = meta.name && meta.effective_month;
-  const canNext2 =
+  const canNext1 =
     parsed &&
     parsed.mapping.includes("code" as never) &&
     parsed.mapping.includes("name" as never) &&
@@ -71,6 +70,7 @@ function NewMasterPriceBookPage() {
       parsed.mapping.includes("labor_cost" as never) ||
       parsed.mapping.includes("equipment_cost" as never)
     );
+  const canNext2 = meta.name && meta.pricing_type;
 
   async function handleConfirm() {
     if (!parsed) return;
