@@ -28,10 +28,24 @@ function NewMasterPriceBookPage() {
     name: "", jurisdiction: "", zip_codes: [], effective_month: "", notes: "",
     pricing_type: "insurance",
   });
-  const [parsed, setParsed] = useState<ParsedFile | null>(null);
+  const [parsed, setParsedRaw] = useState<ParsedFile | null>(null);
   const [tab, setTab] = useState<"update" | "new" | "ignored">("update");
   const [normalized, setNormalized] = useState<NormalizedRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  function setParsed(p: ParsedFile | null) {
+    setParsedRaw(p);
+    if (p && !meta.name) {
+      const nameFromFile = p.file.name.replace(/\.[^.]+$/, "").trim();
+      const today = new Date();
+      const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+      setMeta((m) => ({
+        ...m,
+        name: m.name || nameFromFile,
+        effective_month: m.effective_month || defaultMonth,
+      }));
+    }
+  }
 
   const { data: existing = [] } = useQuery({
     queryKey: ["master-catalog-existing"],
@@ -45,8 +59,7 @@ function NewMasterPriceBookPage() {
     },
   });
 
-  const canNext1 = meta.name && meta.effective_month;
-  const canNext2 =
+  const canNext1 =
     parsed &&
     parsed.mapping.includes("code" as never) &&
     parsed.mapping.includes("name" as never) &&
@@ -57,6 +70,7 @@ function NewMasterPriceBookPage() {
       parsed.mapping.includes("labor_cost" as never) ||
       parsed.mapping.includes("equipment_cost" as never)
     );
+  const canNext2 = meta.name && meta.pricing_type;
 
   async function handleConfirm() {
     if (!parsed) return;
@@ -184,7 +198,7 @@ function NewMasterPriceBookPage() {
               {step > n ? <Check className="h-3.5 w-3.5" /> : n}
             </div>
             <span className="text-xs font-medium" style={{ color: step >= n ? "var(--text)" : "var(--text-muted)" }}>
-              {n === 1 ? "Details" : n === 2 ? "Upload & Extract" : "Review & Save"}
+              {n === 1 ? "Upload & Extract" : n === 2 ? "Details" : "Review & Save"}
             </span>
             {n < 3 && <div className="h-px flex-1" style={{ backgroundColor: "var(--border)" }} />}
           </div>
@@ -192,8 +206,8 @@ function NewMasterPriceBookPage() {
       </div>
 
       <div className="rounded-xl border p-6" style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}>
-        {step === 1 && <MetadataStep value={meta} onChange={setMeta} />}
-        {step === 2 && <UploadParseStep value={parsed} onChange={setParsed} pricingType={meta.pricing_type} />}
+        {step === 1 && <UploadParseStep value={parsed} onChange={setParsed} pricingType={meta.pricing_type} />}
+        {step === 2 && <MetadataStep value={meta} onChange={setMeta} />}
         {step === 3 && parsed && (
           <MatchConfirmStep
             parsed={parsed}

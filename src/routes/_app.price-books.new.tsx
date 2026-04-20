@@ -29,7 +29,22 @@ function NewPriceBookPage() {
     name: "", jurisdiction: "", zip_codes: [], effective_month: "", notes: "",
     pricing_type: "insurance",
   });
-  const [parsed, setParsed] = useState<ParsedFile | null>(null);
+  const [parsed, setParsedRaw] = useState<ParsedFile | null>(null);
+
+  // Auto-fill metadata defaults from the uploaded file (only if user hasn't typed anything)
+  function setParsed(p: ParsedFile | null) {
+    setParsedRaw(p);
+    if (p && !meta.name) {
+      const nameFromFile = p.file.name.replace(/\.[^.]+$/, "").trim();
+      const today = new Date();
+      const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+      setMeta((m) => ({
+        ...m,
+        name: m.name || nameFromFile,
+        effective_month: m.effective_month || defaultMonth,
+      }));
+    }
+  }
   const [tab, setTab] = useState<"update" | "new" | "ignored">("update");
   const [normalized, setNormalized] = useState<NormalizedRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -46,8 +61,8 @@ function NewPriceBookPage() {
     },
   });
 
-  const canNext1 = meta.name && meta.jurisdiction && meta.effective_month && meta.zip_codes.length > 0;
-  const canNext2 =
+  // Step 1 = Upload & Extract: requires a successfully parsed file with usable columns.
+  const canNext1 =
     parsed &&
     parsed.mapping.includes("code" as never) &&
     parsed.mapping.includes("name" as never) &&
@@ -58,6 +73,8 @@ function NewPriceBookPage() {
       parsed.mapping.includes("labor_cost" as never) ||
       parsed.mapping.includes("equipment_cost" as never)
     );
+  // Step 2 = Details: only Name + Pricing Type are required.
+  const canNext2 = meta.name && meta.pricing_type;
 
   async function handleConfirm() {
     if (!companyId || !parsed) return;
@@ -85,7 +102,7 @@ function NewPriceBookPage() {
         .insert({
           company_id: companyId,
           name: meta.name,
-          jurisdiction: meta.jurisdiction,
+          jurisdiction: meta.jurisdiction || null,
           zip_codes: meta.zip_codes,
           effective_month: meta.effective_month || null,
           notes: meta.notes || null,
@@ -169,10 +186,10 @@ function NewPriceBookPage() {
   }
 
   const next1Missing: string[] = [];
-  if (!meta.name) next1Missing.push("Name");
-  if (!meta.jurisdiction) next1Missing.push("Jurisdiction");
-  if (!meta.effective_month) next1Missing.push("Effective month");
-  if (meta.zip_codes.length === 0) next1Missing.push("at least 1 ZIP");
+  if (!parsed) next1Missing.push("a file");
+  else if (!canNext1) next1Missing.push("code, description, and a price column");
+  const next2Missing: string[] = [];
+  if (!meta.name) next2Missing.push("Name");
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -185,7 +202,7 @@ function NewPriceBookPage() {
         </button>
         <h1 className="text-3xl font-bold text-foreground">Upload Estimate File</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Upload a Xactimate estimate (PDF, Excel, or CSV) and we'll extract every line item into your pricing library.
+          Drop your Xactimate PDF and we'll extract every line item — you can name and tag it after.
         </p>
       </div>
 
@@ -204,7 +221,7 @@ function NewPriceBookPage() {
               {step > n ? <Check className="h-3.5 w-3.5" /> : n}
             </div>
             <span className="text-xs font-medium" style={{ color: step >= n ? "var(--text)" : "var(--text-muted)" }}>
-              {n === 1 ? "Details" : n === 2 ? "Upload & Extract" : "Review & Save"}
+              {n === 1 ? "Upload & Extract" : n === 2 ? "Details" : "Review & Save"}
             </span>
             {n < 3 && <div className="h-px flex-1" style={{ backgroundColor: "var(--border)" }} />}
           </div>
@@ -212,8 +229,8 @@ function NewPriceBookPage() {
       </div>
 
       <div className="rounded-xl border p-6" style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}>
-        {step === 1 && <MetadataStep value={meta} onChange={setMeta} />}
-        {step === 2 && <UploadParseStep value={parsed} onChange={setParsed} pricingType={meta.pricing_type} />}
+        {step === 1 && <UploadParseStep value={parsed} onChange={setParsed} pricingType={meta.pricing_type} />}
+        {step === 2 && <MetadataStep value={meta} onChange={setMeta} />}
         {step === 3 && parsed && (
           <MatchConfirmStep
             parsed={parsed}
@@ -245,10 +262,12 @@ function NewPriceBookPage() {
               Next <ArrowRight className="h-3.5 w-3.5" />
             </button>
             {step === 1 && !canNext1 && (
-              <p className="text-[11px] text-muted-foreground">Missing: {next1Missing.join(", ")}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {!parsed ? "Drop a PDF, Excel, or CSV to extract line items" : "Need: code/selector, description, and a price column (unit price OR qty + total OR cost components)"}
+              </p>
             )}
-            {step === 2 && !canNext2 && parsed && (
-              <p className="text-[11px] text-muted-foreground">Need: code/selector, description, and a price column (unit price OR qty + total OR cost components)</p>
+            {step === 2 && !canNext2 && (
+              <p className="text-[11px] text-muted-foreground">Missing: {next2Missing.join(", ")}</p>
             )}
           </div>
         ) : (

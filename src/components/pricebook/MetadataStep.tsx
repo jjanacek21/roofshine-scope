@@ -80,7 +80,7 @@ export function MetadataStep({ value, onChange }: Props) {
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label>Jurisdiction</Label>
+          <Label>Jurisdiction <span className="text-muted-foreground">(optional)</span></Label>
           <select
             value={value.jurisdiction}
             onChange={(e) => updateAuto(e.target.value, value.effective_month)}
@@ -94,7 +94,7 @@ export function MetadataStep({ value, onChange }: Props) {
           </select>
         </div>
         <div>
-          <Label>Effective Month</Label>
+          <Label>Effective Month <span className="text-muted-foreground">(optional)</span></Label>
           <Input
             type="month"
             value={value.effective_month ? value.effective_month.slice(0, 7) : ""}
@@ -103,7 +103,7 @@ export function MetadataStep({ value, onChange }: Props) {
         </div>
       </div>
       <div>
-        <Label>Zip Codes</Label>
+        <Label>Zip Codes <span className="text-muted-foreground">(optional)</span></Label>
         <div className="flex gap-2">
           <Input
             value={zipInput}
