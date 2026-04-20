@@ -262,10 +262,12 @@ function NewPriceBookPage() {
               Next <ArrowRight className="h-3.5 w-3.5" />
             </button>
             {step === 1 && !canNext1 && (
-              <p className="text-[11px] text-muted-foreground">Missing: {next1Missing.join(", ")}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {!parsed ? "Drop a PDF, Excel, or CSV to extract line items" : "Need: code/selector, description, and a price column (unit price OR qty + total OR cost components)"}
+              </p>
             )}
-            {step === 2 && !canNext2 && parsed && (
-              <p className="text-[11px] text-muted-foreground">Need: code/selector, description, and a price column (unit price OR qty + total OR cost components)</p>
+            {step === 2 && !canNext2 && (
+              <p className="text-[11px] text-muted-foreground">Missing: {next2Missing.join(", ")}</p>
             )}
           </div>
         ) : (
