@@ -103,7 +103,7 @@ export function MetadataStep({ value, onChange }: Props) {
         </div>
       </div>
       <div>
-        <Label>Zip Codes</Label>
+        <Label>Zip Codes <span className="text-muted-foreground">(optional)</span></Label>
         <div className="flex gap-2">
           <Input
             value={zipInput}
