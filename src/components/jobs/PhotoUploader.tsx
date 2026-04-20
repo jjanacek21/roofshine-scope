@@ -112,33 +112,10 @@ export function PhotoUploader({ jobId }: { jobId: string }) {
       }
       return count;
     },
-    onSuccess: async (n) => {
-      toast.success(`${n} photo${n === 1 ? "" : "s"} uploaded — analyzing with AI…`);
+    onSuccess: (n) => {
+      toast.success(`${n} photo${n === 1 ? "" : "s"} uploaded — click "Analyze property" to run AI.`);
       qc.invalidateQueries({ queryKey: ["job-photos", jobId] });
-      // Fire-and-forget: trigger AI analysis on every newly-uploaded unanalyzed photo
-      try {
-        const { data: s } = await supabase.auth.getSession();
-        const token = s.session?.access_token;
-        if (!token) return;
-        const { data: pending } = await supabase
-          .from("job_photos")
-          .select("id")
-          .eq("job_id", jobId)
-          .neq("status", "analyzed")
-          .order("created_at", { ascending: false })
-          .limit(n);
-        for (const p of pending ?? []) {
-          fetch("/api/analyze-job-photos", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ photo_id: p.id, job_id: jobId }),
-          }).then((r) => {
-            if (r.ok) qc.invalidateQueries({ queryKey: ["job-photos", jobId] });
-          }).catch((err) => console.warn("auto-analyze failed", p.id, err));
-        }
-      } catch (err) {
-        console.warn("auto-analyze trigger failed", err);
-      }
+      qc.invalidateQueries({ queryKey: ["job-property-analysis", jobId] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Upload failed"),
   });

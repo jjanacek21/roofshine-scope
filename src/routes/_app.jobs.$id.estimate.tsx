@@ -29,7 +29,11 @@ import { AISuggestionsPanel } from "@/components/estimate/AISuggestionsPanel";
 import type { Trade } from "@/lib/trades";
 
 export const Route = createFileRoute("/_app/jobs/$id/estimate")({
-  validateSearch: z.object({ codes: z.string().optional() }),
+  validateSearch: z.object({
+    codes: z.string().optional(),
+    qtys: z.string().optional(),
+    units: z.string().optional(),
+  }),
   component: JobEstimate,
 });
 
@@ -363,16 +367,23 @@ function JobEstimate() {
     toast.success(`Added ${rows.length} item${rows.length === 1 ? "" : "s"}`);
   };
 
-  // Apply ?codes=... from search params (e.g. from a photo "Add to estimate" link)
+  // Apply ?codes=... (and optional ?qtys= / ?units=) from search params
   useEffect(() => {
     if (codesAppliedRef.current) return;
     if (!activeId || !search.codes) return;
     const codes = search.codes.split(",").map((c: string) => c.trim()).filter(Boolean);
     if (codes.length === 0) return;
+    const qtys = search.qtys?.split(",").map((q: string) => Number(q)) ?? [];
+    const units = search.units?.split(",").map((u: string) => decodeURIComponent(u)) ?? [];
+    const input = codes.map((code: string, i: number) => ({
+      code,
+      qty: Number.isFinite(qtys[i]) && qtys[i] > 0 ? qtys[i] : 1,
+      unit: units[i] || undefined,
+    }));
     codesAppliedRef.current = true;
-    addCodes(codes, "ai_photo");
+    addCodes(input, "ai_photo");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeId, search.codes]);
+  }, [activeId, search.codes, search.qtys, search.units]);
 
   const insertMacro = async (macroItems: MacroPickerItem[], macroName: string) => {
     if (!activeId) return;
