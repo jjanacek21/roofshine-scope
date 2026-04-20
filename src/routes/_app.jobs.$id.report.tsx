@@ -229,6 +229,41 @@ function JobReport() {
 
   return (
     <div className="space-y-4">
+      {measurement && Number(measurement.total_area_sqft ?? 0) > 0 && (
+        <div
+          className="rounded-xl border p-4"
+          style={{ borderColor: "var(--border)", background: "var(--bg-card)" }}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Saved Measurements
+              </div>
+              <div className="mt-1 font-mono-num text-base font-semibold text-foreground">
+                {Number(measurement.squares ?? 0).toFixed(1)} SQ ·{" "}
+                {Number(measurement.total_area_sqft ?? 0).toLocaleString(undefined, {
+                  maximumFractionDigits: 0,
+                })}{" "}
+                SF · {measurement.predominant_pitch ?? "—"} pitch
+              </div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">
+                {roofSections.length} section{roofSections.length === 1 ? "" : "s"} · Source:{" "}
+                {String(measurement.source).replace(/_/g, " ")} · Updated{" "}
+                {new Date(measurement.updated_at).toLocaleDateString()}
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+              <MiniStat label="Eaves" value={Number(measurement.eaves_lf ?? 0).toFixed(0)} />
+              <MiniStat label="Rakes" value={Number(measurement.rakes_lf ?? 0).toFixed(0)} />
+              <MiniStat label="Ridges" value={Number(measurement.ridges_lf ?? 0).toFixed(0)} />
+              <MiniStat label="Hips" value={Number(measurement.hips_lf ?? 0).toFixed(0)} />
+              <MiniStat label="Valleys" value={Number(measurement.valleys_lf ?? 0).toFixed(0)} />
+              <MiniStat label="Gutters" value={Number(measurement.gutters_lf ?? 0).toFixed(0)} />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-bold text-foreground">Proposal preview</h2>
