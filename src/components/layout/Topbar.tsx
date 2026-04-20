@@ -6,7 +6,6 @@ const ROUTE_LABELS: Record<string, string> = {
   "/": "Dashboard",
   "/jobs": "Jobs",
   "/clients": "Clients",
-  "/catalog": "Catalog",
   "/price-books": "Pricing",
   "/settings": "Settings",
 };
