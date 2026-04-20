@@ -186,10 +186,10 @@ function NewPriceBookPage() {
   }
 
   const next1Missing: string[] = [];
-  if (!meta.name) next1Missing.push("Name");
-  if (!meta.jurisdiction) next1Missing.push("Jurisdiction");
-  if (!meta.effective_month) next1Missing.push("Effective month");
-  if (meta.zip_codes.length === 0) next1Missing.push("at least 1 ZIP");
+  if (!parsed) next1Missing.push("a file");
+  else if (!canNext1) next1Missing.push("code, description, and a price column");
+  const next2Missing: string[] = [];
+  if (!meta.name) next2Missing.push("Name");
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
