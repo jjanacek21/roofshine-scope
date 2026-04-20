@@ -29,7 +29,22 @@ function NewPriceBookPage() {
     name: "", jurisdiction: "", zip_codes: [], effective_month: "", notes: "",
     pricing_type: "insurance",
   });
-  const [parsed, setParsed] = useState<ParsedFile | null>(null);
+  const [parsed, setParsedRaw] = useState<ParsedFile | null>(null);
+
+  // Auto-fill metadata defaults from the uploaded file (only if user hasn't typed anything)
+  function setParsed(p: ParsedFile | null) {
+    setParsedRaw(p);
+    if (p && !meta.name) {
+      const nameFromFile = p.file.name.replace(/\.[^.]+$/, "").trim();
+      const today = new Date();
+      const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+      setMeta((m) => ({
+        ...m,
+        name: m.name || nameFromFile,
+        effective_month: m.effective_month || defaultMonth,
+      }));
+    }
+  }
   const [tab, setTab] = useState<"update" | "new" | "ignored">("update");
   const [normalized, setNormalized] = useState<NormalizedRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
