@@ -8,7 +8,8 @@ import { createFileRoute } from "@tanstack/react-router";
 const HEADERS = ["Code", "Description", "Unit", "Unit Price", "Category"] as const;
 
 interface ExtractedRow {
-  code: string;
+  code?: string;
+  line_number?: number;
   description: string;
   unit?: string;
   unit_price?: number;
@@ -34,10 +35,18 @@ async function callAIExtractFromPdf(pdfBuffer: ArrayBuffer): Promise<ExtractedRo
 
   const systemPrompt =
     "You are an expert at parsing Xactimate insurance estimates and contractor price lists. " +
-    "Extract every line item from the document. For each item return: code (Xactimate selector like RFG 240 or RFG-240), " +
-    "description (item name), unit (SQ, LF, EA, HR, SF, etc.), unit_price (number, USD, no $ or commas), " +
-    "and category if visible (typically the first 3 letters of the code: RFG, SDG, WDW, etc.). " +
-    "Skip headers, totals, and non-item rows. Be exhaustive — include every billable line.";
+    "Extract EVERY SINGLE line item from EVERY page of the document — do not stop until the last page is processed. " +
+    "Many Xactimate PDFs do not show selector codes (RFG 240); instead, line items are NUMBERED ('9. R&R 1/2\" drywall…', '104. R&R Ridge cap…'). " +
+    "When there is no explicit selector code, leave `code` empty and put the line number in `line_number`. " +
+    "For each item return: " +
+    "`description` (the text after `N. `, joined across wrapped lines, no trailing units or numbers); " +
+    "`unit` (parsed from the QTY column — values like '1.00 SQ' → 'SQ'; if only a unit appears with no qty, still return it: SQ, LF, EA, HR, SF, CY, BF, etc.); " +
+    "`unit_price` (USD number, no $ or commas — use the LARGER of REMOVE / REPLACE columns; if both are 0 and TOTAL > 0, divide TOTAL by qty); " +
+    "`category` (the section header above the row — 'Main Level', 'Roof1', 'Exterior', 'Garage', etc.); " +
+    "`code` (only if an explicit selector like 'RFG 240' is shown — otherwise omit); " +
+    "`line_number` (the integer prefix, e.g. 9 for '9. R&R drywall'). " +
+    "Skip page footers, table headers ('DESCRIPTION QTY REMOVE REPLACE TAX TOTAL'), 'CONTINUED -' rows, totals/subtotals, and the cover page. " +
+    "Be exhaustive — a typical Xactimate has 100–400 line items spread across 10–30 pages.";
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -75,12 +84,13 @@ async function callAIExtractFromPdf(pdfBuffer: ArrayBuffer): Promise<ExtractedRo
                     type: "object",
                     properties: {
                       code: { type: "string" },
+                      line_number: { type: "number" },
                       description: { type: "string" },
                       unit: { type: "string" },
                       unit_price: { type: "number" },
                       category: { type: "string" },
                     },
-                    required: ["code", "description"],
+                    required: ["description"],
                     additionalProperties: false,
                   },
                 },
@@ -132,25 +142,37 @@ export const Route = createFileRoute("/api/parse-xactimate-pdf")({
           const buf = await file.arrayBuffer();
           const items = await callAIExtractFromPdf(buf);
 
-          if (items.length < 5) {
+          if (items.length === 0) {
             return new Response(
               JSON.stringify({
-                error: `Only ${items.length} line items extracted. Try uploading the .xlsx export from Xactimate for better results.`,
+                error: "No line items extracted from the PDF. Try uploading the .xlsx export from Xactimate instead.",
               }),
               { status: 422, headers: { "Content-Type": "application/json" } },
             );
           }
 
           // Normalize into the same row shape the wizard expects.
-          const rows = items.map((it) => ({
-            Code: String(it.code ?? "").trim(),
-            Description: String(it.description ?? "").trim(),
-            Unit: String(it.unit ?? "EA").trim().toUpperCase(),
-            "Unit Price": typeof it.unit_price === "number" ? it.unit_price : Number(it.unit_price ?? 0) || 0,
-            Category: String(it.category ?? "").trim() || (String(it.code ?? "").slice(0, 3).toUpperCase()),
-          }));
+          // Derive a synthetic Code when the AI didn't return a selector code (common for line-numbered Xactimates).
+          const rows = items.map((it) => {
+            const explicitCode = String(it.code ?? "").trim();
+            const category = String(it.category ?? "").trim();
+            const catSlug = category ? category.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase() : "GEN";
+            const lineNum = typeof it.line_number === "number" ? it.line_number : undefined;
+            const code = explicitCode || (lineNum != null ? `${catSlug}-${lineNum}` : `${catSlug}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`);
+            return {
+              Code: code,
+              Description: String(it.description ?? "").trim(),
+              Unit: String(it.unit ?? "EA").trim().toUpperCase() || "EA",
+              "Unit Price": typeof it.unit_price === "number" ? it.unit_price : Number(it.unit_price ?? 0) || 0,
+              Category: category || (explicitCode ? explicitCode.slice(0, 3).toUpperCase() : "General"),
+            };
+          });
 
-          return new Response(JSON.stringify({ rows, headers: HEADERS, count: rows.length }), {
+          const warning = rows.length < 5
+            ? `Only ${rows.length} line items extracted — the PDF may be scanned or unusually formatted. Review carefully or upload the .xlsx export instead.`
+            : undefined;
+
+          return new Response(JSON.stringify({ rows, headers: HEADERS, count: rows.length, warning }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
           });
