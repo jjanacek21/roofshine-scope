@@ -102,7 +102,7 @@ function NewPriceBookPage() {
         .insert({
           company_id: companyId,
           name: meta.name,
-          jurisdiction: meta.jurisdiction,
+          jurisdiction: meta.jurisdiction || null,
           zip_codes: meta.zip_codes,
           effective_month: meta.effective_month || null,
           notes: meta.notes || null,
