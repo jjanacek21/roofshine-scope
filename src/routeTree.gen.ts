@@ -23,6 +23,7 @@ import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xac
 import { Route as ApiMapboxTokenRouteImport } from './routes/api.mapbox-token'
 import { Route as ApiAutoAddPhotoSuggestionsRouteImport } from './routes/api.auto-add-photo-suggestions'
 import { Route as ApiAnalyzeRoofConditionRouteImport } from './routes/api.analyze-roof-condition'
+import { Route as ApiAnalyzePropertyRouteImport } from './routes/api.analyze-property'
 import { Route as ApiAnalyzeJobPhotosRouteImport } from './routes/api.analyze-job-photos'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTrainingRouteImport } from './routes/admin.training'
@@ -124,6 +125,11 @@ const ApiAutoAddPhotoSuggestionsRoute =
 const ApiAnalyzeRoofConditionRoute = ApiAnalyzeRoofConditionRouteImport.update({
   id: '/api/analyze-roof-condition',
   path: '/api/analyze-roof-condition',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAnalyzePropertyRoute = ApiAnalyzePropertyRouteImport.update({
+  id: '/api/analyze-property',
+  path: '/api/analyze-property',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAnalyzeJobPhotosRoute = ApiAnalyzeJobPhotosRouteImport.update({
@@ -314,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/admin/training': typeof AdminTrainingRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/analyze-job-photos': typeof ApiAnalyzeJobPhotosRoute
+  '/api/analyze-property': typeof ApiAnalyzePropertyRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
@@ -358,6 +365,7 @@ export interface FileRoutesByTo {
   '/admin/training': typeof AdminTrainingRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/analyze-job-photos': typeof ApiAnalyzeJobPhotosRoute
+  '/api/analyze-property': typeof ApiAnalyzePropertyRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
@@ -406,6 +414,7 @@ export interface FileRoutesById {
   '/admin/training': typeof AdminTrainingRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/analyze-job-photos': typeof ApiAnalyzeJobPhotosRoute
+  '/api/analyze-property': typeof ApiAnalyzePropertyRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
@@ -456,6 +465,7 @@ export interface FileRouteTypes {
     | '/admin/training'
     | '/admin/users'
     | '/api/analyze-job-photos'
+    | '/api/analyze-property'
     | '/api/analyze-roof-condition'
     | '/api/auto-add-photo-suggestions'
     | '/api/mapbox-token'
@@ -500,6 +510,7 @@ export interface FileRouteTypes {
     | '/admin/training'
     | '/admin/users'
     | '/api/analyze-job-photos'
+    | '/api/analyze-property'
     | '/api/analyze-roof-condition'
     | '/api/auto-add-photo-suggestions'
     | '/api/mapbox-token'
@@ -547,6 +558,7 @@ export interface FileRouteTypes {
     | '/admin/training'
     | '/admin/users'
     | '/api/analyze-job-photos'
+    | '/api/analyze-property'
     | '/api/analyze-roof-condition'
     | '/api/auto-add-photo-suggestions'
     | '/api/mapbox-token'
@@ -578,6 +590,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   ApiAnalyzeJobPhotosRoute: typeof ApiAnalyzeJobPhotosRoute
+  ApiAnalyzePropertyRoute: typeof ApiAnalyzePropertyRoute
   ApiAnalyzeRoofConditionRoute: typeof ApiAnalyzeRoofConditionRoute
   ApiAutoAddPhotoSuggestionsRoute: typeof ApiAutoAddPhotoSuggestionsRoute
   ApiMapboxTokenRoute: typeof ApiMapboxTokenRoute
@@ -683,6 +696,13 @@ declare module '@tanstack/react-router' {
       path: '/api/analyze-roof-condition'
       fullPath: '/api/analyze-roof-condition'
       preLoaderRoute: typeof ApiAnalyzeRoofConditionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/analyze-property': {
+      id: '/api/analyze-property'
+      path: '/api/analyze-property'
+      fullPath: '/api/analyze-property'
+      preLoaderRoute: typeof ApiAnalyzePropertyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/analyze-job-photos': {
@@ -1052,6 +1072,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   ApiAnalyzeJobPhotosRoute: ApiAnalyzeJobPhotosRoute,
+  ApiAnalyzePropertyRoute: ApiAnalyzePropertyRoute,
   ApiAnalyzeRoofConditionRoute: ApiAnalyzeRoofConditionRoute,
   ApiAutoAddPhotoSuggestionsRoute: ApiAutoAddPhotoSuggestionsRoute,
   ApiMapboxTokenRoute: ApiMapboxTokenRoute,

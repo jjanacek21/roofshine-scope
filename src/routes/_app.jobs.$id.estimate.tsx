@@ -373,9 +373,9 @@ function JobEstimate() {
     if (!activeId || !search.codes) return;
     const codes = search.codes.split(",").map((c: string) => c.trim()).filter(Boolean);
     if (codes.length === 0) return;
-    const qtys = search.qtys?.split(",").map((q) => Number(q)) ?? [];
-    const units = search.units?.split(",").map((u) => decodeURIComponent(u)) ?? [];
-    const input = codes.map((code, i) => ({
+    const qtys = search.qtys?.split(",").map((q: string) => Number(q)) ?? [];
+    const units = search.units?.split(",").map((u: string) => decodeURIComponent(u)) ?? [];
+    const input = codes.map((code: string, i: number) => ({
       code,
       qty: Number.isFinite(qtys[i]) && qtys[i] > 0 ? qtys[i] : 1,
       unit: units[i] || undefined,
