@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +46,8 @@ type TabKey = "insurance" | "retail";
 
 function PricingPage() {
   const [tab, setTab] = useState<TabKey>("insurance");
+  const matchRoute = useMatchRoute();
+  const isChild = !matchRoute({ to: "/_app/price-books", fuzzy: false });
 
   const { data: books = [], isLoading } = useQuery({
     queryKey: ["price-books"],
