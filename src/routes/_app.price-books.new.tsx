@@ -202,7 +202,7 @@ function NewPriceBookPage() {
         </button>
         <h1 className="text-3xl font-bold text-foreground">Upload Estimate File</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Upload a Xactimate estimate (PDF, Excel, or CSV) and we'll extract every line item into your pricing library.
+          Drop your Xactimate PDF and we'll extract every line item — you can name and tag it after.
         </p>
       </div>
 
