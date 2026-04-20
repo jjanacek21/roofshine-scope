@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link, useParams } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
-import { Save, Map as MapIcon, FileText, Sparkles, Pencil } from "lucide-react";
+import { Save, Map as MapIcon, FileText, Sparkles, Pencil, CheckCircle2, ArrowRight } from "lucide-react";
 import type { Feature, Polygon, LineString, Point } from "geojson";
 import {
   ManualMeasurementForm,
@@ -238,8 +239,67 @@ export function RoofMeasurementPanel({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
   });
 
+  const params = useParams({ strict: false }) as { id?: string };
+  const jobId = params.id;
+
+  const sourceLabel: Record<string, string> = {
+    manual: "Manual Entry",
+    mapbox_draw: "Mapbox Draw",
+    google_solar: "Google Solar AI",
+    third_party_report: "Third-Party Report",
+    photo_ai: "Photo AI",
+  };
+
+  const updatedAgo = (() => {
+    if (!existing?.updated_at) return null;
+    const d = new Date(existing.updated_at);
+    const sec = Math.round((Date.now() - d.getTime()) / 1000);
+    if (sec < 60) return `${sec}s ago`;
+    if (sec < 3600) return `${Math.round(sec / 60)} min ago`;
+    if (sec < 86400) return `${Math.round(sec / 3600)} hr ago`;
+    return d.toLocaleDateString();
+  })();
+
   return (
     <div className="space-y-4">
+      {existing && Number(existing.total_area_sqft ?? 0) > 0 && (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"
+          style={{
+            borderColor: "color-mix(in oklab, var(--success, #10b981) 30%, transparent)",
+            background: "color-mix(in oklab, var(--success, #10b981) 8%, var(--bg-card))",
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" style={{ color: "var(--success, #10b981)" }} />
+            <div>
+              <div className="text-sm font-semibold text-foreground">
+                Saved measurement{updatedAgo ? ` · updated ${updatedAgo}` : ""}
+              </div>
+              <div className="mt-0.5 font-mono-num text-[13px] text-foreground">
+                {Number(existing.squares ?? 0).toFixed(1)} SQ ·{" "}
+                {Number(existing.total_area_sqft ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} SF ·{" "}
+                {existing.predominant_pitch ?? "—"} pitch · {Number(existing.waste_pct ?? 15)}% waste
+              </div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">
+                Source: {sourceLabel[existing.source as string] ?? existing.source}
+              </div>
+            </div>
+          </div>
+          {jobId && (
+            <Link
+              to="/jobs/$id/report"
+              params={{ id: jobId }}
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-[var(--surface-hover)]"
+              style={{ borderColor: "var(--border)" }}
+            >
+              View in Report
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: "var(--border)" }}>
         {(Object.entries(TAB_LABELS) as [Tab, typeof TAB_LABELS[Tab]][]).map(([k, v]) => {
           const Icon = v.icon;

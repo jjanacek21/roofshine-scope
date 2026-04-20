@@ -6,6 +6,16 @@ import exifr from "exifr";
 import { toast } from "sonner";
 import { Camera, Upload, Loader2 } from "lucide-react";
 
+function isHeic(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return (
+    file.type === "image/heic" ||
+    file.type === "image/heif" ||
+    name.endsWith(".heic") ||
+    name.endsWith(".heif")
+  );
+}
+
 async function makeThumbnail(file: File, maxWidth = 400): Promise<Blob | null> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -52,68 +62,113 @@ export function PhotoUploader({ jobId }: { jobId: string }) {
     mutationFn: async (files: FileList | File[]) => {
       if (!profile?.company_id) throw new Error("No company");
       const arr = Array.from(files);
-      let count = 0;
+      let succeeded = 0;
+      let failed = 0;
+      let index = 0;
+
       for (const f of arr) {
-        const ts = Date.now();
-        const ext = f.name.split(".").pop() ?? "jpg";
-        const base = `${profile.company_id}/${jobId}/${ts}-${count}`;
-        const fullPath = `${base}.${ext}`;
-
-        // EXIF GPS extract (best-effort)
-        let gps: { latitude?: number; longitude?: number } | null = null;
-        let takenAt: string | null = null;
+        const fileLabel = f.name || `file-${index}`;
         try {
-          const meta = await exifr.parse(f, { gps: true, pick: ["DateTimeOriginal", "latitude", "longitude"] });
-          if (meta) {
-            if (typeof meta.latitude === "number" && typeof meta.longitude === "number") {
-              gps = { latitude: meta.latitude, longitude: meta.longitude };
+          const heic = isHeic(f);
+          const ts = Date.now();
+          const rawExt = (f.name.split(".").pop() ?? "jpg").toLowerCase();
+          const ext = heic ? "heic" : rawExt;
+          const base = `${profile.company_id}/${jobId}/${ts}-${index}`;
+          const fullPath = `${base}.${ext}`;
+
+          // EXIF GPS extract (best-effort)
+          let gps: { latitude?: number; longitude?: number } | null = null;
+          let takenAt: string | null = null;
+          try {
+            const meta = await exifr.parse(f, {
+              gps: true,
+              pick: ["DateTimeOriginal", "latitude", "longitude"],
+            });
+            if (meta) {
+              if (typeof meta.latitude === "number" && typeof meta.longitude === "number") {
+                gps = { latitude: meta.latitude, longitude: meta.longitude };
+              }
+              if (meta.DateTimeOriginal instanceof Date) {
+                takenAt = meta.DateTimeOriginal.toISOString();
+              }
             }
-            if (meta.DateTimeOriginal instanceof Date) {
-              takenAt = meta.DateTimeOriginal.toISOString();
+          } catch (exifErr) {
+            console.warn(`[PhotoUploader] EXIF parse failed for ${fileLabel}:`, exifErr);
+          }
+
+          // Upload full
+          const contentType = heic ? "image/heic" : f.type || undefined;
+          const { error: upErr } = await supabase.storage
+            .from("roof-photos")
+            .upload(fullPath, f, {
+              cacheControl: "3600",
+              upsert: false,
+              contentType,
+            });
+          if (upErr) {
+            console.error(`[PhotoUploader] Storage upload failed for ${fileLabel}:`, upErr);
+            throw upErr;
+          }
+
+          // Upload thumbnail (skip for HEIC — browser can't decode)
+          if (!heic) {
+            try {
+              const thumb = await makeThumbnail(f, 400);
+              if (thumb) {
+                const { error: thumbErr } = await supabase.storage
+                  .from("roof-photos")
+                  .upload(`${base}_thumb.jpg`, thumb, {
+                    cacheControl: "3600",
+                    upsert: false,
+                    contentType: "image/jpeg",
+                  });
+                if (thumbErr) {
+                  console.warn(
+                    `[PhotoUploader] Thumbnail upload failed for ${fileLabel}:`,
+                    thumbErr,
+                  );
+                }
+              }
+            } catch (thumbErr) {
+              console.warn(`[PhotoUploader] Thumbnail generation failed for ${fileLabel}:`, thumbErr);
             }
           }
-        } catch {
-          // ignore
-        }
 
-        // Upload full
-        const { error: upErr } = await supabase.storage
-          .from("roof-photos")
-          .upload(fullPath, f, { cacheControl: "3600", upsert: false });
-        if (upErr) throw upErr;
-
-        // Upload thumbnail
-        try {
-          const thumb = await makeThumbnail(f, 400);
-          if (thumb) {
-            await supabase.storage
-              .from("roof-photos")
-              .upload(`${base}_thumb.jpg`, thumb, {
-                cacheControl: "3600",
-                upsert: false,
-                contentType: "image/jpeg",
-              });
+          const { error: insErr } = await supabase.from("job_photos").insert({
+            job_id: jobId,
+            company_id: profile.company_id,
+            uploaded_by: profile.id,
+            storage_path: fullPath,
+            exif_gps: gps,
+            taken_at: takenAt,
+          });
+          if (insErr) {
+            console.error(`[PhotoUploader] DB insert failed for ${fileLabel}:`, insErr);
+            throw insErr;
           }
-        } catch {
-          // thumbnail is best-effort
+
+          succeeded++;
+        } catch (err) {
+          failed++;
+          console.error(`[PhotoUploader] Upload failed for ${fileLabel}:`, err);
+        } finally {
+          index++;
         }
-
-        const { error: insErr } = await supabase.from("job_photos").insert({
-          job_id: jobId,
-          company_id: profile.company_id,
-          uploaded_by: profile.id,
-          storage_path: fullPath,
-          exif_gps: gps,
-          taken_at: takenAt,
-        });
-        if (insErr) throw insErr;
-
-        count++;
       }
-      return count;
+      return { succeeded, failed };
     },
-    onSuccess: (n) => {
-      toast.success(`${n} photo${n === 1 ? "" : "s"} uploaded — click "Analyze property" to run AI.`);
+    onSuccess: ({ succeeded, failed }) => {
+      if (succeeded > 0 && failed === 0) {
+        toast.success(
+          `${succeeded} photo${succeeded === 1 ? "" : "s"} uploaded — click "Analyze property" to run AI.`,
+        );
+      } else if (succeeded > 0 && failed > 0) {
+        toast.warning(`${succeeded} uploaded, ${failed} failed — check console for details.`);
+      } else if (succeeded === 0 && failed > 0) {
+        toast.error(`All ${failed} upload${failed === 1 ? "" : "s"} failed — check console for details.`);
+      } else {
+        toast.info("No files uploaded.");
+      }
       qc.invalidateQueries({ queryKey: ["job-photos", jobId] });
       qc.invalidateQueries({ queryKey: ["job-property-analysis", jobId] });
     },
