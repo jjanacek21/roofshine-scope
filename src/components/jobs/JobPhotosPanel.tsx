@@ -8,6 +8,7 @@ import { PhotoUploader } from "./PhotoUploader";
 import { PhotoFilterBar, DEFAULT_FILTERS, type PhotoFilters } from "./PhotoFilterBar";
 import { PhotoCard, type PhotoRow } from "./PhotoCard";
 import { PhotoLightbox } from "./PhotoLightbox";
+import { PropertyAnalysisPanel } from "./PropertyAnalysisPanel";
 
 export function JobPhotosPanel({ jobId }: { jobId: string }) {
   const qc = useQueryClient();
@@ -126,6 +127,8 @@ export function JobPhotosPanel({ jobId }: { jobId: string }) {
   return (
     <div className="space-y-4">
       <PhotoUploader jobId={jobId} />
+
+      <PropertyAnalysisPanel jobId={jobId} photoCount={photos.length} />
 
       {photos.length > 0 && (
         <PhotoFilterBar
