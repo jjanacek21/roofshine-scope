@@ -1,55 +1,62 @@
 
 
-## Two issues, two fixes
+## Why "Add to estimate" silently does nothing
 
-### Issue 1 — Photo upload silently fails / shows "0 photos uploaded"
+Confirmed by reading the data: your URL right now is `?codes=RFG_SHNG_A,RFG_HIP,RFG_FELT_S`. None of those codes exist in your `line_item_master` (your catalog uses Xactimate-style codes like `EXTE-160`, `RFG-220`, etc.). The flow:
 
-**What's wrong**: I checked the database — `job_photos` for this job is **completely empty**, even though you've tried uploading. Storage and DB RLS policies are correct, and the upload code path looks fine in theory, but the current uploader has three weak spots that produce a silent failure with no useful error:
+1. Property analysis panel sends `?codes=RFG_SHNG_A,...` to the estimate page.
+2. Estimate page calls `addCodes(...)`, which does `line_item_master.in("code", codes)`.
+3. Zero matches → fires a tiny `toast.warning("Codes not found in catalog")` and inserts nothing.
 
-1. The whole upload runs in **one loop with one shared `try`** — if file #1 fails (HEIC decode, oversized file, network blip, EXIF parse hang on a weird file), the loop aborts and **none of the remaining files upload**. You see one generic toast and no diagnostics.
-2. **No console logging** of the actual Supabase error message — when the storage upload returns `{ error }`, we throw it but never log it, so the browser console stays empty.
-3. The thumbnail uses `<img>` which **cannot decode HEIC** in most browsers — iPhone photos will throw before they even reach the DB insert. Thumbnail is "best-effort" but the storage upload itself might also be failing on `.heic` extensions that the bucket validates oddly.
+So the AI-suggested rows are getting thrown away entirely — including the fully-resolved description, qty, unit, and unit price the server already computed.
 
-**Fix in `src/components/jobs/PhotoUploader.tsx`**:
-- Wrap **each file** in its own try/catch so one bad photo doesn't kill the whole batch.
-- Track `failed` count alongside `succeeded`; toast shows `"X uploaded, Y failed"` instead of a single number.
-- `console.error` every failure with the file name + the real Supabase error message so you (and I) can see exactly what's wrong in DevTools.
-- Skip thumbnail generation entirely for HEIC/HEIF (they'll still be uploaded; we just don't try to make a thumb the browser can't decode).
-- For HEIC, force the stored extension to `.heic` (lowercase) and set `contentType: "image/heic"` on the storage upload so the bucket accepts it cleanly.
+## Fix — two changes, no DB work
 
-### Issue 2 — "Measurement report isn't saved anywhere"
+### 1) Stop routing AI suggestions through a URL + catalog-lookup roundtrip
 
-**What's actually happening**: I checked the database — your measurement **is saved**: `2,959 sqft, 29.6 squares, mapbox_draw, last updated 13:57 today`. The save worked. The problem is **discoverability** — after you click Save in the Mapbox tab, nothing in the UI confirms "here's your saved measurement, view it here." You navigate away and there's no obvious place that says "you have a saved measurement for this property."
+In `src/components/jobs/PropertyAnalysisPanel.tsx`, replace `addAll`'s "navigate to `/estimate?codes=...`" with a direct insert into the active estimate using the data we already have on the client (description, qty, unit, unit_price, catalog_name, catalog_trade — all returned by `/api/analyze-property`). Steps:
 
-**Fix in two places**:
+- Look up the active estimate for the job (`estimates` table, latest by `created_at`, scoped to `job_id`).
+- If none exists, create one (mirroring the auto-create the estimate page does today).
+- Build one `estimate_line_items.insert([...])` call with rows that look like:
+  - `code`: the catalog code if it matched (`catalog_name != null`), otherwise `null`
+  - `name`: `catalog_name` if matched, otherwise `description`
+  - `trade`: `catalog_trade` if matched, otherwise `job.primary_trade ?? "general"`
+  - `unit`, `qty`: from the AI item
+  - `unit_price`: from the AI item (null → 0)
+  - `total`: `qty * unit_price`
+  - `source`: `"ai_property"`
+  - `sort_order`: appended after current items
+- On success: invalidate `["estimate-items", estimateId]`, toast `"Added N items"`, then navigate to `/jobs/$id/estimate` so the user sees them.
+- Surface a subtle subline in the toast when some items had no catalog match: `"3 added · 2 inserted as custom (no catalog match)"`.
 
-1. **`src/components/roof/RoofMeasurementPanel.tsx`** — add a "Saved measurement" summary card at the top of the panel (above the tabs) when an existing measurement is loaded:
-   ```
-   ┌─────────────────────────────────────────────────────────┐
-   │ ✓ Saved measurement · updated 2 min ago                 │
-   │ 29.6 SQ · 2,959 SF · 6/12 pitch · 15% waste             │
-   │ Source: Mapbox Draw                                     │
-   │                                  [ View in Report → ]   │
-   └─────────────────────────────────────────────────────────┘
-   ```
-   This makes it immediately obvious that the measurement saved and where it lives. The "View in Report" button navigates to `/jobs/$id/report` where the full Measurement Report section already renders (it's been there the whole time — you just couldn't tell).
+This means **every selected suggestion gets added**, whether or not the AI invented a catalog code. The user no longer loses work to a silent string mismatch.
 
-2. **`src/routes/_app.jobs.$id.report.tsx`** — the Measurement Report section currently only renders inside the proposal preview. Pull a small "Saved measurements" summary card to the **top of the Report page**, above the proposal preview, so when you land on Report you see at a glance: roof sections list, totals, "this came from your Mapbox Draw on April 20." Same data, just elevated so it isn't buried inside the styled preview.
+### 2) Tighten the AI's catalog grounding so this happens less often
+
+In `src/routes/api.analyze-property.ts`, change the prompt and tool schema so the AI is much more constrained:
+
+- Add an explicit instruction: *"Choose `suggested_code` ONLY from the CATALOG list. If no catalog code reasonably fits, omit the field — do NOT invent codes."*
+- After parsing, on the server: drop `suggested_code` whenever it doesn't match a catalog row. The client then knows `code === undefined` means "insert as custom item with the AI's description."
+- (Already in place) The server returns `catalog_name` / `catalog_trade` / `unit_price` resolved from the catalog and price book; we just stop re-doing that lookup on the estimate page.
+
+### 3) Keep the per-photo "Add to estimate" path working
+
+`addCodes` in `src/routes/_app.jobs.$id.estimate.tsx` still gets used by `AISuggestionsPanel` and `CompanionRulesBanner` with real catalog codes. Soften it so missing codes show a toast like `"2/5 codes not in catalog — skipped"` instead of a silent nothing — but otherwise leave the path alone.
 
 ## Files touched
 
-- `src/components/jobs/PhotoUploader.tsx` — per-file try/catch, HEIC handling, real error logging, "X uploaded / Y failed" toast.
-- `src/components/roof/RoofMeasurementPanel.tsx` — "Saved measurement" summary banner with deep-link to Report.
-- `src/routes/_app.jobs.$id.report.tsx` — surface a top-of-page "Measurement Summary" card so it's findable.
+- `src/components/jobs/PropertyAnalysisPanel.tsx` — replace `addAll` with a direct `estimate_line_items.insert` against the active estimate; ensure-or-create the active estimate on the fly; navigate to estimate after insert.
+- `src/routes/api.analyze-property.ts` — strengthen the prompt against code-hallucination; drop `suggested_code` server-side when it isn't in the catalog.
+- `src/routes/_app.jobs.$id.estimate.tsx` — improve the `addCodes` toast so partial misses are visible.
 
 ## Out of scope
 
-- No DB or RLS changes (both are correct).
-- No changes to the Mapbox draw flow itself or the property-wide AI analysis.
-- No changes to the report PDF generator.
+- No DB migration.
+- No changes to the per-photo `analyze-job-photos` flow or `AISuggestionsPanel`.
+- No changes to roof measurement, mapbox, satellite, or PDF report code.
 
 ## After this ships
 
-- Drop photos → either they all upload (and the count is right), or you get a toast like **"3 uploaded, 1 failed — check console"** with the exact Supabase error printed, so we can diagnose any remaining bucket/MIME issue in one round trip.
-- Save a measurement → immediately see the green "Saved measurement" card with totals, plus a one-click jump to the Report tab where the full breakdown lives.
+Click **Add 3 to estimate** in the Property Analysis panel → 3 line items appear immediately in the active estimate (with their AI-derived qty and unit price), the page navigates you to `/jobs/$id/estimate`, and the toast tells you exactly how many were added (and how many came in as custom because no catalog code matched).
 
