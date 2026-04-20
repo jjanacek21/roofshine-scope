@@ -2,59 +2,50 @@
 
 ## Goal
 
-Make Xactimate PDF uploads actually return line items — right now the dropzone shows **"Failed to execute 'json' on 'Response': Unexpected end of JSON input"** because the server returned an empty body.
+Two things, in this order:
 
-## Root cause
+1. **Right now**: Hand the user a clean **Excel file** of the 200+ line items extracted from the Xactimate PDF they just uploaded, so they can drop it into the existing **Pricing → Upload estimate file** flow today and finish.
+2. **Going forward**: Fix the PDF endpoint so a real Xactimate like this one extracts cleanly on the first drop — no manual conversion needed.
 
-The endpoint `/api/parse-xactimate-pdf` uses the **`unpdf`** package to extract text from the PDF before sending it to the AI. `unpdf` internally bundles `pdfjs`, which crashes inside the Cloudflare Worker runtime as soon as a real PDF is parsed (visible in dev-server stderr: `file:///dev-server/node_modules/unpdf/dist/pdfjs.mjs:54 … at #t`). The crash kills the worker request **before** our handler's try/catch can return JSON, so the browser sees an empty 200/500 body and `resp.json()` throws.
+## Why the PDF upload errored on this file
 
-In short: `unpdf` is not Worker-compatible for arbitrary Xactimate PDFs.
+The PDF parses perfectly into 18 pages of standard tables (DESCRIPTION / QTY / REMOVE / REPLACE / TAX / TOTAL). The problem is the AI extraction prompt:
 
-## Fix
+- It requires every row to have a **`code`** (Xactimate selector like "RFG 240").
+- This Xactimate PDF labels rows by **line number** ("9. R&R 1/2\" drywall…", "104. R&R Ridge cap…") — there is no separate selector column. Gemini either invents shaky codes or skips rows, then the `< 5 items` guard or the `code+description` schema validation kills the response.
+- It also caps the response at one Gemini turn, so a 280+ item estimate gets truncated.
 
-**Stop trying to extract text in the Worker. Send the PDF directly to Gemini.** Gemini 2.5 Pro (which we already use via the Lovable AI Gateway) accepts native PDF input as a base64-encoded `application/pdf` part on the user message — no pdfjs, no text extraction step, no Node dependencies, and it actually produces *better* results because Gemini sees the original Xactimate layout (columns, totals, page breaks) instead of a flattened text dump.
+## Step 1 — Immediate deliverable (no app changes)
 
-### What changes
+Run a local Python script against the PDF you uploaded:
+- Walk every page's table, pull DESCRIPTION / QTY / unit / REMOVE / REPLACE / TOTAL.
+- Auto-assign a Category from the section header (Main Level, Roof1, Exterior, etc.).
+- Build a synthetic Code from line number + first letters of category (so the wizard's "code is required" check passes).
+- Write `Final_Draft-2026-04-17-104804-line-items.xlsx` to `/mnt/documents/` and present it as a `<lov-artifact>`.
 
-1. **`src/routes/api.parse-xactimate-pdf.ts`**
-   - Remove the `extractPdfText` function and the `unpdf` import entirely.
-   - Read the uploaded PDF as an `ArrayBuffer`, base64-encode it.
-   - Call the AI gateway with a multimodal message:
-     ```ts
-     messages: [
-       { role: "system", content: <existing extraction prompt> },
-       { role: "user", content: [
-           { type: "text", text: "Extract every line item from this Xactimate estimate." },
-           { type: "image_url", image_url: { url: `data:application/pdf;base64,${b64}` } },
-       ]},
-     ]
-     ```
-   - Keep the same `return_line_items` tool-call schema and the same final response shape (`{ rows, headers, count }`) so the client component is unchanged.
-   - Keep the 25 MB size guard.
-   - Keep the existing 422/429/402 error mapping.
+You then go to **Pricing → Upload estimate file**, drop that .xlsx, the existing spreadsheet path (which is rock-solid) auto-maps every column, and you save. **You finish today.**
 
-2. **`src/components/pricebook/UploadParseStep.tsx`** — defensive parse so the user gets a useful error even if the worker ever returns empty again:
-   ```ts
-   const text = await resp.text();
-   const data = text ? JSON.parse(text) : { error: "Server returned an empty response — try again." };
-   ```
-   Replaces the bare `resp.json()` on line 62.
+## Step 2 — Permanent fix to the PDF endpoint
 
-3. **`package.json`** — remove `unpdf` dependency since nothing else uses it (kept the bundle smaller and removes a fragile Worker dep).
+Edit `src/routes/api.parse-xactimate-pdf.ts`:
 
-### What stays the same
+1. **Loosen the schema** — make `code` optional. When the AI doesn't return one, derive it server-side from `category + line index` (e.g. `RFG-104`, `MAIN-9`).
+2. **Strengthen the prompt** — tell Gemini explicitly: "Xactimate items are numbered; if there's no selector code, return the line number; the Description is the text after `N. `; Unit comes from QTY column (e.g. `1.00 SQ` → `SQ`); unit_price = the larger of REMOVE / REPLACE / (TOTAL ÷ qty). Process every page."
+3. **Drop the `< 5 items` hard error** to a soft warning passed back to the client (so partial extractions still load and you can hand-fix instead of getting a dead end).
+4. **Increase max tokens / use `google/gemini-2.5-pro`** (already set) and explicitly request "do not stop until every line item from every page is returned."
 
-- Excel / CSV path (`extractEstimateFromSpreadsheet`) — unchanged, already works.
-- Client component, wizard steps, mapping UI, save logic — unchanged.
-- The AI prompt, the tool schema, the `≥5 items` guard — unchanged.
-- No DB or schema changes.
+Edit `src/components/pricebook/UploadParseStep.tsx`:
+- When the API returns rows + a soft warning, show "Extracted N items (warning: …)" instead of red-erroring out.
+
+## Files touched in Step 2
+
+- `src/routes/api.parse-xactimate-pdf.ts` — schema, prompt, error tiers.
+- `src/components/pricebook/UploadParseStep.tsx` — surface partial-success warnings.
+
+No DB changes. No new dependencies. Step 1 unblocks you immediately; Step 2 makes the next Xactimate PDF you drop "just work."
 
 ## Result
 
-Drop a Xactimate PDF on the upload step → Gemini reads the PDF directly → 10–30 s later the dropzone flips to "AI extracted N line items" → Step 2 auto-fills the name from the filename → Save publishes the master pricing library. The "Unexpected end of JSON input" error is gone because (a) the Worker stops crashing, and (b) the client tolerates empty bodies with a clear message.
-
-## Out of scope
-
-- No changes to the company-side pricing wizard logic (it shares the same endpoint, so it benefits automatically).
-- No OCR fallback for scanned-only PDFs — Gemini handles vision-based PDFs natively, so this is no longer needed.
+- You get the .xlsx of this estimate's line items in this same response and can publish your master pricing today.
+- After Step 2 ships, dropping a Xactimate PDF on Pricing → Upload estimate file extracts the full item list reliably, even when the file uses line-number labeling instead of selector codes.
 
