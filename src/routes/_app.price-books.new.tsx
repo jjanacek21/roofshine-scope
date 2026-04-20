@@ -229,8 +229,8 @@ function NewPriceBookPage() {
       </div>
 
       <div className="rounded-xl border p-6" style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}>
-        {step === 1 && <MetadataStep value={meta} onChange={setMeta} />}
-        {step === 2 && <UploadParseStep value={parsed} onChange={setParsed} pricingType={meta.pricing_type} />}
+        {step === 1 && <UploadParseStep value={parsed} onChange={setParsed} pricingType={meta.pricing_type} />}
+        {step === 2 && <MetadataStep value={meta} onChange={setMeta} />}
         {step === 3 && parsed && (
           <MatchConfirmStep
             parsed={parsed}
