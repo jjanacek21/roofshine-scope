@@ -126,6 +126,9 @@ export function MapboxRoofDraw({
       displayControlsDefault: false,
       defaultMode: "simple_select",
       styles: MAPBOX_DRAW_STYLES,
+      // Bigger hit targets so vertex pins are easier to grab.
+      clickBuffer: 6,
+      touchBuffer: 12,
     });
     drawRef.current = draw;
     map.addControl(draw);
@@ -157,9 +160,92 @@ export function MapboxRoofDraw({
       else if (e.mode === "draw_polygon") setActiveTool("polygon");
       else if (e.mode === "draw_line_string") setActiveTool("line");
       else if (e.mode === "draw_point") setActiveTool("point");
+      else if (e.mode === "direct_select") setActiveTool("select");
     });
 
+    // ---- Single-click → direct_select (drag-vertex) when in select mode ----
+    // Mapbox Draw normally requires click-to-select then click-again-to-edit.
+    // Collapse that to one click so corner pins are immediately draggable.
+    map.on("draw.selectionchange", (e: { features: Feature[] }) => {
+      const mode = draw.getMode();
+      if (mode !== "simple_select") return;
+      const selected = e.features?.[0];
+      if (selected?.id != null && selected.geometry?.type === "Polygon") {
+        // Defer so Mapbox Draw finishes its own click handling first.
+        setTimeout(() => {
+          if (drawRef.current?.getMode() === "simple_select") {
+            drawRef.current.changeMode("direct_select", {
+              featureId: String(selected.id),
+            });
+          }
+        }, 0);
+      }
+    });
+
+    // ---- Stop accidental polygon completion ----
+    // When drawing a new polygon, clicks that land on an existing polygon's
+    // blue fill get absorbed by Mapbox Draw and can prematurely finish the
+    // shape. We intercept those clicks at the canvas level and re-fire them
+    // on the map at the same lng/lat so the vertex drops on the ground.
+    const canvas = map.getCanvasContainer();
+    const onPointerDownCapture = (ev: MouseEvent) => {
+      const currentMode = drawRef.current?.getMode();
+      if (currentMode !== "draw_polygon" && currentMode !== "draw_line_string") return;
+      if (ev.button !== 0) return;
+      const rect = canvas.getBoundingClientRect();
+      const point: [number, number] = [ev.clientX - rect.left, ev.clientY - rect.top];
+      // Query only Mapbox Draw layers under the cursor.
+      const hits = map.queryRenderedFeatures(point, {
+        layers: map
+          .getStyle()
+          .layers?.filter((l) =>
+            l.id.startsWith("gl-draw-polygon-fill") ||
+            l.id.startsWith("gl-draw-polygon-stroke"),
+          )
+          .map((l) => l.id) ?? [],
+      });
+      // If we hit an inactive (non-active) polygon fill, swallow the event
+      // and synthesize a Mapbox click at the same lng/lat with no draw
+      // features under it. That makes Draw treat it as plain ground.
+      const onInactive = hits.some(
+        (f) => f.properties?.active !== "true" && f.properties?.meta !== "vertex",
+      );
+      if (onInactive) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        const lngLat = map.unproject(point);
+        // Fire the click directly at the draw mode so it adds a vertex here.
+        // Using map.fire with no features under cursor => Draw drops a vertex.
+        setTimeout(() => {
+          map.fire("click", {
+            lngLat,
+            point: new mapboxgl.Point(point[0], point[1]),
+            originalEvent: ev,
+          } as unknown as mapboxgl.MapMouseEvent);
+        }, 0);
+      }
+    };
+    canvas.addEventListener("mousedown", onPointerDownCapture, true);
+
+    // ---- Enter-to-finish / Esc-to-cancel keybinds ----
+    const onKey = (ev: KeyboardEvent) => {
+      const mode = drawRef.current?.getMode();
+      if (!mode) return;
+      if (ev.key === "Enter" && (mode === "draw_polygon" || mode === "draw_line_string")) {
+        ev.preventDefault();
+        // Mapbox Draw commits the in-progress feature when leaving draw mode.
+        drawRef.current?.changeMode("simple_select");
+      }
+      if (ev.key === "Escape" && (mode === "draw_polygon" || mode === "draw_line_string")) {
+        ev.preventDefault();
+        drawRef.current?.trash();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+
     return () => {
+      canvas.removeEventListener("mousedown", onPointerDownCapture, true);
+      window.removeEventListener("keydown", onKey);
       map.remove();
       mapRef.current = null;
       drawRef.current = null;
