@@ -3,6 +3,8 @@
 
 export const MAPBOX_DRAW_STYLES = [
   // ---------- Polygon fill ----------
+  // Inactive polygons: very dim while drawing a new one so clicks pass through
+  // the perceived shape and the user can keep adding vertices on top of it.
   {
     id: "gl-draw-polygon-fill",
     type: "fill",
@@ -10,7 +12,11 @@ export const MAPBOX_DRAW_STYLES = [
     paint: {
       "fill-color": "#1e90ff",
       "fill-outline-color": "#1e90ff",
-      "fill-opacity": 0.15,
+      "fill-opacity": [
+        "case",
+        ["==", ["get", "active"], "true"], 0.15,
+        0.12,
+      ],
     },
   },
   {
