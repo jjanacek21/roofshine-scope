@@ -150,9 +150,11 @@ function ringCentroid(ring: number[][]): [number, number] {
 export function SolarRoofTab({
   center,
   onApply,
+  onSwitchToMapbox,
 }: {
   center: { lng: number; lat: number };
   onApply: (data: MapboxRoofData) => void;
+  onSwitchToMapbox?: () => void;
 }) {
   const { data: token, isLoading: tokenLoading } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -168,6 +170,7 @@ export function SolarRoofTab({
   const [showCoverageGaps, setShowCoverageGaps] = useState(false);
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
   const [showHandoff, setShowHandoff] = useState(false);
+  const [noCoverage, setNoCoverage] = useState(false);
 
   // Draw-mode state
   const [drawingPinId, setDrawingPinId] = useState<string | null>(null);
@@ -479,8 +482,19 @@ export function SolarRoofTab({
         body: JSON.stringify({ lat: center.lat, lng: center.lng }),
       });
       if (!r.ok) {
-        const txt = await r.text();
-        throw new Error(txt || "Solar API failed");
+        // Try to parse structured error first
+        let parsed: { error?: string; message?: string; detail?: string } | null = null;
+        try {
+          parsed = await r.json();
+        } catch {
+          // not JSON
+        }
+        if (r.status === 404 && parsed?.error === "no_coverage") {
+          const err = new Error(parsed.message ?? "No Solar coverage at this location");
+          (err as Error & { code?: string }).code = "no_coverage";
+          throw err;
+        }
+        throw new Error(parsed?.message ?? parsed?.detail ?? `Solar API failed (${r.status})`);
       }
       const data = (await r.json()) as SolarResponse;
 
@@ -499,6 +513,7 @@ export function SolarRoofTab({
       return { data, calib };
     },
     onSuccess: ({ data, calib }) => {
+      setNoCoverage(false);
       setImageryQuality(data.imagery_quality);
       setCalibration(calib);
       // Build one pin per facet detected by Solar (so each facet is its own polygon on the map)
@@ -530,7 +545,15 @@ export function SolarRoofTab({
       const sqft = Math.round(newPins.reduce((s, p) => s + p.plan_area_sqft, 0));
       toast.success(`Measured ${facets} facet${facets === 1 ? "" : "s"} · ${sqft.toLocaleString()} sqft total`);
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Measurement failed"),
+    onError: (e) => {
+      const code = (e as Error & { code?: string }).code;
+      if (code === "no_coverage") {
+        setNoCoverage(true);
+        // No raw JSON toast — the inline empty state explains it.
+        return;
+      }
+      toast.error(e instanceof Error ? e.message : "Measurement failed");
+    },
   });
 
   function updatePin(id: string, patch: Partial<Pin>) {
@@ -718,6 +741,52 @@ export function SolarRoofTab({
           {detect.isPending ? "Measuring…" : "Measure entire property"}
         </button>
       </div>
+
+      {/* No-coverage empty state — shown when Google Solar has no building data here */}
+      {noCoverage && (
+        <div
+          className="flex flex-wrap items-start justify-between gap-3 rounded-xl border p-4"
+          style={{
+            borderColor: "color-mix(in oklab, #f59e0b 35%, transparent)",
+            background: "color-mix(in oklab, #f59e0b 8%, var(--bg-card))",
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+            <div>
+              <div className="text-sm font-semibold text-foreground">
+                This property isn't in Google's Solar coverage yet
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                We tried HIGH, MEDIUM, and LOW quality plus 4 nearby points — Google Solar still has no
+                building data for this location. This usually means a newer build or a recently
+                modified roof. Switch to Mapbox Draw to outline the roof manually, or drop a custom
+                pin on the map below to measure a single structure.
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => detect.mutate()}
+              disabled={detect.isPending}
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs text-foreground hover:bg-[var(--surface-hover)] disabled:opacity-40"
+              style={{ borderColor: "var(--border)" }}
+            >
+              {detect.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              Try again
+            </button>
+            {onSwitchToMapbox && (
+              <button
+                onClick={onSwitchToMapbox}
+                className="btn-brand inline-flex h-9 items-center gap-1.5 rounded-md px-4 text-xs font-semibold"
+              >
+                Switch to Mapbox Draw
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Hand-off banner — only visible after a successful detection */}
       {showHandoff && pins.length > 0 && (

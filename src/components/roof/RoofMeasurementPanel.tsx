@@ -350,7 +350,11 @@ export function RoofMeasurementPanel({
         />
       )}
       {tab === "solar" && center && (
-        <SolarRoofTab center={center} onApply={(d) => { setMapboxData(d); setTab("mapbox"); }} />
+        <SolarRoofTab
+          center={center}
+          onApply={(d) => { setMapboxData(d); setTab("mapbox"); }}
+          onSwitchToMapbox={() => setTab("mapbox")}
+        />
       )}
       {tab === "solar" && !center && (
         <div className="rounded-xl border p-12 text-center text-sm text-muted-foreground" style={{ borderColor: "var(--border)" }}>
