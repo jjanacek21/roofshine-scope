@@ -482,8 +482,19 @@ export function SolarRoofTab({
         body: JSON.stringify({ lat: center.lat, lng: center.lng }),
       });
       if (!r.ok) {
-        const txt = await r.text();
-        throw new Error(txt || "Solar API failed");
+        // Try to parse structured error first
+        let parsed: { error?: string; message?: string; detail?: string } | null = null;
+        try {
+          parsed = await r.json();
+        } catch {
+          // not JSON
+        }
+        if (r.status === 404 && parsed?.error === "no_coverage") {
+          const err = new Error(parsed.message ?? "No Solar coverage at this location");
+          (err as Error & { code?: string }).code = "no_coverage";
+          throw err;
+        }
+        throw new Error(parsed?.message ?? parsed?.detail ?? `Solar API failed (${r.status})`);
       }
       const data = (await r.json()) as SolarResponse;
 
@@ -502,6 +513,7 @@ export function SolarRoofTab({
       return { data, calib };
     },
     onSuccess: ({ data, calib }) => {
+      setNoCoverage(false);
       setImageryQuality(data.imagery_quality);
       setCalibration(calib);
       // Build one pin per facet detected by Solar (so each facet is its own polygon on the map)
@@ -533,7 +545,15 @@ export function SolarRoofTab({
       const sqft = Math.round(newPins.reduce((s, p) => s + p.plan_area_sqft, 0));
       toast.success(`Measured ${facets} facet${facets === 1 ? "" : "s"} · ${sqft.toLocaleString()} sqft total`);
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Measurement failed"),
+    onError: (e) => {
+      const code = (e as Error & { code?: string }).code;
+      if (code === "no_coverage") {
+        setNoCoverage(true);
+        // No raw JSON toast — the inline empty state explains it.
+        return;
+      }
+      toast.error(e instanceof Error ? e.message : "Measurement failed");
+    },
   });
 
   function updatePin(id: string, patch: Partial<Pin>) {
