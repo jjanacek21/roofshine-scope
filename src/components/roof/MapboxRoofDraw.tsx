@@ -221,7 +221,7 @@ export function MapboxRoofDraw({
             lngLat,
             point: new mapboxgl.Point(point[0], point[1]),
             originalEvent: ev,
-          });
+          } as unknown as mapboxgl.MapMouseEvent);
         }, 0);
       }
     };
