@@ -150,9 +150,11 @@ function ringCentroid(ring: number[][]): [number, number] {
 export function SolarRoofTab({
   center,
   onApply,
+  onSwitchToMapbox,
 }: {
   center: { lng: number; lat: number };
   onApply: (data: MapboxRoofData) => void;
+  onSwitchToMapbox?: () => void;
 }) {
   const { data: token, isLoading: tokenLoading } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -168,6 +170,7 @@ export function SolarRoofTab({
   const [showCoverageGaps, setShowCoverageGaps] = useState(false);
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
   const [showHandoff, setShowHandoff] = useState(false);
+  const [noCoverage, setNoCoverage] = useState(false);
 
   // Draw-mode state
   const [drawingPinId, setDrawingPinId] = useState<string | null>(null);
