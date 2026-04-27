@@ -29,7 +29,7 @@ function AppLayout() {
         .eq("id", user.id)
         .maybeSingle();
       if (!data?.company_id) {
-        navigate({ to: "/onboarding" });
+        navigate({ to: "/onboarding", search: { invite: undefined } });
         return;
       }
       setChecking(false);

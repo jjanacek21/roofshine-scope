@@ -21,6 +21,7 @@ import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
 import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xactimate-pdf'
 import { Route as ApiMapboxTokenRouteImport } from './routes/api.mapbox-token'
+import { Route as ApiCalibrateSolarRouteImport } from './routes/api.calibrate-solar'
 import { Route as ApiAutoAddPhotoSuggestionsRouteImport } from './routes/api.auto-add-photo-suggestions'
 import { Route as ApiAnalyzeRoofConditionRouteImport } from './routes/api.analyze-roof-condition'
 import { Route as ApiAnalyzePropertyRouteImport } from './routes/api.analyze-property'
@@ -114,6 +115,11 @@ const ApiParseXactimatePdfRoute = ApiParseXactimatePdfRouteImport.update({
 const ApiMapboxTokenRoute = ApiMapboxTokenRouteImport.update({
   id: '/api/mapbox-token',
   path: '/api/mapbox-token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCalibrateSolarRoute = ApiCalibrateSolarRouteImport.update({
+  id: '/api/calibrate-solar',
+  path: '/api/calibrate-solar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAutoAddPhotoSuggestionsRoute =
@@ -323,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/api/analyze-property': typeof ApiAnalyzePropertyRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
+  '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
@@ -368,6 +375,7 @@ export interface FileRoutesByTo {
   '/api/analyze-property': typeof ApiAnalyzePropertyRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
+  '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
@@ -417,6 +425,7 @@ export interface FileRoutesById {
   '/api/analyze-property': typeof ApiAnalyzePropertyRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
+  '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
@@ -468,6 +477,7 @@ export interface FileRouteTypes {
     | '/api/analyze-property'
     | '/api/analyze-roof-condition'
     | '/api/auto-add-photo-suggestions'
+    | '/api/calibrate-solar'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
@@ -513,6 +523,7 @@ export interface FileRouteTypes {
     | '/api/analyze-property'
     | '/api/analyze-roof-condition'
     | '/api/auto-add-photo-suggestions'
+    | '/api/calibrate-solar'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
@@ -561,6 +572,7 @@ export interface FileRouteTypes {
     | '/api/analyze-property'
     | '/api/analyze-roof-condition'
     | '/api/auto-add-photo-suggestions'
+    | '/api/calibrate-solar'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
@@ -593,6 +605,7 @@ export interface RootRouteChildren {
   ApiAnalyzePropertyRoute: typeof ApiAnalyzePropertyRoute
   ApiAnalyzeRoofConditionRoute: typeof ApiAnalyzeRoofConditionRoute
   ApiAutoAddPhotoSuggestionsRoute: typeof ApiAutoAddPhotoSuggestionsRoute
+  ApiCalibrateSolarRoute: typeof ApiCalibrateSolarRoute
   ApiMapboxTokenRoute: typeof ApiMapboxTokenRoute
   ApiParseXactimatePdfRoute: typeof ApiParseXactimatePdfRoute
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
@@ -682,6 +695,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mapbox-token'
       fullPath: '/api/mapbox-token'
       preLoaderRoute: typeof ApiMapboxTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/calibrate-solar': {
+      id: '/api/calibrate-solar'
+      path: '/api/calibrate-solar'
+      fullPath: '/api/calibrate-solar'
+      preLoaderRoute: typeof ApiCalibrateSolarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auto-add-photo-suggestions': {
@@ -1075,6 +1095,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAnalyzePropertyRoute: ApiAnalyzePropertyRoute,
   ApiAnalyzeRoofConditionRoute: ApiAnalyzeRoofConditionRoute,
   ApiAutoAddPhotoSuggestionsRoute: ApiAutoAddPhotoSuggestionsRoute,
+  ApiCalibrateSolarRoute: ApiCalibrateSolarRoute,
   ApiMapboxTokenRoute: ApiMapboxTokenRoute,
   ApiParseXactimatePdfRoute: ApiParseXactimatePdfRoute,
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
@@ -1082,12 +1103,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
