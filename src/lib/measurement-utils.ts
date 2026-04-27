@@ -89,13 +89,13 @@ export function computeTotals(features: AnyFeature[], defaultWastePct = 15): Mea
   const edges: Partial<Record<EdgeType, number>> = {};
   for (const l of lines) {
     const lengthFt = turf.length(l, { units: "kilometers" }) * KM_TO_FT;
-    const t = l.properties?.edge_type;
+    const t = l.properties?.edge_type as EdgeType | undefined;
     if (t) edges[t] = (edges[t] ?? 0) + lengthFt;
   }
 
   const penetrations: Partial<Record<PenetrationType, number>> = {};
   for (const pt of points) {
-    const t = pt.properties?.penetration_type;
+    const t = pt.properties?.penetration_type as PenetrationType | undefined;
     if (t) penetrations[t] = (penetrations[t] ?? 0) + 1;
   }
 
