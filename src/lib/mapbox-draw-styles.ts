@@ -53,17 +53,32 @@ export const MAPBOX_DRAW_STYLES = [
   },
 
   // ---------- Vertex points ----------
+  // ---------- Vertex points ----------
+  // Bigger hit targets so corner pins are easier to grab and drag.
   {
     id: "gl-draw-polygon-and-line-vertex-halo-active",
     type: "circle",
     filter: ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"], ["!=", "mode", "static"]],
-    paint: { "circle-radius": 6, "circle-color": "#ffffff" },
+    paint: { "circle-radius": 11, "circle-color": "#ffffff" },
   },
   {
     id: "gl-draw-polygon-and-line-vertex-active",
     type: "circle",
     filter: ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"], ["!=", "mode", "static"]],
-    paint: { "circle-radius": 4, "circle-color": "#1e90ff" },
+    paint: { "circle-radius": 7, "circle-color": "#1e90ff" },
+  },
+  // ---------- Midpoints (drag to add a new vertex) ----------
+  {
+    id: "gl-draw-polygon-midpoint",
+    type: "circle",
+    filter: ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]],
+    paint: {
+      "circle-radius": 5,
+      "circle-color": "#ffffff",
+      "circle-stroke-color": "#1e90ff",
+      "circle-stroke-width": 2,
+      "circle-opacity": 0.85,
+    },
   },
 
   // ---------- Standalone points (penetrations) ----------
