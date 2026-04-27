@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Ruler, CheckCircle2, AlertCircle, MapPin, Loader2, ExternalLink } from "lucide-react";
+import { Ruler, CheckCircle2, AlertCircle, MapPin, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/measurement-reviews")({
   component: AdminMeasurementReviews,
