@@ -18,6 +18,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
 import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xactimate-pdf'
 import { Route as ApiMapboxTokenRouteImport } from './routes/api.mapbox-token'
@@ -101,6 +102,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiTrainFromPdfRoute = ApiTrainFromPdfRouteImport.update({
+  id: '/api/train-from-pdf',
+  path: '/api/train-from-pdf',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSolarRoofExtractRoute = ApiSolarRoofExtractRouteImport.update({
   id: '/api/solar-roof-extract',
@@ -333,6 +339,7 @@ export interface FileRoutesByFullPath {
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
+  '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/admin/': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
   '/jobs/$id': typeof AppJobsIdRouteWithChildren
@@ -379,6 +386,7 @@ export interface FileRoutesByTo {
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
+  '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
@@ -429,6 +437,7 @@ export interface FileRoutesById {
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
+  '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/_app/clients/$id': typeof AppClientsIdRoute
@@ -481,6 +490,7 @@ export interface FileRouteTypes {
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
+    | '/api/train-from-pdf'
     | '/admin/'
     | '/clients/$id'
     | '/jobs/$id'
@@ -527,6 +537,7 @@ export interface FileRouteTypes {
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
+    | '/api/train-from-pdf'
     | '/'
     | '/admin'
     | '/clients/$id'
@@ -576,6 +587,7 @@ export interface FileRouteTypes {
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
+    | '/api/train-from-pdf'
     | '/_app/'
     | '/admin/'
     | '/_app/clients/$id'
@@ -609,6 +621,7 @@ export interface RootRouteChildren {
   ApiMapboxTokenRoute: typeof ApiMapboxTokenRoute
   ApiParseXactimatePdfRoute: typeof ApiParseXactimatePdfRoute
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
+  ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -675,6 +688,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/train-from-pdf': {
+      id: '/api/train-from-pdf'
+      path: '/api/train-from-pdf'
+      fullPath: '/api/train-from-pdf'
+      preLoaderRoute: typeof ApiTrainFromPdfRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/solar-roof-extract': {
       id: '/api/solar-roof-extract'
@@ -1099,6 +1119,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMapboxTokenRoute: ApiMapboxTokenRoute,
   ApiParseXactimatePdfRoute: ApiParseXactimatePdfRoute,
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
+  ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
