@@ -47,7 +47,7 @@ type TabKey = "insurance" | "retail";
 function PricingPage() {
   const [tab, setTab] = useState<TabKey>("insurance");
   const matchRoute = useMatchRoute();
-  const isChild = !matchRoute({ to: "/_app/price-books", fuzzy: false });
+  const isChild = !matchRoute({ to: "/price-books", fuzzy: false });
 
   const { data: books = [], isLoading } = useQuery({
     queryKey: ["price-books"],

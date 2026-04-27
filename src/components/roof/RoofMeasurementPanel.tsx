@@ -401,7 +401,7 @@ function mapboxTotalsFromFeatures(features: AnyFeature[]) {
       const pitch = (f as Feature<Polygon, FeatureProps>).properties?.pitch ?? "6/12";
       total_area_sqft += polygonAreaFromRing(ring) * pitchMult(pitch);
     } else if (f.geometry.type === "LineString") {
-      const t = (f as Feature<LineString, FeatureProps>).properties?.edge_type;
+      const t = (f as Feature<LineString, FeatureProps>).properties?.edge_type as EdgeType | undefined;
       if (!t) continue;
       const coords = (f as Feature<LineString, FeatureProps>).geometry.coordinates;
       const lens = polygonEdgeLengths([...coords, coords[0]]);

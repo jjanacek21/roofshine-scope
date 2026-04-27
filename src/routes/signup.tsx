@@ -33,7 +33,7 @@ function SignupPage() {
       return;
     }
     toast.success("Account created — check your email to confirm");
-    navigate({ to: "/onboarding" });
+    navigate({ to: "/onboarding", search: { invite: undefined } });
   }
 
   return (
