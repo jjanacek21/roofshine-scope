@@ -151,13 +151,9 @@ function AdminMeasurementReviews() {
                     )}
                   </div>
                   <div className="flex items-center justify-end gap-2 md:col-span-2">
-                    <Link
-                      to="/properties/$id"
-                      params={{ id: r.property_id }}
-                      className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
-                    >
-                      <ExternalLink className="h-3 w-3" /> Open
-                    </Link>
+                    <span className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 font-mono text-[10px] text-muted-foreground">
+                      {r.id.slice(0, 8)}
+                    </span>
                     {verified ? (
                       <button
                         onClick={() => unverify(r.id)}
