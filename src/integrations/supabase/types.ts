@@ -1140,6 +1140,8 @@ export type Database = {
           transition_lf: number
           updated_at: string
           valleys_lf: number
+          verified_at: string | null
+          verified_by: string | null
           wall_flashing_lf: number
           waste_pct: number
         }
@@ -1165,6 +1167,8 @@ export type Database = {
           transition_lf?: number
           updated_at?: string
           valleys_lf?: number
+          verified_at?: string | null
+          verified_by?: string | null
           wall_flashing_lf?: number
           waste_pct?: number
         }
@@ -1190,6 +1194,8 @@ export type Database = {
           transition_lf?: number
           updated_at?: string
           valleys_lf?: number
+          verified_at?: string | null
+          verified_by?: string | null
           wall_flashing_lf?: number
           waste_pct?: number
         }
@@ -1255,6 +1261,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      training_examples: {
+        Row: {
+          address: string
+          created_at: string
+          created_by: string | null
+          ground_truth: Json
+          id: string
+          lat: number | null
+          lng: number | null
+          notes: string | null
+          pdf_storage_path: string | null
+          solar_response: Json
+          source: string
+          source_measurement_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          created_by?: string | null
+          ground_truth?: Json
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          notes?: string | null
+          pdf_storage_path?: string | null
+          solar_response?: Json
+          source?: string
+          source_measurement_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          created_by?: string | null
+          ground_truth?: Json
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          notes?: string | null
+          pdf_storage_path?: string | null
+          solar_response?: Json
+          source?: string
+          source_measurement_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
