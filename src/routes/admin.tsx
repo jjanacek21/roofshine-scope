@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-rout
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Users, Building2, Megaphone, Mail, FileText, Video, Star, CreditCard, Flag, BarChart3, LifeBuoy, ScrollText, ArrowLeft, Library } from "lucide-react";
+import { Shield, Users, Building2, Megaphone, Mail, FileText, Brain, Star, CreditCard, Flag, BarChart3, LifeBuoy, ScrollText, ArrowLeft, Library, Ruler } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -17,7 +17,8 @@ const NAV: NavItem[] = [
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/admin/emails", label: "Email Blasts", icon: Mail },
   { to: "/admin/content", label: "Home Page CMS", icon: FileText },
-  { to: "/admin/training", label: "Training Videos", icon: Video },
+  { to: "/admin/training", label: "AI Training Center", icon: Brain },
+  { to: "/admin/measurement-reviews", label: "Measurement Reviews", icon: Ruler },
   { to: "/admin/reviews", label: "Reviews", icon: Star },
   { to: "/admin/memberships", label: "Plans & Pricing", icon: CreditCard },
   { to: "/admin/features", label: "Feature Flags", icon: Flag },

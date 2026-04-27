@@ -18,6 +18,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
 import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xactimate-pdf'
 import { Route as ApiMapboxTokenRouteImport } from './routes/api.mapbox-token'
@@ -32,6 +33,7 @@ import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
 import { Route as AdminPriceBooksRouteImport } from './routes/admin.price-books'
 import { Route as AdminMembershipsRouteImport } from './routes/admin.memberships'
+import { Route as AdminMeasurementReviewsRouteImport } from './routes/admin.measurement-reviews'
 import { Route as AdminMacrosRouteImport } from './routes/admin.macros'
 import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
 import { Route as AdminEmailsRouteImport } from './routes/admin.emails'
@@ -102,6 +104,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiTrainFromPdfRoute = ApiTrainFromPdfRouteImport.update({
+  id: '/api/train-from-pdf',
+  path: '/api/train-from-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSolarRoofExtractRoute = ApiSolarRoofExtractRouteImport.update({
   id: '/api/solar-roof-extract',
   path: '/api/solar-roof-extract',
@@ -171,6 +178,11 @@ const AdminPriceBooksRoute = AdminPriceBooksRouteImport.update({
 const AdminMembershipsRoute = AdminMembershipsRouteImport.update({
   id: '/memberships',
   path: '/memberships',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMeasurementReviewsRoute = AdminMeasurementReviewsRouteImport.update({
+  id: '/measurement-reviews',
+  path: '/measurement-reviews',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMacrosRoute = AdminMacrosRouteImport.update({
@@ -319,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
   '/admin/macros': typeof AdminMacrosRoute
+  '/admin/measurement-reviews': typeof AdminMeasurementReviewsRoute
   '/admin/memberships': typeof AdminMembershipsRoute
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
@@ -333,6 +346,7 @@ export interface FileRoutesByFullPath {
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
+  '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/admin/': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
   '/jobs/$id': typeof AppJobsIdRouteWithChildren
@@ -365,6 +379,7 @@ export interface FileRoutesByTo {
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
   '/admin/macros': typeof AdminMacrosRoute
+  '/admin/measurement-reviews': typeof AdminMeasurementReviewsRoute
   '/admin/memberships': typeof AdminMembershipsRoute
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
@@ -379,6 +394,7 @@ export interface FileRoutesByTo {
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
+  '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
@@ -415,6 +431,7 @@ export interface FileRoutesById {
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
   '/admin/macros': typeof AdminMacrosRoute
+  '/admin/measurement-reviews': typeof AdminMeasurementReviewsRoute
   '/admin/memberships': typeof AdminMembershipsRoute
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
@@ -429,6 +446,7 @@ export interface FileRoutesById {
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
+  '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/_app/clients/$id': typeof AppClientsIdRoute
@@ -467,6 +485,7 @@ export interface FileRouteTypes {
     | '/admin/emails'
     | '/admin/features'
     | '/admin/macros'
+    | '/admin/measurement-reviews'
     | '/admin/memberships'
     | '/admin/price-books'
     | '/admin/reviews'
@@ -481,6 +500,7 @@ export interface FileRouteTypes {
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
+    | '/api/train-from-pdf'
     | '/admin/'
     | '/clients/$id'
     | '/jobs/$id'
@@ -513,6 +533,7 @@ export interface FileRouteTypes {
     | '/admin/emails'
     | '/admin/features'
     | '/admin/macros'
+    | '/admin/measurement-reviews'
     | '/admin/memberships'
     | '/admin/price-books'
     | '/admin/reviews'
@@ -527,6 +548,7 @@ export interface FileRouteTypes {
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
+    | '/api/train-from-pdf'
     | '/'
     | '/admin'
     | '/clients/$id'
@@ -562,6 +584,7 @@ export interface FileRouteTypes {
     | '/admin/emails'
     | '/admin/features'
     | '/admin/macros'
+    | '/admin/measurement-reviews'
     | '/admin/memberships'
     | '/admin/price-books'
     | '/admin/reviews'
@@ -576,6 +599,7 @@ export interface FileRouteTypes {
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
+    | '/api/train-from-pdf'
     | '/_app/'
     | '/admin/'
     | '/_app/clients/$id'
@@ -609,6 +633,7 @@ export interface RootRouteChildren {
   ApiMapboxTokenRoute: typeof ApiMapboxTokenRoute
   ApiParseXactimatePdfRoute: typeof ApiParseXactimatePdfRoute
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
+  ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -675,6 +700,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/train-from-pdf': {
+      id: '/api/train-from-pdf'
+      path: '/api/train-from-pdf'
+      fullPath: '/api/train-from-pdf'
+      preLoaderRoute: typeof ApiTrainFromPdfRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/solar-roof-extract': {
       id: '/api/solar-roof-extract'
@@ -772,6 +804,13 @@ declare module '@tanstack/react-router' {
       path: '/memberships'
       fullPath: '/admin/memberships'
       preLoaderRoute: typeof AdminMembershipsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/measurement-reviews': {
+      id: '/admin/measurement-reviews'
+      path: '/measurement-reviews'
+      fullPath: '/admin/measurement-reviews'
+      preLoaderRoute: typeof AdminMeasurementReviewsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/macros': {
@@ -1054,6 +1093,7 @@ interface AdminRouteChildren {
   AdminEmailsRoute: typeof AdminEmailsRoute
   AdminFeaturesRoute: typeof AdminFeaturesRoute
   AdminMacrosRoute: typeof AdminMacrosRoute
+  AdminMeasurementReviewsRoute: typeof AdminMeasurementReviewsRoute
   AdminMembershipsRoute: typeof AdminMembershipsRoute
   AdminPriceBooksRoute: typeof AdminPriceBooksRouteWithChildren
   AdminReviewsRoute: typeof AdminReviewsRoute
@@ -1072,6 +1112,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEmailsRoute: AdminEmailsRoute,
   AdminFeaturesRoute: AdminFeaturesRoute,
   AdminMacrosRoute: AdminMacrosRoute,
+  AdminMeasurementReviewsRoute: AdminMeasurementReviewsRoute,
   AdminMembershipsRoute: AdminMembershipsRoute,
   AdminPriceBooksRoute: AdminPriceBooksRouteWithChildren,
   AdminReviewsRoute: AdminReviewsRoute,
@@ -1099,6 +1140,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMapboxTokenRoute: ApiMapboxTokenRoute,
   ApiParseXactimatePdfRoute: ApiParseXactimatePdfRoute,
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
+  ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
