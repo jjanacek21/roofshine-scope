@@ -33,6 +33,7 @@ import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
 import { Route as AdminPriceBooksRouteImport } from './routes/admin.price-books'
 import { Route as AdminMembershipsRouteImport } from './routes/admin.memberships'
+import { Route as AdminMeasurementReviewsRouteImport } from './routes/admin.measurement-reviews'
 import { Route as AdminMacrosRouteImport } from './routes/admin.macros'
 import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
 import { Route as AdminEmailsRouteImport } from './routes/admin.emails'
@@ -177,6 +178,11 @@ const AdminPriceBooksRoute = AdminPriceBooksRouteImport.update({
 const AdminMembershipsRoute = AdminMembershipsRouteImport.update({
   id: '/memberships',
   path: '/memberships',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMeasurementReviewsRoute = AdminMeasurementReviewsRouteImport.update({
+  id: '/measurement-reviews',
+  path: '/measurement-reviews',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMacrosRoute = AdminMacrosRouteImport.update({
@@ -325,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
   '/admin/macros': typeof AdminMacrosRoute
+  '/admin/measurement-reviews': typeof AdminMeasurementReviewsRoute
   '/admin/memberships': typeof AdminMembershipsRoute
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
@@ -372,6 +379,7 @@ export interface FileRoutesByTo {
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
   '/admin/macros': typeof AdminMacrosRoute
+  '/admin/measurement-reviews': typeof AdminMeasurementReviewsRoute
   '/admin/memberships': typeof AdminMembershipsRoute
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
@@ -423,6 +431,7 @@ export interface FileRoutesById {
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
   '/admin/macros': typeof AdminMacrosRoute
+  '/admin/measurement-reviews': typeof AdminMeasurementReviewsRoute
   '/admin/memberships': typeof AdminMembershipsRoute
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
@@ -476,6 +485,7 @@ export interface FileRouteTypes {
     | '/admin/emails'
     | '/admin/features'
     | '/admin/macros'
+    | '/admin/measurement-reviews'
     | '/admin/memberships'
     | '/admin/price-books'
     | '/admin/reviews'
@@ -523,6 +533,7 @@ export interface FileRouteTypes {
     | '/admin/emails'
     | '/admin/features'
     | '/admin/macros'
+    | '/admin/measurement-reviews'
     | '/admin/memberships'
     | '/admin/price-books'
     | '/admin/reviews'
@@ -573,6 +584,7 @@ export interface FileRouteTypes {
     | '/admin/emails'
     | '/admin/features'
     | '/admin/macros'
+    | '/admin/measurement-reviews'
     | '/admin/memberships'
     | '/admin/price-books'
     | '/admin/reviews'
@@ -792,6 +804,13 @@ declare module '@tanstack/react-router' {
       path: '/memberships'
       fullPath: '/admin/memberships'
       preLoaderRoute: typeof AdminMembershipsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/measurement-reviews': {
+      id: '/admin/measurement-reviews'
+      path: '/measurement-reviews'
+      fullPath: '/admin/measurement-reviews'
+      preLoaderRoute: typeof AdminMeasurementReviewsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/macros': {
@@ -1074,6 +1093,7 @@ interface AdminRouteChildren {
   AdminEmailsRoute: typeof AdminEmailsRoute
   AdminFeaturesRoute: typeof AdminFeaturesRoute
   AdminMacrosRoute: typeof AdminMacrosRoute
+  AdminMeasurementReviewsRoute: typeof AdminMeasurementReviewsRoute
   AdminMembershipsRoute: typeof AdminMembershipsRoute
   AdminPriceBooksRoute: typeof AdminPriceBooksRouteWithChildren
   AdminReviewsRoute: typeof AdminReviewsRoute
@@ -1092,6 +1112,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEmailsRoute: AdminEmailsRoute,
   AdminFeaturesRoute: AdminFeaturesRoute,
   AdminMacrosRoute: AdminMacrosRoute,
+  AdminMeasurementReviewsRoute: AdminMeasurementReviewsRoute,
   AdminMembershipsRoute: AdminMembershipsRoute,
   AdminPriceBooksRoute: AdminPriceBooksRouteWithChildren,
   AdminReviewsRoute: AdminReviewsRoute,
