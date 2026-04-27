@@ -219,7 +219,7 @@ export function MapboxRoofDraw({
         setTimeout(() => {
           map.fire("click", {
             lngLat,
-            point: { x: point[0], y: point[1] },
+            point: new mapboxgl.Point(point[0], point[1]),
             originalEvent: ev,
           });
         }, 0);
