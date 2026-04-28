@@ -2,7 +2,8 @@ import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-rout
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Users, Building2, Megaphone, Mail, FileText, Brain, Star, CreditCard, Flag, BarChart3, LifeBuoy, ScrollText, ArrowLeft, Library, Ruler } from "lucide-react";
+import { Shield, Users, Building2, Megaphone, Mail, FileText, Brain, Star, CreditCard, Flag, BarChart3, LifeBuoy, ScrollText, ArrowLeft, Library, Ruler, Menu } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -31,6 +32,7 @@ function AdminLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [state, setState] = useState<"checking" | "ok" | "denied">("checking");
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -75,6 +77,63 @@ function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Mobile header */}
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-4 lg:hidden">
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetTrigger asChild>
+            <button
+              className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+              aria-label="Open admin menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[260px] border-r border-border bg-card p-0">
+            <SheetTitle className="sr-only">Admin navigation</SheetTitle>
+            <div className="flex items-center gap-2 px-5 py-5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <Shield className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold leading-none">Admin Portal</div>
+                <div className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">Super Admin</div>
+              </div>
+            </div>
+            <nav className="overflow-y-auto px-2 pb-6">
+              {NAV.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    activeOptions={{ exact: item.exact ?? false }}
+                    activeProps={{ className: "bg-accent text-foreground" }}
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+              <div className="mt-4 border-t border-border pt-4">
+                <Link
+                  to="/"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Back to app
+                </Link>
+              </div>
+            </nav>
+          </SheetContent>
+        </Sheet>
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Admin Portal</span>
+        </div>
+      </header>
+
       <aside className="fixed inset-y-0 left-0 hidden w-[240px] border-r border-border bg-card lg:block">
         <div className="flex items-center gap-2 px-5 py-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary">

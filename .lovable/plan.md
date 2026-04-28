@@ -1,19 +1,17 @@
-# Mobile access to Admin Portal
+# Add mobile nav to Admin Portal
 
-The desktop sidebar (which contains the **Admin Portal** link for super admins) is hidden below 1024px. On mobile there's currently no entry point to `/admin` other than typing the URL.
+## Problem
+The Admin Portal layout (`src/routes/admin.tsx`) renders its sidebar as `hidden lg:block`, so on mobile (your 420px viewport) you only see the Overview content with no way to navigate to Users, Companies, Training, etc.
 
-## Changes
+## Fix
+Add a mobile-only top bar inside `admin.tsx` with:
+- **Hamburger button** (left) → opens a `Sheet` from the left containing the full admin nav (Overview, Users, Companies, Pricing, Announcements, Email Blasts, Home Page CMS, AI Training, Measurement Reviews, Reviews, Plans, Feature Flags, Analytics, Support, Audit Log) plus the **Back to app** link.
+- **"Admin Portal" title** (center) for context.
+- Visible only `<lg`; the existing desktop sidebar is unchanged.
+- Sheet auto-closes on link tap.
 
-### 1. New `src/components/layout/MobileSidebarSheet.tsx`
-A hamburger button + slide-out `Sheet` containing the same nav as the desktop `AppSidebar`:
-- **Workspace**: Dashboard, Jobs (with count badge), Clients
-- **Admin**: Pricing, Settings, Team (company admins), **Admin Portal** (super admins only — shield icon)
-- User chip + sign-out at bottom
-- Hamburger button visible only `<lg`; auto-closes on navigation
-- Reuses `useProfile`, `useAuth`, and the same jobs-count query as `AppSidebar.tsx`
-
-### 2. Edit `src/components/layout/Topbar.tsx`
-Mount `<MobileSidebarSheet />` at the far left of the topbar. Hamburger only renders below `lg` so desktop is unchanged.
+## Files
+- `src/routes/admin.tsx` — add mobile header + Sheet, reuse the existing `NAV` array.
 
 ## Result
-At 420px you'll see a hamburger icon in the top bar. Tap it → slide-out panel → tap **Admin Portal** to reach `/admin`. Desktop sidebar behavior unchanged.
+At 420px you'll see a hamburger icon at the top of the admin portal. Tap it to access every admin page.
