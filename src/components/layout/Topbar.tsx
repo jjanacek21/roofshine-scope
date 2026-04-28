@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { Search, Plus, Bell } from "lucide-react";
 import { toast } from "sonner";
+import { MobileSidebarSheet } from "@/components/layout/MobileSidebarSheet";
 
 const ROUTE_LABELS: Record<string, string> = {
   "/": "Dashboard",
@@ -31,6 +32,8 @@ export function Topbar() {
         backgroundColor: "rgba(10, 10, 11, 0.7)",
       }}
     >
+      <MobileSidebarSheet />
+
       {/* Breadcrumb */}
       <div
         className="hidden text-[13px] font-medium sm:block"
