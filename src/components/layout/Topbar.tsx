@@ -32,6 +32,8 @@ export function Topbar() {
         backgroundColor: "rgba(10, 10, 11, 0.7)",
       }}
     >
+      <MobileSidebarSheet />
+
       {/* Breadcrumb */}
       <div
         className="hidden text-[13px] font-medium sm:block"
