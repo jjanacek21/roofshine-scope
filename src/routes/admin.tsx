@@ -32,6 +32,7 @@ function AdminLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [state, setState] = useState<"checking" | "ok" | "denied">("checking");
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (loading) return;
