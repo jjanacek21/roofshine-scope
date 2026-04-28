@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { Search, Plus, Bell } from "lucide-react";
 import { toast } from "sonner";
+import { MobileSidebarSheet } from "@/components/layout/MobileSidebarSheet";
 
 const ROUTE_LABELS: Record<string, string> = {
   "/": "Dashboard",
