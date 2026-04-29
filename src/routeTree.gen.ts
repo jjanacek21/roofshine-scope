@@ -29,6 +29,7 @@ import { Route as ApiAnalyzePropertyRouteImport } from './routes/api.analyze-pro
 import { Route as ApiAnalyzeJobPhotosRouteImport } from './routes/api.analyze-job-photos'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTrainingRouteImport } from './routes/admin.training'
+import { Route as AdminTenantsRouteImport } from './routes/admin.tenants'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
 import { Route as AdminPriceBooksRouteImport } from './routes/admin.price-books'
@@ -159,6 +160,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
 const AdminTrainingRoute = AdminTrainingRouteImport.update({
   id: '/training',
   path: '/training',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTenantsRoute = AdminTenantsRouteImport.update({
+  id: '/tenants',
+  path: '/tenants',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminSupportRoute = AdminSupportRouteImport.update({
@@ -342,6 +348,7 @@ export interface FileRoutesByFullPath {
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/support': typeof AdminSupportRoute
+  '/admin/tenants': typeof AdminTenantsRoute
   '/admin/training': typeof AdminTrainingRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/analyze-job-photos': typeof ApiAnalyzeJobPhotosRoute
@@ -391,6 +398,7 @@ export interface FileRoutesByTo {
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/support': typeof AdminSupportRoute
+  '/admin/tenants': typeof AdminTenantsRoute
   '/admin/training': typeof AdminTrainingRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/analyze-job-photos': typeof ApiAnalyzeJobPhotosRoute
@@ -444,6 +452,7 @@ export interface FileRoutesById {
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/support': typeof AdminSupportRoute
+  '/admin/tenants': typeof AdminTenantsRoute
   '/admin/training': typeof AdminTrainingRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/analyze-job-photos': typeof ApiAnalyzeJobPhotosRoute
@@ -499,6 +508,7 @@ export interface FileRouteTypes {
     | '/admin/price-books'
     | '/admin/reviews'
     | '/admin/support'
+    | '/admin/tenants'
     | '/admin/training'
     | '/admin/users'
     | '/api/analyze-job-photos'
@@ -548,6 +558,7 @@ export interface FileRouteTypes {
     | '/admin/price-books'
     | '/admin/reviews'
     | '/admin/support'
+    | '/admin/tenants'
     | '/admin/training'
     | '/admin/users'
     | '/api/analyze-job-photos'
@@ -600,6 +611,7 @@ export interface FileRouteTypes {
     | '/admin/price-books'
     | '/admin/reviews'
     | '/admin/support'
+    | '/admin/tenants'
     | '/admin/training'
     | '/admin/users'
     | '/api/analyze-job-photos'
@@ -788,6 +800,13 @@ declare module '@tanstack/react-router' {
       path: '/training'
       fullPath: '/admin/training'
       preLoaderRoute: typeof AdminTrainingRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/tenants': {
+      id: '/admin/tenants'
+      path: '/tenants'
+      fullPath: '/admin/tenants'
+      preLoaderRoute: typeof AdminTenantsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/support': {
@@ -1119,6 +1138,7 @@ interface AdminRouteChildren {
   AdminPriceBooksRoute: typeof AdminPriceBooksRouteWithChildren
   AdminReviewsRoute: typeof AdminReviewsRoute
   AdminSupportRoute: typeof AdminSupportRoute
+  AdminTenantsRoute: typeof AdminTenantsRoute
   AdminTrainingRoute: typeof AdminTrainingRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -1138,6 +1158,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPriceBooksRoute: AdminPriceBooksRouteWithChildren,
   AdminReviewsRoute: AdminReviewsRoute,
   AdminSupportRoute: AdminSupportRoute,
+  AdminTenantsRoute: AdminTenantsRoute,
   AdminTrainingRoute: AdminTrainingRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
