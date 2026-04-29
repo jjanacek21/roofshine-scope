@@ -481,7 +481,7 @@ export function SolarRoofTab({
       const r = await fetch("/api/solar-roof-extract", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({ lat: center.lat, lng: center.lng }),
+        body: JSON.stringify({ lat: center.lat, lng: center.lng, property_id: propertyId }),
       });
       if (!r.ok) {
         // Try to parse structured error first
