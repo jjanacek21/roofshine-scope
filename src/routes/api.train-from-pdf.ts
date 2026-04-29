@@ -165,6 +165,7 @@ export const Route = createFileRoute("/api/train-from-pdf")({
           const address = String(form.get("address") ?? "").trim();
           const source = String(form.get("source") ?? "manual").trim().toLowerCase();
           const notes = String(form.get("notes") ?? "").trim() || null;
+          const aiRunId = String(form.get("ai_run_id") ?? "").trim() || null;
 
           if (!(file instanceof File)) return Response.json({ error: "Missing PDF file" }, { status: 400 });
           if (!address) return Response.json({ error: "Address required" }, { status: 400 });
