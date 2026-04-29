@@ -74,7 +74,75 @@ function AdminTrainingCenter() {
     setLoading(false);
   };
 
-  useEffect(() => { loadRuns(); loadDataset(); }, []);
+  const loadDecisions = async () => {
+    setDecLoading(true);
+    const { data, error } = await supabase
+      .from("photo_suggestion_decisions")
+      .select("*")
+      .order("decided_at", { ascending: false })
+      .limit(1000);
+    if (error) toast.error(error.message);
+    const rows = (data as PhotoDecisionRow[]) ?? [];
+    setDecisions(rows);
+    // Resolve job → address + company in a second query
+    const jobIds = Array.from(new Set(rows.map((d) => d.job_id)));
+    if (jobIds.length > 0) {
+      const { data: jobs } = await supabase
+        .from("jobs")
+        .select("id, property_address, company:companies(name), property:properties(address)")
+        .in("id", jobIds);
+      const meta: Record<string, { address: string | null; company: string | null }> = {};
+      for (const j of (jobs as unknown as Array<{ id: string; property_address: string | null; property: { address: string } | null; company: { name: string } | null }> ?? [])) {
+        meta[j.id] = {
+          address: j.property?.address ?? j.property_address ?? null,
+          company: j.company?.name ?? null,
+        };
+      }
+      setDecMeta(meta);
+    }
+    setDecLoading(false);
+  };
+
+  useEffect(() => { loadRuns(); loadDataset(); loadDecisions(); }, []);
+
+  const sessions = useMemo<PhotoSession[]>(() => {
+    const byKey = new Map<string, PhotoSession>();
+    for (const d of decisions) {
+      const day = d.decided_at.slice(0, 10);
+      const key = `${d.job_id}::${day}`;
+      const meta = decMeta[d.job_id] ?? { address: null, company: null };
+      let s = byKey.get(key);
+      if (!s) {
+        s = {
+          job_id: d.job_id,
+          date: day,
+          decided_at: d.decided_at,
+          address: meta.address,
+          company_name: meta.company,
+          decisions: [],
+        };
+        byKey.set(key, s);
+      }
+      s.decisions.push(d);
+      if (d.decided_at > s.decided_at) s.decided_at = d.decided_at;
+    }
+    return Array.from(byKey.values()).sort((a, b) => (a.decided_at < b.decided_at ? 1 : -1));
+  }, [decisions, decMeta]);
+
+  const visibleSessions = useMemo(() => {
+    return sessions.filter((s) => {
+      const picked = s.decisions.filter((d) => d.decision === "picked" || d.decision === "edited").length;
+      const rejected = s.decisions.filter((d) => d.decision === "rejected").length;
+      const total = picked + rejected;
+      const rate = total > 0 ? picked / total : 0;
+      const allReviewed = s.decisions.every((d) => d.reviewed_at);
+      if (photoFilter === "low") return total > 0 && rate < 0.5;
+      if (photoFilter === "high") return total > 0 && rate > 0.8;
+      if (photoFilter === "needs") return !allReviewed;
+      return true;
+    });
+  }, [sessions, photoFilter]);
+
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
