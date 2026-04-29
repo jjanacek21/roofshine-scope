@@ -144,7 +144,7 @@ Return your analysis via the analyze_photo tool.`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "anthropic/claude-sonnet-4-5",
+            model: "google/gemini-2.5-pro",
             messages: [
               {
                 role: "user",

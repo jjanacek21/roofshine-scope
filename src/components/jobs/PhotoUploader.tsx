@@ -230,7 +230,8 @@ export function PhotoUploader({ jobId }: { jobId: string }) {
         type="file"
         multiple
         accept="image/*"
-        className="hidden"
+        className="sr-only"
+        style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
         onChange={(e) => {
           if (e.target.files?.length) upload.mutate(e.target.files);
           e.target.value = "";
@@ -241,7 +242,8 @@ export function PhotoUploader({ jobId }: { jobId: string }) {
         type="file"
         accept="image/*"
         capture="environment"
-        className="hidden"
+        className="sr-only"
+        style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
         onChange={(e) => {
           if (e.target.files?.length) upload.mutate(e.target.files);
           e.target.value = "";
