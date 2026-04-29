@@ -435,6 +435,11 @@ function TenantDialog({
             value={form.legal_addendum_url}
             onChange={(v) => setForm({ ...form, legal_addendum_url: v })}
           />
+          <Field
+            label="Signing app URL (leave blank for default /sign)"
+            value={form.sign_base_url}
+            onChange={(v) => setForm({ ...form, sign_base_url: v })}
+          />
         </div>
         <div className="flex justify-end gap-2 pt-4">
           <button onClick={onClose} className="h-9 rounded-md border border-border px-3 text-[13px]">
