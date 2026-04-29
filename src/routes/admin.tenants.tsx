@@ -339,6 +339,7 @@ function TenantDialog({
     accent_color_dark: tenant?.accent_color_dark ?? "#8E6F18",
     jurisdiction_state: tenant?.jurisdiction_state ?? "FL",
     is_active: tenant?.is_active ?? true,
+    sign_base_url: tenant?.sign_base_url ?? "",
   });
   const [saving, setSaving] = useState(false);
 
