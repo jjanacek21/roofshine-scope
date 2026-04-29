@@ -267,6 +267,53 @@ export function PropertyAnalysisPanel({
       return;
     }
 
+    // Log every consolidated suggestion as a training decision (picked or rejected).
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const decidedBy = userRes.user?.id ?? null;
+      const surfaces = latest?.analysis?.surfaces ?? [];
+      const decisionRows = items.map((it, i) => {
+        const isPicked = selected.has(i);
+        // Best-effort denormalized context
+        const tradeGuess = it.catalog_trade ?? job.primary_trade ?? null;
+        const assetType =
+          surfaces.find((s) =>
+            (it.source_photo_indices ?? []).some((idx) =>
+              (s as { source_photo_indices?: number[] }).source_photo_indices?.includes(idx),
+            ),
+          )?.material ?? null;
+        return {
+          company_id: job.company_id,
+          job_id: jobId,
+          photo_id: it.source_photo_ids?.[0] ?? null,
+          estimate_id: estimateId!,
+          suggested_code: it.suggested_code ?? it.catalog_name ?? it.description.slice(0, 64),
+          suggested_qty: Number(it.qty ?? 0),
+          suggested_unit: it.unit ?? "EA",
+          ai_confidence: it.confidence,
+          ai_description: it.description,
+          source_photo_ids: it.source_photo_ids ?? [],
+          decision: isPicked ? "picked" : "rejected",
+          final_code: isPicked ? it.suggested_code ?? null : null,
+          final_qty: isPicked ? Number(it.qty ?? 0) : null,
+          final_unit: isPicked ? it.unit ?? "EA" : null,
+          trade: tradeGuess,
+          asset_type: assetType,
+          decided_by: decidedBy,
+        };
+      });
+      const { error: decErr } = await supabase
+        .from("photo_suggestion_decisions")
+        .insert(decisionRows);
+      if (decErr) {
+        toast.warning("Items added, but training log failed", { description: decErr.message });
+      }
+    } catch (err) {
+      toast.warning("Items added, but training log failed", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+
     const customCount = rows.filter((r) => !r.code).length;
     const matchedCount = rows.length - customCount;
     qc.invalidateQueries({ queryKey: ["estimate-items", estimateId] });

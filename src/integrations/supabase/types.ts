@@ -962,6 +962,107 @@ export type Database = {
           },
         ]
       }
+      photo_suggestion_decisions: {
+        Row: {
+          ai_confidence: string | null
+          ai_description: string | null
+          asset_type: string | null
+          company_id: string
+          decided_at: string
+          decided_by: string | null
+          decision: string
+          estimate_id: string | null
+          final_code: string | null
+          final_qty: number | null
+          final_unit: string | null
+          id: string
+          job_id: string
+          photo_id: string | null
+          reviewed_at: string | null
+          reviewed_by_admin: string | null
+          source_photo_ids: string[]
+          suggested_code: string
+          suggested_qty: number | null
+          suggested_unit: string | null
+          trade: string | null
+        }
+        Insert: {
+          ai_confidence?: string | null
+          ai_description?: string | null
+          asset_type?: string | null
+          company_id: string
+          decided_at?: string
+          decided_by?: string | null
+          decision: string
+          estimate_id?: string | null
+          final_code?: string | null
+          final_qty?: number | null
+          final_unit?: string | null
+          id?: string
+          job_id: string
+          photo_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by_admin?: string | null
+          source_photo_ids?: string[]
+          suggested_code: string
+          suggested_qty?: number | null
+          suggested_unit?: string | null
+          trade?: string | null
+        }
+        Update: {
+          ai_confidence?: string | null
+          ai_description?: string | null
+          asset_type?: string | null
+          company_id?: string
+          decided_at?: string
+          decided_by?: string | null
+          decision?: string
+          estimate_id?: string | null
+          final_code?: string | null
+          final_qty?: number | null
+          final_unit?: string | null
+          id?: string
+          job_id?: string
+          photo_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by_admin?: string | null
+          source_photo_ids?: string[]
+          suggested_code?: string
+          suggested_qty?: number | null
+          suggested_unit?: string | null
+          trade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_suggestion_decisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_suggestion_decisions_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_suggestion_decisions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_suggestion_decisions_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "job_photos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_books: {
         Row: {
           company_id: string | null
