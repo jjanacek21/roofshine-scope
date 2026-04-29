@@ -20,7 +20,6 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
-import { Route as ApiSignRouteImport } from './routes/api.sign'
 import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xactimate-pdf'
 import { Route as ApiMapboxTokenRouteImport } from './routes/api.mapbox-token'
 import { Route as ApiCalibrateSolarRouteImport } from './routes/api.calibrate-solar'
@@ -50,6 +49,7 @@ import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
+import { Route as ApiPublicSignRouteImport } from './routes/api/public/sign'
 import { Route as AdminPriceBooksNewRouteImport } from './routes/admin.price-books.new'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
@@ -115,11 +115,6 @@ const ApiTrainFromPdfRoute = ApiTrainFromPdfRouteImport.update({
 const ApiSolarRoofExtractRoute = ApiSolarRoofExtractRouteImport.update({
   id: '/api/solar-roof-extract',
   path: '/api/solar-roof-extract',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSignRoute = ApiSignRouteImport.update({
-  id: '/api/sign',
-  path: '/api/sign',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiParseXactimatePdfRoute = ApiParseXactimatePdfRouteImport.update({
@@ -268,6 +263,11 @@ const AppJobsIndexRoute = AppJobsIndexRouteImport.update({
   path: '/jobs/',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiPublicSignRoute = ApiPublicSignRouteImport.update({
+  id: '/api/public/sign',
+  path: '/api/public/sign',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminPriceBooksNewRoute = AdminPriceBooksNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -364,7 +364,6 @@ export interface FileRoutesByFullPath {
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
-  '/api/sign': typeof ApiSignRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/admin/': typeof AdminIndexRoute
@@ -374,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
+  '/api/public/sign': typeof ApiPublicSignRoute
   '/jobs/': typeof AppJobsIndexRoute
   '/team/': typeof AppTeamIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
@@ -415,7 +415,6 @@ export interface FileRoutesByTo {
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
-  '/api/sign': typeof ApiSignRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/': typeof AppIndexRoute
@@ -425,6 +424,7 @@ export interface FileRoutesByTo {
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
+  '/api/public/sign': typeof ApiPublicSignRoute
   '/jobs': typeof AppJobsIndexRoute
   '/team': typeof AppTeamIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
@@ -470,7 +470,6 @@ export interface FileRoutesById {
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
-  '/api/sign': typeof ApiSignRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/_app/': typeof AppIndexRoute
@@ -481,6 +480,7 @@ export interface FileRoutesById {
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
+  '/api/public/sign': typeof ApiPublicSignRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
   '/_app/team/': typeof AppTeamIndexRoute
   '/_app/jobs/$id/contract': typeof AppJobsIdContractRoute
@@ -527,7 +527,6 @@ export interface FileRouteTypes {
     | '/api/calibrate-solar'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
-    | '/api/sign'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/admin/'
@@ -537,6 +536,7 @@ export interface FileRouteTypes {
     | '/price-books/new'
     | '/team/invites'
     | '/admin/price-books/new'
+    | '/api/public/sign'
     | '/jobs/'
     | '/team/'
     | '/jobs/$id/contract'
@@ -578,7 +578,6 @@ export interface FileRouteTypes {
     | '/api/calibrate-solar'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
-    | '/api/sign'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/'
@@ -588,6 +587,7 @@ export interface FileRouteTypes {
     | '/price-books/new'
     | '/team/invites'
     | '/admin/price-books/new'
+    | '/api/public/sign'
     | '/jobs'
     | '/team'
     | '/jobs/$id/contract'
@@ -632,7 +632,6 @@ export interface FileRouteTypes {
     | '/api/calibrate-solar'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
-    | '/api/sign'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/_app/'
@@ -643,6 +642,7 @@ export interface FileRouteTypes {
     | '/_app/price-books/new'
     | '/_app/team/invites'
     | '/admin/price-books/new'
+    | '/api/public/sign'
     | '/_app/jobs/'
     | '/_app/team/'
     | '/_app/jobs/$id/contract'
@@ -668,9 +668,9 @@ export interface RootRouteChildren {
   ApiCalibrateSolarRoute: typeof ApiCalibrateSolarRoute
   ApiMapboxTokenRoute: typeof ApiMapboxTokenRoute
   ApiParseXactimatePdfRoute: typeof ApiParseXactimatePdfRoute
-  ApiSignRoute: typeof ApiSignRoute
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
+  ApiPublicSignRoute: typeof ApiPublicSignRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -750,13 +750,6 @@ declare module '@tanstack/react-router' {
       path: '/api/solar-roof-extract'
       fullPath: '/api/solar-roof-extract'
       preLoaderRoute: typeof ApiSolarRoofExtractRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/sign': {
-      id: '/api/sign'
-      path: '/api/sign'
-      fullPath: '/api/sign'
-      preLoaderRoute: typeof ApiSignRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/parse-xactimate-pdf': {
@@ -961,6 +954,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/jobs/'
       preLoaderRoute: typeof AppJobsIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/public/sign': {
+      id: '/api/public/sign'
+      path: '/api/public/sign'
+      fullPath: '/api/public/sign'
+      preLoaderRoute: typeof ApiPublicSignRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/price-books/new': {
       id: '/admin/price-books/new'
@@ -1201,9 +1201,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCalibrateSolarRoute: ApiCalibrateSolarRoute,
   ApiMapboxTokenRoute: ApiMapboxTokenRoute,
   ApiParseXactimatePdfRoute: ApiParseXactimatePdfRoute,
-  ApiSignRoute: ApiSignRoute,
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
+  ApiPublicSignRoute: ApiPublicSignRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
