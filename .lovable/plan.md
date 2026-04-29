@@ -1,58 +1,35 @@
-## Goal
+## What's broken
 
-Add a super-admin UI to manage Contracting Tenants and their Reps so you (and future admins) can link/unlink user accounts to a tenant by email — no more hand-editing the database. Then use it to link your `jaredjjanacek@gmail.com` account to GCN.
+The Contract page iframe points at `https://sign.globalcontractor.network/GCN-Sign.html`, which doesn't currently resolve. That's why you see the grey "broken document" placeholder — the iframe loaded nothing.
 
-## Why the current screen is empty
+## Plan
 
-`useTenant()` looks up `tenant_users` by your logged-in `auth.uid()`. The seed migration created exactly one rep row for `jared@globalcontractor.network` (user `7af929a0…`), but you're signed in as `jaredjjanacek@gmail.com` (user `e728ce16…`), which has no `tenant_users` row → "Contracts not enabled."
+### 1. Self-host the signer inside this app
+- You'll upload `GCN-Sign.html` (and any companion JS/CSS/images) — I'll place them under `public/sign/` so they're served from the same origin as the app (e.g. `https://globalcontractor.app/sign/GCN-Sign.html`). No CORS, no X-Frame-Options issues, no third-party domain.
+- Default `SIGN_BASE_URL` in `src/lib/contract-config.ts` switches from `https://sign.globalcontractor.network` to `/sign` (relative, so it works in preview, custom domain, and white-label domains automatically).
 
-## What gets built
+### 2. Add per-tenant signer URL override
+Schema change on `tenants`:
+- Add `sign_base_url text` (nullable). When set, used instead of the global default. When null, falls back to `/sign` (or whatever the global default is).
 
-### 1. New admin sidebar entry: "Contracts"
-Add to `src/routes/admin.tsx` NAV list, icon `FileSignature`, route `/admin/tenants`. Super-admin only (existing guard already handles this).
+Code changes:
+- Extend the `Tenant` type in `src/hooks/useTenant.tsx` with `sign_base_url`.
+- `buildSigningUrl()` in `src/lib/contract-config.ts` accepts an optional `baseUrl` argument; the route `_app.jobs.$id.contract.tsx` passes `tenant.sign_base_url ?? SIGN_BASE_URL`.
+- Admin page `src/routes/admin.tenants.tsx`: add a "Signing app URL" field to the tenant edit dialog (placeholder shows the default, leave blank to use it).
 
-### 2. New route: `/admin/tenants` (`src/routes/admin.tenants.tsx`)
-Two-section page:
+### 3. Better empty / error states on the Contract page
+While we're in there:
+- If the iframe fails to load (timeout ~5s), show a friendly fallback card with: "Couldn't load the signing app at `<url>` — check the URL in Admin → Contracts" and a Retry button. Better than a silent grey box.
+- Add a small "Open in new tab" link next to "Save signed contract" so reps can pop the signer out if the iframe misbehaves on a specific iPad.
 
-**Tenants section**
-- Table of all rows in `tenants` (slug, company_name, jurisdiction_state, accent_color swatch, is_active toggle, contact info).
-- "Edit" opens a dialog to update branding fields (`company_name`, `company_address`, `company_phone`, `company_email`, `company_web`, `accent_color`, `accent_color_dark`, `jurisdiction_state`, `legal_addendum_url`, `is_active`).
-- "New tenant" button (slug + company_name required).
+## Build order
 
-**Reps section (per selected tenant)**
-- Table of `tenant_users` joined to `profiles` for that tenant: rep_name, rep_slug, rep_title, linked email (from profiles), is_active.
-- "Add rep" dialog with fields:
-  - User email (typeahead against `profiles.email` so you don't typo)
-  - rep_slug, rep_name, rep_title, rep_phone, rep_email
-  - On submit: look up `profiles.id` by email → insert into `tenant_users` with that `user_id`.
-- Per-row actions: edit, deactivate (set `is_active=false`), delete, and a "Re-link to different account" action that just updates `user_id` after email lookup.
+1. DB migration: add `tenants.sign_base_url`.
+2. Update `useTenant`, `contract-config.ts`, `_app.jobs.$id.contract.tsx`, and the admin tenant dialog.
+3. Add iframe load-error fallback + "Open in new tab" link.
+4. Wait for you to upload `GCN-Sign.html` → I drop it into `public/sign/`.
+5. You reload the Contract tab — it loads from `/sign/GCN-Sign.html` on the same origin.
 
-### 3. Server function for safe lookup
-`src/server/tenant-admin.functions.ts` with `lookupUserByEmail({ email })` using `requireSupabaseAuth` middleware + a super-admin check, returning `{ id, email, first_name, last_name }` or null. RLS on `profiles` already allows super_admin select-all, so this is straightforward but keeps the email lookup off the browser bundle.
+## What I need from you next turn
 
-All other writes go through the browser supabase client because RLS already permits super-admins to manage `tenants` and `tenant_users` (the existing migration created `Super admins manage …` policies on both, per the schema dump).
-
-### 4. Fix your account immediately
-As part of this change, also insert a second `tenant_users` row linking `e728ce16-ccdb-437e-ab2a-0810312e189d` (jaredjjanacek@gmail.com) to the GCN tenant with rep_slug `jared-personal`, rep_name `Jared Janacek`, so the Contract tab works the moment the build finishes — without touching the existing `jared@globalcontractor.network` rep row.
-
-## Files
-
-- `src/routes/admin.tenants.tsx` (new) — page with tabs/sections described above
-- `src/components/admin/TenantEditDialog.tsx` (new)
-- `src/components/admin/TenantRepDialog.tsx` (new) — used for both add and edit
-- `src/server/tenant-admin.functions.ts` (new) — `lookupUserByEmail`
-- `src/routes/admin.tsx` — add nav entry
-- Data insert (no schema change needed): one `tenant_users` row for your gmail account
-
-## Out of scope
-
-- No new tables or RLS changes (existing super_admin policies cover it).
-- No multi-tenant-per-user support; `useTenant()` still picks the first active link.
-- No invite-by-email flow for reps yet — admin must add reps for users who have already signed up.
-
-## How you'll use it after the build
-
-1. Reload the app, open the sidebar → Admin → Contracts.
-2. You'll already see GCN listed and your gmail account linked as a rep (auto-seeded by this change).
-3. Click into a job → Contract tab works.
-4. To add a new rep later: Admin → Contracts → GCN → "Add rep" → type their email → fill rep_slug + rep_name → save.
+Just upload `GCN-Sign.html` (and any sibling assets it uses — images, CSS, JS). Drag-and-drop into chat is fine. After approval, I'll do steps 1–3 immediately so the plumbing is ready when the file lands.

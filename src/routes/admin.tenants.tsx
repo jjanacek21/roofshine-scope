@@ -31,6 +31,7 @@ type Tenant = {
   accent_color_dark: string;
   jurisdiction_state: string;
   is_active: boolean;
+  sign_base_url: string | null;
 };
 
 type TenantUser = {
@@ -338,6 +339,7 @@ function TenantDialog({
     accent_color_dark: tenant?.accent_color_dark ?? "#8E6F18",
     jurisdiction_state: tenant?.jurisdiction_state ?? "FL",
     is_active: tenant?.is_active ?? true,
+    sign_base_url: tenant?.sign_base_url ?? "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -348,17 +350,21 @@ function TenantDialog({
     }
     setSaving(true);
     try {
+      const payload = {
+        ...form,
+        sign_base_url: form.sign_base_url.trim() || null,
+      };
       if (isNew) {
         const { data, error } = await supabase
           .from("tenants")
-          .insert(form)
+          .insert(payload)
           .select("id")
           .single();
         if (error) throw error;
         toast.success("Tenant created");
         onSaved(data.id);
       } else {
-        const { error } = await supabase.from("tenants").update(form).eq("id", tenant!.id);
+        const { error } = await supabase.from("tenants").update(payload).eq("id", tenant!.id);
         if (error) throw error;
         toast.success("Tenant saved");
         onSaved(tenant!.id);
@@ -428,6 +434,11 @@ function TenantDialog({
             label="Legal addendum URL"
             value={form.legal_addendum_url}
             onChange={(v) => setForm({ ...form, legal_addendum_url: v })}
+          />
+          <Field
+            label="Signing app URL (leave blank for default /sign)"
+            value={form.sign_base_url}
+            onChange={(v) => setForm({ ...form, sign_base_url: v })}
           />
         </div>
         <div className="flex justify-end gap-2 pt-4">

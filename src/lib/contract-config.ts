@@ -1,6 +1,6 @@
-// Base URL of the externally-hosted signing app (GCN-Sign.html).
-// Single source so we can swap it later without hunting through components.
-export const SIGN_BASE_URL = "https://sign.globalcontractor.network";
+// Default base URL of the signing app. Same-origin under /sign so the iframe
+// has no CORS / X-Frame-Options issues. Tenants can override via tenants.sign_base_url.
+export const SIGN_BASE_URL = "/sign";
 
 // Filenames produced by the signing app, e.g. GCN-RC-260101-X4Y7.pdf
 // (RC = residential construction, IC = insurance contingency)
@@ -26,6 +26,7 @@ export function buildSigningUrl(params: {
   customerPhone?: string | null;
   customerEmail?: string | null;
   propertyAddress?: string | null;
+  baseUrl?: string | null;
 }): string {
   const qs = new URLSearchParams();
   qs.set("rep", params.rep);
@@ -36,5 +37,6 @@ export function buildSigningUrl(params: {
   if (params.customerPhone) qs.set("customerPhone", params.customerPhone);
   if (params.customerEmail) qs.set("customerEmail", params.customerEmail);
   if (params.propertyAddress) qs.set("propertyAddress", params.propertyAddress);
-  return `${SIGN_BASE_URL}/GCN-Sign.html?${qs.toString()}`;
+  const base = (params.baseUrl?.trim() || SIGN_BASE_URL).replace(/\/$/, "");
+  return `${base}/GCN-Sign.html?${qs.toString()}`;
 }
