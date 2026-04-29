@@ -414,6 +414,82 @@ export type Database = {
           },
         ]
       }
+      contracts: {
+        Row: {
+          contract_type: string
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          document_id: string
+          id: string
+          job_id: string | null
+          pdf_url: string | null
+          property_address: string | null
+          raw_data: Json
+          rep_user_id: string | null
+          signed_at: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          contract_type: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          document_id: string
+          id?: string
+          job_id?: string | null
+          pdf_url?: string | null
+          property_address?: string | null
+          raw_data?: Json
+          rep_user_id?: string | null
+          signed_at?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          contract_type?: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          document_id?: string
+          id?: string
+          job_id?: string | null
+          pdf_url?: string | null
+          property_address?: string | null
+          raw_data?: Json
+          rep_user_id?: string | null
+          signed_at?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_rep_user_id_fkey"
+            columns: ["rep_user_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_line_items: {
         Row: {
           code: string | null
@@ -1447,6 +1523,107 @@ export type Database = {
           },
         ]
       }
+      tenant_users: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          rep_email: string | null
+          rep_name: string
+          rep_phone: string | null
+          rep_slug: string
+          rep_title: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          rep_email?: string | null
+          rep_name: string
+          rep_phone?: string | null
+          rep_slug: string
+          rep_title?: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          rep_email?: string | null
+          rep_name?: string
+          rep_phone?: string | null
+          rep_slug?: string
+          rep_title?: string | null
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_users_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          accent_color: string
+          accent_color_dark: string
+          company_address: string | null
+          company_email: string | null
+          company_id: string | null
+          company_name: string
+          company_phone: string | null
+          company_web: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          jurisdiction_state: string
+          legal_addendum_url: string | null
+          logo_base64: string | null
+          slug: string
+        }
+        Insert: {
+          accent_color?: string
+          accent_color_dark?: string
+          company_address?: string | null
+          company_email?: string | null
+          company_id?: string | null
+          company_name: string
+          company_phone?: string | null
+          company_web?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          jurisdiction_state?: string
+          legal_addendum_url?: string | null
+          logo_base64?: string | null
+          slug: string
+        }
+        Update: {
+          accent_color?: string
+          accent_color_dark?: string
+          company_address?: string | null
+          company_email?: string | null
+          company_id?: string | null
+          company_name?: string
+          company_phone?: string | null
+          company_web?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          jurisdiction_state?: string
+          legal_addendum_url?: string | null
+          logo_base64?: string | null
+          slug?: string
+        }
+        Relationships: []
+      }
       training_examples: {
         Row: {
           address: string
@@ -1502,6 +1679,7 @@ export type Database = {
     Functions: {
       accept_company_invite: { Args: { _token: string }; Returns: Json }
       auth_company_id: { Args: never; Returns: string }
+      auth_tenant_id: { Args: never; Returns: string }
       get_invite_preview: { Args: { _token: string }; Returns: Json }
       has_role: {
         Args: {
