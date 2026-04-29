@@ -165,6 +165,7 @@ export const Route = createFileRoute("/api/train-from-pdf")({
           const address = String(form.get("address") ?? "").trim();
           const source = String(form.get("source") ?? "manual").trim().toLowerCase();
           const notes = String(form.get("notes") ?? "").trim() || null;
+          const aiRunId = String(form.get("ai_run_id") ?? "").trim() || null;
 
           if (!(file instanceof File)) return Response.json({ error: "Missing PDF file" }, { status: 400 });
           if (!address) return Response.json({ error: "Address required" }, { status: 400 });
@@ -209,6 +210,19 @@ export const Route = createFileRoute("/api/train-from-pdf")({
             .single();
           if (insErr) {
             return Response.json({ error: insErr.message }, { status: 500 });
+          }
+
+          // If paired with an AI run, link them and mark corrected
+          if (aiRunId) {
+            await admin
+              .from("ai_measurement_runs")
+              .update({
+                training_example_id: row.id,
+                review_status: "corrected",
+                reviewed_at: new Date().toISOString(),
+                reviewed_by: userId,
+              })
+              .eq("id", aiRunId);
           }
 
           return Response.json({

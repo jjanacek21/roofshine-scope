@@ -73,15 +73,28 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
         const { data: claims, error: cErr } = await supabase.auth.getClaims(token);
         if (cErr || !claims?.claims?.sub) return new Response("Unauthorized", { status: 401 });
 
-        let body: { lat?: number; lng?: number };
+        let body: { lat?: number; lng?: number; property_id?: string; job_id?: string };
         try {
           body = await request.json();
         } catch {
           return Response.json({ error: "Invalid JSON" }, { status: 400 });
         }
-        const { lat, lng } = body;
+        const { lat, lng, property_id, job_id } = body;
         if (typeof lat !== "number" || typeof lng !== "number") {
           return Response.json({ error: "lat & lng required" }, { status: 400 });
+        }
+
+        // Look up the caller's company so we can scope the AI run log
+        let callerCompanyId: string | null = null;
+        try {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("company_id")
+            .eq("id", claims.claims.sub)
+            .maybeSingle();
+          callerCompanyId = (prof?.company_id as string | null) ?? null;
+        } catch {
+          // ignore
         }
 
         // Build attempt order: quality fallback at the original point, then
@@ -194,6 +207,47 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
 
         const totalPlanSqFt =
           (data.solarPotential?.wholeRoofStats?.areaMeters2 ?? 0) * sqMeterToSqFt;
+
+        // Compute pitch-adjusted total + predominant pitch for the AI run log
+        let totalActualSqFt = 0;
+        const pitchTotals: Record<string, number> = {};
+        for (const seg of segments) {
+          const rise = Math.tan((seg.pitch_degrees * Math.PI) / 180) * 12;
+          const mult = Math.sqrt(1 + Math.pow(rise / 12, 2));
+          totalActualSqFt += seg.plan_area_sqft * mult;
+          pitchTotals[seg.pitch] = (pitchTotals[seg.pitch] ?? 0) + seg.plan_area_sqft;
+        }
+        const predominantPitch =
+          Object.entries(pitchTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+        // Best-effort log every successful AI run (uses service role to bypass RLS)
+        if (SUPABASE_SERVICE_ROLE_KEY) {
+          try {
+            const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+              auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+            });
+            await admin.from("ai_measurement_runs").insert({
+              requested_lat: lat,
+              requested_lng: lng,
+              property_id: property_id ?? null,
+              job_id: job_id ?? null,
+              company_id: callerCompanyId,
+              user_id: claims.claims.sub,
+              provider: "google_solar",
+              status: "success",
+              imagery_quality: data.imageryQuality ?? success.usedQuality,
+              imagery_date: data.imageryDate ?? null,
+              total_plan_sqft: totalPlanSqFt,
+              total_actual_sqft: totalActualSqFt,
+              predominant_pitch: predominantPitch,
+              segment_count: segments.length,
+              segments,
+              raw_response: data as unknown as Record<string, unknown>,
+            });
+          } catch (err) {
+            console.error("ai_measurement_runs log failed:", err);
+          }
+        }
 
         return Response.json({
           imagery_quality: data.imageryQuality ?? success.usedQuality,

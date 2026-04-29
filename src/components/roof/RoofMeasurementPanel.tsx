@@ -352,6 +352,7 @@ export function RoofMeasurementPanel({
       {tab === "solar" && center && (
         <SolarRoofTab
           center={center}
+          propertyId={propertyId}
           onApply={(d) => { setMapboxData(d); setTab("mapbox"); }}
           onSwitchToMapbox={() => setTab("mapbox")}
         />

@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_measurement_runs: {
+        Row: {
+          company_id: string | null
+          correction_measurement_id: string | null
+          created_at: string
+          id: string
+          imagery_date: Json | null
+          imagery_quality: string | null
+          job_id: string | null
+          notes: string | null
+          predominant_pitch: string | null
+          property_id: string | null
+          provider: string
+          raw_response: Json
+          requested_lat: number
+          requested_lng: number
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          segment_count: number
+          segments: Json
+          status: string
+          total_actual_sqft: number
+          total_plan_sqft: number
+          training_example_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          correction_measurement_id?: string | null
+          created_at?: string
+          id?: string
+          imagery_date?: Json | null
+          imagery_quality?: string | null
+          job_id?: string | null
+          notes?: string | null
+          predominant_pitch?: string | null
+          property_id?: string | null
+          provider?: string
+          raw_response?: Json
+          requested_lat: number
+          requested_lng: number
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          segment_count?: number
+          segments?: Json
+          status?: string
+          total_actual_sqft?: number
+          total_plan_sqft?: number
+          training_example_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          correction_measurement_id?: string | null
+          created_at?: string
+          id?: string
+          imagery_date?: Json | null
+          imagery_quality?: string | null
+          job_id?: string | null
+          notes?: string | null
+          predominant_pitch?: string | null
+          property_id?: string | null
+          provider?: string
+          raw_response?: Json
+          requested_lat?: number
+          requested_lng?: number
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          segment_count?: number
+          segments?: Json
+          status?: string
+          total_actual_sqft?: number
+          total_plan_sqft?: number
+          training_example_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       announcements: {
         Row: {
           audience_company_id: string | null
