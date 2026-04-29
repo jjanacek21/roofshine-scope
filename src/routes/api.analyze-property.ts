@@ -231,7 +231,7 @@ Return ONE consolidated property analysis via the record_property_analysis tool.
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "anthropic/claude-sonnet-4-5",
+            model: "google/gemini-2.5-pro",
             messages: [{ role: "user", content: userContent }],
             tools,
             tool_choice: { type: "function", function: { name: "record_property_analysis" } },
