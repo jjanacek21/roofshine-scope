@@ -212,6 +212,19 @@ export const Route = createFileRoute("/api/train-from-pdf")({
             return Response.json({ error: insErr.message }, { status: 500 });
           }
 
+          // If paired with an AI run, link them and mark corrected
+          if (aiRunId) {
+            await admin
+              .from("ai_measurement_runs")
+              .update({
+                training_example_id: row.id,
+                review_status: "corrected",
+                reviewed_at: new Date().toISOString(),
+                reviewed_by: userId,
+              })
+              .eq("id", aiRunId);
+          }
+
           return Response.json({
             id: row.id,
             ground_truth: groundTruth,
