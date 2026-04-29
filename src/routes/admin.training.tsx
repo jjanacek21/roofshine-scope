@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Brain, Upload, FileText, MapPin, Trash2, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
+import { Brain, Upload, FileText, MapPin, Trash2, Loader2, Sparkles, CheckCircle2, Camera, ShieldCheck } from "lucide-react";
 import { AIMeasurementReviewDialog, type AIRun } from "@/components/admin/AIMeasurementReviewDialog";
+import { PhotoDecisionsDrawer, type PhotoDecisionRow, type PhotoSession } from "@/components/admin/PhotoDecisionsDrawer";
 
 export const Route = createFileRoute("/admin/training")({
   component: AdminTrainingCenter,
