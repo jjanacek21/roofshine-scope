@@ -350,17 +350,21 @@ function TenantDialog({
     }
     setSaving(true);
     try {
+      const payload = {
+        ...form,
+        sign_base_url: form.sign_base_url.trim() || null,
+      };
       if (isNew) {
         const { data, error } = await supabase
           .from("tenants")
-          .insert(form)
+          .insert(payload)
           .select("id")
           .single();
         if (error) throw error;
         toast.success("Tenant created");
         onSaved(data.id);
       } else {
-        const { error } = await supabase.from("tenants").update(form).eq("id", tenant!.id);
+        const { error } = await supabase.from("tenants").update(payload).eq("id", tenant!.id);
         if (error) throw error;
         toast.success("Tenant saved");
         onSaved(tenant!.id);
