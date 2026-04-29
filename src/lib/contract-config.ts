@@ -1,6 +1,8 @@
-// Default base URL of the signing app. Same-origin under /sign so the iframe
-// has no CORS / X-Frame-Options issues. Tenants can override via tenants.sign_base_url.
-export const SIGN_BASE_URL = "/sign";
+// Default URL of the signing app. Served same-origin via a TanStack Start server
+// route (`/api/sign`) which streams the bundled HTML — this avoids the SSR
+// catch-all returning 404 for static files in /public. Tenants can override via
+// tenants.sign_base_url (full URL to an HTML file, no trailing slash).
+export const SIGN_BASE_URL = "/api/sign";
 
 // Filenames produced by the signing app, e.g. GCN-RC-260101-X4Y7.pdf
 // (RC = residential construction, IC = insurance contingency)
@@ -38,5 +40,7 @@ export function buildSigningUrl(params: {
   if (params.customerEmail) qs.set("customerEmail", params.customerEmail);
   if (params.propertyAddress) qs.set("propertyAddress", params.propertyAddress);
   const base = (params.baseUrl?.trim() || SIGN_BASE_URL).replace(/\/$/, "");
-  return `${base}/GCN-Sign.html?${qs.toString()}`;
+  // Tenant overrides may point at a static .html file; default points at the
+  // /api/sign server route. In both cases just append the query string.
+  return `${base}?${qs.toString()}`;
 }

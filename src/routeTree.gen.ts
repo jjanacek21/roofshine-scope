@@ -20,6 +20,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
+import { Route as ApiSignRouteImport } from './routes/api.sign'
 import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xactimate-pdf'
 import { Route as ApiMapboxTokenRouteImport } from './routes/api.mapbox-token'
 import { Route as ApiCalibrateSolarRouteImport } from './routes/api.calibrate-solar'
@@ -114,6 +115,11 @@ const ApiTrainFromPdfRoute = ApiTrainFromPdfRouteImport.update({
 const ApiSolarRoofExtractRoute = ApiSolarRoofExtractRouteImport.update({
   id: '/api/solar-roof-extract',
   path: '/api/solar-roof-extract',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSignRoute = ApiSignRouteImport.update({
+  id: '/api/sign',
+  path: '/api/sign',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiParseXactimatePdfRoute = ApiParseXactimatePdfRouteImport.update({
@@ -358,6 +364,7 @@ export interface FileRoutesByFullPath {
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
+  '/api/sign': typeof ApiSignRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/admin/': typeof AdminIndexRoute
@@ -408,6 +415,7 @@ export interface FileRoutesByTo {
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
+  '/api/sign': typeof ApiSignRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/': typeof AppIndexRoute
@@ -462,6 +470,7 @@ export interface FileRoutesById {
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
+  '/api/sign': typeof ApiSignRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/_app/': typeof AppIndexRoute
@@ -518,6 +527,7 @@ export interface FileRouteTypes {
     | '/api/calibrate-solar'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
+    | '/api/sign'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/admin/'
@@ -568,6 +578,7 @@ export interface FileRouteTypes {
     | '/api/calibrate-solar'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
+    | '/api/sign'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/'
@@ -621,6 +632,7 @@ export interface FileRouteTypes {
     | '/api/calibrate-solar'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
+    | '/api/sign'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/_app/'
@@ -656,6 +668,7 @@ export interface RootRouteChildren {
   ApiCalibrateSolarRoute: typeof ApiCalibrateSolarRoute
   ApiMapboxTokenRoute: typeof ApiMapboxTokenRoute
   ApiParseXactimatePdfRoute: typeof ApiParseXactimatePdfRoute
+  ApiSignRoute: typeof ApiSignRoute
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
 }
@@ -737,6 +750,13 @@ declare module '@tanstack/react-router' {
       path: '/api/solar-roof-extract'
       fullPath: '/api/solar-roof-extract'
       preLoaderRoute: typeof ApiSolarRoofExtractRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/sign': {
+      id: '/api/sign'
+      path: '/api/sign'
+      fullPath: '/api/sign'
+      preLoaderRoute: typeof ApiSignRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/parse-xactimate-pdf': {
@@ -1181,6 +1201,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCalibrateSolarRoute: ApiCalibrateSolarRoute,
   ApiMapboxTokenRoute: ApiMapboxTokenRoute,
   ApiParseXactimatePdfRoute: ApiParseXactimatePdfRoute,
+  ApiSignRoute: ApiSignRoute,
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
 }
