@@ -1,8 +1,9 @@
 // Default URL of the signing app. Served same-origin via a TanStack Start server
-// route (`/api/sign`) which streams the bundled HTML — this avoids the SSR
-// catch-all returning 404 for static files in /public. Tenants can override via
-// tenants.sign_base_url (full URL to an HTML file, no trailing slash).
-export const SIGN_BASE_URL = "/api/sign";
+// route (`/api/public/sign`) which streams the bundled HTML. Lives under
+// /api/public/* so the preview proxy does not auth-gate it (otherwise the
+// iframe gets a 302 to lovable.dev/auth-bridge, which refuses to be framed).
+// Tenants can override via tenants.sign_base_url (full URL to an HTML file).
+export const SIGN_BASE_URL = "/api/public/sign";
 
 // Filenames produced by the signing app, e.g. GCN-RC-260101-X4Y7.pdf
 // (RC = residential construction, IC = insurance contingency)
@@ -41,6 +42,6 @@ export function buildSigningUrl(params: {
   if (params.propertyAddress) qs.set("propertyAddress", params.propertyAddress);
   const base = (params.baseUrl?.trim() || SIGN_BASE_URL).replace(/\/$/, "");
   // Tenant overrides may point at a static .html file; default points at the
-  // /api/sign server route. In both cases just append the query string.
+  // /api/public/sign server route. In both cases just append the query string.
   return `${base}?${qs.toString()}`;
 }
