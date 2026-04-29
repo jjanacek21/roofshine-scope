@@ -4,7 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 // eslint-disable-next-line import/no-unresolved
 import signHtml from "../sign/GCN-Sign.html?raw";
 
-export const Route = createFileRoute("/api/sign")({
+export const Route = createFileRoute("/api/public/sign")({
   server: {
     handlers: {
       GET: async () => {
