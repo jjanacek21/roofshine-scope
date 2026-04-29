@@ -73,15 +73,28 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
         const { data: claims, error: cErr } = await supabase.auth.getClaims(token);
         if (cErr || !claims?.claims?.sub) return new Response("Unauthorized", { status: 401 });
 
-        let body: { lat?: number; lng?: number };
+        let body: { lat?: number; lng?: number; property_id?: string; job_id?: string };
         try {
           body = await request.json();
         } catch {
           return Response.json({ error: "Invalid JSON" }, { status: 400 });
         }
-        const { lat, lng } = body;
+        const { lat, lng, property_id, job_id } = body;
         if (typeof lat !== "number" || typeof lng !== "number") {
           return Response.json({ error: "lat & lng required" }, { status: 400 });
+        }
+
+        // Look up the caller's company so we can scope the AI run log
+        let callerCompanyId: string | null = null;
+        try {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("company_id")
+            .eq("id", claims.claims.sub)
+            .maybeSingle();
+          callerCompanyId = (prof?.company_id as string | null) ?? null;
+        } catch {
+          // ignore
         }
 
         // Build attempt order: quality fallback at the original point, then
