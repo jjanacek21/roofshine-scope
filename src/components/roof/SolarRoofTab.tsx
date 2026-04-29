@@ -149,10 +149,12 @@ function ringCentroid(ring: number[][]): [number, number] {
 
 export function SolarRoofTab({
   center,
+  propertyId,
   onApply,
   onSwitchToMapbox,
 }: {
   center: { lng: number; lat: number };
+  propertyId?: string;
   onApply: (data: MapboxRoofData) => void;
   onSwitchToMapbox?: () => void;
 }) {
