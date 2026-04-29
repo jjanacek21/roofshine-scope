@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Mail, Phone, MapPin, Calendar, FileText } from "lucide-react";
 import { TRADES, JOB_STATUSES, type JobStatus } from "@/lib/trades";
 import { MapPreview } from "@/components/jobs/MapPreview";
+import { JobContractsList } from "@/components/contracts/JobContractsList";
 
 export const Route = createFileRoute("/_app/jobs/$id/")({
   component: JobOverview,
@@ -237,6 +238,8 @@ function JobOverview() {
             />
           </ul>
         </Card>
+
+        <JobContractsList jobId={job.id} />
       </div>
     </div>
   );
