@@ -1586,6 +1586,7 @@ export type Database = {
           jurisdiction_state: string
           legal_addendum_url: string | null
           logo_base64: string | null
+          sign_base_url: string | null
           slug: string
         }
         Insert: {
@@ -1603,6 +1604,7 @@ export type Database = {
           jurisdiction_state?: string
           legal_addendum_url?: string | null
           logo_base64?: string | null
+          sign_base_url?: string | null
           slug: string
         }
         Update: {
@@ -1620,6 +1622,7 @@ export type Database = {
           jurisdiction_state?: string
           legal_addendum_url?: string | null
           logo_base64?: string | null
+          sign_base_url?: string | null
           slug?: string
         }
         Relationships: []
