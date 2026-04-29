@@ -40,5 +40,7 @@ export function buildSigningUrl(params: {
   if (params.customerEmail) qs.set("customerEmail", params.customerEmail);
   if (params.propertyAddress) qs.set("propertyAddress", params.propertyAddress);
   const base = (params.baseUrl?.trim() || SIGN_BASE_URL).replace(/\/$/, "");
-  return `${base}/GCN-Sign.html?${qs.toString()}`;
+  // Tenant overrides may point at a static .html file; default points at the
+  // /api/sign server route. In both cases just append the query string.
+  return `${base}?${qs.toString()}`;
 }
