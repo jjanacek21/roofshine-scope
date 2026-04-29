@@ -1,35 +1,39 @@
-## What's broken
+## Goal
 
-The Contract page iframe points at `https://sign.globalcontractor.network/GCN-Sign.html`, which doesn't currently resolve. That's why you see the grey "broken document" placeholder — the iframe loaded nothing.
+Save the complete `GCN-Sign.html` to `public/sign/` so the Contract iframe loads it from the same origin. All the plumbing (per-tenant URL override, iframe load fallback, "Open in new tab", DB column) is already in place from the previous turn.
 
-## Plan
+## What I'll do on approval
 
-### 1. Self-host the signer inside this app
-- You'll upload `GCN-Sign.html` (and any companion JS/CSS/images) — I'll place them under `public/sign/` so they're served from the same origin as the app (e.g. `https://globalcontractor.app/sign/GCN-Sign.html`). No CORS, no X-Frame-Options issues, no third-party domain.
-- Default `SIGN_BASE_URL` in `src/lib/contract-config.ts` switches from `https://sign.globalcontractor.network` to `/sign` (relative, so it works in preview, custom domain, and white-label domains automatically).
+### 1. Reassemble the full HTML file from your 3 paste parts
 
-### 2. Add per-tenant signer URL override
-Schema change on `tenants`:
-- Add `sign_base_url text` (nullable). When set, used instead of the global default. When null, falls back to `/sign` (or whatever the global default is).
+Stitch parts 1, 2, and 3 back together into one valid `GCN-Sign.html`. Notes on reassembly:
 
-Code changes:
-- Extend the `Tenant` type in `src/hooks/useTenant.tsx` with `sign_base_url`.
-- `buildSigningUrl()` in `src/lib/contract-config.ts` accepts an optional `baseUrl` argument; the route `_app.jobs.$id.contract.tsx` passes `tenant.sign_base_url ?? SIGN_BASE_URL`.
-- Admin page `src/routes/admin.tenants.tsx`: add a "Signing app URL" field to the tenant edit dialog (placeholder shows the default, leave blank to use it).
+- **Part 1 was truncated mid-`<head>`** (cut off in the initial paste). I have the `<head>` from part 2 onwards. I'll reconstruct the opening `<head>` block (charset, viewport, jsPDF CDN, title) — these are standard and visible from the part-2 CSS preamble.
+- **Part 2 contains the body markup** but the chat stripped tag attributes / class names from the visible text (e.g. headers, buttons, fields show as plain text). I'll need to reconstruct the actual JSX-equivalent HTML for the steps from the visible structure (step labels, field labels, option groups, etc.). The CSS class hooks (`option-card`, `dtp-option`, `initial-input`, `sig-pad`, `nav-bar`, `step[data-step="N"]`, etc.) are all defined and the JS references specific IDs — I'll wire markup to match the IDs the JS expects.
+- **Part 3 is the complete `<script>`** — schemas, state, sig pads, validation, PDF generation, download/email. Pasted verbatim.
 
-### 3. Better empty / error states on the Contract page
-While we're in there:
-- If the iframe fails to load (timeout ~5s), show a friendly fallback card with: "Couldn't load the signing app at `<url>` — check the URL in Admin → Contracts" and a Retry button. Better than a silent grey box.
-- Add a small "Open in new tab" link next to "Save signed contract" so reps can pop the signer out if the iframe misbehaves on a specific iPad.
+### 2. Write to `public/sign/GCN-Sign.html`
 
-## Build order
+Single self-contained file. jsPDF loaded from CDN (already in the HTML). No other assets needed — QR code is inlined as base64 in the PDF generator.
 
-1. DB migration: add `tenants.sign_base_url`.
-2. Update `useTenant`, `contract-config.ts`, `_app.jobs.$id.contract.tsx`, and the admin tenant dialog.
-3. Add iframe load-error fallback + "Open in new tab" link.
-4. Wait for you to upload `GCN-Sign.html` → I drop it into `public/sign/`.
-5. You reload the Contract tab — it loads from `/sign/GCN-Sign.html` on the same origin.
+### 3. Verify the wiring end-to-end
 
-## What I need from you next turn
+- Confirm `public/sign/GCN-Sign.html` is served at `/sign/GCN-Sign.html` (TanStack Start serves `public/` as static).
+- Confirm `buildSigningUrl` in `src/lib/contract-config.ts` defaults to `/sign` and the URL params (`rep`, `type`, `jobId`, `tenantId`, `customerName`, etc.) match what the HTML's `init()` reads (`URLSearchParams.get('rep')`, `get('type')`).
+- The HTML's `REPS` object is hardcoded with 5 GCN reps keyed by slug. The `rep` param from the iframe is `tenantUser.rep_slug` — confirm the seeded tenant_users have matching slugs (`jared`, `austin`, `aj`, `joey`, `michael`), or the HTML will fall back to Jared.
 
-Just upload `GCN-Sign.html` (and any sibling assets it uses — images, CSS, JS). Drag-and-drop into chat is fine. After approval, I'll do steps 1–3 immediately so the plumbing is ready when the file lands.
+### 4. One small follow-up I'll flag (not block on)
+
+The HTML's `submitAgreement()` only generates the PDF client-side and opens mailto. It does **not** POST the signed PDF back to your app. Your existing `UploadSignedContractDialog` handles upload separately (rep clicks "Save signed contract" → uploads the downloaded PDF). That's the intended flow for now — works, but means the rep does an extra step.
+
+A future improvement: have the iframe `postMessage` the PDF blob to the parent on sign completion so it auto-uploads. I won't do that now — wait until you confirm the basic flow works.
+
+## Risk
+
+The body markup in part 2 came through with class names and attributes stripped by the chat renderer. I'll reconstruct it carefully to match the IDs the JS expects, but you should test the full 5-step flow once it's deployed and tell me anything that looks off (missing field, broken step transition, signature pad not showing). Easy to fix iteratively.
+
+## Files touched
+
+- **Created**: `public/sign/GCN-Sign.html` (single file, ~1500 lines)
+
+No other files change — all the React-side plumbing is already done.

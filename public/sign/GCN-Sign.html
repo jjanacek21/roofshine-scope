@@ -1,0 +1,2427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GCN Sign">
+<title>GCN — Sign Agreement</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --black: #0A0908;
+  --gold: #C9A227;
+  --gold-deep: #8F6F18;
+  --gold-bright: #E6C45C;
+  --gold-pale: #F8E58A;
+  --paper: #FAF9F5;
+  --paper-warm: #F4F1E8;
+  --ink: #1A1814;
+  --ink-soft: #4A4640;
+  --ink-faint: #8A857A;
+  --rule: #D8D2C0;
+  --rule-soft: #EAE5D2;
+  --warn-bg: #FCEFEC;
+  --warn: #9B1C1C;
+  --good: #166534;
+  --good-bg: #E8F2EC;
+  --shadow: 0 1px 3px rgba(10,9,8,0.04), 0 4px 16px rgba(10,9,8,0.06);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: var(--paper-warm); color: var(--ink); line-height: 1.45;
+  font-size: 16px; min-height: 100%; -webkit-font-smoothing: antialiased;
+  overscroll-behavior: contain;
+}
+header {
+  background: var(--black); padding: 0.9rem 1.25rem 1rem;
+  border-bottom: 3px solid var(--gold);
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  position: sticky; top: 0; z-index: 50;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+header .brand { display: flex; align-items: center; gap: 0.75rem; }
+header .info { color: var(--paper); font-size: 0.68rem; line-height: 1.2; letter-spacing: 0.03em; }
+header .info b { font-size: 0.88rem; display: block; margin-bottom: 0.12rem; letter-spacing: 0.01em; }
+header .info span { color: rgba(250,249,245,0.55); }
+header .rep-pill {
+  background: rgba(201,162,39,0.15); color: var(--gold-bright);
+  padding: 0.35rem 0.7rem; border-radius: 14px; font-size: 0.7rem;
+  letter-spacing: 0.05em; font-weight: 600; border: 1px solid rgba(201,162,39,0.35);
+  white-space: nowrap;
+}
+.doc-switch {
+  background: var(--paper-warm); padding: 0.9rem 1.25rem 0.6rem;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.doc-switch-inner {
+  display: flex; gap: 0.4rem; background: rgba(10,9,8,0.05);
+  border-radius: 12px; padding: 4px;
+}
+.doc-switch button {
+  flex: 1; background: transparent; border: none; color: var(--ink-soft);
+  font-family: inherit; font-size: 0.82rem; font-weight: 600;
+  padding: 0.65rem 0.4rem; border-radius: 9px; cursor: pointer;
+  transition: all 0.18s ease; line-height: 1.2;
+}
+.doc-switch button.active {
+  background: var(--paper); color: var(--ink); box-shadow: var(--shadow);
+}
+.progress-bar {
+  background: var(--paper-warm); padding: 0.85rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: 0.65rem; color: var(--ink-soft);
+  letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
+}
+.progress-track {
+  height: 6px; background: rgba(10,9,8,0.06);
+  border-radius: 6px; overflow: hidden; margin-top: 0.4rem;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-bright), var(--gold));
+  border-radius: 6px; transition: width 0.4s ease;
+}
+.progress-row { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+main { padding: 1.25rem 1.25rem 8rem; max-width: 800px; margin: 0 auto; }
+.step { display: none; }
+.step.active { display: block; animation: fadeUp 0.3s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.step-label {
+  font-size: 0.68rem; letter-spacing: 0.18em; color: var(--gold-deep);
+  text-transform: uppercase; font-weight: 700; margin-bottom: 0.4rem;
+}
+.step-title {
+  font-size: 1.5rem; font-weight: 700; color: var(--ink); margin-bottom: 0.4rem;
+  line-height: 1.15; letter-spacing: -0.01em;
+}
+.step-sub { font-size: 0.95rem; color: var(--ink-soft); margin-bottom: 1.5rem; }
+.step-body { background: var(--paper); border-radius: 14px; padding: 1.4rem 1.25rem; box-shadow: var(--shadow); }
+.field { margin-bottom: 1.1rem; }
+.field label {
+  display: block; font-size: 0.78rem; font-weight: 600;
+  color: var(--ink); margin-bottom: 0.4rem; letter-spacing: 0.01em;
+}
+.field label .req { color: var(--gold-deep); margin-left: 2px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 0.85rem 1rem; font-size: 1rem;
+  font-family: inherit; color: var(--ink);
+  background: #FFFFFF;
+  border: 1.5px solid var(--rule); border-radius: 10px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  -webkit-appearance: none; appearance: none;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none; border-color: var(--gold);
+  box-shadow: 0 0 0 4px rgba(201,162,39,0.13);
+}
+.field textarea { resize: vertical; min-height: 90px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+.field-help { font-size: 0.78rem; color: var(--ink-faint); margin-top: 0.35rem; }
+.field-error { font-size: 0.78rem; color: var(--warn); margin-top: 0.35rem; display: none; }
+.field.has-error input, .field.has-error select, .field.has-error textarea { border-color: var(--warn); }
+.field.has-error .field-error { display: block; }
+.option-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem; margin-top: 0.4rem;
+}
+.option-card {
+  display: flex; align-items: center; gap: 0.6rem;
+  background: #FFFFFF; border: 1.5px solid var(--rule);
+  border-radius: 10px; padding: 0.7rem 0.85rem;
+  cursor: pointer; user-select: none;
+  transition: all 0.15s ease; font-size: 0.9rem; font-weight: 500;
+}
+.option-card:hover { border-color: var(--gold-deep); }
+.option-card.selected {
+  background: rgba(248,229,138,0.15); border-color: var(--gold); color: var(--ink);
+}
+.option-card .check {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid var(--rule); background: #FFFFFF;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.15s ease;
+}
+.option-card.selected .check { background: var(--gold); border-color: var(--gold); }
+.option-card.selected .check::after {
+  content: ""; display: block; width: 5px; height: 9px;
+  border: solid var(--black); border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.notice-box {
+  background: var(--paper-warm); border-left: 4px solid var(--gold); border-radius: 8px;
+  padding: 1rem 1.1rem; margin-bottom: 1rem; font-size: 0.86rem; line-height: 1.5;
+}
+.notice-box .notice-label {
+  font-size: 0.65rem; letter-spacing: 0.18em; color: var(--gold-deep);
+  text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;
+}
+.notice-box .notice-text { color: var(--ink); font-size: 0.86rem; }
+.initial-row {
+  display: flex; align-items: center; gap: 0.8rem;
+  margin-top: 0.85rem; padding-top: 0.85rem;
+  border-top: 1px dashed var(--rule);
+}
+.initial-row label { flex: 1; font-size: 0.85rem; color: var(--ink-soft); font-weight: 500; }
+.initial-input {
+  width: 80px; padding: 0.55rem 0.6rem;
+  font-size: 0.95rem; font-weight: 700;
+  text-align: center; text-transform: uppercase;
+  background: #FFFFFF; border: 1.5px solid var(--rule);
+  border-radius: 8px; color: var(--ink); letter-spacing: 0.05em;
+  font-family: inherit;
+}
+.initial-input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,162,39,0.13); }
+.initial-input.filled { border-color: var(--good); background: var(--good-bg); color: var(--good); }
+.dtp-option {
+  display: block; padding: 1rem; border: 1.5px solid var(--rule);
+  background: #FFFFFF; border-radius: 10px; margin-bottom: 0.6rem;
+  cursor: pointer; transition: all 0.15s ease;
+}
+.dtp-option:hover { border-color: var(--gold-deep); }
+.dtp-option.selected { border-color: var(--gold); background: rgba(248,229,138,0.13); }
+.dtp-option .dtp-title {
+  font-weight: 700; font-size: 0.95rem; margin-bottom: 0.2rem;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.dtp-option .dtp-radio {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid var(--rule); flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.dtp-option.selected .dtp-radio { border-color: var(--gold); background: var(--gold); }
+.dtp-option.selected .dtp-radio::after {
+  content: ""; width: 7px; height: 7px; border-radius: 50%; background: #FFF;
+}
+.dtp-option .dtp-desc {
+  font-size: 0.83rem; color: var(--ink-soft); margin-left: 1.7rem; line-height: 1.45;
+}
+.sig-card {
+  background: #FFFFFF; border-radius: 14px; padding: 1.1rem 1.25rem 1.25rem;
+  box-shadow: var(--shadow); margin-bottom: 1.1rem;
+}
+.sig-card-head {
+  display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.7rem;
+}
+.sig-card-head h3 { font-size: 1rem; font-weight: 700; color: var(--ink); }
+.sig-card-head .sig-clear {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--gold-deep); font-size: 0.78rem; font-weight: 600;
+  font-family: inherit; padding: 0.3rem 0.6rem; border-radius: 6px;
+}
+.sig-card-head .sig-clear:hover { background: rgba(201,162,39,0.08); }
+.sig-pad-wrap {
+  background: #FAFAF6; border: 1.5px dashed var(--rule);
+  border-radius: 10px; height: 180px; min-height: 180px; position: relative;
+  overflow: hidden; touch-action: none;
+  -webkit-user-select: none; user-select: none;
+}
+.sig-pad-wrap.active { border-style: solid; border-color: var(--gold); }
+.sig-pad { width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+.sig-pad-hint {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  color: var(--ink-faint); font-size: 0.85rem; pointer-events: none;
+  letter-spacing: 0.04em; text-align: center;
+}
+.sig-pad-wrap.active .sig-pad-hint { display: none; }
+.sig-meta {
+  font-size: 0.75rem; color: var(--ink-faint); margin-top: 0.5rem;
+  display: flex; justify-content: space-between; gap: 1rem;
+}
+.review-summary { background: var(--paper-warm); border-radius: 12px; padding: 1.1rem; margin-bottom: 1rem; }
+.review-summary h3 {
+  font-size: 0.7rem; letter-spacing: 0.16em; color: var(--gold-deep);
+  text-transform: uppercase; font-weight: 700; margin-bottom: 0.7rem;
+}
+.review-row {
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: 0.45rem 0; border-bottom: 1px solid var(--rule-soft); font-size: 0.88rem;
+}
+.review-row:last-child { border-bottom: none; }
+.review-row .label { color: var(--ink-soft); }
+.review-row .value { color: var(--ink); font-weight: 600; text-align: right; }
+.success-screen { text-align: center; padding: 2rem 1rem; }
+.success-screen .check-circle {
+  width: 80px; height: 80px; border-radius: 50%; background: var(--good-bg);
+  display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;
+}
+.success-screen .check-circle::after {
+  content: ""; width: 26px; height: 48px;
+  border: solid var(--good); border-width: 0 4px 4px 0;
+  transform: rotate(45deg) translate(-2px, -4px);
+}
+.success-screen h2 { font-size: 1.6rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem; }
+.success-screen p { color: var(--ink-soft); margin-bottom: 1.5rem; }
+.success-actions { display: flex; flex-direction: column; gap: 0.6rem; max-width: 320px; margin: 0 auto; }
+.nav-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(250,249,245,0.96);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-top: 1px solid var(--rule-soft);
+  padding: 0.85rem 1.25rem calc(0.85rem + env(safe-area-inset-bottom)) 1.25rem;
+  display: flex; gap: 0.7rem; z-index: 40;
+}
+button.btn {
+  flex: 1; background: var(--gold); color: var(--black);
+  border: none; padding: 0.95rem 1.5rem;
+  font-size: 1rem; font-weight: 700;
+  border-radius: 12px; cursor: pointer;
+  font-family: inherit; letter-spacing: 0.01em;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 6px rgba(201,162,39,0.25);
+  -webkit-appearance: none; appearance: none;
+}
+button.btn:active { transform: scale(0.98); }
+button.btn:hover { box-shadow: 0 4px 12px rgba(201,162,39,0.35); }
+button.btn:disabled { background: var(--rule); color: var(--ink-faint); cursor: not-allowed; box-shadow: none; }
+button.btn.secondary {
+  background: transparent; color: var(--ink-soft);
+  box-shadow: none; border: 1.5px solid var(--rule); flex: 0.65;
+}
+button.btn.secondary:hover { background: rgba(10,9,8,0.04); border-color: var(--ink-soft); color: var(--ink); }
+button.btn.success { background: var(--good); color: white; box-shadow: 0 2px 6px rgba(22,101,52,0.25); }
+.validation-warning {
+  background: var(--warn-bg); border-left: 4px solid var(--warn);
+  padding: 0.85rem 1rem; border-radius: 8px;
+  margin-bottom: 1rem; font-size: 0.86rem; color: var(--ink); display: none;
+}
+.validation-warning.show { display: block; }
+.validation-warning b { color: var(--warn); display: block; margin-bottom: 0.25rem; }
+.only-residential { display: none; }
+.only-insurance { display: none; }
+body.contract-residential .only-residential { display: block; }
+body.contract-insurance .only-insurance { display: block; }
+.trade-section {
+  background: #FFFFFF; border: 1.5px solid var(--rule);
+  border-radius: 12px; margin-top: 1rem; overflow: hidden; box-shadow: var(--shadow);
+}
+.trade-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.85rem 1.1rem; background: var(--paper-warm);
+  border-bottom: 1px solid var(--rule-soft); cursor: pointer; user-select: none;
+}
+.trade-section-head .trade-name {
+  font-size: 0.95rem; font-weight: 700; color: var(--ink);
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.trade-section-head .trade-badge {
+  font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+  background: var(--gold); color: var(--black);
+  padding: 0.2rem 0.55rem; border-radius: 10px; font-weight: 700;
+}
+.trade-section-head .trade-toggle {
+  color: var(--gold-deep); font-size: 1.2rem; line-height: 1;
+  transition: transform 0.2s ease;
+}
+.trade-section.collapsed .trade-toggle { transform: rotate(-90deg); }
+.trade-section-body { padding: 1rem 1.1rem 0.5rem; }
+.trade-section.collapsed .trade-section-body { display: none; }
+.trade-subsection {
+  margin-bottom: 1.1rem; padding-bottom: 0.6rem;
+  border-bottom: 1px dashed var(--rule-soft);
+}
+.trade-subsection:last-child { border-bottom: none; }
+.trade-subsection-title {
+  font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--gold-deep); font-weight: 700; margin-bottom: 0.6rem;
+}
+.yesno-group {
+  display: inline-flex; background: rgba(10,9,8,0.05);
+  border-radius: 9px; padding: 3px; gap: 2px;
+}
+.yesno-group button {
+  background: transparent; border: none;
+  font-family: inherit; font-size: 0.85rem; font-weight: 600;
+  color: var(--ink-soft); padding: 0.55rem 0.95rem;
+  border-radius: 7px; cursor: pointer; min-width: 60px;
+}
+.yesno-group button.active { background: var(--paper); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.yesno-group button[data-value="Yes"].active { background: var(--gold); color: var(--black); }
+.radio-cards { display: flex; flex-direction: column; gap: 0.4rem; }
+.radio-card {
+  background: #FFFFFF; border: 1.5px solid var(--rule);
+  border-radius: 9px; padding: 0.65rem 0.85rem; cursor: pointer;
+  display: flex; align-items: center; gap: 0.55rem;
+  font-size: 0.9rem; user-select: none; transition: all 0.15s ease;
+}
+.radio-card:hover { border-color: var(--gold-deep); }
+.radio-card.selected { background: rgba(248,229,138,0.13); border-color: var(--gold); }
+.radio-card .radio-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 1.5px solid var(--rule); flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.radio-card.selected .radio-dot { border-color: var(--gold); background: var(--gold); }
+.radio-card.selected .radio-dot::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: white; }
+@media (min-width: 720px) {
+  main { padding: 1.5rem 2rem 8rem; }
+  .step-body { padding: 1.75rem 1.75rem; }
+  .sig-pad-wrap { height: 220px; }
+  .step-title { font-size: 1.7rem; }
+  .field-row { gap: 1rem; }
+}
+</style>
+</head>
+<body class="contract-residential">
+
+<header>
+  <div class="brand">
+    <div class="info">
+      <b>The Global Contractor Network</b>
+      <span>233 NW 10th St, Pompano Beach FL · (561) 285-7866</span>
+    </div>
+  </div>
+  <div class="rep-pill" id="repPill">REP: —</div>
+</header>
+
+<div class="doc-switch">
+  <div class="doc-switch-inner">
+    <button id="docResidential" class="active" onclick="setDocType('residential')">Construction</button>
+    <button id="docInsurance" onclick="setDocType('insurance')">Insurance Contingency</button>
+  </div>
+</div>
+
+<div class="progress-bar">
+  <div class="progress-row">
+    <span class="step-name" id="progressLabel">Step 1 of 5 · Customer Info</span>
+    <span id="progressPct">20%</span>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:20%"></div></div>
+</div>
+
+<main>
+
+  <!-- ============== STEP 1 ============== -->
+  <section class="step active" data-step="1">
+    <div class="step-label">Step 1</div>
+    <h1 class="step-title">Customer & property information</h1>
+    <p class="step-sub">Enter the customer's information and the address where the work will be performed.</p>
+    <div class="step-body">
+      <div class="field">
+        <label>Customer Name(s)<span class="req">*</span></label>
+        <input id="customerName" type="text" placeholder="John & Jane Doe" autocomplete="name">
+        <div class="field-error">Please enter the customer's name.</div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Phone<span class="req">*</span></label>
+          <input id="customerPhone" type="tel" placeholder="(555) 123-4567" autocomplete="tel">
+          <div class="field-error">Phone number required.</div>
+        </div>
+        <div class="field">
+          <label>Email<span class="req">*</span></label>
+          <input id="customerEmail" type="email" placeholder="name@example.com" autocomplete="email">
+          <div class="field-error">Valid email required.</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Property Address (where work will be performed)<span class="req">*</span></label>
+        <input id="propertyAddress" type="text" placeholder="123 Main St, City, FL 33069" autocomplete="street-address">
+        <div class="field-error">Property address required.</div>
+      </div>
+      <div class="field">
+        <label>Mailing Address (if different)</label>
+        <input id="mailingAddress" type="text" placeholder="Optional">
+      </div>
+      <div class="field">
+        <label>Property Type<span class="req">*</span></label>
+        <div class="option-grid" id="propertyTypeGroup">
+          <div class="option-card" data-value="Single-Family"><span class="check"></span>Single-Family</div>
+          <div class="option-card" data-value="Condo"><span class="check"></span>Condo</div>
+          <div class="option-card" data-value="Townhome"><span class="check"></span>Townhome</div>
+          <div class="option-card" data-value="Multi-Family"><span class="check"></span>Multi-Family</div>
+          <div class="option-card" data-value="Commercial"><span class="check"></span>Commercial</div>
+        </div>
+      </div>
+
+      <div class="only-insurance">
+        <div class="field-row">
+          <div class="field">
+            <label>Insurance Carrier<span class="req">*</span></label>
+            <input id="insCarrier" type="text" placeholder="Citizens, State Farm, etc.">
+            <div class="field-error">Insurance carrier required.</div>
+          </div>
+          <div class="field">
+            <label>Claim # (if known)</label>
+            <input id="claimNumber" type="text" placeholder="Optional">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Date of Loss<span class="req">*</span></label>
+            <input id="dateOfLoss" type="date">
+            <div class="field-error">Date of loss required.</div>
+          </div>
+          <div class="field">
+            <label>Cause of Loss<span class="req">*</span></label>
+            <select id="causeOfLoss">
+              <option value="">Select…</option>
+              <option>Wind</option>
+              <option>Hail</option>
+              <option>Hurricane</option>
+              <option>Tropical storm</option>
+              <option>Water/leak</option>
+              <option>Fire</option>
+              <option>Other</option>
+            </select>
+            <div class="field-error">Cause of loss required.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== STEP 2 ============== -->
+  <section class="step" data-step="2">
+    <div class="step-label">Step 2</div>
+    <h1 class="step-title only-residential" style="margin:0 0 0.4rem">Scope of work</h1>
+    <h1 class="step-title only-insurance" style="margin:0 0 0.4rem">Damage overview</h1>
+    <p class="step-sub only-residential">Select the trade(s) being performed. Detailed line items will appear for each.</p>
+    <p class="step-sub only-insurance">A high-level overview of what you believe is damaged. Detailed scope comes later, after approval.</p>
+
+    <div class="step-body">
+      <div class="field">
+        <label class="only-residential">Trade(s)<span class="req">*</span> (tap to select — line items will appear below)</label>
+        <label class="only-insurance">Trade(s)<span class="req">*</span> (check what you believe is damaged)</label>
+        <div class="option-grid" id="tradesGroup" data-multi="1">
+          <div class="option-card" data-value="Roofing"><span class="check"></span>Roofing</div>
+          <div class="option-card" data-value="Windows/Doors"><span class="check"></span>Windows/Doors</div>
+          <div class="option-card" data-value="Stucco"><span class="check"></span>Stucco</div>
+          <div class="option-card" data-value="Soffit/Fascia"><span class="check"></span>Soffit/Fascia</div>
+          <div class="option-card" data-value="Gutters"><span class="check"></span>Gutters</div>
+          <div class="option-card" data-value="Interior"><span class="check"></span>Interior</div>
+          <div class="option-card" data-value="Other"><span class="check"></span>Other</div>
+        </div>
+      </div>
+
+      <div class="only-insurance">
+        <div class="notice-box">
+          <div class="notice-label">Why no detailed scope?</div>
+          <div class="notice-text">This Agreement is a contingency, not a construction contract. The detailed scope of work — exact materials, line items, pricing — will be set in a separate construction contract once your insurance carrier approves the claim. Right now, we just need a high-level idea of what you believe is damaged.</div>
+        </div>
+        <div class="field">
+          <label>Damage notes (brief description, no scope)</label>
+          <textarea id="damageNotes" placeholder="e.g., wind damage to shingles, broken window in master bedroom, water staining on living room ceiling…"></textarea>
+        </div>
+      </div>
+
+      <div class="only-residential">
+        <div id="tradeSectionsContainer"></div>
+        <div id="sharedSectionsContainer"></div>
+
+        <div class="field-row" style="margin-top:1rem">
+          <div class="field">
+            <label>Estimated Start Date</label>
+            <input id="startDate" type="date">
+          </div>
+          <div class="field">
+            <label>Estimated Completion Date</label>
+            <input id="completionDate" type="date">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== STEP 3 ============== -->
+  <section class="step" data-step="3">
+    <div class="step-label">Step 3</div>
+    <h1 class="step-title only-residential" style="margin:0 0 0.4rem">Contract price & payment</h1>
+    <h1 class="step-title only-insurance" style="margin:0 0 0.4rem">Direction to pay election</h1>
+    <p class="step-sub only-residential">Total contract price and payment schedule.</p>
+    <p class="step-sub only-insurance">How insurance proceeds for the contracted scope will be routed.</p>
+
+    <div class="step-body">
+
+      <div class="only-residential">
+        <div class="field">
+          <label>Total Contract Price<span class="req">*</span></label>
+          <input id="priceTotal" type="text" data-money="1" inputmode="decimal" placeholder="$0.00">
+          <div class="field-error">Total price required.</div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Deposit at signing</label>
+            <input id="priceDeposit" type="text" data-money="1" inputmode="decimal" placeholder="$0.00">
+          </div>
+          <div class="field">
+            <label>Progress (at start)</label>
+            <input id="priceProgress" type="text" data-money="1" inputmode="decimal" placeholder="$0.00">
+          </div>
+        </div>
+        <div class="field">
+          <label>Final (at completion)</label>
+          <input id="priceFinal" type="text" data-money="1" inputmode="decimal" placeholder="$0.00">
+        </div>
+        <div id="priceCheckMsg" class="field-help" style="margin-bottom:1rem"></div>
+
+        <div class="notice-box">
+          <div class="notice-label">Payment Terms</div>
+          <div class="notice-text">Checks payable to The Global Contractor Network, LLC. ACH/wire/credit card accepted (3% card fee). Late payments accrue 1.5%/mo or max permitted by law. Decking replacement (roofing) billed at price-per-sheet listed in scope. Per Fla. Stat. § 489.126, payments exceeding 10% of contract price will be applied to materials/work; permits applied for within 30 days; work begins within 90 days of permit issuance.</div>
+        </div>
+      </div>
+
+      <div class="only-insurance">
+        <div class="notice-box">
+          <div class="notice-label">This is NOT an Assignment of Benefits</div>
+          <div class="notice-text">Consistent with Fla. Stat. § 627.7152, GCN does NOT accept Assignments of Benefits. You remain the named insured on your claim. The election below is a payment-routing instruction only — it does not transfer any insurance benefit, post-loss right, or cause of action to GCN. You may revoke in writing at any time.</div>
+        </div>
+        <div class="field">
+          <label>Customer's election (choose one)<span class="req">*</span></label>
+          <div id="dtpGroup">
+            <div class="dtp-option" data-value="A">
+              <div class="dtp-title"><span class="dtp-radio"></span>Option A — Joint Check (Customer + Mortgagee + GCN)</div>
+              <div class="dtp-desc">Carrier issues all proceeds checks for the approved scope payable jointly to Customer, any mortgagee on the policy, and "The Global Contractor Network, LLC." Customer agrees to promptly endorse the check (and obtain the mortgagee's endorsement where applicable) and tender it to GCN within 5 business days of receipt.</div>
+            </div>
+            <div class="dtp-option" data-value="C">
+              <div class="dtp-title"><span class="dtp-radio"></span>Option C — Customer Writes Deposit Check</div>
+              <div class="dtp-desc">Customer receives the proceeds checks directly. Within 5 business days of Customer's receipt of the insurance carrier's ACV (Actual Cash Value) proceeds check, Customer will write GCN a deposit check from Customer's own account in an amount equal to the ACV check.</div>
+            </div>
+          </div>
+          <div class="field-error" style="display:block;margin-top:0.5rem;color:var(--ink-faint)">Please select a Direction to Pay option.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== STEP 4 ============== -->
+  <section class="step" data-step="4">
+    <div class="step-label">Step 4</div>
+    <h1 class="step-title">Required Florida statutory notices</h1>
+    <p class="step-sub">Initial each notice to confirm you have read and understood it. These are required by Florida law.</p>
+
+    <div class="validation-warning" id="initialWarning">
+      <b>Some initials are missing.</b>
+      Each statutory notice below must be initialed before signing.
+    </div>
+
+    <div class="step-body">
+
+      <div class="notice-box">
+        <div class="notice-label">Prohibited Inducements (Fla. Stat. §§ 489.147 & 626.854)</div>
+        <div class="notice-text">It is unlawful for any contractor offering residential roofing services to compensate, rebate, or absorb your insurance deductible; to offer services in exchange for letting an insurance claim be filed; or to interpret your policy. Customer is responsible for the deductible. GCN is NOT a licensed Public Adjuster and shall not adjust, negotiate, or settle any claim on your behalf.</div>
+        <div class="initial-row">
+          <label>I have read and understood this notice.</label>
+          <input class="initial-input" data-initial="deductible" maxlength="4" placeholder="ABC">
+        </div>
+      </div>
+
+      <div class="notice-box">
+        <div class="notice-label">Insurance Fraud Warning</div>
+        <div class="notice-text">Any person who knowingly, with intent to defraud, prepares or presents a proof of loss or repair estimate containing false, incomplete, or misleading information commits a felony of the third degree under Fla. Stat. §§ 775.082, 775.083, 775.084.</div>
+        <div class="initial-row">
+          <label>I have read and understood this notice.</label>
+          <input class="initial-input" data-initial="fraud" maxlength="4" placeholder="ABC">
+        </div>
+      </div>
+
+      <div class="notice-box">
+        <div class="notice-label">Right to Cancel</div>
+        <div class="notice-text">You may cancel this transaction without penalty within three (3) business days of signing. If your insurance carrier denies your claim in whole or in part, you may also cancel within thirty (30) days of the later of (a) the date GCN issues you a written estimate or (b) the date of denial — without penalty (Fla. Stat. § 489.147(3)). A separate Notice of Cancellation form is provided.</div>
+        <div class="initial-row">
+          <label>I have read and understood this notice.</label>
+          <input class="initial-input" data-initial="cancel" maxlength="4" placeholder="ABC">
+        </div>
+      </div>
+
+      <div class="notice-box only-residential">
+        <div class="notice-label">Recovery Fund & Construction Lien Law</div>
+        <div class="notice-text">Florida Homeowners' Construction Recovery Fund: Up to a limited amount, payment may be available if you lose money on a project performed under contract from violations by a licensed contractor (FCILB: 850-487-1395). Florida Construction Lien Law (Fla. Stat. §§ 713.001–713.37): Those who work on your property or supply materials and aren't paid in full have lien rights, even if you've paid your contractor in full. Full text and details in the Legal Addendum (QR code below).</div>
+        <div class="initial-row">
+          <label>I have read and understood these notices.</label>
+          <input class="initial-input" data-initial="lienlaw" maxlength="4" placeholder="ABC">
+        </div>
+      </div>
+
+      <div class="notice-box only-insurance">
+        <div class="notice-label">Assignment of Benefits Disclosure</div>
+        <div class="notice-text">This Agreement does NOT contain and does NOT create an Assignment of Benefits. Consistent with Fla. Stat. § 627.7152 and SB 2-A (2022), GCN does not accept AOBs for residential property insurance claims. The Direction to Pay election is a payment-routing convenience only and may be revoked in writing at any time.</div>
+        <div class="initial-row">
+          <label>I have read and understood this notice.</label>
+          <input class="initial-input" data-initial="aob" maxlength="4" placeholder="ABC">
+        </div>
+      </div>
+
+      <div class="notice-box" style="border-left-color: var(--ink-soft); background: var(--paper-warm)">
+        <div class="notice-label" style="color: var(--ink-soft)">Full Legal Notices & Addendum</div>
+        <div class="notice-text">The complete Insurance Fraud Warning, Construction Recovery Fund notice, Construction Lien Law notice, lien waivers explanation, warranty terms, and FAQs are at <b>GlobalContractor.network/legal</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== STEP 5 ============== -->
+  <section class="step" data-step="5">
+    <div class="step-label">Step 5</div>
+    <h1 class="step-title">Review & sign</h1>
+    <p class="step-sub">Review the agreement summary, then sign below to complete.</p>
+
+    <div class="review-summary">
+      <h3>Agreement Summary</h3>
+      <div id="reviewContent"></div>
+    </div>
+
+    <div class="notice-box">
+      <div class="notice-text">By signing below, Customer acknowledges receipt of this Agreement and the required Florida statutory notices, and agrees to be bound by the terms.</div>
+    </div>
+
+    <div class="sig-card">
+      <div class="sig-card-head">
+        <h3>Customer Signature</h3>
+        <button type="button" class="sig-clear" onclick="clearSig('customerSig')">Clear</button>
+      </div>
+      <div class="sig-pad-wrap" id="customerSigWrap">
+        <div class="sig-pad-hint">Sign here with finger or stylus</div>
+        <canvas class="sig-pad" id="customerSig"></canvas>
+      </div>
+      <div class="sig-meta">
+        <span>Customer 1</span>
+        <span id="customerSigDate">—</span>
+      </div>
+    </div>
+
+    <div class="sig-card">
+      <div class="sig-card-head">
+        <h3>Customer 2 Signature (if applicable)</h3>
+        <button type="button" class="sig-clear" onclick="clearSig('customer2Sig')">Clear</button>
+      </div>
+      <div class="sig-pad-wrap" id="customer2SigWrap">
+        <div class="sig-pad-hint">Sign here (optional)</div>
+        <canvas class="sig-pad" id="customer2Sig"></canvas>
+      </div>
+    </div>
+
+    <div class="sig-card">
+      <div class="sig-card-head">
+        <h3>GCN Representative Signature</h3>
+        <button type="button" class="sig-clear" onclick="clearSig('gcnSig')">Clear</button>
+      </div>
+      <div class="sig-pad-wrap" id="gcnSigWrap">
+        <div class="sig-pad-hint">GCN rep signs here</div>
+        <canvas class="sig-pad" id="gcnSig"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== STEP 6 (Success) ============== -->
+  <section class="step" data-step="6">
+    <div class="success-screen">
+      <div class="check-circle"></div>
+      <h2>Agreement Signed</h2>
+      <p>Your contract has been generated as a PDF. Send a copy to the customer and save one to GCN's records.</p>
+      <div class="success-actions">
+        <button class="btn" onclick="downloadPdf()">Download Signed PDF</button>
+        <button class="btn secondary" style="flex:1" onclick="emailPdf()">Email to Customer + GCN</button>
+        <button class="btn secondary" style="flex:1" onclick="startOver()">Start Another Agreement</button>
+      </div>
+      <div style="margin-top: 1.5rem; font-size: 0.78rem; color: var(--ink-faint)">
+        Filed timestamp: <span id="filedTime">—</span><br>
+        Document ID: <span id="docId">—</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="nav-bar" id="navBar">
+  <button class="btn secondary" id="backBtn" onclick="prevStep()">Back</button>
+  <button class="btn" id="nextBtn" onclick="nextStep()">Continue</button>
+</div>
+
+<script>
+// =========================================================================
+// TRADE SCHEMAS
+// =========================================================================
+const TRADE_SCHEMAS = {
+  Roofing: {
+    label: 'Roofing',
+    sections: [
+      {
+        title: 'System & Materials',
+        fields: [
+          { id: 'roof_system', label: 'Roof system', type: 'select', required: true, colspan: 2, options: [
+            'Asphalt shingle (architectural)',
+            'Asphalt shingle (3-tab)',
+            'Asphalt shingle (designer/luxury)',
+            'Metal — standing seam',
+            'Metal — exposed fastener (5V/R-panel)',
+            'Concrete tile',
+            'Clay tile',
+            'TPO / single-ply (low slope)',
+            'Modified bitumen / mod-bit',
+            'Built-up roofing (BUR)',
+            'Slate',
+            'Wood shake',
+            'Other'
+          ]},
+          { id: 'roof_manufacturer', label: 'Manufacturer', type: 'text', placeholder: 'GAF, CertainTeed, Owens Corning, Eagle, Boral…', colspan: 2 },
+          { id: 'roof_product', label: 'Product line / model', type: 'text', placeholder: 'Timberline HDZ, Landmark Pro, TruDefinition Duration…', colspan: 2 },
+          { id: 'roof_color', label: 'Color', type: 'text', placeholder: 'Charcoal, Weathered Wood, etc.', colspan: 2 },
+          { id: 'roof_squares', label: 'Approximate squares', type: 'number', placeholder: '0', colspan: 2 },
+        ]
+      },
+      {
+        title: 'Tear-off & Decking',
+        fields: [
+          { id: 'roof_tearoff', label: 'Tear-off layers', type: 'select', colspan: 2, options: ['1 layer', '2 layers', 'Down to deck (any layers)', 'Overlay (no tear-off)', 'Per scope notes'] },
+          { id: 'roof_decking_replace', label: 'Decking replacement', type: 'select', colspan: 2, options: ['Per sheet allowance', 'Full re-deck included', 'Customer responsibility', 'Not anticipated'] },
+          { id: 'roof_decking_per_sheet', label: 'Decking $ per sheet', type: 'money', placeholder: '$95.00', colspan: 2, showIf: { roof_decking_replace: 'Per sheet allowance' } },
+          { id: 'roof_decking_thickness', label: 'Decking thickness', type: 'select', colspan: 2, options: ['1/2"', '5/8"', '3/4"', 'Match existing'] },
+        ]
+      },
+      {
+        title: 'Underlayment',
+        fields: [
+          { id: 'roof_underlayment', label: 'Underlayment type', type: 'select', colspan: 2, options: [
+            'Synthetic (single layer)',
+            'Synthetic (double layer)',
+            '#30 felt',
+            'Self-adhered peel-and-stick (full)',
+            'Peel-and-stick perimeter + valleys only',
+            'Tile underlayment (high-temp)',
+          ]},
+          { id: 'roof_ice_water', label: 'Ice & water shield areas', type: 'text', placeholder: 'Eaves, valleys, around penetrations…', help: 'Florida residential typically: valleys + penetrations' },
+        ]
+      },
+      {
+        title: 'Flashings, Edges & Penetrations',
+        fields: [
+          { id: 'roof_valley_type', label: 'Valley type', type: 'select', colspan: 2, options: ['Open metal valley', 'Closed cut valley', 'Woven valley', 'California valley'] },
+          { id: 'roof_ridge', label: 'Ridge / starter', type: 'text', placeholder: 'GAF Pro-Start + Seal-A-Ridge', colspan: 2 },
+          { id: 'roof_drip_edge_color', label: 'Drip edge color', type: 'text', placeholder: 'White, brown, mill…', colspan: 2 },
+          { id: 'roof_pipe_flashings', label: 'Pipe flashings (count)', type: 'number', placeholder: '0', colspan: 2 },
+          { id: 'roof_pipe_flashing_type', label: 'Pipe flashing type', type: 'select', options: ['Lead', 'Rubber boot', 'Bullet boot (Perma-Boot)', 'Other'], colspan: 2 },
+          { id: 'roof_step_flashing', label: 'Step flashing (replace)', type: 'yesno', colspan: 2 },
+          { id: 'roof_wall_flashing', label: 'Wall / counter flashing (replace)', type: 'yesno', colspan: 2 },
+          { id: 'roof_skylights', label: 'Skylights (count)', type: 'number', placeholder: '0', colspan: 2 },
+          { id: 'roof_skylight_action', label: 'Skylight action', type: 'select', options: ['Re-flash existing', 'Replace existing', 'Add new', 'N/A'], colspan: 2, showIf: { roof_skylights: '__nonzero__' } },
+        ]
+      },
+      {
+        title: 'Ventilation',
+        fields: [
+          { id: 'roof_vent_type', label: 'Ventilation type', type: 'select', colspan: 2, options: [
+            'Ridge vent',
+            'Box vents (turtle vents)',
+            'Power vent (electric)',
+            'Solar attic fan',
+            'Off-ridge metal vent',
+            'No additional ventilation',
+            'Other'
+          ]},
+          { id: 'roof_vent_count', label: 'Vent count', type: 'number', placeholder: '0', colspan: 2 },
+          { id: 'roof_soffit_vent', label: 'Soffit ventilation', type: 'select', options: ['Existing — adequate', 'Existing — to be added/improved', 'New install', 'N/A'], colspan: 2 },
+        ]
+      },
+      {
+        title: 'Roof Hardware & Accessories',
+        fields: [
+          { id: 'roof_paint_hardware', label: 'Paint roof hardware', type: 'yesno', colspan: 2 },
+          { id: 'roof_paint_color', label: 'Paint color', type: 'text', placeholder: 'Match shingle / black / white', colspan: 2, showIf: { roof_paint_hardware: 'Yes' } },
+          { id: 'roof_satellite', label: 'Satellite dish handling', type: 'select', options: ['Reinstall existing', 'Remove and discard', 'Customer to remove before start', 'N/A'], colspan: 2 },
+          { id: 'roof_solar', label: 'Solar panels present?', type: 'select', options: ['No', 'Yes — D&R included by GCN', 'Yes — customer arranging D&R separately'], colspan: 2 },
+          { id: 'roof_additional_systems', label: 'Additional roofing systems', type: 'textarea', placeholder: 'Snow guards, gutter helmet, additional ice/water shield, secondary water barrier (SWR), etc.' },
+        ]
+      },
+      {
+        title: 'Job Site Prep & Cleanup',
+        fields: [
+          { id: 'roof_dumpster', label: 'Dumpster on site', type: 'yesno', colspan: 2 },
+          { id: 'roof_tarp_landscaping', label: 'Tarp landscaping / pool / AC', type: 'yesno', colspan: 2 },
+          { id: 'roof_magnet_sweep', label: 'Magnetic sweep for nails', type: 'yesno', colspan: 2 },
+          { id: 'roof_jobsite_notes', label: 'Job-site prep notes', type: 'textarea', placeholder: 'Driveway access, gate codes, pets, customer-requested staging area…' },
+        ]
+      },
+    ]
+  },
+  'Windows/Doors': {
+    label: 'Windows / Doors',
+    sections: [
+      {
+        title: 'Window/Door Specifications',
+        fields: [
+          { id: 'win_manufacturer', label: 'Manufacturer', type: 'text', placeholder: 'PGT, Andersen, CWS, Eastern…', colspan: 2 },
+          { id: 'win_series', label: 'Series / model', type: 'text', placeholder: 'WinGuard 5400, 200 Series…', colspan: 2 },
+          { id: 'win_count', label: 'Total openings', type: 'number', placeholder: '0', colspan: 2 },
+          { id: 'win_impact', label: 'Impact rating', type: 'select', required: true, colspan: 2, options: [
+            'Hurricane impact (laminated glass)',
+            'Non-impact (requires shutters/code permitting)',
+            'Mixed — see schedule'
+          ]},
+        ]
+      },
+      {
+        title: 'Window Details',
+        fields: [
+          { id: 'win_frame_color_ext', label: 'Frame color (exterior)', type: 'text', placeholder: 'White, bronze, black…', colspan: 2 },
+          { id: 'win_frame_color_int', label: 'Frame color (interior)', type: 'text', placeholder: 'Same as exterior, white…', colspan: 2 },
+          { id: 'win_glass', label: 'Glass options', type: 'select', colspan: 2, options: ['Clear', 'Low-E', 'Low-E + Argon', 'Tinted', 'Obscure (privacy)', 'Tempered', 'Other'] },
+          { id: 'win_grids', label: 'Grids / muntins', type: 'select', colspan: 2, options: ['None', 'Colonial (between glass)', 'Prairie (between glass)', '6-over-6 GBG', 'Custom'] },
+          { id: 'win_screens', label: 'Screens included', type: 'select', colspan: 2, options: ['Yes — all openable', 'Yes — partial', 'No', 'Upgraded BetterVue / UltraVue'] },
+        ]
+      },
+      {
+        title: 'Doors',
+        fields: [
+          { id: 'door_count', label: 'Door count', type: 'number', placeholder: '0', colspan: 2 },
+          { id: 'door_types', label: 'Door types included', type: 'textarea', placeholder: "e.g., 2 — 6'0\" sliding glass; 1 — French double; 1 — single hinged" },
+          { id: 'door_hardware', label: 'Hardware finish', type: 'text', placeholder: 'Satin nickel, oil-rubbed bronze…', colspan: 2 },
+        ]
+      },
+      {
+        title: 'Installation',
+        fields: [
+          { id: 'win_install_type', label: 'Installation type', type: 'select', colspan: 2, options: [
+            'Full-frame replacement',
+            'Block-frame replacement',
+            'Insert / pocket replacement',
+            'New construction'
+          ]},
+          { id: 'win_buck_repair', label: 'Buck repair allowance', type: 'yesno', colspan: 2 },
+          { id: 'win_buck_per_unit', label: 'Buck repair $ per opening', type: 'money', placeholder: '$50.00', colspan: 2, showIf: { win_buck_repair: 'Yes' } },
+          { id: 'win_stucco_patch', label: 'Stucco patch / repair', type: 'yesno', colspan: 2 },
+          { id: 'win_interior_finish', label: 'Interior finish (drywall/trim)', type: 'select', colspan: 2, options: ['Customer responsibility', 'Drywall return only', 'Drywall + paint', 'Drywall + paint + caulk'] },
+          { id: 'win_haul_away', label: 'Old window/door haul-away', type: 'yesno', colspan: 2 },
+        ]
+      },
+      {
+        title: 'Window/Door Schedule (line by line)',
+        fields: [
+          { id: 'win_schedule', label: 'Window / Door schedule', type: 'textarea', placeholder: 'List each opening: Location | Size (W x H) | Type (SH/CSMT/Slider/Picture/Door) | Notes\n\ne.g.,\nKitchen | 36x48 | Single hung | Tempered\nMaster BR | 60x36 | Slider | Standard\nFront door | 36x80 | Single hinged | With sidelite' },
+        ]
+      },
+      {
+        title: 'Job Site Prep',
+        fields: [
+          { id: 'win_protect', label: 'Furniture / floor protection', type: 'yesno', colspan: 2 },
+          { id: 'win_jobsite_notes', label: 'Job-site notes', type: 'textarea', placeholder: 'Pets, alarm system, gated access, special staging…' },
+        ]
+      },
+    ]
+  },
+  Stucco: {
+    label: 'Stucco',
+    sections: [
+      {
+        title: 'Scope',
+        fields: [
+          { id: 'stucco_type', label: 'Work type', type: 'select', required: true, colspan: 2, options: [
+            'Patch / spot repair',
+            'Re-stucco / cosmetic resurface',
+            'Full re-stucco to substrate',
+            'New construction',
+          ]},
+          { id: 'stucco_areas', label: 'Areas affected', type: 'textarea', placeholder: 'e.g., front elevation full, east wall patch around new windows, garage band…' },
+          { id: 'stucco_sqft', label: 'Approximate sq ft', type: 'number', placeholder: '0', colspan: 2 },
+        ]
+      },
+      {
+        title: 'Materials & Finish',
+        fields: [
+          { id: 'stucco_system', label: 'Stucco system', type: 'select', colspan: 2, options: ['3-coat traditional (lath/scratch/brown/finish)', '2-coat (over CMU)', '1-coat (synthetic)', 'EIFS', 'Other'] },
+          { id: 'stucco_lath', label: 'Lath / mesh', type: 'text', placeholder: 'Galvanized 17-gauge, 2.5lb diamond…', colspan: 2 },
+          { id: 'stucco_finish', label: 'Finish texture', type: 'select', colspan: 2, options: ['Sand float', 'Knock-down', 'Lace (Florida lace)', 'Skip-trowel', 'Smooth trowel', 'Match existing', 'Other'] },
+          { id: 'stucco_paint', label: 'Paint included', type: 'yesno', colspan: 2 },
+          { id: 'stucco_paint_color', label: 'Paint color', type: 'text', placeholder: 'Sherwin-Williams / Benjamin Moore SKU + name', colspan: 2, showIf: { stucco_paint: 'Yes' } },
+          { id: 'stucco_paint_brand', label: 'Paint brand / line', type: 'text', placeholder: 'SW Loxon, BM Aura Exterior…', colspan: 2, showIf: { stucco_paint: 'Yes' } },
+        ]
+      },
+      {
+        title: 'Substrate & Repairs',
+        fields: [
+          { id: 'stucco_substrate', label: 'Substrate', type: 'select', colspan: 2, options: ['Wood frame', 'CMU / block', 'Mixed', 'Unknown'] },
+          { id: 'stucco_house_wrap', label: 'WRB / house-wrap replacement', type: 'yesno', colspan: 2 },
+          { id: 'stucco_caulk', label: 'Caulking around openings', type: 'yesno', colspan: 2 },
+        ]
+      },
+      {
+        title: 'Job Site Prep',
+        fields: [
+          { id: 'stucco_protect_landscaping', label: 'Tarp landscaping / pool', type: 'yesno', colspan: 2 },
+          { id: 'stucco_jobsite_notes', label: 'Job-site notes', type: 'textarea' },
+        ]
+      },
+    ]
+  },
+  'Soffit/Fascia': {
+    label: 'Soffit / Fascia',
+    sections: [
+      {
+        title: 'Scope',
+        fields: [
+          { id: 'sf_scope', label: 'Work type', type: 'select', required: true, colspan: 2, options: [
+            'Replace soffit only',
+            'Replace fascia only',
+            'Replace soffit + fascia',
+            'Repair / patch only',
+            'New construction'
+          ]},
+          { id: 'sf_lf', label: 'Approximate linear feet', type: 'number', placeholder: '0', colspan: 2 },
+        ]
+      },
+      {
+        title: 'Materials',
+        fields: [
+          { id: 'sf_soffit_material', label: 'Soffit material', type: 'select', colspan: 2, options: ['Vinyl vented', 'Vinyl solid', 'Aluminum vented', 'Aluminum solid', 'Wood', 'PVC trim board', 'Match existing'] },
+          { id: 'sf_soffit_color', label: 'Soffit color', type: 'text', placeholder: 'White, beige, tan…', colspan: 2 },
+          { id: 'sf_fascia_material', label: 'Fascia material', type: 'select', colspan: 2, options: ['Aluminum wrap (over wood)', 'Solid aluminum', 'PVC trim', 'Wood (paint grade)', 'Match existing'] },
+          { id: 'sf_fascia_color', label: 'Fascia color', type: 'text', placeholder: 'White, bronze, custom…', colspan: 2 },
+          { id: 'sf_wood_replace', label: 'Wood fascia replacement (sub-fascia)', type: 'select', colspan: 2, options: ['Not included', 'Per LF allowance', 'Full replacement included'] },
+          { id: 'sf_wood_per_lf', label: 'Wood replace $ per LF', type: 'money', placeholder: '$8.00', colspan: 2, showIf: { sf_wood_replace: 'Per LF allowance' } },
+        ]
+      },
+      {
+        title: 'Job Site Prep',
+        fields: [
+          { id: 'sf_jobsite_notes', label: 'Job-site notes', type: 'textarea' },
+        ]
+      },
+    ]
+  },
+  Gutters: {
+    label: 'Gutters',
+    sections: [
+      {
+        title: 'Gutter Specifications',
+        fields: [
+          { id: 'gut_type', label: 'Gutter type', type: 'select', required: true, colspan: 2, options: [
+            'K-style 5"',
+            'K-style 6"',
+            'K-style 7" (oversized)',
+            'Half-round 5"',
+            'Half-round 6"',
+            'Box gutter',
+            'Other'
+          ]},
+          { id: 'gut_material', label: 'Material', type: 'select', colspan: 2, options: ['Aluminum', 'Copper', 'Galvalume', 'Steel'] },
+          { id: 'gut_thickness', label: 'Material thickness', type: 'select', colspan: 2, options: ['.027 (standard)', '.032 (heavy duty)', '.040 (premium)', '16 oz copper', '20 oz copper'] },
+          { id: 'gut_color', label: 'Color', type: 'text', placeholder: 'White, bronze, mill, custom…', colspan: 2 },
+          { id: 'gut_lf', label: 'Linear feet', type: 'number', placeholder: '0', colspan: 2 },
+        ]
+      },
+      {
+        title: 'Downspouts',
+        fields: [
+          { id: 'gut_dspout_size', label: 'Downspout size', type: 'select', colspan: 2, options: ['2x3', '3x4', '4x5', 'Round 3"', 'Round 4"'] },
+          { id: 'gut_dspout_count', label: 'Downspout count', type: 'number', placeholder: '0', colspan: 2 },
+          { id: 'gut_dspout_color', label: 'Downspout color', type: 'text', placeholder: 'Match gutter / contrast…', colspan: 2 },
+          { id: 'gut_extensions', label: 'Splash blocks / underground extensions', type: 'select', colspan: 2, options: ['Splash blocks (count specified in notes)', 'Underground PVC extensions', 'Customer responsibility', 'Not included'] },
+        ]
+      },
+      {
+        title: 'Accessories',
+        fields: [
+          { id: 'gut_guards', label: 'Gutter guards / leaf protection', type: 'yesno', colspan: 2 },
+          { id: 'gut_guard_type', label: 'Guard type / brand', type: 'text', placeholder: 'GutterGlove Pro, LeafFilter, Valor, mesh screen…', colspan: 2, showIf: { gut_guards: 'Yes' } },
+          { id: 'gut_hangers', label: 'Hangers / brackets', type: 'select', colspan: 2, options: ['Hidden hangers (standard)', 'Hidden hangers @ 24" o.c.', 'Spike & ferrule (legacy — not recommended)', 'Heavy-duty (for 6"+)'] },
+        ]
+      },
+      {
+        title: 'Removal & Cleanup',
+        fields: [
+          { id: 'gut_remove_existing', label: 'Remove existing gutters', type: 'yesno', colspan: 2 },
+          { id: 'gut_haul_away', label: 'Haul away debris', type: 'yesno', colspan: 2 },
+          { id: 'gut_jobsite_notes', label: 'Job-site notes', type: 'textarea' },
+        ]
+      },
+    ]
+  },
+  Interior: {
+    label: 'Interior Repairs',
+    sections: [
+      {
+        title: 'Scope',
+        fields: [
+          { id: 'int_areas', label: 'Rooms / areas affected', type: 'textarea', required: true, placeholder: 'e.g., Master bedroom ceiling 8x10 patch, hallway baseboards, kitchen cabinet adjacent to leak…' },
+          { id: 'int_cause', label: 'Source of damage', type: 'text', placeholder: 'Roof leak, window leak, water heater rupture, hurricane wind-driven rain…', colspan: 2 },
+        ]
+      },
+      {
+        title: 'Drywall & Ceiling',
+        fields: [
+          { id: 'int_drywall', label: 'Drywall repair', type: 'select', colspan: 2, options: ['Not included', 'Patch only', 'Full sheet replacement (specify in notes)', 'Texture match included'] },
+          { id: 'int_ceiling_texture', label: 'Ceiling texture match', type: 'select', colspan: 2, options: ['Smooth', 'Knockdown', 'Orange peel', 'Popcorn (note: asbestos test recommended for pre-1980)', 'Skip trowel', 'Other'] },
+          { id: 'int_paint', label: 'Paint included', type: 'select', colspan: 2, options: ['Patch / spot prime only', 'Wall to wall (affected room)', 'Whole-room repaint', 'Customer to paint'] },
+          { id: 'int_paint_color', label: 'Paint color', type: 'text', placeholder: 'Match existing / SW # / Customer to provide', colspan: 2, showIf: { int_paint: '__nonzero__' } },
+        ]
+      },
+      {
+        title: 'Trim, Floors & Other',
+        fields: [
+          { id: 'int_trim', label: 'Trim / baseboard', type: 'select', colspan: 2, options: ['Not included', 'Replace damaged sections', 'Full room', 'Re-caulk / touch up'] },
+          { id: 'int_flooring', label: 'Flooring affected', type: 'select', colspan: 2, options: ['No', 'Carpet pad replacement', 'Carpet replacement (insurance scope)', 'Tile / LVP / hardwood (separate scope)'] },
+          { id: 'int_cabinets', label: 'Cabinet repair', type: 'yesno', colspan: 2 },
+        ]
+      },
+      {
+        title: 'Mold & Moisture',
+        fields: [
+          { id: 'int_mold_test', label: 'Mold testing recommended?', type: 'select', colspan: 2, options: ['No visible mold', 'Recommended (separate scope)', 'Test included', 'Customer declined testing'] },
+          { id: 'int_mold_remediation', label: 'Mold remediation', type: 'select', colspan: 2, options: ['Not included', 'Limited (under 10 sq ft, EPA guideline)', 'Full remediation (licensed sub-contractor)', 'Separate contract required'] },
+          { id: 'int_dryout', label: 'Dry-out / mitigation', type: 'select', colspan: 2, options: ['Not included', 'Customer arranged separately', 'Included — equipment for ___ days', 'Already complete'] },
+        ]
+      },
+      {
+        title: 'Job Site Prep',
+        fields: [
+          { id: 'int_furniture', label: 'Furniture / contents handling', type: 'select', colspan: 2, options: ['Customer to clear room', 'GCN to move + protect', 'Mixed — see notes'] },
+          { id: 'int_jobsite_notes', label: 'Job-site notes', type: 'textarea' },
+        ]
+      },
+    ]
+  },
+  Other: {
+    label: 'Other Trade',
+    sections: [
+      {
+        title: 'Other Scope',
+        fields: [
+          { id: 'oth_trade', label: 'Trade / scope name', type: 'text', placeholder: 'e.g., Pool deck, screen enclosure, exterior paint…', colspan: 2 },
+          { id: 'oth_description', label: 'Detailed description', type: 'textarea', required: true, placeholder: 'Materials, manufacturer, color, square footage, line items, exclusions…' },
+          { id: 'oth_jobsite_notes', label: 'Job-site notes', type: 'textarea' },
+        ]
+      },
+    ]
+  },
+};
+
+const SHARED_SCHEMAS = {
+  warranty: {
+    label: 'Warranty Options',
+    sections: [
+      {
+        title: 'Warranty',
+        fields: [
+          { id: 'warr_workmanship', label: 'Workmanship warranty', type: 'select', colspan: 2, options: [
+            '1 year', '2 years', '5 years', '10 years', '15 years', '25 years',
+            'Lifetime (transferable per terms)'
+          ]},
+          { id: 'warr_manufacturer', label: 'Manufacturer warranty type', type: 'select', colspan: 2, options: [
+            'Standard manufacturer (per system)',
+            'Extended / Premium (e.g., GAF Golden Pledge, Owens Corning Platinum)',
+            'Multiple — see line items',
+            'N/A'
+          ]},
+          { id: 'warr_transferable', label: 'Transferable to next owner?', type: 'select', colspan: 2, options: [
+            'Yes — automatic',
+            'Yes — with written consent (standard)',
+            'Manufacturer transferable per their terms',
+            'No'
+          ]},
+          { id: 'warr_notes', label: 'Warranty notes', type: 'textarea', placeholder: 'Any registration steps, manufacturer paperwork, post-completion documentation…' },
+        ]
+      }
+    ]
+  },
+  special: {
+    label: 'Special Instructions',
+    sections: [
+      {
+        title: 'Special Instructions / Additional Details',
+        fields: [
+          { id: 'special_instructions', label: 'Special instructions', type: 'textarea', placeholder: 'Anything not covered above: gate codes, customer preferences, scheduling constraints, neighbor considerations, HOA requirements, code compliance notes, etc.' },
+          { id: 'exclusions', label: 'Exclusions (work NOT included)', type: 'textarea', placeholder: 'e.g., Permit fees, asbestos abatement if discovered, structural engineering, hidden code upgrades…' },
+        ]
+      }
+    ]
+  }
+};
+
+// =========================================================================
+// TRADE SECTION RENDERER
+// =========================================================================
+function renderTradeSections() {
+  const selected = getSelectedValues('tradesGroup');
+  const container = document.getElementById('tradeSectionsContainer');
+  const sharedContainer = document.getElementById('sharedSectionsContainer');
+  const existingValues = collectAllTradeValues();
+  container.innerHTML = '';
+  sharedContainer.innerHTML = '';
+  selected.forEach(tradeKey => {
+    const schema = TRADE_SCHEMAS[tradeKey];
+    if (!schema) return;
+    container.appendChild(renderTradeSchemaSection(tradeKey, schema, existingValues));
+  });
+  if (selected.length > 0) {
+    Object.entries(SHARED_SCHEMAS).forEach(([key, schema]) => {
+      sharedContainer.appendChild(renderTradeSchemaSection(key, schema, existingValues, true));
+    });
+  }
+  bindConditionals();
+}
+
+function renderTradeSchemaSection(key, schema, existingValues, isShared) {
+  const wrap = document.createElement('div');
+  wrap.className = 'trade-section';
+  wrap.dataset.trade = key;
+  const head = document.createElement('div');
+  head.className = 'trade-section-head';
+  head.innerHTML = `
+    <div class="trade-name">
+      <span class="trade-badge">${isShared ? 'Shared' : 'Trade'}</span>
+      ${escapeHtml(schema.label)}
+    </div>
+    <span class="trade-toggle">▼</span>
+  `;
+  head.addEventListener('click', () => wrap.classList.toggle('collapsed'));
+  wrap.appendChild(head);
+
+  const body = document.createElement('div');
+  body.className = 'trade-section-body';
+
+  schema.sections.forEach(section => {
+    const sub = document.createElement('div');
+    sub.className = 'trade-subsection';
+    const title = document.createElement('div');
+    title.className = 'trade-subsection-title';
+    title.textContent = section.title;
+    sub.appendChild(title);
+    const fields = section.fields;
+    let i = 0;
+    while (i < fields.length) {
+      const f = fields[i];
+      if (f.colspan === 2 && i + 1 < fields.length && fields[i + 1].colspan === 2) {
+        const row = document.createElement('div');
+        row.className = 'field-row';
+        row.appendChild(renderField(f, key, existingValues));
+        row.appendChild(renderField(fields[i + 1], key, existingValues));
+        sub.appendChild(row);
+        i += 2;
+      } else {
+        sub.appendChild(renderField(f, key, existingValues));
+        i++;
+      }
+    }
+    body.appendChild(sub);
+  });
+  wrap.appendChild(body);
+  return wrap;
+}
+
+function renderField(field, tradeKey, existingValues) {
+  const wrap = document.createElement('div');
+  wrap.className = 'field';
+  wrap.dataset.fieldId = field.id;
+  wrap.dataset.tradeKey = tradeKey;
+  if (field.showIf) {
+    wrap.dataset.showIf = JSON.stringify(field.showIf);
+    wrap.style.display = 'none';
+  }
+  if (field.label) {
+    const label = document.createElement('label');
+    label.innerHTML = `${escapeHtml(field.label)}${field.required ? ' <span class="req">*</span>' : ''}`;
+    wrap.appendChild(label);
+  }
+  const fid = `${tradeKey}__${field.id}`;
+  const existingVal = existingValues[fid];
+
+  switch (field.type) {
+    case 'text':
+    case 'number':
+    case 'money': {
+      const input = document.createElement('input');
+      input.type = field.type === 'number' ? 'number' : 'text';
+      if (field.type === 'number') input.inputMode = 'decimal';
+      if (field.type === 'money') { input.dataset.money = '1'; input.inputMode = 'decimal'; }
+      input.id = fid;
+      input.placeholder = field.placeholder || '';
+      if (existingVal != null) input.value = existingVal;
+      input.addEventListener('input', () => evaluateConditionals(tradeKey));
+      input.addEventListener('blur', () => {
+        if (field.type === 'money') {
+          const v = parseFloat(input.value.replace(/[^0-9.]/g, ''));
+          input.value = isNaN(v) ? '' : '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+      });
+      wrap.appendChild(input);
+      break;
+    }
+    case 'textarea': {
+      const ta = document.createElement('textarea');
+      ta.id = fid;
+      ta.rows = field.rows || 4;
+      ta.placeholder = field.placeholder || '';
+      if (existingVal != null) ta.value = existingVal;
+      wrap.appendChild(ta);
+      break;
+    }
+    case 'select': {
+      const sel = document.createElement('select');
+      sel.id = fid;
+      const blank = document.createElement('option');
+      blank.value = '';
+      blank.textContent = field.placeholder || 'Select…';
+      sel.appendChild(blank);
+      field.options.forEach(opt => {
+        const o = document.createElement('option');
+        o.value = typeof opt === 'string' ? opt : opt.value;
+        o.textContent = typeof opt === 'string' ? opt : opt.label;
+        sel.appendChild(o);
+      });
+      if (existingVal != null) sel.value = existingVal;
+      sel.addEventListener('change', () => evaluateConditionals(tradeKey));
+      wrap.appendChild(sel);
+      break;
+    }
+    case 'radio': {
+      const cards = document.createElement('div');
+      cards.className = 'radio-cards';
+      field.options.forEach(opt => {
+        const optVal = typeof opt === 'string' ? opt : opt.value;
+        const optLabel = typeof opt === 'string' ? opt : opt.label;
+        const card = document.createElement('div');
+        card.className = 'radio-card';
+        if (existingVal === optVal) card.classList.add('selected');
+        card.dataset.value = optVal;
+        card.innerHTML = `<span class="radio-dot"></span>${escapeHtml(optLabel)}`;
+        card.addEventListener('click', () => {
+          cards.querySelectorAll('.radio-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          wrap.dataset.radioValue = optVal;
+          evaluateConditionals(tradeKey);
+        });
+        cards.appendChild(card);
+      });
+      if (existingVal) wrap.dataset.radioValue = existingVal;
+      wrap.appendChild(cards);
+      break;
+    }
+    case 'yesno': {
+      const grp = document.createElement('div');
+      grp.className = 'yesno-group';
+      ['Yes', 'No'].forEach(v => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.value = v;
+        btn.textContent = v;
+        if (existingVal === v) btn.classList.add('active');
+        btn.addEventListener('click', () => {
+          grp.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          wrap.dataset.yesnoValue = v;
+          evaluateConditionals(tradeKey);
+        });
+        grp.appendChild(btn);
+      });
+      if (existingVal) wrap.dataset.yesnoValue = existingVal;
+      wrap.appendChild(grp);
+      break;
+    }
+  }
+  if (field.help) {
+    const help = document.createElement('div');
+    help.className = 'field-help';
+    help.textContent = field.help;
+    wrap.appendChild(help);
+  }
+  return wrap;
+}
+
+function getFieldValue(tradeKey, fieldId) {
+  const fid = `${tradeKey}__${fieldId}`;
+  const wrap = document.querySelector(`.field[data-trade-key="${tradeKey}"][data-field-id="${fieldId}"]`);
+  if (!wrap) return null;
+  if (wrap.dataset.radioValue !== undefined) return wrap.dataset.radioValue;
+  if (wrap.dataset.yesnoValue !== undefined) return wrap.dataset.yesnoValue;
+  const inp = document.getElementById(fid);
+  if (!inp) return null;
+  return inp.value;
+}
+
+function evaluateConditionals(tradeKey) {
+  document.querySelectorAll(`.field[data-trade-key="${tradeKey}"][data-show-if]`).forEach(wrap => {
+    const cond = JSON.parse(wrap.dataset.showIf);
+    let visible = true;
+    Object.entries(cond).forEach(([depFieldId, expectedVal]) => {
+      const actual = getFieldValue(tradeKey, depFieldId);
+      if (expectedVal === '__nonzero__') {
+        if (!actual || actual === '0' || actual === '' || actual === 'No') visible = false;
+      } else if (Array.isArray(expectedVal)) {
+        if (!expectedVal.includes(actual)) visible = false;
+      } else {
+        if (actual !== expectedVal) visible = false;
+      }
+    });
+    wrap.style.display = visible ? '' : 'none';
+  });
+}
+
+function bindConditionals() {
+  Object.keys(TRADE_SCHEMAS).forEach(k => evaluateConditionals(k));
+  Object.keys(SHARED_SCHEMAS).forEach(k => evaluateConditionals(k));
+}
+
+function collectAllTradeValues() {
+  const out = {};
+  document.querySelectorAll('.field[data-trade-key]').forEach(wrap => {
+    const tradeKey = wrap.dataset.tradeKey;
+    const fieldId = wrap.dataset.fieldId;
+    const val = getFieldValue(tradeKey, fieldId);
+    if (val !== null && val !== undefined && val !== '') {
+      out[`${tradeKey}__${fieldId}`] = val;
+    }
+  });
+  return out;
+}
+
+function collectStructuredScope() {
+  const scope = { trades: {}, shared: {} };
+  document.querySelectorAll('.field[data-trade-key]').forEach(wrap => {
+    const tradeKey = wrap.dataset.tradeKey;
+    const fieldId = wrap.dataset.fieldId;
+    const val = getFieldValue(tradeKey, fieldId);
+    if (val === null || val === undefined || val === '') return;
+    const target = SHARED_SCHEMAS[tradeKey] ? scope.shared : scope.trades;
+    if (!target[tradeKey]) target[tradeKey] = {};
+    target[tradeKey][fieldId] = val;
+  });
+  return scope;
+}
+
+function initTradeReRender() {
+  document.querySelectorAll('#tradesGroup .option-card').forEach(card => {
+    card.addEventListener('click', () => {
+      setTimeout(renderTradeSections, 50);
+    });
+  });
+}
+
+function getSchemaForTrade(tradeKey) {
+  return TRADE_SCHEMAS[tradeKey] || SHARED_SCHEMAS[tradeKey];
+}
+
+// ============== STATE ==============
+const STATE = {
+  contractType: 'residential',
+  step: 1,
+  totalSteps: 5,
+  rep: { slug: '', name: '', phone: '', email: '' },
+  data: {},
+  signatures: { customer: null, customer2: null, gcn: null },
+  signedAt: null,
+  docId: null
+};
+
+const REPS = {
+  jared: { name: 'Jared Janacek', title: 'Owner', phone: '(561) 285-7866', email: 'jared@globalcontractor.network' },
+  austin: { name: 'Austin Weiss', title: 'Sales & Production Director', phone: '(728) 213-7598', email: 'austin@globalcontractor.network' },
+  aj: { name: 'AJ Grosbeck', title: 'Sales Representative', phone: '(954) 789-0572', email: 'aj@globalcontractor.network' },
+  joey: { name: 'Joey Cowan', title: 'Sales Representative', phone: '(954) 871-7997', email: 'joey@globalcontractor.network' },
+  michael: { name: 'Michael Grosso', title: 'Sales Representative', phone: '(561) 817-0800', email: 'michael@globalcontractor.network' },
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const repSlug = (params.get('rep') || 'jared').toLowerCase();
+  const rep = REPS[repSlug] || REPS.jared;
+  STATE.rep = { slug: repSlug, ...rep };
+  document.getElementById('repPill').textContent = `REP: ${rep.name}`;
+
+  const dt = (params.get('type') || 'residential').toLowerCase();
+  if (dt === 'insurance') setDocType('insurance');
+
+  // Pre-fill customer info from URL params if provided by parent app
+  const cn = params.get('customerName');
+  const cp = params.get('customerPhone');
+  const ce = params.get('customerEmail');
+  const pa = params.get('propertyAddress');
+  if (cn) document.getElementById('customerName').value = cn;
+  if (cp) document.getElementById('customerPhone').value = cp;
+  if (ce) document.getElementById('customerEmail').value = ce;
+  if (pa) document.getElementById('propertyAddress').value = pa;
+
+  initOptionGroups();
+  initTradeReRender();
+  initInitialInputs();
+  initSignaturePads();
+  initMoneyInputs();
+  initStepperButtons();
+  updateProgress();
+});
+
+function setDocType(type) {
+  STATE.contractType = type;
+  document.body.classList.remove('contract-residential', 'contract-insurance');
+  document.body.classList.add('contract-' + type);
+  document.getElementById('docResidential').classList.toggle('active', type === 'residential');
+  document.getElementById('docInsurance').classList.toggle('active', type === 'insurance');
+}
+
+function initOptionGroups() {
+  document.querySelectorAll('.option-grid').forEach(grid => {
+    const multi = grid.dataset.multi === '1';
+    grid.querySelectorAll('.option-card').forEach(card => {
+      card.addEventListener('click', () => {
+        if (multi) card.classList.toggle('selected');
+        else {
+          grid.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+        }
+      });
+    });
+  });
+  document.querySelectorAll('.dtp-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('.dtp-option').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+    });
+  });
+}
+
+function getSelectedValues(groupId) {
+  return Array.from(document.querySelectorAll('#' + groupId + ' .option-card.selected')).map(c => c.dataset.value);
+}
+function getSelectedValue(groupId) {
+  const sel = document.querySelector('#' + groupId + ' .option-card.selected');
+  return sel ? sel.dataset.value : null;
+}
+
+function initInitialInputs() {
+  document.querySelectorAll('.initial-input').forEach(input => {
+    input.addEventListener('input', () => {
+      input.value = input.value.toUpperCase();
+      input.classList.toggle('filled', input.value.trim().length >= 2);
+    });
+  });
+}
+
+function initMoneyInputs() {
+  document.querySelectorAll('input[data-money]').forEach(input => {
+    input.addEventListener('input', () => recalcPrices());
+    input.addEventListener('blur', () => {
+      const v = parseFloat(input.value.replace(/[^0-9.]/g, ''));
+      input.value = isNaN(v) ? '' : '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    });
+  });
+}
+
+function moneyVal(id) {
+  const el = document.getElementById(id);
+  if (!el) return 0;
+  return parseFloat(el.value.replace(/[^0-9.]/g, '')) || 0;
+}
+
+function recalcPrices() {
+  const total = moneyVal('priceTotal');
+  const sum = moneyVal('priceDeposit') + moneyVal('priceProgress') + moneyVal('priceFinal');
+  const msg = document.getElementById('priceCheckMsg');
+  if (!msg) return;
+  if (total === 0) { msg.textContent = ''; return; }
+  if (Math.abs(sum - total) < 0.01) {
+    msg.innerHTML = '<span style="color: var(--good); font-weight: 600;">✓ Payment schedule matches total.</span>';
+  } else if (sum > 0) {
+    const diff = (total - sum).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    msg.innerHTML = `<span style="color: var(--warn);">Payment schedule total is off by ${diff}.</span>`;
+  } else {
+    msg.textContent = '';
+  }
+}
+
+const pads = {};
+
+function initSignaturePads() {
+  ['customerSig', 'customer2Sig', 'gcnSig'].forEach(setupSigPad);
+  const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const dateEl = document.getElementById('customerSigDate');
+  if (dateEl) dateEl.textContent = today;
+}
+
+function setupSigPad(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  const wrap = document.getElementById(canvasId + 'Wrap');
+  if (!canvas || !wrap) return;
+  if (pads[canvasId]) { pads[canvasId].resize(); return; }
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+  let hasDrawn = false;
+
+  function resize() {
+    const rect = wrap.getBoundingClientRect();
+    if (rect.width < 10 || rect.height < 10) return;
+    const dpr = window.devicePixelRatio || 1;
+    let saved = null;
+    if (hasDrawn && canvas.width > 0 && canvas.height > 0) saved = canvas.toDataURL();
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#0A0908';
+    if (saved) {
+      const img = new Image();
+      img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+      img.src = saved;
+    }
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', () => setTimeout(resize, 200));
+
+  function getXY(e) {
+    const rect = canvas.getBoundingClientRect();
+    let clientX, clientY;
+    if (e.touches && e.touches.length) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+    else if (e.changedTouches && e.changedTouches.length) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; }
+    else { clientX = e.clientX; clientY = e.clientY; }
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+  function start(e) {
+    e.preventDefault();
+    drawing = true; hasDrawn = true;
+    wrap.classList.add('active');
+    const hint = wrap.querySelector('.sig-pad-hint');
+    if (hint) hint.style.display = 'none';
+    const { x, y } = getXY(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 0.1, y + 0.1);
+    ctx.stroke();
+  }
+  function move(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const { x, y } = getXY(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
+  function end(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    drawing = false;
+    ctx.closePath();
+  }
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove', move, { passive: false });
+  canvas.addEventListener('touchend', end, { passive: false });
+  canvas.addEventListener('touchcancel', end, { passive: false });
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseup', end);
+  canvas.addEventListener('mouseleave', end);
+  pads[canvasId] = {
+    canvas, wrap, resize,
+    clear: () => {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      hasDrawn = false;
+      wrap.classList.remove('active');
+      const hint = wrap.querySelector('.sig-pad-hint');
+      if (hint) hint.style.display = '';
+    },
+    isEmpty: () => !hasDrawn,
+    toDataURL: () => canvas.toDataURL('image/png')
+  };
+}
+
+function clearSig(id) { if (pads[id]) pads[id].clear(); }
+
+function initStepperButtons() { updateNavButtons(); }
+
+function updateNavButtons() {
+  const back = document.getElementById('backBtn');
+  const next = document.getElementById('nextBtn');
+  const navBar = document.getElementById('navBar');
+  back.style.visibility = STATE.step === 1 ? 'hidden' : 'visible';
+  if (STATE.step === STATE.totalSteps) { next.textContent = 'Sign & Generate Contract'; next.classList.add('success'); }
+  else { next.textContent = 'Continue'; next.classList.remove('success'); }
+  if (STATE.step > STATE.totalSteps) navBar.style.display = 'none';
+  else navBar.style.display = 'flex';
+}
+
+function showStep(n) {
+  STATE.step = n;
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  const target = document.querySelector(`.step[data-step="${n}"]`);
+  if (target) target.classList.add('active');
+  updateProgress();
+  updateNavButtons();
+  if (n === 5) {
+    buildReview();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        ['customerSig', 'customer2Sig', 'gcnSig'].forEach(id => {
+          if (pads[id]) pads[id].resize();
+          else setupSigPad(id);
+        });
+      });
+    });
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function nextStep() {
+  if (!validateStep(STATE.step)) return;
+  saveStep(STATE.step);
+  if (STATE.step === STATE.totalSteps) { submitAgreement(); return; }
+  showStep(STATE.step + 1);
+}
+function prevStep() {
+  if (STATE.step <= 1) return;
+  saveStep(STATE.step);
+  showStep(STATE.step - 1);
+}
+
+function updateProgress() {
+  const pct = STATE.step > STATE.totalSteps ? 100 : Math.round((STATE.step / STATE.totalSteps) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+  const labels = ['', 'Customer Info', 'Scope of Work', 'Price & Payment', 'Statutory Notices', 'Review & Sign', 'Complete'];
+  if (STATE.step === 3 && STATE.contractType === 'insurance') labels[3] = 'Direction to Pay';
+  document.getElementById('progressLabel').textContent = STATE.step <= STATE.totalSteps
+    ? `Step ${STATE.step} of ${STATE.totalSteps} · ${labels[STATE.step]}`
+    : 'Complete';
+}
+
+function showError(fieldId) {
+  const f = document.getElementById(fieldId);
+  if (f) f.closest('.field')?.classList.add('has-error');
+}
+
+function validateStep(n) {
+  let ok = true;
+  document.querySelectorAll('.has-error').forEach(el => el.classList.remove('has-error'));
+  if (n === 1) {
+    if (!val('customerName').trim()) { showError('customerName'); ok = false; }
+    if (!val('customerPhone').trim()) { showError('customerPhone'); ok = false; }
+    if (!isEmail(val('customerEmail'))) { showError('customerEmail'); ok = false; }
+    if (!val('propertyAddress').trim()) { showError('propertyAddress'); ok = false; }
+    if (!getSelectedValue('propertyTypeGroup')) {
+      document.getElementById('propertyTypeGroup').style.boxShadow = '0 0 0 3px rgba(155,28,28,0.15)';
+      setTimeout(() => document.getElementById('propertyTypeGroup').style.boxShadow = '', 2000);
+      ok = false;
+    }
+    if (STATE.contractType === 'insurance') {
+      if (!val('insCarrier').trim()) { showError('insCarrier'); ok = false; }
+      if (!val('dateOfLoss')) { showError('dateOfLoss'); ok = false; }
+      if (!val('causeOfLoss')) { showError('causeOfLoss'); ok = false; }
+    }
+  }
+  if (n === 2) {
+    const tradesSelected = getSelectedValues('tradesGroup');
+    if (tradesSelected.length === 0) {
+      document.getElementById('tradesGroup').style.boxShadow = '0 0 0 3px rgba(155,28,28,0.15)';
+      setTimeout(() => document.getElementById('tradesGroup').style.boxShadow = '', 2000);
+      ok = false;
+    }
+    if (STATE.contractType === 'residential') {
+      let missingRequired = [];
+      tradesSelected.forEach(tk => {
+        const schema = TRADE_SCHEMAS[tk];
+        if (!schema) return;
+        schema.sections.forEach(sec => {
+          sec.fields.forEach(f => {
+            if (!f.required) return;
+            const v = getFieldValue(tk, f.id);
+            if (!v || v === '') {
+              missingRequired.push(`${schema.label}: ${f.label}`);
+              const wrap = document.querySelector(`.field[data-trade-key="${tk}"][data-field-id="${f.id}"]`);
+              if (wrap) {
+                wrap.classList.add('has-error');
+                wrap.closest('.trade-section')?.classList.remove('collapsed');
+              }
+            }
+          });
+        });
+      });
+      if (missingRequired.length > 0) ok = false;
+    }
+  }
+  if (n === 3) {
+    if (STATE.contractType === 'residential') {
+      if (moneyVal('priceTotal') <= 0) { showError('priceTotal'); ok = false; }
+    } else {
+      if (!document.querySelector('.dtp-option.selected')) {
+        document.getElementById('dtpGroup').style.boxShadow = '0 0 0 3px rgba(155,28,28,0.15)';
+        setTimeout(() => document.getElementById('dtpGroup').style.boxShadow = '', 2000);
+        ok = false;
+      }
+    }
+  }
+  if (n === 4) {
+    const required = STATE.contractType === 'residential'
+      ? ['deductible', 'fraud', 'cancel', 'lienlaw']
+      : ['deductible', 'fraud', 'cancel', 'aob'];
+    let allInitialed = true;
+    required.forEach(key => {
+      const inp = document.querySelector(`.initial-input[data-initial="${key}"]`);
+      if (!inp || inp.value.trim().length < 2) {
+        if (inp) inp.style.borderColor = 'var(--warn)';
+        allInitialed = false;
+      }
+    });
+    if (!allInitialed) {
+      document.getElementById('initialWarning').classList.add('show');
+      setTimeout(() => document.getElementById('initialWarning').classList.remove('show'), 5000);
+      ok = false;
+    }
+  }
+  if (n === 5) {
+    if (pads.customerSig.isEmpty()) { pads.customerSig.wrap.style.borderColor = 'var(--warn)'; ok = false; }
+    if (pads.gcnSig.isEmpty()) { pads.gcnSig.wrap.style.borderColor = 'var(--warn)'; ok = false; }
+  }
+  return ok;
+}
+
+function val(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim()); }
+
+function saveStep(n) {
+  if (n === 1) {
+    STATE.data.customerName = val('customerName');
+    STATE.data.customerPhone = val('customerPhone');
+    STATE.data.customerEmail = val('customerEmail');
+    STATE.data.propertyAddress = val('propertyAddress');
+    STATE.data.mailingAddress = val('mailingAddress');
+    STATE.data.propertyType = getSelectedValue('propertyTypeGroup');
+    if (STATE.contractType === 'insurance') {
+      STATE.data.insCarrier = val('insCarrier');
+      STATE.data.claimNumber = val('claimNumber');
+      STATE.data.dateOfLoss = val('dateOfLoss');
+      STATE.data.causeOfLoss = val('causeOfLoss');
+    }
+  }
+  if (n === 2) {
+    STATE.data.trades = getSelectedValues('tradesGroup');
+    if (STATE.contractType === 'insurance') {
+      STATE.data.damageNotes = val('damageNotes');
+      STATE.data.scopeStructured = null;
+    } else {
+      STATE.data.scopeStructured = collectStructuredScope();
+      STATE.data.damageNotes = null;
+    }
+    STATE.data.startDate = val('startDate');
+    STATE.data.completionDate = val('completionDate');
+  }
+  if (n === 3) {
+    if (STATE.contractType === 'residential') {
+      STATE.data.priceTotal = moneyVal('priceTotal');
+      STATE.data.priceDeposit = moneyVal('priceDeposit');
+      STATE.data.priceProgress = moneyVal('priceProgress');
+      STATE.data.priceFinal = moneyVal('priceFinal');
+    } else {
+      const sel = document.querySelector('.dtp-option.selected');
+      STATE.data.dtpOption = sel ? sel.dataset.value : null;
+    }
+  }
+  if (n === 4) {
+    STATE.data.initials = {};
+    document.querySelectorAll('.initial-input').forEach(inp => {
+      STATE.data.initials[inp.dataset.initial] = inp.value;
+    });
+  }
+}
+
+function buildReview() {
+  const c = document.getElementById('reviewContent');
+  const d = STATE.data;
+  const rows = [];
+  rows.push(['Document', STATE.contractType === 'residential' ? 'Residential Construction Agreement' : 'Insurance Claim Contingency Agreement']);
+  rows.push(['Customer', d.customerName || '—']);
+  rows.push(['Property', d.propertyAddress || '—']);
+  rows.push(['Trade(s)', (d.trades || []).join(', ') || '—']);
+  if (STATE.contractType === 'residential') {
+    rows.push(['Total Price', d.priceTotal ? '$' + d.priceTotal.toLocaleString('en-US', {minimumFractionDigits:2}) : '—']);
+  } else {
+    rows.push(['Carrier / Claim', `${d.insCarrier || '—'} ${d.claimNumber ? '#' + d.claimNumber : ''}`]);
+    rows.push(['Cause of Loss', d.causeOfLoss || '—']);
+    const dtpLabels = { A: 'Joint Check', C: 'Customer Writes Deposit Check' };
+    rows.push(['Direction to Pay', dtpLabels[d.dtpOption] || '—']);
+  }
+  rows.push(['GCN Rep', STATE.rep.name]);
+  if (STATE.contractType === 'residential' && d.scopeStructured) {
+    Object.entries(d.scopeStructured.trades || {}).forEach(([tk, fields]) => {
+      const cnt = Object.keys(fields).length;
+      rows.push([`${tk} line items`, cnt > 0 ? `${cnt} field${cnt === 1 ? '' : 's'} completed` : '—']);
+    });
+  }
+  if (STATE.contractType === 'insurance' && d.damageNotes) {
+    rows.push(['Damage notes', d.damageNotes.length > 60 ? d.damageNotes.slice(0, 57) + '…' : d.damageNotes]);
+  }
+  c.innerHTML = rows.map(([k, v]) => `<div class="review-row"><span class="label">${k}</span><span class="value">${escapeHtml(v)}</span></div>`).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function submitAgreement() {
+  STATE.signatures.customer = pads.customerSig.toDataURL();
+  STATE.signatures.customer2 = pads.customer2Sig.isEmpty() ? null : pads.customer2Sig.toDataURL();
+  STATE.signatures.gcn = pads.gcnSig.toDataURL();
+  STATE.signedAt = new Date();
+  STATE.docId = generateDocId();
+  document.getElementById('navBar').style.display = 'none';
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.querySelector('.step[data-step="6"]').classList.add('active');
+  document.getElementById('filedTime').textContent = STATE.signedAt.toLocaleString('en-US');
+  document.getElementById('docId').textContent = STATE.docId;
+  STATE.step = 6;
+  updateProgress();
+  document.getElementById('progressLabel').textContent = 'Signed · ' + STATE.signedAt.toLocaleDateString('en-US');
+  document.getElementById('progressPct').textContent = '✓';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  try { generatedPdf = generatePdf(); }
+  catch (err) { console.error('Pre-generate PDF failed:', err); generatedPdf = null; }
+}
+
+function generateDocId() {
+  const d = new Date();
+  const ymd = d.getFullYear().toString().slice(-2) + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  const prefix = STATE.contractType === 'residential' ? 'RC' : 'IC';
+  return `GCN-${prefix}-${ymd}-${rand}`;
+}
+
+let generatedPdf = null;
+
+function generatePdf() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  const W = 612, H = 792;
+  const M = 48;
+  const cw = W - 2 * M;
+  let y = M;
+  const d = STATE.data;
+  const isInsurance = STATE.contractType === 'insurance';
+
+  doc.setFillColor(10, 9, 8);
+  doc.rect(0, 0, W, 38, 'F');
+  doc.setTextColor(248, 229, 138);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('GCN', M, 25);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('The Global Contractor Network, LLC', M + 36, 18);
+  doc.text('233 NW 10th St, Pompano Beach FL · (561) 285-7866 · GlobalContractor.network', M + 36, 30);
+  doc.setDrawColor(201, 162, 39);
+  doc.setLineWidth(2);
+  doc.line(0, 38, W, 38);
+  y = 70;
+  doc.setTextColor(10, 9, 8);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  const title = isInsurance ? 'INSURANCE CLAIM CONTINGENCY AGREEMENT' : 'RESIDENTIAL CONSTRUCTION AGREEMENT';
+  doc.text(title, W / 2, y, { align: 'center' });
+  y += 14;
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(9);
+  doc.setTextColor(85, 85, 85);
+  doc.text(isInsurance ? 'A handshake agreement to act as your contractor if your claim is approved' : 'Roofing  ·  Windows  ·  Insurance Restoration  ·  General Contracting', W / 2, y, { align: 'center' });
+  y += 18;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(120, 115, 100);
+  doc.text(`Document ID: ${STATE.docId}    Signed: ${STATE.signedAt.toLocaleString('en-US')}`, W / 2, y, { align: 'center' });
+  y += 14;
+  doc.setFontSize(9);
+  doc.setTextColor(10, 9, 8);
+  const partiesRows = [
+    ['Customer', d.customerName],
+    ['Phone / Email', `${d.customerPhone}   ${d.customerEmail}`],
+    ['Property Address', d.propertyAddress],
+    ['Property Type', d.propertyType || ''],
+  ];
+  if (isInsurance) {
+    partiesRows.push(['Carrier / Claim #', `${d.insCarrier || ''}   ${d.claimNumber ? '#' + d.claimNumber : ''}`]);
+    partiesRows.push(['Date / Cause of Loss', `${d.dateOfLoss || ''}   ${d.causeOfLoss || ''}`]);
+  }
+  y = drawKeyValueTable(doc, partiesRows, M, y, cw) + 8;
+  y = sectionHeader(doc, isInsurance ? '1. Purpose & Scope' : '1. Scope of Work', M, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(30, 25, 20);
+  const tradesText = `Trade(s): ${(d.trades || []).join(', ') || '—'}`;
+  y = drawWrapped(doc, tradesText, M, y, cw, 12) + 6;
+
+  if (isInsurance) {
+    if (d.damageNotes && d.damageNotes.trim()) {
+      y = drawWrapped(doc, 'Damage overview: ' + d.damageNotes, M, y, cw, 12) + 6;
+    }
+  }
+
+  if (!isInsurance && d.scopeStructured) {
+    const trades = d.scopeStructured.trades || {};
+    Object.entries(trades).forEach(([tradeKey, fieldValues]) => {
+      const schema = getSchemaForTrade(tradeKey);
+      if (!schema) return;
+      if (y > H - 120) { doc.addPage(); y = M; }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(143, 111, 24);
+      doc.text(schema.label.toUpperCase(), M, y);
+      doc.setDrawColor(216, 210, 192);
+      doc.setLineWidth(0.4);
+      doc.line(M, y + 2, M + cw, y + 2);
+      y += 12;
+      schema.sections.forEach(sec => {
+        const populatedFields = sec.fields.filter(f => fieldValues[f.id] != null && fieldValues[f.id] !== '');
+        if (populatedFields.length === 0) return;
+        if (y > H - 80) { doc.addPage(); y = M; }
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(143, 111, 24);
+        doc.text(sec.title.toUpperCase(), M + 4, y);
+        y += 9;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(30, 25, 20);
+        populatedFields.forEach(f => {
+          const v = fieldValues[f.id];
+          if (y > H - 40) { doc.addPage(); y = M; }
+          const line = `  ${f.label}: ${v}`;
+          y = drawWrapped(doc, line, M + 4, y, cw - 4, 11) + 2;
+        });
+        y += 4;
+      });
+      y += 6;
+    });
+    const shared = d.scopeStructured.shared || {};
+    Object.entries(shared).forEach(([sharedKey, fieldValues]) => {
+      const schema = getSchemaForTrade(sharedKey);
+      if (!schema) return;
+      if (y > H - 100) { doc.addPage(); y = M; }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(143, 111, 24);
+      doc.text(schema.label.toUpperCase(), M, y);
+      doc.setDrawColor(216, 210, 192);
+      doc.setLineWidth(0.4);
+      doc.line(M, y + 2, M + cw, y + 2);
+      y += 12;
+      schema.sections.forEach(sec => {
+        const populatedFields = sec.fields.filter(f => fieldValues[f.id] != null && fieldValues[f.id] !== '');
+        if (populatedFields.length === 0) return;
+        if (y > H - 60) { doc.addPage(); y = M; }
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(30, 25, 20);
+        populatedFields.forEach(f => {
+          if (y > H - 40) { doc.addPage(); y = M; }
+          const line = `  ${f.label}: ${fieldValues[f.id]}`;
+          y = drawWrapped(doc, line, M + 4, y, cw - 4, 11) + 2;
+        });
+      });
+      y += 8;
+    });
+  }
+
+  if (!isInsurance && (d.startDate || d.completionDate)) {
+    if (y > H - 60) { doc.addPage(); y = M; }
+    y = drawWrapped(doc, `Estimated start: ${d.startDate || '—'}   Estimated completion: ${d.completionDate || '—'}`, M, y, cw, 12) + 6;
+  }
+
+  if (isInsurance) {
+    y = sectionHeader(doc, '2. Contingent Engagement (Not a Construction Contract)', M, y);
+    y = drawWrapped(doc, 'This is a CONTINGENCY agreement, not a construction contract. Customer engages GCN to assist with documentation and contractor representation related to the Claim. The detailed scope, materials, and price for any actual repair work will be set in a SEPARATE Residential Construction Agreement signed only after the carrier approves the Claim.', M, y, cw, 12) + 6;
+    y = drawWrapped(doc, "Right of First Refusal & Exclusivity. While this Agreement is in effect, Customer agrees to use GCN as Customer's contractor representative for the Claim and not to engage another contractor to communicate with the carrier or perform competing inspections of the same loss. If the carrier approves the Claim (in whole or in part), Customer agrees to engage GCN as the contractor of record for the approved scope of repairs, subject to the parties signing a mutually acceptable construction contract. If GCN and Customer cannot agree on the construction contract terms in good faith within 14 days of carrier approval, this exclusivity ends and Customer may engage another contractor.", M, y, cw, 12) + 6;
+    y = drawWrapped(doc, 'If Carrier Denies the Claim: Customer may cancel this Agreement at no cost; Customer remains responsible only for any out-of-pocket emergency or mitigation work Customer separately authorized in writing.', M, y, cw, 12) + 8;
+    y = sectionHeader(doc, '5. Direction to Pay (NOT an Assignment of Benefits)', M, y);
+    y = drawWrapped(doc, 'Consistent with Fla. Stat. § 627.7152 and SB 2-A (2022), GCN does NOT accept Assignments of Benefits. Customer remains the named insured and retains all policy rights. The election below is a payment-routing instruction only — it transfers no insurance benefit, post-loss right, or cause of action to GCN. Customer may revoke in writing at any time.', M, y, cw, 12) + 6;
+    const dtpLabels = {
+      A: 'Option A — Joint Check: Carrier issues all proceeds checks for the approved scope payable jointly to Customer, any mortgagee on the policy, and "The Global Contractor Network, LLC." Customer endorses (and obtains mortgagee endorsement where applicable) and tenders to GCN within 5 business days of receipt.',
+      C: "Option C — Customer Writes Deposit Check: Customer receives proceeds checks directly. Within 5 business days of Customer's receipt of the carrier's ACV check, Customer writes GCN a deposit check from Customer's own account in an amount equal to the ACV check."
+    };
+    doc.setFont('helvetica', 'bold');
+    y = drawWrapped(doc, `Customer's election: ${dtpLabels[d.dtpOption] || '—'}`, M, y, cw, 12) + 6;
+    doc.setFont('helvetica', 'normal');
+    y = drawWrapped(doc, "Nothing here grants GCN ownership of the Claim or any right to sue the carrier; Customer alone retains standing to pursue any disputed coverage, supplement denial, or carrier bad-faith claim. GCN's remedy for nonpayment is contract action against Customer or a construction lien against the Property under Fla. Stat. §§ 713.001–713.37.", M, y, cw, 12) + 8;
+  } else {
+    y = sectionHeader(doc, '2. Contract Price & Payment', M, y);
+    const fmtMoney = (v) => v ? '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—';
+    const priceRows = [
+      ['Total Contract Price', fmtMoney(d.priceTotal)],
+      ['Deposit at signing', fmtMoney(d.priceDeposit)],
+      ['Progress (at start)', fmtMoney(d.priceProgress)],
+      ['Final (at completion)', fmtMoney(d.priceFinal)],
+    ];
+    y = drawKeyValueTable(doc, priceRows, M, y, cw) + 4;
+    y = drawWrapped(doc, 'Checks payable to The Global Contractor Network, LLC. ACH/wire/credit card accepted (3% card fee). Late payments accrue 1.5%/mo or max permitted by law. Customer may not withhold final for cosmetic/punch-list items unless they render the Work unfit for use. Per Fla. Stat. § 489.126: payments exceeding 10% of contract price applied to materials/work; permits applied for within 30 days of payment; work starts within 90 days of permit issuance.', M, y, cw, 12) + 8;
+    y = sectionHeader(doc, '3. Schedule, Change Orders & Warranty', M, y);
+    y = drawWrapped(doc, 'All scope/material/price changes require a written Change Order signed by both parties before performance. Concealed conditions discovered after Work begins (rotted decking/framing, mold, code-required upgrades) will be presented as a Change Order; refusal to authorize a code-required Change Order may suspend Work. Decking replacement (roofing) priced per scope.', M, y, cw, 12) + 4;
+    y = drawWrapped(doc, "Licensed contractor of record pulls all permits and coordinates inspections per the FL Building Code. Workmanship warranty covers defects in workmanship; manufacturer warranties pass through on full payment. Warranty does not cover acts of God, named storms, fire, vandalism, impacts, alterations by others, normal wear, ponding, biological growth, pre-existing materials, or consequential damages. Warranty conditional on payment in full and is non-transferable without written consent.", M, y, cw, 12) + 8;
+  }
+
+  if (y > H - 280) { doc.addPage(); y = M; }
+  y = sectionHeader(doc, isInsurance ? '7. Right to Cancel' : '6. Required Florida Statutory Notices', M, y);
+  y = drawNoticeBox(doc, 'PROHIBITED INDUCEMENTS (Fla. Stat. §§ 489.147 & 626.854)',
+    'It is unlawful for any contractor offering residential roofing services to compensate, rebate, or absorb your insurance deductible; offer services in exchange for letting an insurance claim be filed; or interpret your policy. Customer is responsible for the deductible. GCN is NOT a licensed Public Adjuster and shall not adjust, negotiate, or settle any claim on your behalf.',
+    M, y, cw) + 6;
+  y = drawNoticeBox(doc, 'RIGHT TO CANCEL',
+    isInsurance
+      ? 'YOU MAY CANCEL THIS TRANSACTION WITHIN 3 BUSINESS DAYS WITHOUT PENALTY. ADDITIONALLY, IF YOUR CARRIER DENIES COVERAGE IN WHOLE OR IN PART (§ 489.147(3), Fla. Stat.), YOU MAY CANCEL WITHIN 30 DAYS OF THE LATER OF (A) THE DATE GCN ISSUES YOU A WRITTEN ESTIMATE OR (B) THE DATE OF DENIAL — WITHOUT PENALTY. SEE THE NOTICE OF CANCELLATION FORM.'
+      : 'YOU MAY CANCEL THIS TRANSACTION AT ANY TIME PRIOR TO MIDNIGHT OF THE THIRD BUSINESS DAY AFTER THE DATE OF THIS TRANSACTION. SEE THE ATTACHED NOTICE OF CANCELLATION FORM. If this Project is an insurance restoration claim, Customer may also cancel within 30 days under § 489.147(3), Fla. Stat.',
+    M, y, cw) + 8;
+
+  if (y > H - 200) { doc.addPage(); y = M; }
+  y = sectionHeader(doc, isInsurance ? '10. General Terms' : '8. Liability, Default & General Terms', M, y);
+  if (isInsurance) {
+    y = drawWrapped(doc, "Customer pays Customer's deductible. GCN is prohibited by FL law from paying or rebating any portion. GCN is NOT a public adjuster, attorney, or insurance representative; GCN does not adjust, settle, negotiate, or interpret the policy or Claim. Insurance fraud is a 3rd-degree felony (Fla. Stat. §§ 775.082-775.084). FL law governs; venue: Palm Beach County. Prevailing party recovers fees/costs. GCN total liability shall not exceed amounts paid to GCN; no consequential damages or claim-outcome guarantee. Notice of Cancellation form is part of this Agreement. Modifications must be in writing and signed; counterparts and electronic signatures permitted.", M, y, cw, 12) + 8;
+  } else {
+    y = drawWrapped(doc, "Indemnity. Contractor indemnifies Customer for third-party claims caused by Contractor's negligence, except to the extent caused by Customer. CONTRACTOR'S TOTAL LIABILITY SHALL NOT EXCEED THE CONTRACT PRICE PAID. NO CONSEQUENTIAL, INDIRECT, INCIDENTAL, OR PUNITIVE DAMAGES.", M, y, cw, 12) + 4;
+    y = drawWrapped(doc, "Default. If Customer fails to pay when due, after 5 days' written notice Contractor may suspend or terminate; Customer remains liable for Work performed and materials ordered, plus a cancellation fee not to exceed 25% of unperformed Contract Price. Disputes: good-faith negotiation, then non-binding mediation in Palm Beach County. Prevailing party in litigation recovers fees. FL law governs; venue: Palm Beach County. Counterparts and electronic signatures permitted. Insurance: GCN and the licensed contractor of record maintain GL and Workers' Comp (or valid FL exemption); COIs available on request.", M, y, cw, 12) + 8;
+  }
+
+  if (y > H - 180) { doc.addPage(); y = M; }
+  y = drawAddendumBox(doc, M, y, cw);
+  y += 12;
+
+  if (y > H - 200) { doc.addPage(); y = M; }
+  y = drawAckTable(doc, M, y, cw, isInsurance);
+  y += 16;
+
+  if (y > H - 220) { doc.addPage(); y = M; }
+  y = drawSignatures(doc, M, y, cw);
+
+  // Notice of Cancellation page
+  doc.addPage();
+  let ny = M;
+  doc.setFillColor(10, 9, 8);
+  doc.rect(0, 0, W, 38, 'F');
+  doc.setTextColor(248, 229, 138);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('GCN', M, 25);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('The Global Contractor Network, LLC', M + 36, 18);
+  doc.text('233 NW 10th St, Pompano Beach FL · (561) 285-7866', M + 36, 30);
+  doc.setDrawColor(201, 162, 39);
+  doc.setLineWidth(2);
+  doc.line(0, 38, W, 38);
+  ny = 80;
+  doc.setTextColor(10, 9, 8);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.text('NOTICE OF CANCELLATION', W / 2, ny, { align: 'center' });
+  ny += 16;
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(9);
+  doc.setTextColor(85, 85, 85);
+  doc.text('Two copies provided to Customer at signing', W / 2, ny, { align: 'center' });
+  ny += 30;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(10, 9, 8);
+  ny = drawWrapped(doc, `Date of Transaction: ${STATE.signedAt.toLocaleDateString('en-US')}`, M, ny, cw, 14) + 16;
+  doc.setFont('helvetica', 'bold');
+  ny = drawWrapped(doc, 'YOU MAY CANCEL THIS TRANSACTION, WITHOUT ANY PENALTY OR OBLIGATION, WITHIN THREE BUSINESS DAYS FROM THE ABOVE DATE.', M, ny, cw, 14) + 14;
+  doc.setFont('helvetica', 'normal');
+  ny = drawWrapped(doc, 'If you cancel, any payments made by you under this contract will be returned within 10 business days following receipt by the seller of your cancellation notice, and any security interest arising out of the transaction will be cancelled.', M, ny, cw, 13) + 10;
+  ny = drawWrapped(doc, "If you cancel, you must make available to the seller, at your residence in substantially as good condition as when received, any goods delivered to you under this contract; or you may, if you wish, comply with the instructions of the seller regarding return shipment at the seller's expense and risk.", M, ny, cw, 13) + 10;
+  ny = drawWrapped(doc, 'If you make the goods available to the seller and the seller does not pick them up within 20 days of the date of your notice of cancellation, you may retain or dispose of the goods without further obligation. If you fail to make the goods available, or agree to return them and fail to do so, you remain liable for performance of all obligations under the contract.', M, ny, cw, 13) + 14;
+  ny = drawWrapped(doc, 'To cancel this transaction, mail or deliver a signed and dated copy of this notice to:', M, ny, cw, 13) + 8;
+  doc.setFont('helvetica', 'bold');
+  ny = drawWrapped(doc, 'The Global Contractor Network, LLC', M, ny, cw, 13) + 4;
+  doc.setFont('helvetica', 'normal');
+  ny = drawWrapped(doc, '233 NW 10th Street, Pompano Beach, FL 33069', M, ny, cw, 13) + 2;
+  ny = drawWrapped(doc, 'Email: jared@globalcontractor.network    Phone: (561) 285-7866', M, ny, cw, 13) + 18;
+  doc.setFont('helvetica', 'bold');
+  ny = drawWrapped(doc, 'NOT LATER THAN MIDNIGHT OF: ___________________________  (date)', M, ny, cw, 14) + 24;
+  ny = drawWrapped(doc, 'I HEREBY CANCEL THIS TRANSACTION.', M, ny, cw, 16) + 30;
+  doc.setFont('helvetica', 'normal');
+  doc.setLineWidth(0.6);
+  doc.line(M, ny, M + 240, ny);
+  doc.line(M + 280, ny, M + 420, ny);
+  ny += 12;
+  doc.setFontSize(8);
+  doc.setTextColor(120, 115, 100);
+  doc.text('Customer Signature', M, ny);
+  doc.text('Date', M + 280, ny);
+
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(120, 115, 100);
+    const footer = `${isInsurance ? 'Insurance Claim Contingency Agreement' : 'Residential Construction Agreement'}  ·  Page ${i} of ${totalPages}  ·  ${STATE.docId}`;
+    doc.text(footer, W / 2, H - 24, { align: 'center' });
+  }
+  return doc;
+}
+
+function drawWrapped(doc, text, x, y, w, lineHeight) {
+  if (!text) return y;
+  const lines = doc.splitTextToSize(text, w);
+  doc.text(lines, x, y);
+  return y + lines.length * lineHeight;
+}
+
+function sectionHeader(doc, label, x, y) {
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(143, 111, 24);
+  doc.text(label, x, y);
+  doc.setDrawColor(216, 210, 192);
+  doc.setLineWidth(0.5);
+  doc.line(x, y + 3, x + 516, y + 3);
+  doc.setTextColor(30, 25, 20);
+  return y + 14;
+}
+
+function drawKeyValueTable(doc, rows, x, y, w) {
+  doc.setLineWidth(0.4);
+  doc.setDrawColor(216, 210, 192);
+  const labelW = 130;
+  const rowH = 18;
+  doc.setFontSize(9);
+  rows.forEach((row, i) => {
+    doc.setFillColor(244, 241, 232);
+    doc.rect(x, y + i * rowH, labelW, rowH, 'F');
+    doc.setDrawColor(216, 210, 192);
+    doc.rect(x, y + i * rowH, w, rowH);
+    doc.line(x + labelW, y + i * rowH, x + labelW, y + (i + 1) * rowH);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(10, 9, 8);
+    doc.text(row[0], x + 6, y + i * rowH + 12);
+    doc.setFont('helvetica', 'normal');
+    const valLines = doc.splitTextToSize(String(row[1] || ''), w - labelW - 12);
+    doc.text(valLines.slice(0, 1), x + labelW + 6, y + i * rowH + 12);
+  });
+  return y + rows.length * rowH;
+}
+
+function drawNoticeBox(doc, label, body, x, y, w) {
+  const padding = 8;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  const labelLines = doc.splitTextToSize(label, w - 2 * padding);
+  doc.setFont('helvetica', 'normal');
+  const bodyLines = doc.splitTextToSize(body, w - 2 * padding);
+  const totalH = padding + labelLines.length * 11 + 4 + bodyLines.length * 10 + padding;
+  doc.setFillColor(251, 247, 232);
+  doc.setDrawColor(10, 9, 8);
+  doc.setLineWidth(1);
+  doc.rect(x, y, w, totalH, 'FD');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(10, 9, 8);
+  doc.text(labelLines, x + padding, y + padding + 8);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(bodyLines, x + padding, y + padding + labelLines.length * 11 + 8);
+  return y + totalH;
+}
+
+function drawAddendumBox(doc, x, y, w) {
+  doc.setDrawColor(216, 210, 192);
+  doc.setFillColor(244, 241, 232);
+  doc.setLineWidth(0.5);
+  const h = 50;
+  doc.rect(x, y, w, h, 'FD');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(10, 9, 8);
+  doc.text('REQUIRED LEGAL NOTICES & ADDITIONAL TERMS', x + 12, y + 16);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(75, 70, 64);
+  const txt = doc.splitTextToSize('Insurance Fraud Warning, Construction Recovery Fund, Construction Lien Law, lien waivers, and FAQs:', w - 24);
+  doc.text(txt, x + 12, y + 28);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(143, 111, 24);
+  doc.setFontSize(9);
+  doc.text('GlobalContractor.network/legal', x + 12, y + 44);
+  return y + h;
+}
+
+function drawAckTable(doc, x, y, w, isInsurance) {
+  const rows = [
+    ['I am responsible for my deductible; GCN cannot pay/rebate it (§ 489.147)', STATE.data.initials.deductible || ''],
+    ['I understand the Insurance Fraud Warning is a 3rd-degree felony', STATE.data.initials.fraud || ''],
+    ['I have received the Right to Cancel notice', STATE.data.initials.cancel || ''],
+  ];
+  if (isInsurance) rows.push(['This Agreement does NOT contain an Assignment of Benefits', STATE.data.initials.aob || '']);
+  else rows.push(['I have received the Recovery Fund and Lien Law notices', STATE.data.initials.lienlaw || '']);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(143, 111, 24);
+  doc.text('STATUTORY ACKNOWLEDGMENTS', x, y);
+  y += 12;
+  const colInitial = 70;
+  const rowH = 22;
+  rows.forEach((row, i) => {
+    doc.setDrawColor(216, 210, 192);
+    doc.setFillColor(i % 2 === 0 ? 252 : 255, 252, 252);
+    doc.rect(x, y, w - colInitial, rowH);
+    doc.rect(x + w - colInitial, y, colInitial, rowH);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(30, 25, 20);
+    const lines = doc.splitTextToSize(row[0], w - colInitial - 12);
+    doc.text(lines.slice(0, 2), x + 6, y + 13);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(143, 111, 24);
+    doc.text(row[1] || '____', x + w - colInitial + colInitial / 2, y + 14, { align: 'center' });
+    y += rowH;
+  });
+  return y;
+}
+
+function drawSignatures(doc, x, y, w) {
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(143, 111, 24);
+  doc.text('SIGNATURES', x, y);
+  y += 14;
+  const dateStr = STATE.signedAt.toLocaleDateString('en-US');
+  const sigBoxW = (w - 16) / 2;
+  const sigH = 50;
+  doc.setFontSize(8);
+  doc.setTextColor(10, 9, 8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CUSTOMER', x, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(120, 115, 100);
+  doc.text(STATE.data.customerName, x + 60, y);
+  y += 4;
+  doc.setDrawColor(216, 210, 192);
+  doc.setLineWidth(0.5);
+  doc.rect(x, y, sigBoxW, sigH);
+  if (STATE.signatures.customer && STATE.signatures.customer.startsWith && STATE.signatures.customer.startsWith('data:image')) {
+    try { doc.addImage(STATE.signatures.customer, 'PNG', x + 4, y + 4, sigBoxW - 8, sigH - 8); } catch(e) { console.warn('Sig image bad (customer):', e); }
+  }
+  doc.setFontSize(7);
+  doc.setTextColor(120, 115, 100);
+  doc.text(`Signed ${dateStr}`, x + sigBoxW - 6, y + sigH - 4, { align: 'right' });
+  if (STATE.signatures.customer2) {
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(10, 9, 8);
+    doc.text('CUSTOMER 2', x + sigBoxW + 16, y - 4);
+    doc.setDrawColor(216, 210, 192);
+    doc.rect(x + sigBoxW + 16, y, sigBoxW, sigH);
+    if (STATE.signatures.customer2 && STATE.signatures.customer2.startsWith && STATE.signatures.customer2.startsWith('data:image')) {
+      try { doc.addImage(STATE.signatures.customer2, 'PNG', x + sigBoxW + 16 + 4, y + 4, sigBoxW - 8, sigH - 8); } catch(e) { console.warn('Sig 2 bad:', e); }
+    }
+    doc.setFontSize(7);
+    doc.setTextColor(120, 115, 100);
+    doc.text(`Signed ${dateStr}`, x + 2 * sigBoxW + 16 - 6, y + sigH - 4, { align: 'right' });
+  }
+  y += sigH + 12;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(10, 9, 8);
+  doc.text('THE GLOBAL CONTRACTOR NETWORK, LLC', x, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(120, 115, 100);
+  doc.text(`By: ${STATE.rep.name}, ${STATE.rep.title || 'Authorized Representative'}`, x + 200, y);
+  y += 4;
+  doc.setDrawColor(216, 210, 192);
+  doc.rect(x, y, sigBoxW, sigH);
+  if (STATE.signatures.gcn && STATE.signatures.gcn.startsWith && STATE.signatures.gcn.startsWith('data:image')) {
+    try { doc.addImage(STATE.signatures.gcn, 'PNG', x + 4, y + 4, sigBoxW - 8, sigH - 8); } catch(e) { console.warn('Sig image bad (gcn):', e); }
+  }
+  doc.setFontSize(7);
+  doc.setTextColor(120, 115, 100);
+  doc.text(`Signed ${dateStr}`, x + sigBoxW - 6, y + sigH - 4, { align: 'right' });
+  return y + sigH + 12;
+}
+
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function downloadPdf() {
+  try {
+    if (!generatedPdf) generatedPdf = generatePdf();
+    const safeName = (STATE.data.customerName || 'Customer').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
+    const fname = `${STATE.docId}_${safeName}.pdf`;
+    const blob = generatedPdf.output('blob');
+    const url = URL.createObjectURL(blob);
+    if (isIOS()) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.download = fname;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => { document.body.removeChild(link); }, 1000);
+      showDownloadFallback(url, fname);
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fname;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => { document.body.removeChild(link); URL.revokeObjectURL(url); }, 1000);
+    }
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    alert('Sorry, the PDF could not be generated.\n\nError: ' + (err.message || err) + '\n\nPlease take a screenshot and contact GCN at (561) 285-7866.');
+  }
+}
+
+function showDownloadFallback(url, fname) {
+  if (document.getElementById('downloadFallback')) return;
+  const wrap = document.createElement('div');
+  wrap.id = 'downloadFallback';
+  wrap.style.cssText = 'margin: 1.25rem auto; max-width: 320px; padding: 1rem; background: var(--paper-warm); border: 1.5px solid var(--gold); border-radius: 12px; text-align: center;';
+  wrap.innerHTML = `
+    <div style="font-size:0.85rem;color:var(--ink);margin-bottom:0.5rem;">
+      <b>Tap below to view your PDF.</b><br>
+      Then use the Share button to save it or send it.
+    </div>
+    <a href="${url}" target="_blank" rel="noopener" style="display:inline-block;background:var(--gold);color:var(--black);padding:0.6rem 1rem;border-radius:8px;font-weight:700;text-decoration:none;">
+      📄 Open ${fname}
+    </a>
+  `;
+  const successScreen = document.querySelector('.success-screen');
+  if (successScreen) successScreen.appendChild(wrap);
+}
+
+function emailPdf() {
+  try {
+    if (!generatedPdf) generatedPdf = generatePdf();
+    const safeName = (STATE.data.customerName || 'Customer').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
+    const fname = `${STATE.docId}_${safeName}.pdf`;
+    downloadPdf();
+    const subject = `Signed Agreement — ${STATE.data.customerName} — ${STATE.docId}`;
+    const body = [
+      `Hi,`,
+      ``,
+      `Attached is the signed ${STATE.contractType === 'residential' ? 'Residential Construction Agreement' : 'Insurance Claim Contingency Agreement'} for ${STATE.data.customerName}.`,
+      ``,
+      `Property: ${STATE.data.propertyAddress}`,
+      `Document ID: ${STATE.docId}`,
+      `Signed: ${STATE.signedAt.toLocaleString('en-US')}`,
+      `Filed by: ${STATE.rep.name}`,
+      ``,
+      `Please attach the file "${fname}" that just downloaded to your device.`,
+      ``,
+      `— The Global Contractor Network`,
+      `(561) 285-7866 · GlobalContractor.network`
+    ].join('\n');
+    const to = `${STATE.data.customerEmail},${STATE.rep.email}`;
+    const mail = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setTimeout(() => { window.location.href = mail; }, 1200);
+  } catch (err) {
+    console.error('Email/PDF failed:', err);
+    alert('Sorry, the email action failed.\n\nError: ' + (err.message || err));
+  }
+}
+
+function startOver() {
+  if (!confirm('Start a new agreement? The current one is already signed and the PDF was generated.')) return;
+  const params = new URLSearchParams(window.location.search);
+  const url = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+  window.location.href = url;
+}
+</script>
+</body>
+</html>
