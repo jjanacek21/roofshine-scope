@@ -24,7 +24,14 @@ type TrainingExample = {
 };
 
 function AdminTrainingCenter() {
-  const [tab, setTab] = useState<"runs" | "pdfs">("runs");
+  const [tab, setTab] = useState<"runs" | "pdfs" | "photos">("runs");
+
+  // Photo decisions state
+  const [decisions, setDecisions] = useState<PhotoDecisionRow[]>([]);
+  const [decMeta, setDecMeta] = useState<Record<string, { address: string | null; company: string | null }>>({});
+  const [decLoading, setDecLoading] = useState(true);
+  const [activeSession, setActiveSession] = useState<PhotoSession | null>(null);
+  const [photoFilter, setPhotoFilter] = useState<"all" | "low" | "high" | "needs">("all");
 
   // AI runs state
   const [runs, setRuns] = useState<AIRun[]>([]);
