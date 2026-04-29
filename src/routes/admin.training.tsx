@@ -205,6 +205,7 @@ function AdminTrainingCenter() {
         {[
           { id: "runs" as const, label: "AI Measurements", icon: Sparkles, count: runs.length },
           { id: "pdfs" as const, label: "Ground-truth PDFs", icon: FileText, count: rows.length },
+          { id: "photos" as const, label: "Photo Analyses", icon: Camera, count: sessions.length },
         ].map((t) => (
           <button
             key={t.id}
