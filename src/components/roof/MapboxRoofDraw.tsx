@@ -224,7 +224,7 @@ export function MapboxRoofDraw({
     window.addEventListener("keydown", onKey);
 
     return () => {
-      canvas.removeEventListener("mousedown", onPointerDownCapture, true);
+      
       window.removeEventListener("keydown", onKey);
       map.remove();
       mapRef.current = null;
