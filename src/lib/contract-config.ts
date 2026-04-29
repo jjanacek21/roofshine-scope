@@ -42,6 +42,6 @@ export function buildSigningUrl(params: {
   if (params.propertyAddress) qs.set("propertyAddress", params.propertyAddress);
   const base = (params.baseUrl?.trim() || SIGN_BASE_URL).replace(/\/$/, "");
   // Tenant overrides may point at a static .html file; default points at the
-  // /api/sign server route. In both cases just append the query string.
+  // /api/public/sign server route. In both cases just append the query string.
   return `${base}?${qs.toString()}`;
 }
