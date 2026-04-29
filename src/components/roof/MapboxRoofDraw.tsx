@@ -155,12 +155,33 @@ export function MapboxRoofDraw({
     map.on("draw.create", handleCreate);
     map.on("draw.update", handleUpdate);
     map.on("draw.delete", handleDelete);
+    // Layer IDs whose hit-testing blocks vertex placement on top of an
+    // existing polygon's blue fill while drawing lines or points.
+    const POLY_FILL_LAYERS = [
+      "gl-draw-polygon-fill-inactive.cold",
+      "gl-draw-polygon-fill-inactive.hot",
+      "gl-draw-polygon-fill-static.cold",
+      "gl-draw-polygon-fill-static.hot",
+    ];
+    const setPolyFillVisible = (visible: boolean) => {
+      for (const id of POLY_FILL_LAYERS) {
+        if (map.getLayer(id)) {
+          map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
+        }
+      }
+    };
+
     map.on("draw.modechange", (e: { mode: string }) => {
       if (e.mode === "simple_select") setActiveTool("select");
       else if (e.mode === "draw_polygon") setActiveTool("polygon");
       else if (e.mode === "draw_line_string") setActiveTool("line");
       else if (e.mode === "draw_point") setActiveTool("point");
       else if (e.mode === "direct_select") setActiveTool("select");
+
+      // While drawing lines or points, hide existing polygon fills so clicks
+      // pass through to the ground and Mapbox Draw drops vertices correctly.
+      const drawingOverlay = e.mode === "draw_line_string" || e.mode === "draw_point";
+      setPolyFillVisible(!drawingOverlay);
     });
 
     // ---- Single-click → direct_select (drag-vertex) when in select mode ----
@@ -182,50 +203,9 @@ export function MapboxRoofDraw({
       }
     });
 
-    // ---- Stop accidental polygon completion ----
-    // When drawing a new polygon, clicks that land on an existing polygon's
-    // blue fill get absorbed by Mapbox Draw and can prematurely finish the
-    // shape. We intercept those clicks at the canvas level and re-fire them
-    // on the map at the same lng/lat so the vertex drops on the ground.
-    const canvas = map.getCanvasContainer();
-    const onPointerDownCapture = (ev: MouseEvent) => {
-      const currentMode = drawRef.current?.getMode();
-      if (currentMode !== "draw_polygon" && currentMode !== "draw_line_string") return;
-      if (ev.button !== 0) return;
-      const rect = canvas.getBoundingClientRect();
-      const point: [number, number] = [ev.clientX - rect.left, ev.clientY - rect.top];
-      // Query only Mapbox Draw layers under the cursor.
-      const hits = map.queryRenderedFeatures(point, {
-        layers: map
-          .getStyle()
-          .layers?.filter((l) =>
-            l.id.startsWith("gl-draw-polygon-fill") ||
-            l.id.startsWith("gl-draw-polygon-stroke"),
-          )
-          .map((l) => l.id) ?? [],
-      });
-      // If we hit an inactive (non-active) polygon fill, swallow the event
-      // and synthesize a Mapbox click at the same lng/lat with no draw
-      // features under it. That makes Draw treat it as plain ground.
-      const onInactive = hits.some(
-        (f) => f.properties?.active !== "true" && f.properties?.meta !== "vertex",
-      );
-      if (onInactive) {
-        ev.stopPropagation();
-        ev.preventDefault();
-        const lngLat = map.unproject(point);
-        // Fire the click directly at the draw mode so it adds a vertex here.
-        // Using map.fire with no features under cursor => Draw drops a vertex.
-        setTimeout(() => {
-          map.fire("click", {
-            lngLat,
-            point: new mapboxgl.Point(point[0], point[1]),
-            originalEvent: ev,
-          } as unknown as mapboxgl.MapMouseEvent);
-        }, 0);
-      }
-    };
-    canvas.addEventListener("mousedown", onPointerDownCapture, true);
+    // (Removed: mousedown click-intercept hack. We now hide existing polygon
+    // fills while in draw_line_string / draw_point modes, so clicks pass
+    // through naturally — see setPolyFillVisible above.)
 
     // ---- Enter-to-finish / Esc-to-cancel keybinds ----
     const onKey = (ev: KeyboardEvent) => {
@@ -244,7 +224,7 @@ export function MapboxRoofDraw({
     window.addEventListener("keydown", onKey);
 
     return () => {
-      canvas.removeEventListener("mousedown", onPointerDownCapture, true);
+      
       window.removeEventListener("keydown", onKey);
       map.remove();
       mapRef.current = null;

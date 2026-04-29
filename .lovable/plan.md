@@ -1,46 +1,30 @@
-## Why analysis fails today
+## Problem
 
-Network logs show every `/api/analyze-job-photos` call returning **502** with:
-> `invalid model: anthropic/claude-sonnet-4-5`
+When a roof polygon already exists on the map, clicking on its blue fill while in **line** or **point** draw modes (to add ridges / valleys / eaves / penetrations) gets absorbed by Mapbox Draw — it treats the click as "select the polygon" instead of "drop a vertex / point here". The existing capture-phase interceptor in `MapboxRoofDraw.tsx` tries to swallow these clicks and re-fire them via `map.fire("click", ...)`, but `map.fire` does not invoke Mapbox Draw's internal DOM click handler reliably for line/point modes, so vertices simply don't land.
 
-The Lovable AI Gateway dropped that alias. Allowed vision models are now `google/gemini-2.5-pro`, `openai/gpt-5`, etc. Because the call 502s before the DB write, `job_photos.ai_analysis` and `matched_line_items` stay empty — that's why no damage report appears, no line items populate, and the photo never looks "saved with analysis."
+## Fix
 
-The same broken id is in **three** server routes:
-- `src/routes/api.analyze-job-photos.ts` (per-photo analysis)
-- `src/routes/api.analyze-property.ts` (the "Analyze property" consolidated run)
-- `src/routes/api.analyze-roof-condition.ts` (uses direct Anthropic API — that one is fine, different code path)
+Replace the fragile "intercept + re-fire" approach with a deterministic one: **make existing polygons non-hit-testable while the user is actively drawing lines or points**, then restore them when drawing finishes.
 
-## Why "Upload Photos" button does nothing on iOS
+### Changes (single file: `src/components/roof/MapboxRoofDraw.tsx`)
 
-`PhotoUploader.tsx` uses a single `<input type="file" multiple accept="image/*">` triggered by the Upload button, and a separate `capture="environment"` input for the camera button. On iOS Safari, when `accept="image/*"` is set without `capture`, tapping the input opens the iOS sheet that includes Photo Library — but our hidden input is rendered with `className="hidden"` (display:none). iOS Safari refuses to open the picker on inputs that are `display:none` in some flows; it requires the input to be visually hidden but rendered (opacity:0 / sr-only). That matches what you're seeing — drag-drop works, but tapping the button doesn't open the Photos picker.
+1. **Remove** the `onPointerDownCapture` mousedown interceptor block (lines ~185–228) and its `canvas.addEventListener` / cleanup. It's the source of the broken behavior and will no longer be needed.
 
-## Changes (3 small fixes, no scope creep)
+2. **Add a `draw.modechange` side-effect**: when entering `draw_line_string` or `draw_point`, call `map.setPaintProperty()` on the inactive Draw polygon fill layers (`gl-draw-polygon-fill-inactive.cold` and `.hot`) to set `fill-opacity` to `0.001` AND set `fill-color` unchanged — but more importantly, set the *layer filter* to exclude all features so `queryRenderedFeatures` returns nothing. Simpler: use `map.setLayoutProperty(layerId, "visibility", "none")` on those two fill layers while drawing. The polygon outline (`gl-draw-polygon-stroke-inactive.*`) stays visible so the user still sees the roof footprint.
 
-### 1. Swap the broken model id in both photo endpoints
-In `api.analyze-job-photos.ts` line 147 and `api.analyze-property.ts` line 234:
-```
-model: "anthropic/claude-sonnet-4-5"  →  model: "google/gemini-2.5-pro"
-```
-Gemini 2.5 Pro is the strongest allowed multimodal model on the gateway and supports the same `tool_choice` / function-calling shape we already use. No prompt changes needed.
+3. **On `modechange` back to `simple_select` or `draw_polygon`**, restore `visibility` to `"visible"` on those fill layers.
 
-### 2. Make the Upload Photos input iOS-friendly
-In `src/components/jobs/PhotoUploader.tsx`, change both hidden inputs from `className="hidden"` to a visually-hidden but rendered style:
-```
-className="sr-only"
-// or: style={{ position:'absolute', width:1, height:1, opacity:0, pointerEvents:'none' }}
-```
-This is the standard fix for iOS Safari refusing to trigger file pickers on `display:none` inputs.
+4. Keep the existing single-click-to-direct_select behavior and Enter/Esc keybinds — they're unrelated and working.
 
-### 3. Add a clearer error surface so silent failures stop happening
-In `JobPhotosPanel`/`PropertyAnalysisPanel` (whichever calls `/api/analyze-job-photos`), when the response is non-2xx, parse `{error, detail}` and `toast.error()` it instead of swallowing. This prevents the next API breakage from looking like "analysis ran but nothing happened."
+### Why this works
 
-## What I will NOT change
-- No DB migrations.
-- No new tables / new components.
-- No changes to upload pathing, RLS, or storage layout.
-- `api.analyze-roof-condition.ts` is untouched — it uses the direct Anthropic API key, not the gateway, and is unrelated.
+Mapbox Draw decides "did the user click a feature?" by querying its own rendered layers. Hiding the inactive fill layer removes it from hit-testing entirely, so clicks pass straight through to the map ground and Draw's line/point mode drops a vertex exactly where the user clicked. The polygon's stroke remains visible so the footprint is still clearly shown in orange/blue outline.
 
-## Acceptance
-- Tapping **Upload Photos** on iPhone opens the Photos picker.
-- After upload + Analyze, each photo gets `ai_analysis` populated, the damage report renders, and consolidated suggestions appear in `PropertyAnalysisPanel` so "Add selected to estimate" works.
-- A failed gateway call shows a red toast with the gateway's error message instead of silently "completing."
+### Verification
+
+- Draw a roof polygon, confirm pitch dialog, see blue fill.
+- Pick the line tool → click *inside* the polygon → vertex drops.
+- Continue clicking along a ridge that crosses the polygon → all vertices land.
+- Press Enter to finish → edge type dialog appears, line is saved.
+- Switch back to select tool → polygon fill visible again, can be selected and edited.
+- Same flow works for the point/penetration tool.
