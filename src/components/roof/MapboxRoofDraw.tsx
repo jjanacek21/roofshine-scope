@@ -155,12 +155,33 @@ export function MapboxRoofDraw({
     map.on("draw.create", handleCreate);
     map.on("draw.update", handleUpdate);
     map.on("draw.delete", handleDelete);
+    // Layer IDs whose hit-testing blocks vertex placement on top of an
+    // existing polygon's blue fill while drawing lines or points.
+    const POLY_FILL_LAYERS = [
+      "gl-draw-polygon-fill-inactive.cold",
+      "gl-draw-polygon-fill-inactive.hot",
+      "gl-draw-polygon-fill-static.cold",
+      "gl-draw-polygon-fill-static.hot",
+    ];
+    const setPolyFillVisible = (visible: boolean) => {
+      for (const id of POLY_FILL_LAYERS) {
+        if (map.getLayer(id)) {
+          map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
+        }
+      }
+    };
+
     map.on("draw.modechange", (e: { mode: string }) => {
       if (e.mode === "simple_select") setActiveTool("select");
       else if (e.mode === "draw_polygon") setActiveTool("polygon");
       else if (e.mode === "draw_line_string") setActiveTool("line");
       else if (e.mode === "draw_point") setActiveTool("point");
       else if (e.mode === "direct_select") setActiveTool("select");
+
+      // While drawing lines or points, hide existing polygon fills so clicks
+      // pass through to the ground and Mapbox Draw drops vertices correctly.
+      const drawingOverlay = e.mode === "draw_line_string" || e.mode === "draw_point";
+      setPolyFillVisible(!drawingOverlay);
     });
 
     // ---- Single-click → direct_select (drag-vertex) when in select mode ----
