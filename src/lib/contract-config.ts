@@ -26,6 +26,7 @@ export function buildSigningUrl(params: {
   customerPhone?: string | null;
   customerEmail?: string | null;
   propertyAddress?: string | null;
+  baseUrl?: string | null;
 }): string {
   const qs = new URLSearchParams();
   qs.set("rep", params.rep);
@@ -36,5 +37,6 @@ export function buildSigningUrl(params: {
   if (params.customerPhone) qs.set("customerPhone", params.customerPhone);
   if (params.customerEmail) qs.set("customerEmail", params.customerEmail);
   if (params.propertyAddress) qs.set("propertyAddress", params.propertyAddress);
-  return `${SIGN_BASE_URL}/GCN-Sign.html?${qs.toString()}`;
+  const base = (params.baseUrl?.trim() || SIGN_BASE_URL).replace(/\/$/, "");
+  return `${base}/GCN-Sign.html?${qs.toString()}`;
 }
