@@ -66,6 +66,7 @@ function ContractPage() {
       customerPhone: customer.phone,
       customerEmail: customer.email,
       propertyAddress: customer.address,
+      baseUrl: tenant.sign_base_url,
     });
   }, [tenant, tenantUser, contractType, jobId, customer]);
 
