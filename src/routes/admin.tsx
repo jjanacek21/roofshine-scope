@@ -15,6 +15,7 @@ const NAV: NavItem[] = [
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/companies", label: "Companies", icon: Building2 },
   { to: "/admin/price-books", label: "Pricing", icon: Library },
+  { to: "/admin/tenants", label: "Contracts", icon: FileSignature },
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/admin/emails", label: "Email Blasts", icon: Mail },
   { to: "/admin/content", label: "Home Page CMS", icon: FileText },
