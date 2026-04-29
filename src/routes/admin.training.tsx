@@ -400,11 +400,136 @@ function AdminTrainingCenter() {
         </div>
       )}
 
+      {tab === "photos" && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {([
+              { id: "all", label: "All" },
+              { id: "low", label: "Low pick rate (<50%)" },
+              { id: "high", label: "High pick rate (>80%)" },
+              { id: "needs", label: "Needs review" },
+            ] as const).map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setPhotoFilter(f.id)}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+                  photoFilter === f.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+            <div className="ml-auto text-xs text-muted-foreground">
+              {visibleSessions.length} of {sessions.length}
+            </div>
+          </div>
+
+          <section className="rounded-2xl border border-border bg-card">
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
+              <div className="text-sm font-semibold">Photo analysis sessions</div>
+              {decLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            </div>
+            {visibleSessions.length === 0 && !decLoading ? (
+              <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+                No photo analyses logged yet. Run a property analysis from any job's Photos tab to populate this view.
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {visibleSessions.map((s) => {
+                  const picked = s.decisions.filter((d) => d.decision === "picked" || d.decision === "edited");
+                  const rejected = s.decisions.filter((d) => d.decision === "rejected");
+                  const total = picked.length + rejected.length;
+                  const rate = total > 0 ? Math.round((picked.length / total) * 100) : 0;
+                  const allReviewed = s.decisions.every((d) => d.reviewed_at);
+                  const topCounts = (rows: PhotoDecisionRow[]) => {
+                    const m = new Map<string, number>();
+                    for (const d of rows) m.set(d.suggested_code, (m.get(d.suggested_code) ?? 0) + 1);
+                    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
+                  };
+                  const topPicked = topCounts(picked);
+                  const topRejected = topCounts(rejected);
+                  return (
+                    <button
+                      key={`${s.job_id}-${s.date}`}
+                      onClick={() => setActiveSession(s)}
+                      className="grid w-full gap-3 px-5 py-4 text-left hover:bg-accent/30 md:grid-cols-12"
+                    >
+                      <div className="md:col-span-5">
+                        <div className="flex items-center gap-1.5 text-sm font-medium">
+                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                          {s.address ?? "(unknown property)"}
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                          {s.company_name && <span className="rounded bg-muted px-1.5 py-0.5">{s.company_name}</span>}
+                          <span>{new Date(s.decided_at).toLocaleString()}</span>
+                          <span>· {s.decisions.length} suggestions</span>
+                        </div>
+                      </div>
+                      <div className="md:col-span-2">
+                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Pick rate</div>
+                        <div className="font-mono text-lg font-semibold">{rate}%</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {picked.length} picked · {rejected.length} rejected
+                        </div>
+                      </div>
+                      <div className="md:col-span-3">
+                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Top picked</div>
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {topPicked.length === 0 ? (
+                            <span className="text-[11px] text-muted-foreground">—</span>
+                          ) : (
+                            topPicked.map(([code, n]) => (
+                              <span key={code} className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[10px] text-emerald-400">
+                                {code} ×{n}
+                              </span>
+                            ))
+                          )}
+                        </div>
+                        <div className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">Top rejected</div>
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {topRejected.length === 0 ? (
+                            <span className="text-[11px] text-muted-foreground">—</span>
+                          ) : (
+                            topRejected.map(([code, n]) => (
+                              <span key={code} className="rounded border border-red-500/30 bg-red-500/10 px-1.5 py-0.5 font-mono text-[10px] text-red-400">
+                                {code} ×{n}
+                              </span>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-start justify-end md:col-span-2">
+                        {allReviewed ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                            <ShieldCheck className="h-3 w-3" /> Reviewed by admin
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-400">
+                            Pending review
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
       <AIMeasurementReviewDialog
         run={activeRun}
         open={!!activeRun}
         onClose={() => setActiveRun(null)}
         onChanged={loadRuns}
+      />
+
+      <PhotoDecisionsDrawer
+        session={activeSession}
+        open={!!activeSession}
+        onClose={() => setActiveSession(null)}
+        onChanged={loadDecisions}
       />
     </div>
   );
