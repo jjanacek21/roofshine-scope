@@ -1,6 +1,8 @@
-// Default base URL of the signing app. Same-origin under /sign so the iframe
-// has no CORS / X-Frame-Options issues. Tenants can override via tenants.sign_base_url.
-export const SIGN_BASE_URL = "/sign";
+// Default URL of the signing app. Served same-origin via a TanStack Start server
+// route (`/api/sign`) which streams the bundled HTML — this avoids the SSR
+// catch-all returning 404 for static files in /public. Tenants can override via
+// tenants.sign_base_url (full URL to an HTML file, no trailing slash).
+export const SIGN_BASE_URL = "/api/sign";
 
 // Filenames produced by the signing app, e.g. GCN-RC-260101-X4Y7.pdf
 // (RC = residential construction, IC = insurance contingency)
