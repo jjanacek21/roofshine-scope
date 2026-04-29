@@ -1,70 +1,46 @@
+## Why analysis fails today
 
-## Goal
+Network logs show every `/api/analyze-job-photos` call returning **502** with:
+> `invalid model: anthropic/claude-sonnet-4-5`
 
-Turn the **AI Training Center** into a true feedback loop: every AI-instant measurement that runs in the app gets logged with its highlighted roof footprint, pitch breakdown, and waste-adjusted squares. From the same admin area, super-admins can correct the footprint (polygon tool) or upload a Roofr/EagleView PDF to compare against the AI's proposal. Plus a new **Admin Jobs** tab to manage and bulk-delete test jobs.
+The Lovable AI Gateway dropped that alias. Allowed vision models are now `google/gemini-2.5-pro`, `openai/gpt-5`, etc. Because the call 502s before the DB write, `job_photos.ai_analysis` and `matched_line_items` stay empty — that's why no damage report appears, no line items populate, and the photo never looks "saved with analysis."
 
-## Current state (verified)
+The same broken id is in **three** server routes:
+- `src/routes/api.analyze-job-photos.ts` (per-photo analysis)
+- `src/routes/api.analyze-property.ts` (the "Analyze property" consolidated run)
+- `src/routes/api.analyze-roof-condition.ts` (uses direct Anthropic API — that one is fine, different code path)
 
-- Every AI run already saves a `roof_measurements` row with `source = 'solar'` plus `roof_sections` (polygon GeoJSON, pitch, plan area) and `roof_edges`. So footprint + math is already captured — we just don't surface it for review.
-- `admin/measurement-reviews` exists but only shows a flat list with Verify/Re-open. No map preview, no pitch/waste breakdown, no PDF compare, no link from Training Center.
-- `admin/training` accepts ground-truth PDFs but is disconnected from the live AI runs.
-- No admin-wide Jobs page exists — super-admins have no way to see/delete jobs across companies.
+## Why "Upload Photos" button does nothing on iOS
 
-## Plan
+`PhotoUploader.tsx` uses a single `<input type="file" multiple accept="image/*">` triggered by the Upload button, and a separate `capture="environment"` input for the camera button. On iOS Safari, when `accept="image/*"` is set without `capture`, tapping the input opens the iOS sheet that includes Photo Library — but our hidden input is rendered with `className="hidden"` (display:none). iOS Safari refuses to open the picker on inputs that are `display:none` in some flows; it requires the input to be visually hidden but rendered (opacity:0 / sr-only). That matches what you're seeing — drag-drop works, but tapping the button doesn't open the Photos picker.
 
-### 1. AI Measurements queue inside the Training Center
+## Changes (3 small fixes, no scope creep)
 
-Restructure `src/routes/admin.training.tsx` into two tabs:
-
-- **AI Measurements** (new, default tab) — reverse-chron list of every `roof_measurements` row where `source = 'solar'` (the AI/Google-Solar instant measurements). Each card shows:
-  - Property address + company name + run date
-  - Total plan sqft, **after-pitch actual sqft** (sum of `roof_sections.actual_area_sqft`), squares
-  - **Waste breakdown table**: 0%, 10%, 15%, 20% — sqft and squares for each
-  - Predominant pitch, # of sections
-  - Status pill: `Needs review` / `Corrected` / `Verified` / `Has ground-truth PDF`
-  - Mini Mapbox satellite thumbnail with the AI-detected facets overlaid (reusing `SolarRoofTab` color scheme — amber pitched / cyan flat)
-
-- **Ground-truth PDFs** (existing upload form + dataset list, moved into this tab)
-
-Clicking a measurement card opens a **review drawer/dialog**:
-- Full-size Mapbox map with the AI footprint overlaid on satellite imagery
-- Two action buttons:
-  - **Draw correct footprint** → opens the existing measurement panel polygon tool pre-loaded with the AI footprint as a starting point. Saving creates/updates a `roof_measurements` row with `source = 'manual'` + sets `verified_at`, and writes a `training_examples` row pairing the AI response (already in `ai_analysis`) with the corrected ground truth.
-  - **Upload Roofr / EagleView PDF** → reuses existing `/api/train-from-pdf` flow but auto-fills the address + links the resulting `training_examples` row to this measurement via the existing `source_measurement_id` column. Once uploaded, the card shows a side-by-side delta (AI vs PDF) like the existing dataset list does.
-
-### 2. Persist the AI overlay so we can re-render it
-
-The `roof_measurements.ai_analysis` JSONB already stores the Solar API response. Confirm `SolarRoofTab` writes the segment polygons there on save; if not, extend the save path so the review drawer can re-render the highlighted facets without re-calling Google Solar.
-
-### 3. Admin Jobs management page
-
-New route `src/routes/admin.jobs.tsx`:
-- Table of all jobs across all companies (super-admin RLS already allows this via `is_super_admin()` — but `jobs` table currently has no super-admin policy. Add a migration: `CREATE POLICY "Super admins manage jobs" ON public.jobs FOR ALL USING (is_super_admin()) WITH CHECK (is_super_admin());` Same for `properties`, `clients` if needed for cascade visibility.)
-- Columns: Job name, company, client, address, status, created date, total estimate, AI measurements count
-- Filters: company dropdown, status, search by name/address, "Test jobs" quick filter (name contains "test")
-- Per-row actions: Open job, **Delete**
-- Bulk select + **Delete selected** for clearing test data
-- Add `/admin/jobs` to the `NAV` array in `src/routes/admin.tsx` (Briefcase icon), placed under the existing Companies entry.
-
-### 4. Wire measurement → company/property data
-
-The reviews list needs company name + address. Use a single Supabase select with joins:
-```ts
-supabase.from("roof_measurements")
-  .select("*, property:properties(address, lat, lng), company:companies(name)")
-  .eq("source", "solar")
-  .order("created_at", { ascending: false })
+### 1. Swap the broken model id in both photo endpoints
+In `api.analyze-job-photos.ts` line 147 and `api.analyze-property.ts` line 234:
 ```
+model: "anthropic/claude-sonnet-4-5"  →  model: "google/gemini-2.5-pro"
+```
+Gemini 2.5 Pro is the strongest allowed multimodal model on the gateway and supports the same `tool_choice` / function-calling shape we already use. No prompt changes needed.
 
-## Technical notes
+### 2. Make the Upload Photos input iOS-friendly
+In `src/components/jobs/PhotoUploader.tsx`, change both hidden inputs from `className="hidden"` to a visually-hidden but rendered style:
+```
+className="sr-only"
+// or: style={{ position:'absolute', width:1, height:1, opacity:0, pointerEvents:'none' }}
+```
+This is the standard fix for iOS Safari refusing to trigger file pickers on `display:none` inputs.
 
-- Files created: `src/routes/admin.jobs.tsx`, `src/components/admin/AIMeasurementReviewDrawer.tsx`, `src/components/admin/MeasurementMapPreview.tsx`
-- Files edited: `src/routes/admin.training.tsx` (tab structure), `src/routes/admin.tsx` (NAV), `src/components/roof/SolarRoofTab.tsx` (ensure full Solar response saved to `ai_analysis`), `src/routes/api.train-from-pdf.ts` (accept optional `source_measurement_id` form field)
-- Migration: add super-admin RLS policy on `jobs` table (and `properties` if cascade reads needed)
-- Reuse existing `useMapboxToken` hook + Mapbox GL — no new dependencies
-- The existing `admin/measurement-reviews` page becomes redundant; either delete it or leave it as a "verify-only" shortcut. Recommend deleting and updating the NAV.
+### 3. Add a clearer error surface so silent failures stop happening
+In `JobPhotosPanel`/`PropertyAnalysisPanel` (whichever calls `/api/analyze-job-photos`), when the response is non-2xx, parse `{error, detail}` and `toast.error()` it instead of swallowing. This prevents the next API breakage from looking like "analysis ran but nothing happened."
 
-## Out of scope
+## What I will NOT change
+- No DB migrations.
+- No new tables / new components.
+- No changes to upload pathing, RLS, or storage layout.
+- `api.analyze-roof-condition.ts` is untouched — it uses the direct Anthropic API key, not the gateway, and is unrelated.
 
-- Auto-retraining the AI from corrections (data is captured; using it to fine-tune prompts is a follow-up)
-- Per-company training datasets (shared global dataset for now)
+## Acceptance
+- Tapping **Upload Photos** on iPhone opens the Photos picker.
+- After upload + Analyze, each photo gets `ai_analysis` populated, the damage report renders, and consolidated suggestions appear in `PropertyAnalysisPanel` so "Add selected to estimate" works.
+- A failed gateway call shows a red toast with the gateway's error message instead of silently "completing."
