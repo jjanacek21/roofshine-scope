@@ -31,6 +31,7 @@ type Tenant = {
   accent_color_dark: string;
   jurisdiction_state: string;
   is_active: boolean;
+  sign_base_url: string | null;
 };
 
 type TenantUser = {
