@@ -207,10 +207,12 @@ function MacroEditor({
             description: description || null,
             trade: trade || null,
             category: category || null,
+            asset_type: assetType || null,
+            is_addon: isAddon,
           })
           .eq("id", macro.id);
         if (error) throw error;
-        toast.success("Macro updated");
+        toast.success("Assembly updated");
       } else {
         const { error } = await supabase
           .from("master_macros")
@@ -219,11 +221,14 @@ function MacroEditor({
             description: description || null,
             trade: trade || null,
             category: category || null,
+            asset_type: assetType || null,
+            is_addon: isAddon,
+            kind: "assembly",
             company_id: null,
             is_default: true,
           });
         if (error) throw error;
-        toast.success("Macro created");
+        toast.success("Assembly created");
         onSaved();
         onClose();
       }
