@@ -262,8 +262,12 @@ function MacroEditor({
     }
   }
 
-  async function updateItemField(itemId: string, patch: Record<string, unknown>) {
-    const { error } = await supabase.from("master_macro_items").update(patch).eq("id", itemId);
+  async function updateItemField(
+    itemId: string,
+    patch: { qty?: number; qty_mode?: QtyMode; is_optional?: boolean; item_notes?: string | null },
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await supabase.from("master_macro_items").update(patch as any).eq("id", itemId);
     if (error) toast.error(error.message);
   }
 
