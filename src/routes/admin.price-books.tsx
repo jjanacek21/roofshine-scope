@@ -1,18 +1,16 @@
-import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Library, Upload, Layers, DollarSign } from "lucide-react";
-import { format } from "date-fns";
+import { Layers, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AdminMacrosPage from "@/routes/admin.macros";
+import { MasterCatalogBrowser } from "@/components/catalog/MasterCatalogBrowser";
 
 export const Route = createFileRoute("/admin/price-books")({
   component: AdminPricing,
 });
 
 function AdminPricing() {
-  const [tab, setTab] = useState<"insurance" | "macros">("insurance");
+  const [tab, setTab] = useState<"catalog" | "macros">("catalog");
   const matchRoute = useMatchRoute();
   const isChild = !matchRoute({ to: "/admin/price-books", fuzzy: false });
 
@@ -23,23 +21,23 @@ function AdminPricing() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Master Pricing</h1>
+        <h1 className="text-2xl font-semibold">Master Catalog & Macros</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Insurance pricing libraries from Xactimate uploads, plus reusable Master Macros for retail pricing.
+          The hierarchical line item catalog (Domain → Subgroup → Item) and reusable assemblies built from it.
         </p>
       </div>
 
       <div className="flex gap-1 border-b" style={{ borderColor: "var(--border)" }}>
         <button
-          onClick={() => setTab("insurance")}
+          onClick={() => setTab("catalog")}
           className={cn(
             "flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors",
-            tab === "insurance"
+            tab === "catalog"
               ? "border-[var(--brand)] text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground",
           )}
         >
-          <Layers className="h-4 w-4" /> Insurance Pricing
+          <Layers className="h-4 w-4" /> Master Catalog
         </button>
         <button
           onClick={() => setTab("macros")}
@@ -50,89 +48,11 @@ function AdminPricing() {
               : "border-transparent text-muted-foreground hover:text-foreground",
           )}
         >
-          <DollarSign className="h-4 w-4" /> Master Macros (Retail)
+          <DollarSign className="h-4 w-4" /> Master Macros
         </button>
       </div>
 
-      {tab === "insurance" ? <InsuranceList /> : <AdminMacrosPage />}
-    </div>
-  );
-}
-
-function InsuranceList() {
-  const { data: books = [], isLoading } = useQuery({
-    queryKey: ["admin-master-pricebooks"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("price_books")
-        .select("id, name, jurisdiction, zip_codes, effective_month, item_count, status, is_active, created_at, pricing_type")
-        .eq("is_default", true)
-        .is("company_id", null)
-        .order("effective_month", { ascending: false, nullsFirst: false });
-      return data ?? [];
-    },
-  });
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          Master insurance libraries are available to every company as a fallback when their own pricing isn't set.
-        </p>
-        <Link
-          to="/admin/price-books/new"
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-semibold hover:bg-accent"
-        >
-          <Upload className="h-4 w-4" />
-          Upload estimate file
-        </Link>
-      </div>
-
-      <div className="rounded-xl border border-border bg-card">
-        {isLoading ? (
-          <p className="p-6 text-sm text-muted-foreground">Loading…</p>
-        ) : books.length === 0 ? (
-          <div className="p-12 text-center">
-            <Library className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">No master pricing libraries yet.</p>
-            <Link to="/admin/price-books/new" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
-              Upload your first Xactimate estimate →
-            </Link>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-                <th className="px-6 py-3 font-semibold">Name</th>
-                <th className="px-6 py-3 font-semibold">Type</th>
-                <th className="px-6 py-3 font-semibold">Jurisdiction</th>
-                <th className="px-6 py-3 font-semibold">Zips</th>
-                <th className="px-6 py-3 font-semibold">Effective</th>
-                <th className="px-6 py-3 text-right font-semibold">Items</th>
-              </tr>
-            </thead>
-            <tbody>
-              {books.map((b) => (
-                <tr key={b.id} className="border-t border-border">
-                  <td className="px-6 py-3 font-medium text-foreground">★ {b.name}</td>
-                  <td className="px-6 py-3 capitalize text-muted-foreground">{b.pricing_type}</td>
-                  <td className="px-6 py-3 text-muted-foreground">{b.jurisdiction ?? "—"}</td>
-                  <td className="px-6 py-3 font-mono text-[11px] text-muted-foreground">
-                    {(b.zip_codes ?? []).slice(0, 3).join(", ")}
-                    {(b.zip_codes?.length ?? 0) > 3 ? ` +${b.zip_codes!.length - 3}` : ""}
-                  </td>
-                  <td className="px-6 py-3 text-muted-foreground">
-                    {b.effective_month ? format(new Date(b.effective_month + "T00:00:00"), "MMM yyyy") : "—"}
-                  </td>
-                  <td className="px-6 py-3 text-right font-mono text-foreground">
-                    {Number(b.item_count).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {tab === "catalog" ? <MasterCatalogBrowser /> : <AdminMacrosPage />}
     </div>
   );
 }
