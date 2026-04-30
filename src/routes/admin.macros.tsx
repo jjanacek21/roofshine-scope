@@ -96,7 +96,21 @@ export default function AdminMacrosPage() {
           {macros.map((m) => (
             <div key={m.id} className="rounded-xl border p-4" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}>
               <div className="flex items-start justify-between">
-                <h3 className="text-sm font-semibold text-foreground">{m.name}</h3>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-foreground">{m.name}</h3>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    {m.asset_type && (
+                      <span className="inline-flex items-center gap-1 rounded bg-[var(--brand)]/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-[var(--brand)]">
+                        <Layers className="h-3 w-3" /> {assetTypeLabel(m.asset_type)}
+                      </span>
+                    )}
+                    {m.is_addon && (
+                      <span className="rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-400">
+                        Add-on
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <button
                   onClick={() => {
                     if (confirm(`Delete "${m.name}"?`)) del.mutate(m.id);
@@ -107,11 +121,12 @@ export default function AdminMacrosPage() {
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
-              {m.description && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{m.description}</p>}
-              <div className="mt-2 flex flex-wrap gap-1">
-                {m.trade && <span className="rounded bg-[var(--surface-elevated)] px-2 py-0.5 text-[10px] uppercase text-muted-foreground">{m.trade}</span>}
-                {m.category && <span className="rounded bg-[var(--surface-elevated)] px-2 py-0.5 text-[10px] text-muted-foreground">{m.category}</span>}
-              </div>
+              {m.description && <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{m.description}</p>}
+              {m.trade && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  <span className="rounded bg-[var(--surface-elevated)] px-2 py-0.5 text-[10px] uppercase text-muted-foreground">{m.trade}</span>
+                </div>
+              )}
               <button
                 onClick={() => setEditorOpen({ macro: m })}
                 className="mt-3 text-xs font-semibold text-[var(--brand)] hover:underline"
