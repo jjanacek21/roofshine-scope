@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { TradeBadge } from "@/components/brand/TradeBadge";
+import { CatalogTree, type CatalogItem } from "@/components/catalog/CatalogTree";
 
 export type CatalogResult = {
   id: string;
@@ -25,28 +25,17 @@ export function AddLineItemCombobox({
   onClose: () => void;
 }) {
   const [q, setQ] = useState("");
-  const [debounced, setDebounced] = useState("");
 
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(q), 200);
-    return () => clearTimeout(t);
-  }, [q]);
-
-  const { data: results = [], isFetching } = useQuery({
-    queryKey: ["catalog-search", priceBookId, debounced],
+  const { data: catalog = [], isFetching } = useQuery({
+    queryKey: ["catalog-all-with-price", priceBookId],
     queryFn: async () => {
-      const query = supabase
+      const { data: items } = await supabase
         .from("line_item_master")
-        .select("id, code, name, description, unit, trade, category, default_price")
+        .select("id, code, name, description, unit, trade, category, default_price, domain, subgroup")
         .eq("status", "active")
-        .limit(25);
-      if (debounced) {
-        query.or(
-          `name.ilike.%${debounced}%,code.ilike.%${debounced}%,description.ilike.%${debounced}%`,
-        );
-      }
-      const { data: items } = await query;
-      if (!items?.length) return [] as CatalogResult[];
+        .is("company_id", null)
+        .order("code");
+      if (!items?.length) return [] as (CatalogItem & { description: string | null; category: string | null })[];
 
       let priceMap: Record<string, number> = {};
       if (priceBookId) {
@@ -54,107 +43,66 @@ export function AddLineItemCombobox({
           .from("line_item_prices")
           .select("line_item_master_id, unit_price")
           .eq("price_book_id", priceBookId)
-          .in(
-            "line_item_master_id",
-            items.map((i) => i.id),
-          );
-        priceMap = Object.fromEntries(
-          (prices ?? []).map((p) => [p.line_item_master_id, Number(p.unit_price)]),
-        );
+          .in("line_item_master_id", items.map((i) => i.id));
+        priceMap = Object.fromEntries((prices ?? []).map((p) => [p.line_item_master_id, Number(p.unit_price)]));
       }
       return items.map((i) => ({
         ...i,
-        unit_price: priceMap[i.id] ?? Number(i.default_price ?? 0),
-      })) as CatalogResult[];
+        default_price: priceMap[i.id] ?? Number(i.default_price ?? 0),
+      }));
     },
   });
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, CatalogResult[]>();
-    for (const r of results) {
-      const key = r.trade;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(r);
-    }
-    return map;
-  }, [results]);
+  function handlePick(item: CatalogItem) {
+    const full = catalog.find((c) => c.id === item.id);
+    if (!full) return;
+    onPick({
+      id: full.id,
+      code: full.code,
+      name: full.name,
+      description: full.description,
+      unit: full.unit,
+      trade: full.trade,
+      category: full.category,
+      unit_price: Number(full.default_price ?? 0),
+    });
+  }
 
   return (
     <div
-      className="rounded-xl border shadow-lg"
+      className="flex h-[480px] w-[640px] max-w-[90vw] flex-col rounded-xl border shadow-lg"
       style={{ borderColor: "var(--border-bright)", backgroundColor: "var(--bg-elevated)" }}
     >
-      <div
-        className="flex items-center gap-2 border-b px-3 py-2.5"
-        style={{ borderColor: "var(--border)" }}
-      >
+      <div className="flex items-center gap-2 border-b px-3 py-2.5" style={{ borderColor: "var(--border)" }}>
         <Search className="h-4 w-4 text-muted-foreground" />
         <input
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search catalog by name, code, description…"
+          placeholder="Search by code, name, or sub-group… or browse below"
           className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
         />
         <button
           onClick={onClose}
           className="rounded p-1 text-muted-foreground hover:bg-[var(--bg-hover)] hover:text-foreground"
+          aria-label="Close"
         >
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
 
-      <div className="max-h-80 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         {isFetching && (
-          <div className="px-4 py-6 text-center text-[12px] text-muted-foreground">Searching…</div>
+          <div className="px-4 py-6 text-center text-[12px] text-muted-foreground">Loading catalog…</div>
         )}
-        {!isFetching && results.length === 0 && (
-          <div className="px-4 py-6 text-center text-[12px] text-muted-foreground">
-            No items found{debounced ? ` for "${debounced}"` : ""}.
-          </div>
+        {!isFetching && (
+          <CatalogTree
+            items={catalog}
+            search={q}
+            mode="add"
+            onAdd={handlePick}
+          />
         )}
-        {Array.from(grouped.entries()).map(([trade, items]) => (
-          <div key={trade}>
-            <div
-              className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
-              style={{ backgroundColor: "var(--bg-card)", color: "var(--text-muted)" }}
-            >
-              <TradeBadge trade={trade} />
-            </div>
-            {items.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => onPick(item)}
-                className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-[var(--bg-hover)]"
-              >
-                <span
-                  className="font-mono-num shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
-                  style={{
-                    backgroundColor: "var(--bg-card)",
-                    border: "1px solid var(--border)",
-                    color: "var(--text-dim)",
-                  }}
-                >
-                  {item.code}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13px] text-foreground">{item.name}</div>
-                  {item.category && (
-                    <div className="truncate text-[11px] text-muted-foreground">
-                      {item.category}
-                    </div>
-                  )}
-                </div>
-                <div className="font-mono-num shrink-0 text-right">
-                  <div className="text-[13px] font-semibold text-foreground">
-                    ${item.unit_price.toFixed(2)}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground">/ {item.unit}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        ))}
       </div>
     </div>
   );
