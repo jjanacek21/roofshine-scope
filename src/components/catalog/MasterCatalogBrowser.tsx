@@ -15,6 +15,8 @@ type Item = {
   domain: string | null;
   subgroup: string | null;
   default_price: number;
+  remove_price: number | null;
+  replace_price: number | null;
   hours: number | null;
   material_cost: number | null;
   xactimate_prefix: string | null;
