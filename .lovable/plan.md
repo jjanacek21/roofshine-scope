@@ -1,37 +1,50 @@
-## Goal
-Populate `default_price` (and capture remove/replace pricing) for all 428 master catalog items in `line_item_master` using the uploaded `xactimate_full.csv`.
+## Problem
 
-Today only 72 / 428 items have a non-zero price — the original CSV import dropped the price columns. The new file has `replace_price`, `remove_price`, and `rr_total` per code.
+In the **New Assembly** dialog, checkboxes don't respond to clicks. The console shows repeated "Maximum update depth exceeded" errors originating from `src/routes/_app.jobs.$id.estimate.tsx:120` and the same pattern exists in `admin.macros.tsx`.
 
-## Pricing rule
-For each item, set `default_price` to:
-- `rr_total` if present (this is the total Remove & Replace cost — the realistic full-job unit price), else
-- `replace_price` as fallback.
+## Root cause
 
-`rr_total` is correct for line items used in restoration estimates (it already includes the demo/removal labor on top of the install). 427 / 428 rows have it.
+In `src/routes/admin.macros.tsx` (the `MacroEditor` component), this effect runs on every render:
 
-## Schema additions (small migration)
-Add two nullable numeric columns to `line_item_master` so we don't lose the breakdown:
-- `remove_price numeric` — labor to tear out / dispose
-- `replace_price numeric` — material + install only
+```ts
+const { data: existingItems = [], refetch: refetchItems } = useQuery({
+  queryKey: ["admin-macro-items", macro?.id],
+  enabled: !!macro?.id,   // disabled when creating a new macro
+  ...
+});
 
-These let the estimate UI later offer "install only" vs "R&R" without re-importing.
+useEffect(() => {
+  setSelectedIds(new Set(existingItems.map((i) => i.line_item_master_id)));
+}, [existingItems]);
+```
 
-## Data update
-1. Copy `/tmp/xactimate_full.csv` into a temp staging table via `psql COPY`.
-2. `UPDATE line_item_master` joining on `code` where `company_id IS NULL`:
-   - `default_price = COALESCE(rr_total, replace_price, default_price)`
-   - `remove_price = csv.remove_price`
-   - `replace_price = csv.replace_price`
-3. Report back: rows matched, rows unmatched, before/after price coverage, sample of top & bottom priced items.
+When the query is disabled (new macro) or returns nothing, `data` is `undefined`, so the destructure default `= []` creates a **brand-new `[]` reference every render**. The effect's dependency changes every render → `setSelectedIds` fires → re-render → infinite loop. This blocks the click handlers from settling, so checkboxes appear non-responsive.
 
-## What I will NOT change
-- `hours` and `material_cost` stay as-is (CSV doesn't include them; they'll be revisited later).
-- No UI changes needed — the existing `MasterCatalogBrowser` already reads `default_price` and will immediately show the new prices.
-- No company-level pricing (`company_macro_pricing`) is touched.
+## Fix
 
-## Verification step
-After the update, I'll run a quick query showing:
-- count of items with `default_price > 0` (should jump from 72 → ~427)
-- any codes in CSV that didn't match a catalog row (so we can investigate)
-- any catalog rows still at $0 after the update
+Replace the unstable default with a stable reference and only sync when we're actually editing an existing macro with loaded data.
+
+In `src/routes/admin.macros.tsx`:
+
+1. Remove the `= []` default from the destructure; keep `existingItems` possibly undefined.
+2. Change the effect so it only runs when editing an existing macro and items have loaded:
+
+```ts
+useEffect(() => {
+  if (!macro?.id || !existingItems) return;
+  setSelectedIds(new Set(existingItems.map((i) => i.line_item_master_id)));
+}, [macro?.id, existingItems]);
+```
+
+3. Update the few usages of `existingItems` further down (in `save()` and the `selectedItems` derivation) to fall back to `[]` locally where needed.
+
+## Also fix the same bug in the estimate route
+
+The console trace points to `src/routes/_app.jobs.$id.estimate.tsx:120`. I'll inspect that file in build mode and apply the same pattern (stable dep / guarded effect) so the `Maximum update depth` errors there are gone too.
+
+## Files to change
+
+- `src/routes/admin.macros.tsx` — guard the sync effect.
+- `src/routes/_app.jobs.$id.estimate.tsx` — fix the analogous infinite-loop effect at/around line 120.
+
+No schema or UI changes; behavior is identical except checkboxes will now toggle correctly.

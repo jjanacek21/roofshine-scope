@@ -85,7 +85,7 @@ function JobEstimate() {
   });
 
   // Estimates list
-  const { data: estimates = [] } = useQuery({
+  const { data: estimates } = useQuery({
     queryKey: ["estimates", jobId],
     queryFn: async () => {
       const { data } = await supabase
@@ -100,7 +100,7 @@ function JobEstimate() {
   // Auto-create "Original" estimate when none exists
   const ensuredRef = useRef(false);
   useEffect(() => {
-    if (!job || estimates === undefined || ensuredRef.current) return;
+    if (!job || !estimates || ensuredRef.current) return;
     if (estimates.length === 0 && company) {
       ensuredRef.current = true;
       (async () => {
@@ -131,7 +131,7 @@ function JobEstimate() {
     }
   }, [job, estimates, company, jobId, qc, activeId]);
 
-  const activeEstimate = estimates.find((e) => e.id === activeId) ?? null;
+  const activeEstimate = estimates?.find((e) => e.id === activeId) ?? null;
 
   // Line items for active estimate
   const { data: items = [] } = useQuery({
@@ -520,7 +520,7 @@ function JobEstimate() {
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       <div className="space-y-5">
         <TierTabs
-          estimates={estimates}
+          estimates={estimates ?? []}
           activeId={activeId}
           onSelect={setActiveId}
           onCreateTier={createTier}

@@ -170,7 +170,7 @@ function MacroEditor({
   });
 
   // Load existing items for this macro.
-  const { data: existingItems = [], refetch: refetchItems } = useQuery({
+  const { data: existingItems, refetch: refetchItems } = useQuery({
     queryKey: ["admin-macro-items", macro?.id],
     enabled: !!macro?.id,
     queryFn: async () => {
@@ -184,10 +184,11 @@ function MacroEditor({
   });
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // Sync selectedIds from existingItems whenever they (re)load.
+  // Sync selectedIds from existingItems only when editing and data has loaded.
   useEffect(() => {
+    if (!macro?.id || !existingItems) return;
     setSelectedIds(new Set(existingItems.map((i) => i.line_item_master_id)));
-  }, [existingItems]);
+  }, [macro?.id, existingItems]);
 
   const selectedItems = useMemo(
     () => catalog.filter((c) => selectedIds.has(c.id)),
@@ -241,9 +242,10 @@ function MacroEditor({
       }
 
       // Diff items: delete removed, insert added.
-      const existingMap = new Map(existingItems.map((i) => [i.line_item_master_id, i]));
+      const existing = existingItems ?? [];
+      const existingMap = new Map(existing.map((i) => [i.line_item_master_id, i]));
       const desired = new Set(selectedIds);
-      const toDelete = existingItems.filter((i) => !desired.has(i.line_item_master_id)).map((i) => i.id);
+      const toDelete = existing.filter((i) => !desired.has(i.line_item_master_id)).map((i) => i.id);
       const toInsert = catalog
         .filter((c) => desired.has(c.id) && !existingMap.has(c.id))
         .map((c, idx) => ({
@@ -251,7 +253,7 @@ function MacroEditor({
           line_item_master_id: c.id,
           qty: 0,
           unit: c.unit,
-          sort_order: existingItems.length + idx,
+          sort_order: existing.length + idx,
           qty_mode: "manual",
           is_optional: false,
         }));
