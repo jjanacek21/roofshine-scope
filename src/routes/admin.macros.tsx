@@ -242,15 +242,17 @@ function MacroEditor({
 
   async function addItem(liId: string, defaultUnit: string) {
     if (!macro) {
-      toast.error("Save the macro first to add items");
+      toast.error("Save the assembly first to add items");
       return;
     }
     const { error } = await supabase.from("master_macro_items").insert({
       macro_id: macro.id,
       line_item_master_id: liId,
-      qty: 1,
+      qty: 0,
       unit: defaultUnit,
       sort_order: existingItems.length,
+      qty_mode: "manual",
+      is_optional: false,
     });
     if (error) toast.error(error.message);
     else {
@@ -258,6 +260,11 @@ function MacroEditor({
       onSaved();
       window.location.reload();
     }
+  }
+
+  async function updateItemField(itemId: string, patch: Record<string, unknown>) {
+    const { error } = await supabase.from("master_macro_items").update(patch).eq("id", itemId);
+    if (error) toast.error(error.message);
   }
 
   async function removeItem(itemId: string) {
