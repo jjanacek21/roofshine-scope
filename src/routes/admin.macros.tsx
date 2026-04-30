@@ -63,17 +63,26 @@ export default function AdminMacrosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Master Macros</h1>
+          <h1 className="text-2xl font-semibold">Master Assemblies</h1>
           <p className="text-sm text-muted-foreground">
-            Reusable bundles of line items every company can adopt and price for themselves.
+            Reusable groupings of line items the AI pulls in when it detects matching roof types and features in job photos.
           </p>
         </div>
-        <button
-          onClick={() => setEditorOpen({})}
-          className="btn-brand flex h-9 items-center gap-2 rounded-md px-4 text-sm font-semibold"
-        >
-          <Plus className="h-4 w-4" /> New Macro
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/admin/assemblies/import"
+            className="flex h-9 items-center gap-2 rounded-md border px-4 text-sm font-semibold hover:bg-[var(--surface-hover)]"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <Upload className="h-4 w-4" /> Import from PDF
+          </Link>
+          <button
+            onClick={() => setEditorOpen({})}
+            className="btn-brand flex h-9 items-center gap-2 rounded-md px-4 text-sm font-semibold"
+          >
+            <Plus className="h-4 w-4" /> New Assembly
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
