@@ -1,9 +1,17 @@
-// Default URL of the signing app. Served same-origin via a TanStack Start server
-// route (`/api/public/sign`) which streams the bundled HTML. Lives under
-// /api/public/* so the preview proxy does not auth-gate it (otherwise the
-// iframe gets a 302 to lovable.dev/auth-bridge, which refuses to be framed).
+// Default URL of the signing app. Served by a TanStack Start server route
+// (`/api/public/sign`) which streams the bundled HTML.
+//
+// We MUST point the iframe at the stable preview host
+// (`project--{id}-dev.lovable.app`) instead of a relative path. The editor
+// iframe runs at `id-preview--{id}.lovable.app`, which auth-gates every
+// request — including `/api/public/*` — by 302-ing to lovable.dev/auth-bridge.
+// The auth-bridge sets X-Frame-Options: DENY, so a relative iframe src loads
+// blank inside the editor. The `project--*-dev` host serves the same build
+// without the auth gate, so it's safe to frame.
+//
 // Tenants can override via tenants.sign_base_url (full URL to an HTML file).
-export const SIGN_BASE_URL = "/api/public/sign";
+const LOVABLE_PROJECT_ID = "2bd97912-9ef6-411c-8da4-d86ee5db73a0";
+export const SIGN_BASE_URL = `https://project--${LOVABLE_PROJECT_ID}-dev.lovable.app/api/public/sign`;
 
 // Filenames produced by the signing app, e.g. GCN-RC-260101-X4Y7.pdf
 // (RC = residential construction, IC = insurance contingency)
