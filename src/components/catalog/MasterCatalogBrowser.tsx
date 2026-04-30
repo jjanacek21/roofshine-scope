@@ -205,7 +205,13 @@ export function MasterCatalogBrowser() {
                       {it.domain ?? "—"} <span className="opacity-50">›</span> {it.subgroup ?? "—"}
                     </td>
                     <td className="px-4 py-2 text-muted-foreground">{it.unit}</td>
-                    <td className="px-4 py-2 text-right font-mono-num">
+                    <td className="px-4 py-2 text-right font-mono-num text-muted-foreground">
+                      {it.remove_price != null ? `$${Number(it.remove_price).toFixed(2)}` : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono-num text-muted-foreground">
+                      {it.replace_price != null ? `$${Number(it.replace_price).toFixed(2)}` : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono-num font-semibold">
                       {isEditing ? (
                         <input
                           type="number"
@@ -219,12 +225,6 @@ export function MasterCatalogBrowser() {
                       ) : (
                         `$${Number(it.default_price).toFixed(2)}`
                       )}
-                    </td>
-                    <td className="px-4 py-2 text-right font-mono-num text-muted-foreground">
-                      {it.hours != null ? Number(it.hours).toFixed(2) : "—"}
-                    </td>
-                    <td className="px-4 py-2 text-right font-mono-num text-muted-foreground">
-                      {it.material_cost != null ? `$${Number(it.material_cost).toFixed(2)}` : "—"}
                     </td>
                     <td className="px-4 py-2 text-right">
                       {isEditing ? (
