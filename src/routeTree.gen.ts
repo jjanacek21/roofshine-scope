@@ -25,6 +25,7 @@ import { Route as ApiMapboxTokenRouteImport } from './routes/api.mapbox-token'
 import { Route as ApiImportAssemblyPdfRouteImport } from './routes/api.import-assembly-pdf'
 import { Route as ApiCalibrateSolarRouteImport } from './routes/api.calibrate-solar'
 import { Route as ApiAutoAddPhotoSuggestionsRouteImport } from './routes/api.auto-add-photo-suggestions'
+import { Route as ApiApplyAssemblyImportRouteImport } from './routes/api.apply-assembly-import'
 import { Route as ApiAnalyzeRoofConditionRouteImport } from './routes/api.analyze-roof-condition'
 import { Route as ApiAnalyzePropertyRouteImport } from './routes/api.analyze-property'
 import { Route as ApiAnalyzeJobPhotosRouteImport } from './routes/api.analyze-job-photos'
@@ -144,6 +145,11 @@ const ApiAutoAddPhotoSuggestionsRoute =
     path: '/api/auto-add-photo-suggestions',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiApplyAssemblyImportRoute = ApiApplyAssemblyImportRouteImport.update({
+  id: '/api/apply-assembly-import',
+  path: '/api/apply-assembly-import',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAnalyzeRoofConditionRoute = ApiAnalyzeRoofConditionRouteImport.update({
   id: '/api/analyze-roof-condition',
   path: '/api/analyze-roof-condition',
@@ -366,6 +372,7 @@ export interface FileRoutesByFullPath {
   '/api/analyze-job-photos': typeof ApiAnalyzeJobPhotosRoute
   '/api/analyze-property': typeof ApiAnalyzePropertyRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
+  '/api/apply-assembly-import': typeof ApiApplyAssemblyImportRoute
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
   '/api/import-assembly-pdf': typeof ApiImportAssemblyPdfRoute
@@ -418,6 +425,7 @@ export interface FileRoutesByTo {
   '/api/analyze-job-photos': typeof ApiAnalyzeJobPhotosRoute
   '/api/analyze-property': typeof ApiAnalyzePropertyRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
+  '/api/apply-assembly-import': typeof ApiApplyAssemblyImportRoute
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
   '/api/import-assembly-pdf': typeof ApiImportAssemblyPdfRoute
@@ -474,6 +482,7 @@ export interface FileRoutesById {
   '/api/analyze-job-photos': typeof ApiAnalyzeJobPhotosRoute
   '/api/analyze-property': typeof ApiAnalyzePropertyRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
+  '/api/apply-assembly-import': typeof ApiApplyAssemblyImportRoute
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
   '/api/import-assembly-pdf': typeof ApiImportAssemblyPdfRoute
@@ -532,6 +541,7 @@ export interface FileRouteTypes {
     | '/api/analyze-job-photos'
     | '/api/analyze-property'
     | '/api/analyze-roof-condition'
+    | '/api/apply-assembly-import'
     | '/api/auto-add-photo-suggestions'
     | '/api/calibrate-solar'
     | '/api/import-assembly-pdf'
@@ -584,6 +594,7 @@ export interface FileRouteTypes {
     | '/api/analyze-job-photos'
     | '/api/analyze-property'
     | '/api/analyze-roof-condition'
+    | '/api/apply-assembly-import'
     | '/api/auto-add-photo-suggestions'
     | '/api/calibrate-solar'
     | '/api/import-assembly-pdf'
@@ -639,6 +650,7 @@ export interface FileRouteTypes {
     | '/api/analyze-job-photos'
     | '/api/analyze-property'
     | '/api/analyze-roof-condition'
+    | '/api/apply-assembly-import'
     | '/api/auto-add-photo-suggestions'
     | '/api/calibrate-solar'
     | '/api/import-assembly-pdf'
@@ -676,6 +688,7 @@ export interface RootRouteChildren {
   ApiAnalyzeJobPhotosRoute: typeof ApiAnalyzeJobPhotosRoute
   ApiAnalyzePropertyRoute: typeof ApiAnalyzePropertyRoute
   ApiAnalyzeRoofConditionRoute: typeof ApiAnalyzeRoofConditionRoute
+  ApiApplyAssemblyImportRoute: typeof ApiApplyAssemblyImportRoute
   ApiAutoAddPhotoSuggestionsRoute: typeof ApiAutoAddPhotoSuggestionsRoute
   ApiCalibrateSolarRoute: typeof ApiCalibrateSolarRoute
   ApiImportAssemblyPdfRoute: typeof ApiImportAssemblyPdfRoute
@@ -798,6 +811,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auto-add-photo-suggestions'
       fullPath: '/api/auto-add-photo-suggestions'
       preLoaderRoute: typeof ApiAutoAddPhotoSuggestionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/apply-assembly-import': {
+      id: '/api/apply-assembly-import'
+      path: '/api/apply-assembly-import'
+      fullPath: '/api/apply-assembly-import'
+      preLoaderRoute: typeof ApiApplyAssemblyImportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/analyze-roof-condition': {
@@ -1217,6 +1237,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAnalyzeJobPhotosRoute: ApiAnalyzeJobPhotosRoute,
   ApiAnalyzePropertyRoute: ApiAnalyzePropertyRoute,
   ApiAnalyzeRoofConditionRoute: ApiAnalyzeRoofConditionRoute,
+  ApiApplyAssemblyImportRoute: ApiApplyAssemblyImportRoute,
   ApiAutoAddPhotoSuggestionsRoute: ApiAutoAddPhotoSuggestionsRoute,
   ApiCalibrateSolarRoute: ApiCalibrateSolarRoute,
   ApiImportAssemblyPdfRoute: ApiImportAssemblyPdfRoute,
