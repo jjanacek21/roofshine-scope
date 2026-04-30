@@ -15,6 +15,8 @@ type Item = {
   domain: string | null;
   subgroup: string | null;
   default_price: number;
+  remove_price: number | null;
+  replace_price: number | null;
   hours: number | null;
   material_cost: number | null;
   xactimate_prefix: string | null;
@@ -34,7 +36,7 @@ export function MasterCatalogBrowser() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("line_item_master")
-        .select("id, code, name, unit, domain, subgroup, default_price, hours, material_cost, xactimate_prefix, trade_name")
+        .select("id, code, name, unit, domain, subgroup, default_price, remove_price, replace_price, hours, material_cost, xactimate_prefix, trade_name")
         .is("company_id", null)
         .order("domain")
         .order("subgroup")
@@ -186,9 +188,9 @@ export function MasterCatalogBrowser() {
                 <th className="px-4 py-2 font-semibold">Name</th>
                 <th className="px-4 py-2 font-semibold">Domain / Subgroup</th>
                 <th className="px-4 py-2 font-semibold">Unit</th>
-                <th className="px-4 py-2 text-right font-semibold">Price</th>
-                <th className="px-4 py-2 text-right font-semibold">Hours</th>
-                <th className="px-4 py-2 text-right font-semibold">Mat $</th>
+                <th className="px-4 py-2 text-right font-semibold">Remove</th>
+                <th className="px-4 py-2 text-right font-semibold">Replace</th>
+                <th className="px-4 py-2 text-right font-semibold">R&amp;R Total</th>
                 <th className="px-4 py-2" />
               </tr>
             </thead>
@@ -203,7 +205,13 @@ export function MasterCatalogBrowser() {
                       {it.domain ?? "—"} <span className="opacity-50">›</span> {it.subgroup ?? "—"}
                     </td>
                     <td className="px-4 py-2 text-muted-foreground">{it.unit}</td>
-                    <td className="px-4 py-2 text-right font-mono-num">
+                    <td className="px-4 py-2 text-right font-mono-num text-muted-foreground">
+                      {it.remove_price != null ? `$${Number(it.remove_price).toFixed(2)}` : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono-num text-muted-foreground">
+                      {it.replace_price != null ? `$${Number(it.replace_price).toFixed(2)}` : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono-num font-semibold">
                       {isEditing ? (
                         <input
                           type="number"
@@ -217,12 +225,6 @@ export function MasterCatalogBrowser() {
                       ) : (
                         `$${Number(it.default_price).toFixed(2)}`
                       )}
-                    </td>
-                    <td className="px-4 py-2 text-right font-mono-num text-muted-foreground">
-                      {it.hours != null ? Number(it.hours).toFixed(2) : "—"}
-                    </td>
-                    <td className="px-4 py-2 text-right font-mono-num text-muted-foreground">
-                      {it.material_cost != null ? `$${Number(it.material_cost).toFixed(2)}` : "—"}
                     </td>
                     <td className="px-4 py-2 text-right">
                       {isEditing ? (

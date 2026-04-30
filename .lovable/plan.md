@@ -1,46 +1,37 @@
-## Problem
+## Goal
+Populate `default_price` (and capture remove/replace pricing) for all 428 master catalog items in `line_item_master` using the uploaded `xactimate_full.csv`.
 
-Admin → Master Pricing still renders the old `price_books` (Xactimate upload) list. The new 428-item hierarchical catalog (Domain → Subgroup → Items) we just imported into `line_item_master` is not displayed anywhere in the admin panel.
+Today only 72 / 428 items have a non-zero price — the original CSV import dropped the price columns. The new file has `replace_price`, `remove_price`, and `rr_total` per code.
 
-## Plan
+## Pricing rule
+For each item, set `default_price` to:
+- `rr_total` if present (this is the total Remove & Replace cost — the realistic full-job unit price), else
+- `replace_price` as fallback.
 
-Replace the "Insurance Pricing" tab on `/admin/price-books` with a new **Master Catalog** view backed by `line_item_master` (where `company_id IS NULL`).
+`rr_total` is correct for line items used in restoration estimates (it already includes the demo/removal labor on top of the install). 427 / 428 rows have it.
 
-### 1. New `MasterCatalogBrowser` component (`src/components/catalog/MasterCatalogBrowser.tsx`)
+## Schema additions (small migration)
+Add two nullable numeric columns to `line_item_master` so we don't lose the breakdown:
+- `remove_price numeric` — labor to tear out / dispose
+- `replace_price numeric` — material + install only
 
-Two-pane layout matching the macro editor:
+These let the estimate UI later offer "install only" vs "R&R" without re-importing.
 
-- **Left pane** — collapsible Domain → Subgroup tree with item counts (reuses logic from `CatalogTree`, but in read-only "browser" mode — no checkboxes).
-- **Right pane** — table of items in the currently selected subgroup (or all items if a search is active):
-  - Columns: Code, Name, Unit, Default Price, Hours, Material Cost, Xactimate Prefix
-  - Top: search bar that filters across code/name/description globally
-  - Inline-edit `default_price` (and optionally `hours` / `material_cost`) for super-admins via `update line_item_master`.
+## Data update
+1. Copy `/tmp/xactimate_full.csv` into a temp staging table via `psql COPY`.
+2. `UPDATE line_item_master` joining on `code` where `company_id IS NULL`:
+   - `default_price = COALESCE(rr_total, replace_price, default_price)`
+   - `remove_price = csv.remove_price`
+   - `replace_price = csv.replace_price`
+3. Report back: rows matched, rows unmatched, before/after price coverage, sample of top & bottom priced items.
 
-Pulls all rows once with `select("id, code, name, unit, default_price, domain, subgroup, xactimate_prefix, trade_name, hours, material_cost").is("company_id", null).order("domain").order("subgroup").order("code")`.
+## What I will NOT change
+- `hours` and `material_cost` stay as-is (CSV doesn't include them; they'll be revisited later).
+- No UI changes needed — the existing `MasterCatalogBrowser` already reads `default_price` and will immediately show the new prices.
+- No company-level pricing (`company_macro_pricing`) is touched.
 
-### 2. Update `/admin/price-books` route (`src/routes/admin.price-books.tsx`)
-
-Replace the three-tab structure with two tabs:
-
-- **Master Catalog** (new — renders `MasterCatalogBrowser`) — default tab
-- **Master Macros** (existing — renders `AdminMacrosPage`)
-
-Remove the legacy `InsuranceList` (price_books table) and the "Upload estimate file" button. The legacy `/admin/price-books/new` upload flow stays in the codebase but is no longer linked from the admin panel (we can delete it in a follow-up once confirmed unused).
-
-Rename the page header to "Master Catalog & Macros" so it matches the new content.
-
-### 3. Sidebar label
-
-Update the admin sidebar entry from "Pricing" / "Price Books" to "Catalog" so it reflects the new model. (Quick check of `src/components/AdminSidebar` or equivalent during implementation.)
-
-## Out of scope
-
-- Bulk CSV re-import UI (data is already loaded via psql).
-- Per-company overrides UI (separate feature).
-- Removing the legacy `price_books` tables/routes (kept for now in case any older job references them).
-
-## Files
-
-- create `src/components/catalog/MasterCatalogBrowser.tsx`
-- edit `src/routes/admin.price-books.tsx`
-- edit admin sidebar component (label only)
+## Verification step
+After the update, I'll run a quick query showing:
+- count of items with `default_price > 0` (should jump from 72 → ~427)
+- any codes in CSV that didn't match a catalog row (so we can investigate)
+- any catalog rows still at $0 after the update
