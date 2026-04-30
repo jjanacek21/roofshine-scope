@@ -1,143 +1,75 @@
+## Goal
 
-# Color-Coded Xactimate → Assembly Templates
+Replace the existing 310-item catalog with the new Xactimate-grouped dataset (FLJU8X_APR26), add `domain` + `subgroup` hierarchy, and rebuild the macro builder + estimate item picker around filterable group/sub-group navigation.
 
-## What you're getting
+## What to build
 
-A two-part system:
+### 1. Schema changes (one migration)
 
-1. **Color-coded PDF intake.** You highlight line items in your Xactimate PDF in different colors. You upload the PDF, label each color (e.g. "Yellow = Tile Roof Base," "Green = Chimney," "Blue = Skylight"), and we create one **assembly** per color containing exactly those line items.
-2. **Smart AI suggestions on the job.** When you analyze a job's photos, the AI no longer guesses 38 duplicate line items. Instead it identifies the **roof type** plus **visible features** (chimney, skylight, valley, ventilation, two-story, etc.) and pulls in the matching assemblies as a clean checklist with quantities left blank for you to fill in.
+Add hierarchy + costing columns to `line_item_master`:
+- `domain text` — top-level bucket from your CSV (e.g. "Roofing", "Windows")
+- `subgroup text` — material/system bucket (e.g. "Concrete Tile", "Asphalt Shingles", "Flashings")
+- `xactimate_prefix text` — RFG, WDA, DOR, …
+- `trade_name text` — official Xactimate trade name
+- `hours numeric` — labor hours per unit
+- `material_cost numeric` — material $ per unit
+- `price_book_code text` — e.g. "FLJU8X_APR26"
 
-## How assemblies work (your authoring rules)
+Indexes on `(domain, subgroup)` and `code` for fast filtering/search.
 
-Each assembly is just a list of catalog codes. Quantity behavior per item:
+Wipe the old 310 items + their `master_macro_items` references (macros table is empty already, so no orphan cleanup needed there).
 
-- **Manual (blank)** — default for measurements (squares, drip edge LF, valley LF, flashing LF). Item appears on the estimate with qty = 0 so you fill it in.
-- **Count (AI fills)** — for hardware the AI can reliably count: skylights, chimneys, pipe boots, roof jacks. AI returns "2 skylights detected" → qty = 2.
-- **Fixed** — always the same number (e.g. "1 dump fee," "1 permit").
+### 2. CSV ingest
 
-You set the qty mode per item in the assembly editor.
+You'll paste CSV chunks in chat. I'll:
+1. Concatenate all chunks into one CSV.
+2. Parse + validate (every row needs `code`, `domain`, `subgroup`).
+3. Map each row's `domain` → existing `trade` enum (Roofing→roofing, Windows→windows, etc.) so the existing trade colors/badges keep working.
+4. Bulk-insert into `line_item_master` with `company_id = NULL` (master catalog).
+5. Report counts per (domain, subgroup) so you can verify nothing was miscategorized.
 
-You'll have two kinds of assemblies:
-- **Base** — one per roof type (Shingle, Tile, Metal, Flat). Always added when that roof type is detected.
-- **Add-on** — Chimney, Skylight, Valley, Ridge Vent, Wall/Step Flashing, Two-Story, Steep, etc. Added only when the AI sees them.
+### 3. New macro builder UI (`/admin/macros` — replace existing editor)
 
-## Color-coded PDF intake — the workflow
+Two-pane layout:
+- **Left**: collapsible tree — Domain → Subgroup → line items with checkbox per item. Search box at top filters the tree live.
+- **Right**: "Selected items" list with qty + qty_mode (manual / auto-count / fixed) per item, drag to reorder, save button.
+- Macro header still has name, description, asset_type (for AI matching), is_addon.
+
+Bulk actions: "Select all in subgroup", "Clear selection".
+
+### 4. Estimate-side line item picker (rewrite `AddLineItemCombobox`)
+
+Wider popover with:
+- Search bar at top (debounced, searches code/name/description across whole catalog).
+- When search is empty: show Domain → Subgroup tree; clicking a subgroup lists its items on the right.
+- When search has text: flat results grouped by subgroup.
+- Each result row: code, name, unit price, unit, "+ Add" button.
+
+### 5. AI photo-matching alignment
+
+Update `api.auto-add-photo-suggestions` and `api.analyze-job-photos` prompts so they reason in (domain, subgroup) terms — "this is a tile roof, pull all items from Roofing→Concrete Tile + Roofing→Underlayment & Felt + Roofing→Flashings as needed". This is what unlocks the "stop suggesting 38 duplicates" outcome you flagged earlier: the AI picks subgroups, then macros bring in the standard line items.
+
+## Technical notes
 
 ```text
-You ───► Upload highlighted PDF ───► /admin/assemblies/import
-                                           │
-                                           ▼
-                            Server detects highlight colors,
-                            extracts text under each highlight,
-                            matches text → catalog codes
-                                           │
-                                           ▼
-                            Review screen: each color group on left,
-                            matched line items on right
-                                           │
-                            For each color you set:
-                              • Name ("Tile Roof Base")
-                              • Asset type (tile_roof | comp_roof | …)
-                              • Base or add-on
-                              • Per-item: qty mode, optional/required
-                                           │
-                                           ▼
-                            Click Save → one assembly per color created
+domain (Roofing)
+  └─ subgroup (Concrete Tile)
+       └─ line_item_master rows (code, name, unit, default_price, hours, material_cost)
 ```
 
-### What the import actually does
+- `trade` enum stays as-is (used everywhere for colors). `domain` is a free-text superset that maps onto it.
+- `default_price` will be set to `material_cost + (hours * assumed_labor_rate)` OR left at 0 and computed at insert time — confirm during ingest.
+- RLS unchanged (master catalog rows have `company_id = NULL`, already readable by everyone).
 
-- Renders each PDF page, finds highlight annotations and pixel regions of saturated color (yellow / green / blue / pink / orange).
-- Pulls the text under each highlighted region (covers both real PDF highlights and printed-then-scanned highlights via OCR fallback).
-- Fuzzy-matches each highlighted text snippet against your `line_item_master` codes + names — shows you confidence and lets you correct misses inline.
-- Groups results by color → one assembly draft per color.
+## Out of scope (for this pass)
+- Importing per-region price books beyond FLJU8X_APR26 (schema supports it via `price_book_code`, UI later).
+- Migrating any existing custom company line items — there are none right now (all 310 are master rows being replaced).
 
-## The AI side (replacing the 38-duplicate output)
+## Order of work
+1. Migration (schema + wipe).
+2. Wait for CSV chunks → ingest script → bulk insert → verification report.
+3. New macro builder UI.
+4. New estimate picker.
+5. AI prompt updates.
 
-`/api/analyze-property` is rewritten to return:
-
-```json
-{
-  "roof_type": "comp_shingle",            // or tile / metal / flat
-  "features": [
-    { "type": "chimney",        "count": 1, "confidence": "high" },
-    { "type": "skylight",       "count": 2, "confidence": "high" },
-    { "type": "valley",         "confidence": "medium" },
-    { "type": "wall_flashing",  "confidence": "high" },
-    { "type": "two_story",      "confidence": "high" },
-    { "type": "ridge_vent",     "confidence": "low" }
-  ],
-  "property_summary": { ... }
-}
-```
-
-The server then:
-1. Pulls the **base assembly** for the detected roof type.
-2. Pulls each **add-on assembly** for every detected feature.
-3. Merges them into one deduped list (same code across two assemblies = one row).
-4. Pre-fills counts for items with `qty_mode = count` from the AI's count.
-5. Leaves measurement items blank.
-
-You see one tidy list grouped by assembly, hit "Add to estimate," and start filling in measurements.
-
-## Plan steps
-
-1. **Schema migration** — extend `master_macros` with `kind`, `asset_type`, `is_addon`; extend `master_macro_items` with `qty_mode`, `is_optional`, `item_notes`; add `assembly_imports` table to track uploaded PDFs.
-2. **PDF intake endpoint** — `/api/import-assembly-pdf` parses highlights, OCRs if needed, fuzzy-matches catalog codes, returns color-grouped draft.
-3. **Admin import UI** — `/admin/assemblies/import` for upload + per-color review screen.
-4. **Admin assembly editor** — upgrade `/admin/macros` to handle base/add-on, asset type, per-item qty mode and optional flag.
-5. **Rewrite property analyzer** — replace per-photo `consolidated_line_items` with `roof_type` + `features` detection.
-6. **Expand assemblies server-side** — merge base + add-ons, dedupe, apply counts.
-7. **PropertyAnalysisPanel UI** — group items by assembly, "Enter on estimate" pill for blank-qty rows, checkboxes for optional rows.
-8. **Retire old per-photo `AISuggestionsPanel`** — replace with a small CTA pointing to property analysis.
-
-## Technical details
-
-**Schema:**
-```sql
-alter table master_macros
-  add column kind        text    not null default 'assembly',
-  add column asset_type  text,        -- comp_shingle | tile_roof | metal_roof | flat_roof
-                                      -- chimney | skylight | valley | ridge_vent
-                                      -- wall_flashing | step_flashing | pipe_boot
-                                      -- two_story | steep_pitch | gutters | etc.
-  add column is_addon    boolean not null default false;
-
-alter table master_macro_items
-  add column qty_mode    text    not null default 'manual',  -- manual | count | fixed
-  add column is_optional boolean not null default false,
-  add column item_notes  text;
-
-create table assembly_imports (
-  id           uuid primary key default gen_random_uuid(),
-  company_id   uuid,
-  uploaded_by  uuid,
-  source_url   text,
-  status       text not null default 'parsed',
-  parsed       jsonb not null default '{}'::jsonb,  -- { colors: [{ hex, items: [...] }] }
-  created_at   timestamptz not null default now()
-);
-alter table assembly_imports enable row level security;
--- super admins manage; company admins read+write own
-```
-
-**PDF parsing approach:** Use `pdfjs-dist` (already Worker-compatible) to extract page text + annotation rectangles. For scanned highlights, convert page to canvas via `pdf-lib` + analyze pixels for saturated color clusters, OCR the bounded region with the Lovable AI Gateway vision endpoint (which we already use). All runs in the edge function — no native binaries.
-
-**Fuzzy matching:** lowercase + tokenize each highlighted snippet, score against `code` + `name` in `line_item_master` using a simple Jaccard score. Anything ≥ 0.6 is auto-matched; below that goes to a "needs review" list with a search box.
-
-**Files touched / created:**
-- `supabase/migrations/<ts>_assembly_templates.sql` (new)
-- `src/routes/api.import-assembly-pdf.ts` (new) — color extraction + matching
-- `src/routes/admin.assemblies.import.tsx` (new) — upload + review screen
-- `src/routes/admin.macros.tsx` (edit) — add asset_type / addon / qty_mode controls
-- `src/routes/api.analyze-property.ts` (rewrite) — roof_type + features only
-- `src/components/jobs/PropertyAnalysisPanel.tsx` (edit) — grouped rendering, manual-qty pills
-- `src/components/estimate/AISuggestionsPanel.tsx` (edit) — small CTA only
-- `src/integrations/supabase/types.ts` (auto-regenerated)
-
-## Confirm before I build
-
-1. **Asset type list** — does this cover everything you'd highlight? Roof bases: `comp_shingle`, `tile_roof`, `metal_roof`, `flat_roof`. Add-ons: `chimney`, `skylight`, `valley`, `ridge_vent`, `wall_flashing`, `step_flashing`, `pipe_boot`, `two_story`, `steep_pitch`, `gutters`, `solar`. Anything to add or rename?
-2. **Color set** — should I support a fixed palette (yellow / green / blue / pink / orange / purple — 6 distinct) or auto-detect any color you use?
-3. **Pricing** — when an assembly drops items onto an estimate, should unit prices come from (a) the job's resolved price book, (b) the master price book attached to the uploaded Xactimate, or (c) leave blank for you to fill? My recommendation is (a) since you already resolve a price book per job.
+Ready to start once you paste the CSV.

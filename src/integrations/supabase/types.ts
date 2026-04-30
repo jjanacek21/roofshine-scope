@@ -886,14 +886,21 @@ export type Database = {
           created_at: string
           default_price: number
           description: string | null
+          domain: string | null
+          hours: number | null
           id: string
+          material_cost: number | null
           name: string
+          price_book_code: string | null
           status: Database["public"]["Enums"]["catalog_status"]
+          subgroup: string | null
           tags: string[]
           trade: Database["public"]["Enums"]["trade_type"]
+          trade_name: string | null
           unit: string
           updated_at: string
           waste_pct: number
+          xactimate_prefix: string | null
         }
         Insert: {
           category?: string | null
@@ -902,14 +909,21 @@ export type Database = {
           created_at?: string
           default_price?: number
           description?: string | null
+          domain?: string | null
+          hours?: number | null
           id?: string
+          material_cost?: number | null
           name: string
+          price_book_code?: string | null
           status?: Database["public"]["Enums"]["catalog_status"]
+          subgroup?: string | null
           tags?: string[]
           trade: Database["public"]["Enums"]["trade_type"]
+          trade_name?: string | null
           unit?: string
           updated_at?: string
           waste_pct?: number
+          xactimate_prefix?: string | null
         }
         Update: {
           category?: string | null
@@ -918,14 +932,21 @@ export type Database = {
           created_at?: string
           default_price?: number
           description?: string | null
+          domain?: string | null
+          hours?: number | null
           id?: string
+          material_cost?: number | null
           name?: string
+          price_book_code?: string | null
           status?: Database["public"]["Enums"]["catalog_status"]
+          subgroup?: string | null
           tags?: string[]
           trade?: Database["public"]["Enums"]["trade_type"]
+          trade_name?: string | null
           unit?: string
           updated_at?: string
           waste_pct?: number
+          xactimate_prefix?: string | null
         }
         Relationships: [
           {
