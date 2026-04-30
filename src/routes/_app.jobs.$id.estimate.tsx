@@ -520,7 +520,7 @@ function JobEstimate() {
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       <div className="space-y-5">
         <TierTabs
-          estimates={estimates}
+          estimates={estimates ?? []}
           activeId={activeId}
           onSelect={setActiveId}
           onCreateTier={createTier}
