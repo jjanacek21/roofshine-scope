@@ -170,7 +170,7 @@ function MacroEditor({
   });
 
   // Load existing items for this macro.
-  const { data: existingItems = [], refetch: refetchItems } = useQuery({
+  const { data: existingItems, refetch: refetchItems } = useQuery({
     queryKey: ["admin-macro-items", macro?.id],
     enabled: !!macro?.id,
     queryFn: async () => {
@@ -184,10 +184,11 @@ function MacroEditor({
   });
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // Sync selectedIds from existingItems whenever they (re)load.
+  // Sync selectedIds from existingItems only when editing and data has loaded.
   useEffect(() => {
+    if (!macro?.id || !existingItems) return;
     setSelectedIds(new Set(existingItems.map((i) => i.line_item_master_id)));
-  }, [existingItems]);
+  }, [macro?.id, existingItems]);
 
   const selectedItems = useMemo(
     () => catalog.filter((c) => selectedIds.has(c.id)),
