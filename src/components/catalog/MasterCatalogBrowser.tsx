@@ -188,9 +188,9 @@ export function MasterCatalogBrowser() {
                 <th className="px-4 py-2 font-semibold">Name</th>
                 <th className="px-4 py-2 font-semibold">Domain / Subgroup</th>
                 <th className="px-4 py-2 font-semibold">Unit</th>
-                <th className="px-4 py-2 text-right font-semibold">Price</th>
-                <th className="px-4 py-2 text-right font-semibold">Hours</th>
-                <th className="px-4 py-2 text-right font-semibold">Mat $</th>
+                <th className="px-4 py-2 text-right font-semibold">Remove</th>
+                <th className="px-4 py-2 text-right font-semibold">Replace</th>
+                <th className="px-4 py-2 text-right font-semibold">R&amp;R Total</th>
                 <th className="px-4 py-2" />
               </tr>
             </thead>
