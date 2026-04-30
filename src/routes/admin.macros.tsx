@@ -1,10 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { TRADES, type Trade } from "@/lib/trades";
-import { Plus, Trash2, X } from "lucide-react";
+import { ASSET_TYPES, QTY_MODES, assetTypeLabel, type AssetType, type QtyMode } from "@/lib/assemblies";
+import { Plus, Trash2, X, Upload, Layers } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/macros")({
@@ -19,6 +20,9 @@ type MasterMacro = {
   category: string | null;
   is_default: boolean;
   company_id: string | null;
+  kind: string;
+  asset_type: string | null;
+  is_addon: boolean;
 };
 
 export default function AdminMacrosPage() {
