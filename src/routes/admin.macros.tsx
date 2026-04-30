@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
@@ -185,7 +185,7 @@ function MacroEditor({
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // Sync selectedIds from existingItems whenever they (re)load.
-  useMemo(() => {
+  useEffect(() => {
     setSelectedIds(new Set(existingItems.map((i) => i.line_item_master_id)));
   }, [existingItems]);
 
