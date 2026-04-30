@@ -53,6 +53,7 @@ import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
 import { Route as ApiPublicSignRouteImport } from './routes/api/public/sign'
 import { Route as AdminPriceBooksNewRouteImport } from './routes/admin.price-books.new'
+import { Route as AdminAssembliesImportRouteImport } from './routes/admin.assemblies.import'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
 import { Route as AppJobsNewRouteImport } from './routes/_app.jobs.new'
@@ -285,6 +286,11 @@ const AdminPriceBooksNewRoute = AdminPriceBooksNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AdminPriceBooksRoute,
 } as any)
+const AdminAssembliesImportRoute = AdminAssembliesImportRouteImport.update({
+  id: '/assemblies/import',
+  path: '/assemblies/import',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AppTeamInvitesRoute = AppTeamInvitesRouteImport.update({
   id: '/invites',
   path: '/invites',
@@ -386,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/jobs/new': typeof AppJobsNewRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
+  '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/jobs/': typeof AppJobsIndexRoute
@@ -439,6 +446,7 @@ export interface FileRoutesByTo {
   '/jobs/new': typeof AppJobsNewRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
+  '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/jobs': typeof AppJobsIndexRoute
@@ -497,6 +505,7 @@ export interface FileRoutesById {
   '/_app/jobs/new': typeof AppJobsNewRoute
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
+  '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
@@ -555,6 +564,7 @@ export interface FileRouteTypes {
     | '/jobs/new'
     | '/price-books/new'
     | '/team/invites'
+    | '/admin/assemblies/import'
     | '/admin/price-books/new'
     | '/api/public/sign'
     | '/jobs/'
@@ -608,6 +618,7 @@ export interface FileRouteTypes {
     | '/jobs/new'
     | '/price-books/new'
     | '/team/invites'
+    | '/admin/assemblies/import'
     | '/admin/price-books/new'
     | '/api/public/sign'
     | '/jobs'
@@ -665,6 +676,7 @@ export interface FileRouteTypes {
     | '/_app/jobs/new'
     | '/_app/price-books/new'
     | '/_app/team/invites'
+    | '/admin/assemblies/import'
     | '/admin/price-books/new'
     | '/api/public/sign'
     | '/_app/jobs/'
@@ -1009,6 +1021,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPriceBooksNewRouteImport
       parentRoute: typeof AdminPriceBooksRoute
     }
+    '/admin/assemblies/import': {
+      id: '/admin/assemblies/import'
+      path: '/assemblies/import'
+      fullPath: '/admin/assemblies/import'
+      preLoaderRoute: typeof AdminAssembliesImportRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_app/team/invites': {
       id: '/_app/team/invites'
       path: '/invites'
@@ -1202,6 +1221,7 @@ interface AdminRouteChildren {
   AdminTrainingRoute: typeof AdminTrainingRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminAssembliesImportRoute: typeof AdminAssembliesImportRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -1222,6 +1242,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminTrainingRoute: AdminTrainingRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminAssembliesImportRoute: AdminAssembliesImportRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
