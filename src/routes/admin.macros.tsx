@@ -1,10 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { TRADES, type Trade } from "@/lib/trades";
-import { Plus, Trash2, X } from "lucide-react";
+import { ASSET_TYPES, QTY_MODES, assetTypeLabel, type AssetType, type QtyMode } from "@/lib/assemblies";
+import { Plus, Trash2, X, Upload, Layers } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/macros")({
@@ -19,6 +20,9 @@ type MasterMacro = {
   category: string | null;
   is_default: boolean;
   company_id: string | null;
+  kind: string;
+  asset_type: string | null;
+  is_addon: boolean;
 };
 
 export default function AdminMacrosPage() {
@@ -59,17 +63,26 @@ export default function AdminMacrosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Master Macros</h1>
+          <h1 className="text-2xl font-semibold">Master Assemblies</h1>
           <p className="text-sm text-muted-foreground">
-            Reusable bundles of line items every company can adopt and price for themselves.
+            Reusable groupings of line items the AI pulls in when it detects matching roof types and features in job photos.
           </p>
         </div>
-        <button
-          onClick={() => setEditorOpen({})}
-          className="btn-brand flex h-9 items-center gap-2 rounded-md px-4 text-sm font-semibold"
-        >
-          <Plus className="h-4 w-4" /> New Macro
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/admin/assemblies/import"
+            className="flex h-9 items-center gap-2 rounded-md border px-4 text-sm font-semibold hover:bg-[var(--surface-hover)]"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <Upload className="h-4 w-4" /> Import from PDF
+          </Link>
+          <button
+            onClick={() => setEditorOpen({})}
+            className="btn-brand flex h-9 items-center gap-2 rounded-md px-4 text-sm font-semibold"
+          >
+            <Plus className="h-4 w-4" /> New Assembly
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -83,7 +96,21 @@ export default function AdminMacrosPage() {
           {macros.map((m) => (
             <div key={m.id} className="rounded-xl border p-4" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}>
               <div className="flex items-start justify-between">
-                <h3 className="text-sm font-semibold text-foreground">{m.name}</h3>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-foreground">{m.name}</h3>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    {m.asset_type && (
+                      <span className="inline-flex items-center gap-1 rounded bg-[var(--brand)]/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-[var(--brand)]">
+                        <Layers className="h-3 w-3" /> {assetTypeLabel(m.asset_type)}
+                      </span>
+                    )}
+                    {m.is_addon && (
+                      <span className="rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-400">
+                        Add-on
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <button
                   onClick={() => {
                     if (confirm(`Delete "${m.name}"?`)) del.mutate(m.id);
@@ -94,11 +121,12 @@ export default function AdminMacrosPage() {
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
-              {m.description && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{m.description}</p>}
-              <div className="mt-2 flex flex-wrap gap-1">
-                {m.trade && <span className="rounded bg-[var(--surface-elevated)] px-2 py-0.5 text-[10px] uppercase text-muted-foreground">{m.trade}</span>}
-                {m.category && <span className="rounded bg-[var(--surface-elevated)] px-2 py-0.5 text-[10px] text-muted-foreground">{m.category}</span>}
-              </div>
+              {m.description && <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{m.description}</p>}
+              {m.trade && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  <span className="rounded bg-[var(--surface-elevated)] px-2 py-0.5 text-[10px] uppercase text-muted-foreground">{m.trade}</span>
+                </div>
+              )}
               <button
                 onClick={() => setEditorOpen({ macro: m })}
                 className="mt-3 text-xs font-semibold text-[var(--brand)] hover:underline"
@@ -130,6 +158,8 @@ function MacroEditor({
   const [description, setDescription] = useState(macro?.description ?? "");
   const [trade, setTrade] = useState<Trade | "">((macro?.trade as Trade) ?? "");
   const [category, setCategory] = useState(macro?.category ?? "");
+  const [assetType, setAssetType] = useState<AssetType | "">((macro?.asset_type as AssetType) ?? "");
+  const [isAddon, setIsAddon] = useState<boolean>(macro?.is_addon ?? false);
   const [search, setSearch] = useState("");
   const [savingShell, setSavingShell] = useState(false);
 
@@ -139,7 +169,7 @@ function MacroEditor({
     queryFn: async () => {
       const { data } = await supabase
         .from("master_macro_items")
-        .select("id, qty, unit, sort_order, line_item_master_id, line_item_master:line_item_master_id(id, code, name, unit, default_price)")
+        .select("id, qty, unit, sort_order, qty_mode, is_optional, item_notes, line_item_master_id, line_item_master:line_item_master_id(id, code, name, unit, default_price)")
         .eq("macro_id", macro!.id)
         .order("sort_order");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -177,10 +207,12 @@ function MacroEditor({
             description: description || null,
             trade: trade || null,
             category: category || null,
+            asset_type: assetType || null,
+            is_addon: isAddon,
           })
           .eq("id", macro.id);
         if (error) throw error;
-        toast.success("Macro updated");
+        toast.success("Assembly updated");
       } else {
         const { error } = await supabase
           .from("master_macros")
@@ -189,11 +221,14 @@ function MacroEditor({
             description: description || null,
             trade: trade || null,
             category: category || null,
+            asset_type: assetType || null,
+            is_addon: isAddon,
+            kind: "assembly",
             company_id: null,
             is_default: true,
           });
         if (error) throw error;
-        toast.success("Macro created");
+        toast.success("Assembly created");
         onSaved();
         onClose();
       }
@@ -207,15 +242,17 @@ function MacroEditor({
 
   async function addItem(liId: string, defaultUnit: string) {
     if (!macro) {
-      toast.error("Save the macro first to add items");
+      toast.error("Save the assembly first to add items");
       return;
     }
     const { error } = await supabase.from("master_macro_items").insert({
       macro_id: macro.id,
       line_item_master_id: liId,
-      qty: 1,
+      qty: 0,
       unit: defaultUnit,
       sort_order: existingItems.length,
+      qty_mode: "manual",
+      is_optional: false,
     });
     if (error) toast.error(error.message);
     else {
@@ -223,6 +260,15 @@ function MacroEditor({
       onSaved();
       window.location.reload();
     }
+  }
+
+  async function updateItemField(
+    itemId: string,
+    patch: { qty?: number; qty_mode?: QtyMode; is_optional?: boolean; item_notes?: string | null },
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await supabase.from("master_macro_items").update(patch as any).eq("id", itemId);
+    if (error) toast.error(error.message);
   }
 
   async function removeItem(itemId: string) {
