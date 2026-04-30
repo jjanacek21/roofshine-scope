@@ -158,6 +158,8 @@ function MacroEditor({
   const [description, setDescription] = useState(macro?.description ?? "");
   const [trade, setTrade] = useState<Trade | "">((macro?.trade as Trade) ?? "");
   const [category, setCategory] = useState(macro?.category ?? "");
+  const [assetType, setAssetType] = useState<AssetType | "">((macro?.asset_type as AssetType) ?? "");
+  const [isAddon, setIsAddon] = useState<boolean>(macro?.is_addon ?? false);
   const [search, setSearch] = useState("");
   const [savingShell, setSavingShell] = useState(false);
 
@@ -167,7 +169,7 @@ function MacroEditor({
     queryFn: async () => {
       const { data } = await supabase
         .from("master_macro_items")
-        .select("id, qty, unit, sort_order, line_item_master_id, line_item_master:line_item_master_id(id, code, name, unit, default_price)")
+        .select("id, qty, unit, sort_order, qty_mode, is_optional, item_notes, line_item_master_id, line_item_master:line_item_master_id(id, code, name, unit, default_price)")
         .eq("macro_id", macro!.id)
         .order("sort_order");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
