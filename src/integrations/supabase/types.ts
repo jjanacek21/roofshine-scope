@@ -139,6 +139,45 @@ export type Database = {
           },
         ]
       }
+      assembly_imports: {
+        Row: {
+          applied_at: string | null
+          company_id: string | null
+          created_at: string
+          filename: string | null
+          id: string
+          parsed: Json
+          source_path: string | null
+          status: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          applied_at?: string | null
+          company_id?: string | null
+          created_at?: string
+          filename?: string | null
+          id?: string
+          parsed?: Json
+          source_path?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          applied_at?: string | null
+          company_id?: string | null
+          created_at?: string
+          filename?: string | null
+          id?: string
+          parsed?: Json
+          source_path?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -950,27 +989,36 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_optional: boolean
+          item_notes: string | null
           line_item_master_id: string
           macro_id: string
           qty: number
+          qty_mode: string
           sort_order: number
           unit: string | null
         }
         Insert: {
           created_at?: string
           id?: string
+          is_optional?: boolean
+          item_notes?: string | null
           line_item_master_id: string
           macro_id: string
           qty?: number
+          qty_mode?: string
           sort_order?: number
           unit?: string | null
         }
         Update: {
           created_at?: string
           id?: string
+          is_optional?: boolean
+          item_notes?: string | null
           line_item_master_id?: string
           macro_id?: string
           qty?: number
+          qty_mode?: string
           sort_order?: number
           unit?: string | null
         }
@@ -993,37 +1041,46 @@ export type Database = {
       }
       master_macros: {
         Row: {
+          asset_type: string | null
           category: string | null
           company_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
           id: string
+          is_addon: boolean
           is_default: boolean
+          kind: string
           name: string
           trade: Database["public"]["Enums"]["trade_type"] | null
           updated_at: string
         }
         Insert: {
+          asset_type?: string | null
           category?: string | null
           company_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
+          is_addon?: boolean
           is_default?: boolean
+          kind?: string
           name: string
           trade?: Database["public"]["Enums"]["trade_type"] | null
           updated_at?: string
         }
         Update: {
+          asset_type?: string | null
           category?: string | null
           company_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
+          is_addon?: boolean
           is_default?: boolean
+          kind?: string
           name?: string
           trade?: Database["public"]["Enums"]["trade_type"] | null
           updated_at?: string
