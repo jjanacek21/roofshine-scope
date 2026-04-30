@@ -36,7 +36,7 @@ export function MasterCatalogBrowser() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("line_item_master")
-        .select("id, code, name, unit, domain, subgroup, default_price, hours, material_cost, xactimate_prefix, trade_name")
+        .select("id, code, name, unit, domain, subgroup, default_price, remove_price, replace_price, hours, material_cost, xactimate_prefix, trade_name")
         .is("company_id", null)
         .order("domain")
         .order("subgroup")
