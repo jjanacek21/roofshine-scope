@@ -1,44 +1,65 @@
-# Fix: "refused to connect" in the signing iframe
+# Fix: contract iframe blocked inside Lovable preview
 
-## Root cause
+## What's actually wrong
 
-The iframe loads `/api/sign`, but the lovableproject.com preview proxy treats
-**every** `/api/*` route as protected and responds with a `302` redirect to
-`https://lovable.dev/auth-bridge`. The auth-bridge page sets `X-Frame-Options:
-DENY`, so the browser blocks it inside the iframe → "refused to connect."
+The iframe is showing the browser's broken-document icon because the signing
+HTML never reaches it. I confirmed with curl:
 
-I confirmed this by hitting `/api/sign` and `/api/mapbox-token` with curl —
-both 302 to auth-bridge regardless of cookies.
+- `https://id-preview--{id}.lovable.app/api/public/sign` → **302** to
+  `lovable.dev/auth-bridge` (the auth-bridge then refuses to be framed →
+  blank icon)
+- `https://project--{id}-dev.lovable.app/api/public/sign` → **200** with the
+  signing HTML
 
-Per the project's server-route docs, routes under `/api/public/*` bypass the
-preview auth gate. That's the correct home for an iframe endpoint.
+In other words, the `id-preview--*` host (which is what the editor iframe
+uses) auth-gates **every** request — including paths under `/api/public/*`,
+contrary to what I assumed last round. Opening in a new tab works only
+because the auth-bridge can complete its cookie round-trip at top-level;
+inside an iframe third-party cookies are blocked, so it never resolves.
 
-## Changes
+The stable `project--{id}-dev.lovable.app` host serves the same build but
+without the preview auth gate, so it can be safely framed.
 
-1. **Move route file**
-   `src/routes/api.sign.ts` → `src/routes/api/public/sign.ts`
-   - New URL: `/api/public/sign`
-   - Update the relative `?raw` import path for the bundled HTML
-     (`../../../sign/GCN-Sign.html?raw`)
-   - Same body: streams the bundled signing HTML with
-     `content-type: text/html` and `x-frame-options: SAMEORIGIN`
+## Fix
 
-2. **Update `src/lib/contract-config.ts`**
-   - `SIGN_BASE_URL = "/api/public/sign"` (was `/api/sign`)
-   - `buildSigningUrl` already appends `?<query>` directly, no further change
+One-line conceptual change: when no tenant override is set, build the signing
+URL against the stable preview host instead of a relative path.
 
-3. **Verify in the browser**
-   - Reload `/jobs/.../contract`, click Construction Agreement
-   - Confirm Step 1 of 5 renders inside the iframe (no "refused to connect")
-   - Walk through customer info → trade selection → review → signature →
-     filed, flagging any UI/validation issues found
+### Code changes
 
-## Why not the other options
+1. **`src/lib/contract-config.ts`** — make `buildSigningUrl` produce an
+   absolute URL by default:
 
-- Keep file in `public/`: TanStack Start's SSR catch-all returns the SPA
-  shell for any non-bundled path on the Cloudflare Workers target — already
-  proven by the original 404.
-- Set CSP/X-Frame-Options on `/api/sign`: useless because the proxy
-  intercepts before our handler runs and replaces the response with the
-  auth-bridge redirect.
-- Disable preview auth: not a per-route control we have.
+   - Read `VITE_SUPABASE_PROJECT_ID` (already in `.env`) — but that's the
+     Supabase ref, not the Lovable project id. Instead hardcode the Lovable
+     project id we already know (`2bd97912-9ef6-411c-8da4-d86ee5db73a0`) into
+     a single constant `LOVABLE_PROJECT_ID`. It's a public identifier; safe
+     to ship.
+   - Default `SIGN_BASE_URL` becomes
+     `https://project--${LOVABLE_PROJECT_ID}-dev.lovable.app/api/public/sign`.
+   - Tenant override (`tenants.sign_base_url`) still wins when set.
+
+   Why hardcode and not detect from `window.location.host`? Because the
+   editor iframe runs at `id-preview--*.lovable.app`, so detecting from the
+   host would just reproduce the bug. The stable URL is the whole point.
+
+2. **No other file changes needed.** The route at
+   `src/routes/api/public/sign.ts` already serves the HTML correctly with
+   `x-frame-options: SAMEORIGIN` (same-origin is fine because the parent
+   page is the same `project--*-dev.lovable.app` build).
+
+### Verification I'll run after the change
+
+- Hit `/jobs/.../contract`, pick Construction Agreement, confirm Step 1 of 5
+  renders inside the iframe.
+- Walk the 5-step flow (customer info → trades → review → signature →
+  filed) and note any UI/validation issues for follow-up.
+- Use the browser tool screenshot to confirm visually.
+
+## Follow-ups (not part of this fix)
+
+- Once the project is published, also try `project--{id}.lovable.app` (no
+  `-dev`) so signed contracts use production. That URL currently 404s
+  because nothing is published yet.
+- Longer term, consider serving the signing HTML from a fully separate
+  static host so it isn't tied to Lovable's preview proxy at all.
