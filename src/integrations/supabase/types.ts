@@ -892,6 +892,8 @@ export type Database = {
           material_cost: number | null
           name: string
           price_book_code: string | null
+          remove_price: number | null
+          replace_price: number | null
           status: Database["public"]["Enums"]["catalog_status"]
           subgroup: string | null
           tags: string[]
@@ -915,6 +917,8 @@ export type Database = {
           material_cost?: number | null
           name: string
           price_book_code?: string | null
+          remove_price?: number | null
+          replace_price?: number | null
           status?: Database["public"]["Enums"]["catalog_status"]
           subgroup?: string | null
           tags?: string[]
@@ -938,6 +942,8 @@ export type Database = {
           material_cost?: number | null
           name?: string
           price_book_code?: string | null
+          remove_price?: number | null
+          replace_price?: number | null
           status?: Database["public"]["Enums"]["catalog_status"]
           subgroup?: string | null
           tags?: string[]
