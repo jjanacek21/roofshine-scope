@@ -11,12 +11,16 @@ export const Route = createFileRoute("/api/public/sign")({
   server: {
     handlers: {
       GET: async () => {
+        // No X-Frame-Options / frame-ancestors: this endpoint is meant to
+        // be embedded in an iframe from the Lovable editor preview
+        // (id-preview--*.lovable.app), which is a DIFFERENT origin from
+        // project--*-dev.lovable.app where this is served. SAMEORIGIN here
+        // would block the editor iframe.
         return new Response(signHtml, {
           status: 200,
           headers: {
             "content-type": "text/html; charset=utf-8",
             "cache-control": "no-store",
-            "x-frame-options": "SAMEORIGIN",
           },
         });
       },

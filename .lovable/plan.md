@@ -1,65 +1,55 @@
-# Fix: contract iframe blocked inside Lovable preview
+# Fix iframe loading + bundle the GCN gold logo
 
-## What's actually wrong
+Two issues from your report:
 
-The iframe is showing the browser's broken-document icon because the signing
-HTML never reaches it. I confirmed with curl:
+1. Iframe still requires "Open in new tab"
+2. The PDF shows a hand-drawn "GCN" wordmark instead of your real logo
 
-- `https://id-preview--{id}.lovable.app/api/public/sign` → **302** to
-  `lovable.dev/auth-bridge` (the auth-bridge then refuses to be framed →
-  blank icon)
-- `https://project--{id}-dev.lovable.app/api/public/sign` → **200** with the
-  signing HTML
+## Issue 1 — Iframe blocked
 
-In other words, the `id-preview--*` host (which is what the editor iframe
-uses) auth-gates **every** request — including paths under `/api/public/*`,
-contrary to what I assumed last round. Opening in a new tab works only
-because the auth-bridge can complete its cookie round-trip at top-level;
-inside an iframe third-party cookies are blocked, so it never resolves.
+`src/routes/api/public/sign.ts` sends `x-frame-options: SAMEORIGIN`. The
+signing HTML is served from `project--{id}-dev.lovable.app`, but the editor
+iframe parent is `id-preview--{id}.lovable.app` — a different origin, so
+SAMEORIGIN blocks framing. New tab works because there's no parent.
 
-The stable `project--{id}-dev.lovable.app` host serves the same build but
-without the preview auth gate, so it can be safely framed.
+**Fix:** delete the `x-frame-options` header line. The endpoint is
+intentionally public and meant to be embedded.
 
-## Fix
+## Issue 2 — Wrong logo
 
-One-line conceptual change: when no tenant override is set, build the signing
-URL against the stable preview host instead of a relative path.
+The signer (`src/sign/GCN-Sign.html`) doesn't contain a logo image at all.
+The on-screen header is text-only, and the PDF (line ~1901) draws the
+literal string "GCN" in yellow. That's the "wrong logo."
 
-### Code changes
+**Fix:**
 
-1. **`src/lib/contract-config.ts`** — make `buildSigningUrl` produce an
-   absolute URL by default:
+1. Save the uploaded `LOGO_GOLD.png` to `src/sign/assets/gcn-logo.png`.
+2. Inline it as a base64 data URI inside `GCN-Sign.html` so the file stays
+   self-contained (matches how the rest of the signer is structured —
+   single bundled HTML, no extra fetches).
+3. **On-screen header (~line 372):** replace the text-only `.brand` block
+   with `<img class="brand-mark" src="{dataUri}" />` sized ~36px tall, with
+   the company name + address text alongside it.
+4. **PDF header (~lines 1896–1909):** replace `doc.text('GCN', ...)` with
+   `doc.addImage(LOGO_DATA_URI, 'PNG', M, 6, 26, 26)` — a 26×26pt mark on
+   the black bar, with the company name/address text shifted to sit
+   alongside it. Keep the gold underline rule below the bar.
+5. Tweak: bump the favicon in the `<head>` to use the same data URI so the
+   new tab also picks up the brand mark.
 
-   - Read `VITE_SUPABASE_PROJECT_ID` (already in `.env`) — but that's the
-     Supabase ref, not the Lovable project id. Instead hardcode the Lovable
-     project id we already know (`2bd97912-9ef6-411c-8da4-d86ee5db73a0`) into
-     a single constant `LOVABLE_PROJECT_ID`. It's a public identifier; safe
-     to ship.
-   - Default `SIGN_BASE_URL` becomes
-     `https://project--${LOVABLE_PROJECT_ID}-dev.lovable.app/api/public/sign`.
-   - Tenant override (`tenants.sign_base_url`) still wins when set.
+## What I'm not changing
 
-   Why hardcode and not detect from `window.location.host`? Because the
-   editor iframe runs at `id-preview--*.lovable.app`, so detecting from the
-   host would just reproduce the bug. The stable URL is the whole point.
+- Per-tenant logo override (`tenants.logo_base64`) — already a TODO in the
+  memory; deferring until you onboard another tenant. Single-tenant for
+  now means the bundled asset is fine.
+- The signer's signature/PDF logic itself.
 
-2. **No other file changes needed.** The route at
-   `src/routes/api/public/sign.ts` already serves the HTML correctly with
-   `x-frame-options: SAMEORIGIN` (same-origin is fine because the parent
-   page is the same `project--*-dev.lovable.app` build).
+## Verification
 
-### Verification I'll run after the change
-
-- Hit `/jobs/.../contract`, pick Construction Agreement, confirm Step 1 of 5
-  renders inside the iframe.
-- Walk the 5-step flow (customer info → trades → review → signature →
-  filed) and note any UI/validation issues for follow-up.
-- Use the browser tool screenshot to confirm visually.
-
-## Follow-ups (not part of this fix)
-
-- Once the project is published, also try `project--{id}.lovable.app` (no
-  `-dev`) so signed contracts use production. That URL currently 404s
-  because nothing is published yet.
-- Longer term, consider serving the signing HTML from a fully separate
-  static host so it isn't tied to Lovable's preview proxy at all.
+- Reload `/jobs/.../contract` → Construction Agreement → Step 1 of 5 must
+  render directly inside the preview iframe (no broken-document icon, no
+  "Open in new tab").
+- Walk to Step 5, download → confirm PDF header shows the gold GCN mark
+  instead of the "GCN" text.
+- Sanity check: open the PDF in a viewer, look at it side by side with
+  `LOGO_GOLD.png` to confirm the mark renders crisply at 26pt.
