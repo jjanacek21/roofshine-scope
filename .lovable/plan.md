@@ -1,75 +1,46 @@
-## Goal
+## Problem
 
-Replace the existing 310-item catalog with the new Xactimate-grouped dataset (FLJU8X_APR26), add `domain` + `subgroup` hierarchy, and rebuild the macro builder + estimate item picker around filterable group/sub-group navigation.
+Admin → Master Pricing still renders the old `price_books` (Xactimate upload) list. The new 428-item hierarchical catalog (Domain → Subgroup → Items) we just imported into `line_item_master` is not displayed anywhere in the admin panel.
 
-## What to build
+## Plan
 
-### 1. Schema changes (one migration)
+Replace the "Insurance Pricing" tab on `/admin/price-books` with a new **Master Catalog** view backed by `line_item_master` (where `company_id IS NULL`).
 
-Add hierarchy + costing columns to `line_item_master`:
-- `domain text` — top-level bucket from your CSV (e.g. "Roofing", "Windows")
-- `subgroup text` — material/system bucket (e.g. "Concrete Tile", "Asphalt Shingles", "Flashings")
-- `xactimate_prefix text` — RFG, WDA, DOR, …
-- `trade_name text` — official Xactimate trade name
-- `hours numeric` — labor hours per unit
-- `material_cost numeric` — material $ per unit
-- `price_book_code text` — e.g. "FLJU8X_APR26"
+### 1. New `MasterCatalogBrowser` component (`src/components/catalog/MasterCatalogBrowser.tsx`)
 
-Indexes on `(domain, subgroup)` and `code` for fast filtering/search.
+Two-pane layout matching the macro editor:
 
-Wipe the old 310 items + their `master_macro_items` references (macros table is empty already, so no orphan cleanup needed there).
+- **Left pane** — collapsible Domain → Subgroup tree with item counts (reuses logic from `CatalogTree`, but in read-only "browser" mode — no checkboxes).
+- **Right pane** — table of items in the currently selected subgroup (or all items if a search is active):
+  - Columns: Code, Name, Unit, Default Price, Hours, Material Cost, Xactimate Prefix
+  - Top: search bar that filters across code/name/description globally
+  - Inline-edit `default_price` (and optionally `hours` / `material_cost`) for super-admins via `update line_item_master`.
 
-### 2. CSV ingest
+Pulls all rows once with `select("id, code, name, unit, default_price, domain, subgroup, xactimate_prefix, trade_name, hours, material_cost").is("company_id", null).order("domain").order("subgroup").order("code")`.
 
-You'll paste CSV chunks in chat. I'll:
-1. Concatenate all chunks into one CSV.
-2. Parse + validate (every row needs `code`, `domain`, `subgroup`).
-3. Map each row's `domain` → existing `trade` enum (Roofing→roofing, Windows→windows, etc.) so the existing trade colors/badges keep working.
-4. Bulk-insert into `line_item_master` with `company_id = NULL` (master catalog).
-5. Report counts per (domain, subgroup) so you can verify nothing was miscategorized.
+### 2. Update `/admin/price-books` route (`src/routes/admin.price-books.tsx`)
 
-### 3. New macro builder UI (`/admin/macros` — replace existing editor)
+Replace the three-tab structure with two tabs:
 
-Two-pane layout:
-- **Left**: collapsible tree — Domain → Subgroup → line items with checkbox per item. Search box at top filters the tree live.
-- **Right**: "Selected items" list with qty + qty_mode (manual / auto-count / fixed) per item, drag to reorder, save button.
-- Macro header still has name, description, asset_type (for AI matching), is_addon.
+- **Master Catalog** (new — renders `MasterCatalogBrowser`) — default tab
+- **Master Macros** (existing — renders `AdminMacrosPage`)
 
-Bulk actions: "Select all in subgroup", "Clear selection".
+Remove the legacy `InsuranceList` (price_books table) and the "Upload estimate file" button. The legacy `/admin/price-books/new` upload flow stays in the codebase but is no longer linked from the admin panel (we can delete it in a follow-up once confirmed unused).
 
-### 4. Estimate-side line item picker (rewrite `AddLineItemCombobox`)
+Rename the page header to "Master Catalog & Macros" so it matches the new content.
 
-Wider popover with:
-- Search bar at top (debounced, searches code/name/description across whole catalog).
-- When search is empty: show Domain → Subgroup tree; clicking a subgroup lists its items on the right.
-- When search has text: flat results grouped by subgroup.
-- Each result row: code, name, unit price, unit, "+ Add" button.
+### 3. Sidebar label
 
-### 5. AI photo-matching alignment
+Update the admin sidebar entry from "Pricing" / "Price Books" to "Catalog" so it reflects the new model. (Quick check of `src/components/AdminSidebar` or equivalent during implementation.)
 
-Update `api.auto-add-photo-suggestions` and `api.analyze-job-photos` prompts so they reason in (domain, subgroup) terms — "this is a tile roof, pull all items from Roofing→Concrete Tile + Roofing→Underlayment & Felt + Roofing→Flashings as needed". This is what unlocks the "stop suggesting 38 duplicates" outcome you flagged earlier: the AI picks subgroups, then macros bring in the standard line items.
+## Out of scope
 
-## Technical notes
+- Bulk CSV re-import UI (data is already loaded via psql).
+- Per-company overrides UI (separate feature).
+- Removing the legacy `price_books` tables/routes (kept for now in case any older job references them).
 
-```text
-domain (Roofing)
-  └─ subgroup (Concrete Tile)
-       └─ line_item_master rows (code, name, unit, default_price, hours, material_cost)
-```
+## Files
 
-- `trade` enum stays as-is (used everywhere for colors). `domain` is a free-text superset that maps onto it.
-- `default_price` will be set to `material_cost + (hours * assumed_labor_rate)` OR left at 0 and computed at insert time — confirm during ingest.
-- RLS unchanged (master catalog rows have `company_id = NULL`, already readable by everyone).
-
-## Out of scope (for this pass)
-- Importing per-region price books beyond FLJU8X_APR26 (schema supports it via `price_book_code`, UI later).
-- Migrating any existing custom company line items — there are none right now (all 310 are master rows being replaced).
-
-## Order of work
-1. Migration (schema + wipe).
-2. Wait for CSV chunks → ingest script → bulk insert → verification report.
-3. New macro builder UI.
-4. New estimate picker.
-5. AI prompt updates.
-
-Ready to start once you paste the CSV.
+- create `src/components/catalog/MasterCatalogBrowser.tsx`
+- edit `src/routes/admin.price-books.tsx`
+- edit admin sidebar component (label only)
