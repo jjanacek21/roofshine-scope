@@ -1,21 +1,36 @@
-## Why you don't see the Lead Center
+I found the import request is reaching the server function with all 1,264 mapped leads, but it is being rejected before import with:
 
-The Lead Center routes (`/leads`, `/leads/wizard`, etc.) are built and working, but no navigation entry was added to the app sidebar in the previous build, so there's no clickable way to reach them. This plan fixes that.
+```text
+401 Unauthorized: No authorization header provided
+```
 
-## Changes
+So the CSV itself is being parsed correctly. The problem is that the Lead import screen calls the authenticated server function without passing the current login token, so the backend refuses the request and returns “No leads imported.”
 
-### 1. Desktop sidebar — `src/components/layout/AppSidebar.tsx`
-- Import the `Target` icon from `lucide-react`.
-- Add a new entry to `WORKSPACE_NAV` between Jobs and Clients:
-  - `{ to: "/leads", label: "Leads", icon: Target, badgeKey: null }`
+Plan to fix it:
 
-### 2. Mobile sidebar — `src/components/layout/MobileSidebarSheet.tsx`
-- Same icon import and same `WORKSPACE_NAV` entry so the link appears on phone/tablet as well.
+1. Update the Lead Management Center import action
+   - Before calling `importLeads`, read the current authenticated session from the app auth client.
+   - Pass `Authorization: Bearer <access_token>` in the server function call.
+   - If there is no valid session, show a clear toast like “Please sign in again before importing leads.”
 
-That's it — both sidebars share the same `WORKSPACE_NAV` constant pattern, and the existing `isActive("/leads")` logic already highlights the tab on any `/leads/*` sub-route (Dashboard, List, Map, Pipeline, Import, AI Wizard, Savings, Training).
+2. Improve the import result handling
+   - Stop clearing the selected CSV when the backend imports 0 rows, so the user can retry without re-uploading.
+   - Show the actual first backend error in the toast instead of only “No leads imported.”
+   - Keep clearing the file only after at least one lead imports successfully.
 
-## Notes
+3. Add batching for reliability
+   - Send the 1,264 leads in smaller batches instead of one huge server-function request.
+   - Accumulate inserted counts and errors across batches.
+   - This reduces timeout/payload risk and makes it easier to report partial success.
 
-- No new icon import package needed — `Target` is already in `lucide-react`.
-- No route changes needed — every `/leads/*` route already exists and type-checks.
-- After the edit, "Leads" will appear in the **Workspace** section of the sidebar on both desktop and mobile, just below Jobs.
+4. Optional but recommended backend cleanup
+   - Avoid geocoding every import synchronously when a large CSV is imported; limit or skip geocoding during import so rows save quickly.
+   - Keep contact/phone/email import logic intact.
+
+Files I expect to change:
+
+```text
+src/routes/_app.leads.import.tsx
+```
+
+Likely no database migration is needed because the current schema and RLS policies already allow company admins to insert leads once the request includes the user’s auth token.

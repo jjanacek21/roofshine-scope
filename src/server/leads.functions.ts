@@ -89,8 +89,8 @@ export const importLeads = createServerFn({ method: "POST" })
       let inserted = 0;
       const errors: string[] = [];
 
-      // Limit geocode calls per import to avoid runaway cost
-      let geocodeBudget = 100;
+      // Limit geocode calls per request to avoid timeouts (geocoding is slow)
+      let geocodeBudget = 25;
 
       for (const row of data.leads) {
         try {
