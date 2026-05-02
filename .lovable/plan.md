@@ -1,36 +1,34 @@
-I found the import request is reaching the server function with all 1,264 mapped leads, but it is being rejected before import with:
+I found two likely causes for what you’re seeing:
 
-```text
-401 Unauthorized: No authorization header provided
-```
-
-So the CSV itself is being parsed correctly. The problem is that the Lead import screen calls the authenticated server function without passing the current login token, so the backend refuses the request and returns “No leads imported.”
+1. The server import is doing slow work one lead at a time, including geocoding, so the batch request can stop partway through. The database currently shows 291 leads for your company, not the full 1,264.
+2. The map/list only uses the `leads` table, while contact details live in related contact/phone/email tables. Some contact info is in the database, but the import should preserve it more reliably and the UI should make progress/errors clearer.
 
 Plan to fix it:
 
-1. Update the Lead Management Center import action
-   - Before calling `importLeads`, read the current authenticated session from the app auth client.
-   - Pass `Authorization: Bearer <access_token>` in the server function call.
-   - If there is no valid session, show a clear toast like “Please sign in again before importing leads.”
+1. Make the import backend fast and reliable
+   - Remove synchronous geocoding from the bulk import path so importing is not blocked by Google Maps calls.
+   - Insert lead rows in bulk instead of one lead at a time.
+   - Insert contacts, phones, and emails in bulk after the leads are created.
+   - Return accurate counts: attempted, inserted leads, inserted contacts, phones, emails, and errors.
 
-2. Improve the import result handling
-   - Stop clearing the selected CSV when the backend imports 0 rows, so the user can retry without re-uploading.
-   - Show the actual first backend error in the toast instead of only “No leads imported.”
-   - Keep clearing the file only after at least one lead imports successfully.
+2. Preserve all CSV information
+   - Keep all current property fields: street/address, city, state, zip, property type, year built, square feet, owner/reported owner, sale amount.
+   - Preserve all three contact columns from the uploaded file, including contact name, title, company, phones, and emails.
+   - Normalize phone/email pipe-separated values without dropping valid entries.
 
-3. Add batching for reliability
-   - Send the 1,264 leads in smaller batches instead of one huge server-function request.
-   - Accumulate inserted counts and errors across batches.
-   - This reduces timeout/payload risk and makes it easier to report partial success.
+3. Avoid partial imports and duplicates
+   - Add a lightweight dedupe strategy inside the import so retrying the same CSV does not create duplicates.
+   - For rows already imported, update/fill missing property fields where possible and still attach missing contact info if needed.
+   - Keep row-level security intact and continue importing only into the signed-in user’s company.
 
-4. Optional but recommended backend cleanup
-   - Avoid geocoding every import synchronously when a large CSV is imported; limit or skip geocoding during import so rows save quickly.
-   - Keep contact/phone/email import logic intact.
+4. Improve the import screen feedback
+   - Show progress by batch, e.g. “Imported 300 / 1264”.
+   - Show a final detailed success message instead of only “No leads imported”.
+   - Keep the uploaded file loaded after a failed or partial import so you can retry without uploading again.
+   - Surface backend errors in the UI instead of hiding them in the console.
 
-Files I expect to change:
+5. Backfill the current uploaded CSV
+   - After the code fix is approved, I’ll use the uploaded `reonomy-leads-merged.csv` to complete the import for the remaining rows into your company.
+   - I’ll verify the final database counts against the CSV: 1,264 leads, plus related contacts/phones/emails.
 
-```text
-src/routes/_app.leads.import.tsx
-```
-
-Likely no database migration is needed because the current schema and RLS policies already allow company admins to insert leads once the request includes the user’s auth token.
+No visual design changes are needed; this is mainly an import reliability and data preservation fix.

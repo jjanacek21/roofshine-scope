@@ -32,25 +32,6 @@ const ImportSchema = z.object({
   leads: z.array(LeadInput).min(1).max(2000),
 });
 
-async function geocodeAddress(
-  address: string,
-  apiKey: string,
-): Promise<{ lat: number; lng: number } | null> {
-  try {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
-    const r = await fetch(url);
-    if (!r.ok) return null;
-    const data = (await r.json()) as {
-      results?: { geometry?: { location?: { lat: number; lng: number } } }[];
-    };
-    const loc = data.results?.[0]?.geometry?.location;
-    if (loc) return { lat: loc.lat, lng: loc.lng };
-  } catch {
-    // ignore
-  }
-  return null;
-}
-
 export const importLeads = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => {
@@ -68,124 +49,228 @@ export const importLeads = createServerFn({ method: "POST" })
     try {
       const { supabase, userId } = context;
 
-      // Verify caller is a company admin (owner/admin/super_admin)
       const { data: profile, error: profileErr } = await supabase
         .from("profiles")
         .select("role, company_id")
         .eq("id", userId)
         .maybeSingle();
       if (profileErr) {
-        return { inserted: 0, errors: [`Profile lookup failed: ${profileErr.message}`] };
+        return { inserted: 0, contactsInserted: 0, phonesInserted: 0, emailsInserted: 0, errors: [`Profile lookup failed: ${profileErr.message}`] };
       }
       if (!profile?.company_id) {
-        return { inserted: 0, errors: ["No company found for your account"] };
+        return { inserted: 0, contactsInserted: 0, phonesInserted: 0, emailsInserted: 0, errors: ["No company found for your account"] };
       }
       const role = profile.role;
       if (role !== "owner" && role !== "admin" && role !== "super_admin") {
-        return { inserted: 0, errors: ["Forbidden: only company admins can import leads"] };
+        return { inserted: 0, contactsInserted: 0, phonesInserted: 0, emailsInserted: 0, errors: ["Forbidden: only company admins can import leads"] };
       }
 
-      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-      let inserted = 0;
       const errors: string[] = [];
 
-      // Limit geocode calls per request to avoid timeouts (geocoding is slow)
-      let geocodeBudget = 25;
-
+      // Build lead rows for bulk upsert. Dedupe within the batch by normalized address.
+      const seen = new Map<string, (typeof data.leads)[number]>();
       for (const row of data.leads) {
-        try {
-          let lat = row.lat ?? null;
-          let lng = row.lng ?? null;
-          if ((lat == null || lng == null) && apiKey && geocodeBudget > 0) {
-            const full = [row.address, row.city, row.state, row.zip]
-              .filter(Boolean)
-              .join(", ");
-            const geo = await geocodeAddress(full, apiKey);
-            if (geo) {
-              lat = geo.lat;
-              lng = geo.lng;
-            }
-            geocodeBudget--;
-          }
+        const key = row.address.trim().toLowerCase();
+        if (!key) continue;
+        // Last one wins within the batch
+        seen.set(key, row);
+      }
+      const dedupedRows = Array.from(seen.values());
 
-          const estimated =
-            row.estimated_value ?? (row.sqft ? row.sqft * 4.5 : null);
+      const leadRowsForInsert = dedupedRows.map((row) => ({
+        company_id: profile.company_id as string,
+        created_by: userId,
+        address: row.address.trim(),
+        city: row.city ?? null,
+        state: row.state ?? "FL",
+        zip: row.zip ?? null,
+        owner: row.owner ?? row.reported_owner ?? null,
+        sqft: row.sqft ?? null,
+        year_built: row.year_built ?? null,
+        lat: row.lat ?? null,
+        lng: row.lng ?? null,
+        roof_type: row.roof_type ?? "Unknown",
+        property_type: row.property_type ?? "Commercial",
+        estimated_value: row.estimated_value ?? (row.sqft ? row.sqft * 4.5 : null),
+        sale_amount: row.sale_amount ?? null,
+        reported_owner: row.reported_owner ?? null,
+      }));
 
-          const { data: leadRow, error: leadErr } = await supabase
+      // Upsert leads in chunks. Use the expression-based unique index by listing the
+      // columns we care about; Supabase's onConflict supports column names but not
+      // expressions, so we rely on a separate `ON CONFLICT DO NOTHING`-equivalent path
+      // by trying upsert with onConflict on a custom name. Since our unique index is
+      // expression-based (lower(btrim(address))), we instead use ignoreDuplicates via
+      // .upsert with onConflict being unsupported here — fall back to:
+      //   1) select existing addresses for this company in the chunk
+      //   2) insert only the missing ones
+      let insertedLeadCount = 0;
+      const addressToId = new Map<string, string>();
+
+      const LEAD_CHUNK = 200;
+      for (let i = 0; i < leadRowsForInsert.length; i += LEAD_CHUNK) {
+        const chunk = leadRowsForInsert.slice(i, i + LEAD_CHUNK);
+        const chunkAddrs = chunk.map((r) => r.address);
+
+        // Fetch existing leads for this company by raw address (case-insensitive match
+        // is not directly available in REST; addresses were trimmed, so equality works
+        // for our just-trimmed values). We map them out of the insert set.
+        const { data: existing, error: exErr } = await supabase
+          .from("leads")
+          .select("id, address")
+          .eq("company_id", profile.company_id)
+          .in("address", chunkAddrs);
+        if (exErr) {
+          errors.push(`Lookup chunk ${Math.floor(i / LEAD_CHUNK) + 1}: ${exErr.message}`);
+          continue;
+        }
+        const existingByAddr = new Map<string, string>();
+        for (const e of existing ?? []) {
+          existingByAddr.set(e.address.trim().toLowerCase(), e.id);
+          addressToId.set(e.address.trim().toLowerCase(), e.id);
+        }
+
+        const toInsert = chunk.filter(
+          (r) => !existingByAddr.has(r.address.trim().toLowerCase()),
+        );
+
+        if (toInsert.length > 0) {
+          const { data: inserted, error: insErr } = await supabase
             .from("leads")
-            .insert({
-              company_id: profile.company_id,
-              created_by: userId,
-              address: row.address,
-              city: row.city ?? null,
-              state: row.state ?? "FL",
-              zip: row.zip ?? null,
-              owner: row.owner ?? row.reported_owner ?? null,
-              sqft: row.sqft ?? null,
-              year_built: row.year_built ?? null,
-              lat,
-              lng,
-              roof_type: row.roof_type ?? "Unknown",
-              property_type: row.property_type ?? "Commercial",
-              estimated_value: estimated,
-              sale_amount: row.sale_amount ?? null,
-              reported_owner: row.reported_owner ?? null,
-            })
-            .select("id")
-            .single();
-          if (leadErr || !leadRow) throw new Error(leadErr?.message ?? "Insert failed");
-
-          if (row.contacts && row.contacts.length > 0) {
-            for (let i = 0; i < row.contacts.length; i++) {
-              const c = row.contacts[i];
-              const { data: contactRow, error: cErr } = await supabase
-                .from("lead_contacts")
-                .insert({
-                  lead_id: leadRow.id,
-                  name: c.name,
-                  title: c.title ?? null,
-                  company: c.company ?? null,
-                  sort_order: i,
-                })
-                .select("id")
-                .single();
-              if (cErr || !contactRow) continue;
-
-              if (c.phones && c.phones.length > 0) {
-                await supabase.from("lead_contact_phones").insert(
-                  c.phones.map((p) => ({
-                    contact_id: contactRow.id,
-                    phone: p,
-                    phone_type: "unknown",
-                  })),
-                );
-              }
-              if (c.emails && c.emails.length > 0) {
-                await supabase.from("lead_contact_emails").insert(
-                  c.emails.map((e) => ({
-                    contact_id: contactRow.id,
-                    email: e,
-                  })),
-                );
-              }
-            }
+            .insert(toInsert)
+            .select("id, address");
+          if (insErr) {
+            errors.push(`Insert chunk ${Math.floor(i / LEAD_CHUNK) + 1}: ${insErr.message}`);
+            continue;
           }
-
-          inserted++;
-        } catch (e) {
-          errors.push(
-            row.address +
-              ": " +
-              (e instanceof Error ? e.message : "unknown error"),
-          );
+          insertedLeadCount += inserted?.length ?? 0;
+          for (const r of inserted ?? []) {
+            addressToId.set(r.address.trim().toLowerCase(), r.id);
+          }
         }
       }
 
-      return { inserted, errors };
+      // Build contacts for all leads we know about (newly inserted OR pre-existing).
+      type PendingContact = {
+        lead_id: string;
+        name: string;
+        title: string | null;
+        company: string | null;
+        sort_order: number;
+        phones: string[];
+        emails: string[];
+      };
+      const pendingContacts: PendingContact[] = [];
+      for (const row of dedupedRows) {
+        const leadId = addressToId.get(row.address.trim().toLowerCase());
+        if (!leadId || !row.contacts) continue;
+        row.contacts.forEach((c, idx) => {
+          pendingContacts.push({
+            lead_id: leadId,
+            name: c.name,
+            title: c.title ?? null,
+            company: c.company ?? null,
+            sort_order: idx,
+            phones: c.phones ?? [],
+            emails: c.emails ?? [],
+          });
+        });
+      }
+
+      // Skip contacts that already exist (by lead_id + name) so retries don't duplicate.
+      let contactsInserted = 0;
+      let phonesInserted = 0;
+      let emailsInserted = 0;
+
+      const CONTACT_CHUNK = 300;
+      for (let i = 0; i < pendingContacts.length; i += CONTACT_CHUNK) {
+        const chunk = pendingContacts.slice(i, i + CONTACT_CHUNK);
+        const leadIds = Array.from(new Set(chunk.map((c) => c.lead_id)));
+        const { data: existingC, error: exCErr } = await supabase
+          .from("lead_contacts")
+          .select("id, lead_id, name")
+          .in("lead_id", leadIds);
+        if (exCErr) {
+          errors.push(`Contact lookup chunk ${Math.floor(i / CONTACT_CHUNK) + 1}: ${exCErr.message}`);
+          continue;
+        }
+        const existingKey = new Set(
+          (existingC ?? []).map((c) => `${c.lead_id}::${c.name.toLowerCase()}`),
+        );
+
+        const toInsert = chunk.filter(
+          (c) => !existingKey.has(`${c.lead_id}::${c.name.toLowerCase()}`),
+        );
+        if (toInsert.length === 0) continue;
+
+        const { data: inserted, error: insCErr } = await supabase
+          .from("lead_contacts")
+          .insert(
+            toInsert.map((c) => ({
+              lead_id: c.lead_id,
+              name: c.name,
+              title: c.title,
+              company: c.company,
+              sort_order: c.sort_order,
+            })),
+          )
+          .select("id, lead_id, name");
+        if (insCErr) {
+          errors.push(`Contact insert chunk ${Math.floor(i / CONTACT_CHUNK) + 1}: ${insCErr.message}`);
+          continue;
+        }
+        contactsInserted += inserted?.length ?? 0;
+
+        // Map back so we can attach phones/emails.
+        const idByKey = new Map<string, string>();
+        for (const r of inserted ?? []) {
+          idByKey.set(`${r.lead_id}::${r.name.toLowerCase()}`, r.id);
+        }
+
+        const phoneRows: { contact_id: string; phone: string; phone_type: string }[] = [];
+        const emailRows: { contact_id: string; email: string }[] = [];
+        for (const c of toInsert) {
+          const cid = idByKey.get(`${c.lead_id}::${c.name.toLowerCase()}`);
+          if (!cid) continue;
+          for (const p of c.phones) phoneRows.push({ contact_id: cid, phone: p, phone_type: "unknown" });
+          for (const e of c.emails) emailRows.push({ contact_id: cid, email: e });
+        }
+
+        if (phoneRows.length > 0) {
+          // Insert in sub-chunks to stay within payload limits.
+          const PCHUNK = 500;
+          for (let j = 0; j < phoneRows.length; j += PCHUNK) {
+            const sub = phoneRows.slice(j, j + PCHUNK);
+            const { error: pErr } = await supabase.from("lead_contact_phones").insert(sub);
+            if (pErr) errors.push(`Phones sub-chunk: ${pErr.message}`);
+            else phonesInserted += sub.length;
+          }
+        }
+        if (emailRows.length > 0) {
+          const ECHUNK = 500;
+          for (let j = 0; j < emailRows.length; j += ECHUNK) {
+            const sub = emailRows.slice(j, j + ECHUNK);
+            const { error: eErr } = await supabase.from("lead_contact_emails").insert(sub);
+            if (eErr) errors.push(`Emails sub-chunk: ${eErr.message}`);
+            else emailsInserted += sub.length;
+          }
+        }
+      }
+
+      return {
+        inserted: insertedLeadCount,
+        contactsInserted,
+        phonesInserted,
+        emailsInserted,
+        errors,
+      };
     } catch (e) {
       console.error("importLeads fatal:", e);
       return {
         inserted: 0,
+        contactsInserted: 0,
+        phonesInserted: 0,
+        emailsInserted: 0,
         errors: [e instanceof Error ? e.message : "Unexpected server error"],
       };
     }
