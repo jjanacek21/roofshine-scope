@@ -8,7 +8,7 @@ export const Route = createFileRoute("/_app/leads")({
   component: LeadsLayout,
 });
 
-const TABS = [
+const TABS: { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }[] = [
   { to: "/leads", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/leads/map", label: "Map", icon: Map },
   { to: "/leads/list", label: "List", icon: List },
@@ -17,7 +17,7 @@ const TABS = [
   { to: "/leads/wizard", label: "AI Wizard", icon: Sparkles },
   { to: "/leads/savings", label: "Savings", icon: Calculator },
   { to: "/leads/training", label: "Training", icon: BookOpen },
-] as const;
+];
 
 function LeadsLayout() {
   const location = useLocation();
