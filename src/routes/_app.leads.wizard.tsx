@@ -37,6 +37,7 @@ function AIRoofWizard() {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const [selectedLeadId, setSelectedLeadId] = useState<string | "">("");
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [pins, setPins] = useState<Pin[]>([]);
   const [measurements, setMeasurements] = useState<Measurements | null>(null);
   const [analysis, setAnalysis] = useState<string>("");
