@@ -38,7 +38,10 @@ interface ParsedLead {
 
 function splitPipe(s: string | undefined): string[] {
   if (!s) return [];
-  return s.split("|").map((x) => x.trim()).filter(Boolean);
+  return s
+    .split("|")
+    .map((x) => x.trim())
+    .filter((x) => x.length >= 3 && x.length <= 200);
 }
 
 function parseAddressFull(s: string): { address: string; city?: string; state?: string; zip?: string } {
