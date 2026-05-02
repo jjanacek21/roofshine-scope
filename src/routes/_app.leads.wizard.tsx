@@ -297,6 +297,12 @@ function AIRoofWizard() {
                 {selectedLead.city}, {selectedLead.state} · {fmtNum(selectedLead.sqft)} sq ft on file
               </div>
             )}
+            {locating && (
+              <div className="mt-2 flex items-center gap-1.5 text-xs text-[var(--text-dim)]">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Locating address…
+              </div>
+            )}
           </div>
 
           <div
