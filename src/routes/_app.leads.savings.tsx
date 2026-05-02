@@ -436,7 +436,122 @@ function SavingsReport() {
           >
             <FileDown className="h-4 w-4" /> Export PDF
           </button>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={openSend}
+              disabled={!leadId}
+              className="flex h-9 items-center justify-center gap-1.5 rounded-md border text-xs font-semibold transition-colors disabled:opacity-50"
+              style={{
+                borderColor: "var(--border)",
+                backgroundColor: "var(--bg-elevated)",
+                color: "var(--text)",
+              }}
+            >
+              <Mail className="h-3.5 w-3.5" /> Email to contact
+            </button>
+            <button
+              type="button"
+              disabled
+              title="SMS provider not configured yet"
+              className="flex h-9 cursor-not-allowed items-center justify-center gap-1.5 rounded-md border text-xs font-semibold opacity-50"
+              style={{
+                borderColor: "var(--border)",
+                backgroundColor: "var(--bg-elevated)",
+                color: "var(--text-dim)",
+              }}
+            >
+              <MessageSquare className="h-3.5 w-3.5" /> Text to contact
+            </button>
+          </div>
+          {!leadId && (
+            <p className="text-[11px] text-[var(--text-dim)]">Pick a lead above to enable sending.</p>
+          )}
         </aside>
+
+        {sendOpen && (
+          <div
+            className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+            onClick={() => !sending && setSendOpen(false)}
+          >
+            <div
+              className="w-full max-w-md rounded-xl border p-5 shadow-xl"
+              style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-3 flex items-start justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-foreground">Email Savings Report</h3>
+                  <p className="text-xs text-[var(--text-dim)]">
+                    {lead?.address ?? "—"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => !sending && setSendOpen(false)}
+                  className="rounded p-1 text-[var(--text-dim)] hover:bg-[var(--bg-hover)]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {contactEmails.length > 0 && (
+                <div className="mb-3">
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
+                    Contact on file
+                  </label>
+                  <select
+                    value={contactEmails.find((c) => c.email === recipient) ? recipient : ""}
+                    onChange={(e) => setRecipient(e.target.value)}
+                    className="w-full rounded-md border bg-[var(--bg-elevated)] px-2 py-1.5 text-sm"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    <option value="">— Custom email —</option>
+                    {contactEmails.map((c, i) => (
+                      <option key={`${c.email}-${i}`} value={c.email}>
+                        {c.name} · {c.email}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
+                Send to
+              </label>
+              <input
+                type="email"
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                placeholder="name@company.com"
+                className="mb-4 w-full rounded-md border bg-[var(--bg-elevated)] px-2 py-2 text-sm"
+                style={{ borderColor: "var(--border)" }}
+              />
+
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSendOpen(false)}
+                  disabled={sending}
+                  className="rounded-md border px-3 py-2 text-xs font-semibold"
+                  style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  disabled={sending || !recipient.trim()}
+                  className="btn-brand inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold"
+                >
+                  {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                  {sending ? "Sending…" : "Send PDF"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div ref={reportRef} className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
