@@ -3,12 +3,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useServerFn } from "@tanstack/react-start";
-import { Sparkles, MapPin, Loader2, RotateCcw, Save } from "lucide-react";
+import { Sparkles, MapPin, Loader2, RotateCcw, Save, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { useLeads } from "@/hooks/useLeads";
 import { fmtNum } from "@/lib/leads";
 import { getRoofMeasurements, analyzeRoofWithAI } from "@/server/lead-ai.functions";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/leads/wizard")({
   component: AIRoofWizard,
@@ -34,6 +37,7 @@ function AIRoofWizard() {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const [selectedLeadId, setSelectedLeadId] = useState<string | "">("");
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [pins, setPins] = useState<Pin[]>([]);
   const [measurements, setMeasurements] = useState<Measurements | null>(null);
   const [analysis, setAnalysis] = useState<string>("");
@@ -183,21 +187,69 @@ function AIRoofWizard() {
             <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
               Lead
             </label>
-            <select
-              value={selectedLeadId}
-              onChange={(e) => setSelectedLeadId(e.target.value)}
-              className="w-full rounded-md border bg-[var(--bg-elevated)] px-2 py-1.5 text-sm"
-              style={{ borderColor: "var(--border)" }}
-            >
-              <option value="">— Choose a lead —</option>
-              {leads
-                .filter((l) => l.lat != null && l.lng != null)
-                .map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.address}
-                  </option>
-                ))}
-            </select>
+            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  role="combobox"
+                  aria-expanded={pickerOpen}
+                  className="flex w-full items-center justify-between rounded-md border bg-[var(--bg-elevated)] px-2 py-1.5 text-left text-sm"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <span className={cn("truncate", !selectedLead && "text-[var(--text-dim)]")}>
+                    {selectedLead
+                      ? selectedLead.address
+                      : "Search by address or owner…"}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command
+                  filter={(value, search) => {
+                    if (!search) return 1;
+                    return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                  }}
+                >
+                  <CommandInput placeholder="Search by address or owner…" />
+                  <CommandList className="max-h-72">
+                    <CommandEmpty>No leads found.</CommandEmpty>
+                    <CommandGroup>
+                      {leads.map((l) => {
+                        const hasCoords = l.lat != null && l.lng != null;
+                        const haystack = `${l.address ?? ""} ${l.owner ?? ""} ${l.reported_owner ?? ""} ${l.city ?? ""}`.trim();
+                        return (
+                          <CommandItem
+                            key={l.id}
+                            value={`${haystack} ${l.id}`}
+                            onSelect={() => {
+                              setSelectedLeadId(l.id);
+                              setPickerOpen(false);
+                            }}
+                            className="flex items-start gap-2"
+                          >
+                            <Check
+                              className={cn(
+                                "mt-0.5 h-4 w-4 shrink-0",
+                                selectedLeadId === l.id ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm">{l.address}</div>
+                              <div className="truncate text-xs text-[var(--text-dim)]">
+                                {(l.owner ?? l.reported_owner ?? "Unknown owner")}
+                                {l.city ? ` · ${l.city}, ${l.state ?? ""}` : ""}
+                                {!hasCoords ? " · no coords" : ""}
+                              </div>
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {selectedLead && (
               <div className="mt-2 text-xs text-[var(--text-dim)]">
                 {selectedLead.city}, {selectedLead.state} · {fmtNum(selectedLead.sqft)} sq ft on file
