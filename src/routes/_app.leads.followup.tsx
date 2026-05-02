@@ -128,9 +128,7 @@ function FollowUpPage() {
         )}
       </div>
 
-      {openLead && (
-        <LeadDetailSheet lead={openLead} open={!!openLead} onClose={() => setOpenLeadId(null)} />
-      )}
+      <LeadDetailSheet leadId={openLeadId} onClose={() => setOpenLeadId(null)} />
     </div>
   );
 }
