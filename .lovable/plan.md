@@ -1,114 +1,62 @@
-# Lead Center Overhaul — Theme, Dashboard, Lead Detail, AI Wizard, Savings, Import, and Full Training + Floating Call Playbook
+# Prospector rename + Follow-Up tab + Training scroll fix
 
-This is a large multi-area refresh based on the two prompts. Map view, map tiles, and map interactions are explicitly **not touched**.
+## 1. Rename "Lead Management Center" → "Prospector"
 
-## Important preference call-out
+Routes stay at `/leads/*` so existing links/bookmarks keep working — only visible labels change.
 
-Prompt 1 specifies hex colors and Tailwind classes like `bg-slate-800`, `text-green-400`, `#0f172a`. Project memory says **never hardcode colors — always use semantic tokens from `src/styles.css`**. I'm going to honor the memory: I'll re-tune the existing tokens (`--bg-page`, `--bg-card`, `--border`, `--primary`, `--text-dim`, status colors, etc.) to match the values in prompt 1, then use those tokens everywhere. Visually it lands on the same dark/green look without scattering raw hex around. Status badges and chart accents will get matching token aliases (`--status-new`, `--status-contacted`, etc.).
+- `src/routes/_app.leads.tsx` — H1 "Lead Management Center" → "Prospector".
+- `src/components/layout/AppSidebar.tsx` — sidebar item "Lead Mgmt Center" → "Prospector".
+- `src/components/layout/MobileSidebarSheet.tsx` — same rename.
 
-If you'd rather hardcode `slate-800`/`green-400` directly in JSX, say so and I'll switch. Otherwise the rest of the plan assumes tokens.
+## 2. Fix Training Center scrolling / cut-off content
 
-## 1. Theme + chrome (prompt 1 §1)
+Root cause: `src/routes/_app.leads.training.tsx` wraps the layout in a `maxHeight: 85vh` + `overflow-hidden` grid, with the right pane as the only scrollable region. Inside the app shell that traps content and clips the bottom (and on shorter viewports the inner scroll never reaches the last sections).
 
-- **`src/styles.css`**: retune the dark palette so `--bg-page = #0f172a`, `--bg-card = #1e293b`, `--border = #334155`, `--primary = #22c55e` (+ glow + muted), text scale matches `#e2e8f0 / #94a3b8 / #64748b`. Add `--status-{new,contacted,qualified,quoted,won,lost,dnc,report_sent}` tokens at full color, plus `/20` variants for badge backgrounds. Custom thin scrollbar (6px, `--border` track, slate-500 thumb). Set Inter as the body font (Archivo is currently in Core memory; I'll **propose** swapping body to Inter — confirm before I update memory).
-- **`AppSidebar`**: 256px fixed, dark, right border. Logo = green rounded square + "GCN Lead Center" / "Commercial Roofing". Active link = `bg-card` + `text-primary`. Section dividers with uppercase `tracking-wider` labels ("Tools", "Settings"). User chip at bottom (already exists in collapsed/expanded states from prior work — this just restyles it).
-- **App header** (`src/routes/_app.tsx`): h-16, dark bg, bottom border. Left: page title + green pill lead-count badge (counts pulled from `useLeads`). Right: search input (used as a global lead search) + green "Import Leads" button.
-- **Cards**: refactor existing `.card` utility class so all cards inherit `bg-card` / 1px `--border` / `rounded-xl` / `p-5`. No shadows, no gradients.
-- **Modals**: Dialog + Sheet primitives get the new overlay (rgba(0,0,0,.7) + 4px blur) and `bg-card` / `rounded-2xl`.
+Fix: drop the height cap so the page scrolls normally; make the category sidebar sticky on desktop so it stays visible while reading.
 
-## 2. Dashboard view (prompt 1 §2)
+- Remove `overflow-hidden` and `maxHeight: 85vh` from the grid wrapper.
+- Sidebar `<nav>`: `self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto` (still scrollable internally if it ever overflows; on mobile it just stacks naturally).
+- Right content pane: remove `overflow-y-auto` so all sections render in normal page flow.
 
-Replace the placeholder content on `_app.leads.index.tsx` (the lead center landing) with:
+## 3. Add a "Follow-Up" tab
 
-- **Row 1 — 4 KPI cards** (`grid-cols-1 md:grid-cols-2 xl:grid-cols-4`): Total Leads / Contacted (+ contact-rate %) / Qualified (+ qual-rate %) / Won (+ pipeline $). Each: colored icon disc (`bg-{status}/20` token) + big number + subtitle.
-- **Row 2 — 2 charts** using `recharts` (already in project — verify): Lead Pipeline (horizontal bar, one bar per status, color-coded by status token) + Monthly Imports (vertical bar, last 12 months, grouping by `import_date` truncated to month).
-- **Row 3 — Recent Leads table**: 10 most recent. Columns Property / Owner / Roof Type / Sq Ft / Status badge / Actions (Call, Email, AI). Empty state: upload icon + "No leads yet" + "Import a Reonomy CSV to get started" + CTA.
+A list of leads that have been spoken to AND received a free damage / savings report by email or text. Source of truth: `lead_activities.type = 'report_sent'` (enum already exists).
 
-## 3. Lead detail panel (prompt 1 §3)
+### Tab + route
 
-Rebuild `LeadDetailSheet.tsx` (existing) into the slide-in spec:
+- `src/routes/_app.leads.tsx` — add a `Follow-Up` tab between Savings and Training, lucide icon `Send`.
+- `src/routes/_app.leads.followup.tsx` — new page.
 
-1. **Property Info** card — grid of Address / City-State-Zip / Owner / Type / Sq Ft / Year Built / Roof Type.
-2. **Contacts (N)** — for each contact in `lead_contacts`: bold name + muted title, optional company, phones as **green pill `<a href="tel:">`** badges, emails as **blue pill `<a href="mailto:">`** badges. Divider between contacts. "No contact info" muted fallback.
-3. **Satellite preview** — 192px tall. If `GOOGLE_MAPS_API_KEY` server secret is present, fetch a Static Maps satellite image at zoom 19 via a small new server function `getStaticMapUrl({ leadId })` (keeps the key server-side). Otherwise show "Add Google Maps API key in Settings". (`MAPBOX_API_TOKEN` is already wired — fallback to a Mapbox satellite static image if Google key isn't set, since we already proxy Mapbox.)
-4. **Quick Actions** — 3 buttons: Call (green), Email (blue), Text (purple). Call also opens the **Floating Call Playbook** with the lead context (see §8).
-5. **Add Note** — textarea + Save → `lead_notes` insert + `lead_activities` log entry.
-6. **Activity Log** — reverse-chrono from `lead_activities`, icon per type + note + relative timestamp.
+### Page layout
 
-## 4. AI Roof Wizard improvements (prompt 1 §4)
+- KPI strip: Reports sent (total), This week, Awaiting reply (no `call`/`email`/`text`/`note` activity after the latest `report_sent`), Converted (status moved to qualified/quoted/won after report).
+- Filter bar: channel (Email / Text / All), status, date range, search by name/address.
+- Table: Lead (name + address, click → opens existing `LeadDetailSheet`), Channel badge, Sent at, Days since, Last reply, Status badge, Actions (Log call, Mark contacted, Open lead).
+- Empty state: "No reports sent yet — generate a savings or damage report and send it to a contact to start tracking follow-ups here."
 
-Map and pin interaction: untouched.
+### Server function
 
-- **Measurement results panel** rebuild: per-pin section showing pin number, total roof sqft (large, comma-formatted), segment count, avg pitch (°), annual sun hours, and a segments table (Segment / Area / Pitch / Azimuth) sourced from `roofSegmentStats`. If multi-pin: a Combined Totals card.
-- **AI analysis prompt**: replace the current Claude Vision prompt in `src/server/lead-ai.functions.ts` (`analyzeRoofWithAI`) with the exact 6-section prompt in §4. Keep the existing image-attachment flow.
-- **AI report card**: green left-border, parse the response into 6 collapsible accordions (Roof Type / Condition / Visible Issues / Penetrations / Recommendations / SPF Candidacy). Condition scores rendered as colored chips (red 1–3 / amber 4–6 / green 7–10). Action row: "Save to Lead" (writes to `leads.ai_report`), "Export PDF" (uses existing `pdf-generator.ts`), "Back to Map".
+`listFollowUps` in `src/server/leads.functions.ts`:
+- Query `lead_activities` where `type = 'report_sent'`, joined to `leads` (RLS already scopes via the existing "Access activities via lead" policy).
+- Group by lead → return latest `report_sent` (with parsed channel), follow-up activity count, latest reply timestamp, and the lead row.
 
-## 5. Savings calculator pricing (prompt 1 §5)
+### Logging "report sent" (so the tab populates)
 
-In `_app.leads.savings.tsx`:
+Today nothing writes `report_sent`. Add send actions on the Savings page:
 
-- Replace cost tables with the exact `tearoffCosts` and `spfCosts` maps.
-- Layout: side-by-side red Replacement card vs. green SPF card → big centered savings highlight → 20-year breakdown (energy, maintenance, 179D tax incentive) → ROI row (Payback, Energy Reduction 20–30%, ROI 2–3x) → "Why Spray Foam?" checkmark list.
+- New `src/server/lead-reports.functions.ts` → `sendLeadReport({ leadId, contactId, channel: 'email'|'text', reportId })`:
+  - Email: Resend (secret already set) — sends a signed URL to the PDF in the `lead-reports` bucket.
+  - Text: gated. If no SMS provider is configured, the button is disabled with tooltip "SMS provider not configured" and we still ship the email path. Open question below.
+  - Inserts `lead_activities { type: 'report_sent', note: 'email→john@x.com' | 'text→+15551234' }` and bumps lead `status` from `new` → `contacted`.
+- `src/routes/_app.leads.savings.tsx` — after the existing PDF generation, add "Email to contact…" / "Text to contact…" buttons. A small dialog picks from the lead's `lead_contact_emails` / `lead_contact_phones`, then calls `sendLeadReport`.
 
-## 6. CSV import (prompt 1 §6)
+## Technical details
 
-Already supports drag-and-drop and most fields. Audit `_app.leads.import.tsx` + `src/server/leads.functions.ts` parser and:
+- No schema migrations required — `lead_activity_type` already includes `report_sent`, and `lead_reports` already stores PDF metadata.
+- Channel parsing: store as a stable prefix in `lead_activities.note` (`email→…` / `text→…`) so the Follow-Up query can derive channel without a schema change. Easy to promote to a real column later.
+- Server functions follow the existing `createServerFn` pattern with Zod input + `auth_company_id()` scoping.
+- Follow-Up page uses TanStack Query with key `['followups', filters]`, matching the other leads tabs.
 
-- Confirm `ondragover` / `ondragleave` / `ondrop` highlight the dropzone with `--primary` border.
-- Add/verify column aliases: `street`, `address_full`, `gross_building_area`, `reported_owner`, `contact_1_name`…`contact_3_emails`, `contact_name`, `contact_phone_1`, `contact_email_1`.
-- Pipe-split phones/emails on `|` into separate rows in `lead_contact_phones` / `lead_contact_emails`. Existing dedupe logic from the prior change keeps duplicates in check.
+## Open question
 
-## 7. Training Center rebuild (prompt 2)
-
-Replace `src/lib/playbook.ts` and `_app.leads.training.tsx`:
-
-- **`src/lib/playbook.ts`**: new schema:
-  ```ts
-  export interface PlaybookSection { id: string; title: string; body: string; } // body is HTML/whitespace-pre-line
-  export interface PlaybookCategory {
-    id: string; title: string; emoji: string; color: "blue"|"green"|"red"|"purple"|"cyan"|"amber"|"indigo"|"pink"|"yellow";
-    sections: PlaybookSection[];
-  }
-  export const PLAYBOOK: PlaybookCategory[] = [/* all 9 categories from prompt 2 */];
-  ```
-  All section content is copy-pasted **verbatim** from prompt 2 (philosophy, masterScript, rebuttals, productTalk, roofTypes, icebreakers, scenarios, tonality, quickRef — note: prompt also includes a 10th `training` category which I'll include for completeness).
-- **Training Center** (modal route or in-page panel — current is a route at `/_app/leads/training`; I'll keep the route and render the modal-style two-column layout inside it):
-  - Left sidebar w-56, dark bg, 9 category buttons (emoji + title + green dot if in My Playbook).
-  - Right scrollable content: category emoji + title + "✓ In My Playbook" / "+ Add to Playbook" toggle. Sections rendered as accordion cards (`bg-card`, `border`, `rounded-xl`), all expanded by default when category switches. Body uses `whitespace-pre-line` and supports `**bold**` / `*em*` / line breaks via a tiny markdown renderer (no extra deps).
-- **My Playbook persistence**: `playbook_preferences` table already exists with `selected_sections` array column. Hook `useMyPlaybook()` returns `{ ids, toggle(id) }` and writes upserts. Default seed: `['quickRef', 'rebuttals', 'masterScript']` (already in DB default).
-
-## 8. Floating Call Playbook (prompt 2)
-
-Rebuild `src/components/leads/CallPlaybookPanel.tsx`:
-
-- Mounted once at app shell level (in `_app.tsx` layout) so it survives navigation.
-- Global Zustand store (`src/hooks/useCallPlaybook.ts`): `{ open, leadContext, openWith(lead), close() }`.
-- Position: `fixed`, default `right: 24px; top: 80px`, width 384px, `max-h-[70vh]`, `bg-card` `rounded-2xl` `border` `shadow-2xl`, z-50.
-- **Sticky header**: "📞 Call Playbook" + close X. Header has `cursor: move` + mousedown/move/up handlers that update an internal `{x,y}` state — pure vanilla, no library.
-- **Lead context card** (when opened from a lead): owner / address+city / "{sqft} sqft • {roof_type} • Built {year_built}".
-- **Body**: for each id in user's `selected_sections`, render the matching `PlaybookCategory` with emoji + title (color from token map) + each `PlaybookSection` as a collapsed mini-accordion (text-xs, dense). Click to expand individual sections.
-- **Empty state**: "No sections selected — Go to Training Center to add sections to your playbook" with a Link button.
-- **Call action wiring**: in `LeadDetailSheet` Call button + leads-list inline Call action → `useCallPlaybook().openWith(lead)` AND `window.location.href = "tel:..."`.
-- Panel does NOT block clicks on the rest of the app (it's a positioned `div`, not a modal overlay).
-
-## 9. Memory updates (after approval)
-
-- Note: theme tokens were retuned; status color tokens added.
-- If you confirm the Inter switch, update memory's font note from "Archivo for UI" → "Inter for UI". Otherwise keep Archivo and just apply prompt 1's other rules.
-- Floating Call Playbook is the canonical component; never rebuild it inline per route.
-
-## Out of scope (will not touch)
-
-- `_app.leads.map.tsx`, the Mapbox map setup in the wizard, mapbox-draw, satellite tile sources.
-- Existing import dedupe semantics (kept).
-- Auth / RLS / migrations — no DB schema changes needed; `playbook_preferences` already has the right shape, `lead_activities` and `lead_notes` already exist.
-
-## Delivery order (what I'll ship)
-
-To keep this reviewable, I'll do it in 3 commits in one turn:
-
-1. **Theme + chrome** (styles.css, sidebar, header, card/dialog tokens) — fastest visible change.
-2. **Lead center pages** — dashboard, lead detail, savings pricing, AI wizard report, CSV column aliases.
-3. **Training Center + Floating Call Playbook** with full playbook content.
-
-Reply "go" and I'll start. If anything in §1 (token-vs-hardcoded, Inter-vs-Archivo) needs to change first, tell me before I start.
+For the SMS channel: do you already have a provider you want to use (Twilio, Telnyx, etc.), or should I ship Email-only now and leave the Text button disabled until you pick a provider?
