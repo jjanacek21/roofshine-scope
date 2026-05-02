@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { MobileBottomTabs } from "@/components/layout/MobileBottomTabs";
+import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -47,13 +48,22 @@ function AppLayout() {
   return (
     <div className="min-h-screen bg-background">
       <AppSidebar />
-      <div className="lg:pl-[240px]">
+      <ContentArea>
         <Topbar />
         <main className="px-6 py-6 pb-24 sm:pb-6">
           <Outlet />
         </main>
-      </div>
+      </ContentArea>
       <MobileBottomTabs />
+    </div>
+  );
+}
+
+function ContentArea({ children }: { children: React.ReactNode }) {
+  const [collapsed] = useSidebarCollapsed();
+  return (
+    <div style={{ paddingLeft: undefined }} className={collapsed ? "lg:pl-[72px]" : "lg:pl-[240px]"}>
+      {children}
     </div>
   );
 }

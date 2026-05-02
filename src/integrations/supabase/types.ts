@@ -1006,6 +1006,45 @@ export type Database = {
           },
         ]
       }
+      lead_documents: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          kind: string
+          lead_id: string
+          mime_type: string | null
+          name: string
+          size_bytes: number | null
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          kind?: string
+          lead_id: string
+          mime_type?: string | null
+          name: string
+          size_bytes?: number | null
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          lead_id?: string
+          mime_type?: string | null
+          name?: string
+          size_bytes?: number | null
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       lead_notes: {
         Row: {
           content: string
@@ -1037,6 +1076,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lead_reports: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          inputs: Json
+          kind: string
+          lead_id: string
+          name: string
+          pdf_path: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inputs?: Json
+          kind?: string
+          lead_id: string
+          name: string
+          pdf_path: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inputs?: Json
+          kind?: string
+          lead_id?: string
+          name?: string
+          pdf_path?: string
+        }
+        Relationships: []
       }
       leads: {
         Row: {
@@ -2055,7 +2130,22 @@ export type Database = {
         | "note"
         | "status"
         | "ai_analysis"
-      lead_status: "new" | "contacted" | "qualified" | "quoted" | "won" | "lost"
+        | "report_generated"
+        | "report_sent"
+        | "document_uploaded"
+        | "document_deleted"
+        | "lead_created"
+        | "lead_deleted"
+        | "geocoded"
+      lead_status:
+        | "new"
+        | "contacted"
+        | "qualified"
+        | "quoted"
+        | "won"
+        | "lost"
+        | "dnc"
+        | "report_sent"
       price_book_pricing_type: "default" | "insurance" | "retail"
       price_book_status: "active" | "archived"
       property_type: "residential" | "commercial"
@@ -2232,8 +2322,24 @@ export const Constants = {
         "note",
         "status",
         "ai_analysis",
+        "report_generated",
+        "report_sent",
+        "document_uploaded",
+        "document_deleted",
+        "lead_created",
+        "lead_deleted",
+        "geocoded",
       ],
-      lead_status: ["new", "contacted", "qualified", "quoted", "won", "lost"],
+      lead_status: [
+        "new",
+        "contacted",
+        "qualified",
+        "quoted",
+        "won",
+        "lost",
+        "dnc",
+        "report_sent",
+      ],
       price_book_pricing_type: ["default", "insurance", "retail"],
       price_book_status: ["active", "archived"],
       property_type: ["residential", "commercial"],
