@@ -1,67 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { GripVertical, X, BookOpen, Phone } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { GripVertical, X, Phone, BookOpen } from "lucide-react";
 import { useCallPlaybook } from "@/hooks/useCallPlaybook";
-import { PLAYBOOK_SECTIONS, type PlaybookSection } from "@/lib/playbook";
-import { PlaybookSectionView } from "@/components/leads/PlaybookContent";
-import { cn } from "@/lib/utils";
+import { useMyPlaybook } from "@/hooks/useMyPlaybook";
+import { PLAYBOOK } from "@/lib/playbook";
+import { PlaybookCategoryView } from "@/components/leads/PlaybookContent";
 
 const STORAGE_KEY = "gcn.playbook.panel.pos";
-const SECTIONS_KEY = "gcn.playbook.panel.sections";
 
-interface Pos {
-  x: number;
-  y: number;
-}
+interface Pos { x: number; y: number }
 
 export function CallPlaybookPanel() {
   const { open, lead, close } = useCallPlaybook();
+  const { ids } = useMyPlaybook();
   const [pos, setPos] = useState<Pos>(() => readStoredPos());
-  const [enabledIds, setEnabledIds] = useState<string[]>(() => readEnabledSections());
-  const [activeId, setActiveId] = useState<string>(() => readEnabledSections()[0] ?? "quickRef");
-  const [showPicker, setShowPicker] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
 
-  // Persist position
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(pos));
-    } catch {
-      /* noop */
-    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(pos)); } catch { /* noop */ }
   }, [pos]);
-  useEffect(() => {
-    try {
-      localStorage.setItem(SECTIONS_KEY, JSON.stringify(enabledIds));
-    } catch {
-      /* noop */
-    }
-  }, [enabledIds]);
-
-  const ctx = useMemo<Record<string, string | number | null | undefined>>(() => {
-    if (!lead) return {};
-    const ownerName = lead.owner ?? "";
-    const first = ownerName.split(/\s+/)[0] || "there";
-    const six = new Date();
-    six.setMonth(six.getMonth() + 6);
-    return {
-      first_name: first,
-      address: lead.address,
-      city: lead.city ?? "",
-      sqft: lead.sqft ?? "",
-      roof_type: lead.roof_type ?? "",
-      year_built: lead.year_built ?? "",
-      rep_name: "your name",
-      rep_phone: "your number",
-      email: "their email",
-      six_months_out: six.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-    };
-  }, [lead]);
-
-  const enabledSections: PlaybookSection[] = useMemo(
-    () => PLAYBOOK_SECTIONS.filter((s) => enabledIds.includes(s.id)),
-    [enabledIds],
-  );
-  const active = enabledSections.find((s) => s.id === activeId) ?? enabledSections[0];
 
   function startDrag(e: React.MouseEvent) {
     dragRef.current = { startX: e.clientX, startY: e.clientY, baseX: pos.x, baseY: pos.y };
@@ -73,7 +30,7 @@ export function CallPlaybookPanel() {
     const dx = e.clientX - dragRef.current.startX;
     const dy = e.clientY - dragRef.current.startY;
     setPos({
-      x: clamp(dragRef.current.baseX + dx, 8, window.innerWidth - 460),
+      x: clamp(dragRef.current.baseX + dx, 8, window.innerWidth - 400),
       y: clamp(dragRef.current.baseY + dy, 8, window.innerHeight - 200),
     });
   }
@@ -85,151 +42,94 @@ export function CallPlaybookPanel() {
 
   if (!open) return null;
 
+  const enabledCategories = PLAYBOOK.filter((c) => ids.includes(c.id));
+
   return (
     <div
-      className="fixed z-[80] flex w-[440px] max-w-[95vw] flex-col rounded-2xl border shadow-2xl"
+      className="fixed z-50 flex flex-col rounded-2xl border shadow-2xl"
       style={{
         left: pos.x,
         top: pos.y,
+        width: 384,
+        maxWidth: "95vw",
+        maxHeight: "70vh",
         backgroundColor: "var(--bg-card)",
         borderColor: "var(--border)",
-        maxHeight: "min(80vh, 720px)",
       }}
     >
       <header
-        className="flex items-center gap-2 rounded-t-2xl border-b px-3 py-2"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-hover)", cursor: "grab" }}
+        className="flex items-center gap-2 rounded-t-2xl border-b px-3 py-2 select-none"
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)", cursor: "move" }}
         onMouseDown={startDrag}
       >
         <GripVertical className="h-4 w-4 text-[var(--text-dim)]" />
-        <Phone className="h-4 w-4 text-[var(--primary)]" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold text-foreground">
-            On-call playbook {lead ? `· ${lead.address}` : ""}
-          </p>
-          {lead?.owner && (
-            <p className="truncate text-[11px] text-[var(--text-dim)]">
-              Owner: {lead.owner}
-              {lead.sqft ? ` · ${lead.sqft.toLocaleString()} sqft` : ""}
-            </p>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowPicker((v) => !v)}
-          className="rounded-md p-1.5 text-[var(--text-dim)] hover:bg-[var(--bg-card)] hover:text-foreground"
-          title="Choose sections"
-        >
-          <BookOpen className="h-4 w-4" />
-        </button>
+        <Phone className="h-4 w-4 text-[var(--success)]" />
+        <p className="flex-1 truncate text-xs font-semibold text-foreground">📞 Call Playbook</p>
         <button
           type="button"
           onClick={close}
-          className="rounded-md p-1.5 text-[var(--text-dim)] hover:bg-[var(--bg-card)] hover:text-foreground"
+          className="rounded-md p-1 text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground"
         >
           <X className="h-4 w-4" />
         </button>
       </header>
 
-      {showPicker && (
-        <div
-          className="border-b p-3"
-          style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
-        >
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
-            Sections
-          </p>
-          <div className="grid grid-cols-2 gap-1.5">
-            {PLAYBOOK_SECTIONS.map((s) => {
-              const checked = enabledIds.includes(s.id);
-              return (
-                <label
-                  key={s.id}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-xs",
-                    checked ? "border-[var(--primary)]" : "",
-                  )}
-                  style={{ borderColor: checked ? undefined : "var(--border)" }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={(e) => {
-                      setEnabledIds((prev) =>
-                        e.target.checked ? [...prev, s.id] : prev.filter((x) => x !== s.id),
-                      );
-                    }}
-                  />
-                  <span className="truncate text-foreground">{s.title}</span>
-                </label>
-              );
-            })}
+      <div className="flex-1 overflow-y-auto p-3">
+        {lead && (
+          <div
+            className="mb-3 rounded-lg border p-2.5 text-[11px]"
+            style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
+          >
+            {lead.owner && <div className="font-semibold text-foreground">{lead.owner}</div>}
+            <div className="text-[var(--text-dim)]">
+              {lead.address}{lead.city ? `, ${lead.city}` : ""}
+            </div>
+            {(lead.sqft || lead.roof_type || lead.year_built) && (
+              <div className="mt-0.5 text-[var(--text-dim)]">
+                {[
+                  lead.sqft ? `${lead.sqft.toLocaleString()} sqft` : null,
+                  lead.roof_type ?? null,
+                  lead.year_built ? `Built ${lead.year_built}` : null,
+                ].filter(Boolean).join(" • ")}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="flex gap-1 overflow-x-auto border-b px-2 py-1.5" style={{ borderColor: "var(--border)" }}>
-        {enabledSections.map((s) => {
-          const isActive = active?.id === s.id;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setActiveId(s.id)}
-              className={cn(
-                "shrink-0 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
-                isActive
-                  ? "bg-[var(--bg-hover)] text-foreground"
-                  : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
-              )}
+        {enabledCategories.length === 0 ? (
+          <div className="rounded-lg border p-4 text-center text-xs text-[var(--text-dim)]" style={{ borderColor: "var(--border)" }}>
+            <BookOpen className="mx-auto mb-2 h-5 w-5" />
+            <p className="mb-2">No sections selected</p>
+            <Link
+              to="/leads/training"
+              onClick={close}
+              className="inline-block rounded-md border px-3 py-1.5 text-[11px] font-medium text-foreground hover:bg-[var(--bg-hover)]"
+              style={{ borderColor: "var(--border)" }}
             >
-              {s.title}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="overflow-y-auto p-4">
-        {active ? (
-          <PlaybookSectionView section={active} ctx={ctx} />
+              Open Training Center
+            </Link>
+          </div>
         ) : (
-          <p className="text-center text-xs text-[var(--text-dim)]">
-            Pick at least one section above to see scripts.
-          </p>
+          <div className="space-y-3">
+            {enabledCategories.map((cat) => (
+              <PlaybookCategoryView key={cat.id} category={cat} collapsedByDefault dense />
+            ))}
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-function clamp(n: number, lo: number, hi: number) {
-  return Math.max(lo, Math.min(hi, n));
-}
-
+function clamp(n: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, n)); }
 function readStoredPos(): Pos {
-  if (typeof window === "undefined") return { x: 24, y: 120 };
+  if (typeof window === "undefined") return { x: 24, y: 80 };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const v = JSON.parse(raw) as Pos;
       if (typeof v.x === "number" && typeof v.y === "number") return v;
     }
-  } catch {
-    /* noop */
-  }
-  return { x: Math.max(24, window.innerWidth - 480), y: 120 };
-}
-
-function readEnabledSections(): string[] {
-  if (typeof window === "undefined") return ["quickRef", "rebuttals", "masterScript"];
-  try {
-    const raw = localStorage.getItem(SECTIONS_KEY);
-    if (raw) {
-      const v = JSON.parse(raw);
-      if (Array.isArray(v) && v.length > 0) return v as string[];
-    }
-  } catch {
-    /* noop */
-  }
-  return ["quickRef", "rebuttals", "masterScript"];
+  } catch { /* noop */ }
+  return { x: Math.max(24, window.innerWidth - 408), y: 80 };
 }
