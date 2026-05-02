@@ -396,7 +396,7 @@ export const bulkDeleteLeads = createServerFn({ method: "POST" })
       data.ids.map((id) => ({
         lead_id: id,
         user_id: userId,
-        type: "lead_deleted",
+        type: "lead_deleted" as const,
         note: "Lead deleted",
       })),
     );
