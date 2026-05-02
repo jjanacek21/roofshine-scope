@@ -34,14 +34,32 @@ interface Inputs {
   inflation: number;
 }
 
+// Per-roof-type pricing (Roof Kings spec). Replacement $16-$25/sqft, SPF restoration $8-$13/sqft.
+export const TEAROFF_COSTS: Record<string, number> = {
+  bur: 22, tpo: 18, epdm: 17, modified: 20, metal: 25, shingle: 16,
+};
+export const SPF_COSTS: Record<string, number> = {
+  bur: 12, tpo: 10, epdm: 9.5, modified: 11, metal: 13, shingle: 8,
+};
+export function priceForRoofType(roofType: string | null | undefined): { tearoff: number; spf: number } {
+  const k = (roofType ?? "").toLowerCase();
+  if (k.includes("bur") || k.includes("built")) return { tearoff: TEAROFF_COSTS.bur, spf: SPF_COSTS.bur };
+  if (k.includes("tpo")) return { tearoff: TEAROFF_COSTS.tpo, spf: SPF_COSTS.tpo };
+  if (k.includes("epdm") || k.includes("rubber")) return { tearoff: TEAROFF_COSTS.epdm, spf: SPF_COSTS.epdm };
+  if (k.includes("mod")) return { tearoff: TEAROFF_COSTS.modified, spf: SPF_COSTS.modified };
+  if (k.includes("metal") || k.includes("standing") || k.includes("r-panel")) return { tearoff: TEAROFF_COSTS.metal, spf: SPF_COSTS.metal };
+  if (k.includes("shingle")) return { tearoff: TEAROFF_COSTS.shingle, spf: SPF_COSTS.shingle };
+  return { tearoff: TEAROFF_COSTS.modified, spf: SPF_COSTS.modified };
+}
+
 const DEFAULTS: Inputs = {
   sqft: 30000,
-  restorePsf: 5.5,
-  replacePsf: 11.5,
-  energySavingsPctPerYear: 18,
+  restorePsf: SPF_COSTS.modified,      // $11/sqft default
+  replacePsf: TEAROFF_COSTS.modified,  // $20/sqft default
+  energySavingsPctPerYear: 25,
   baselineOpsPerSqftPerYear: 0.45,
-  recoatYear: 10,
-  recoatPsf: 2.25,
+  recoatYear: 20,
+  recoatPsf: 3.0,
   years: 20,
   inflation: 3,
 };
