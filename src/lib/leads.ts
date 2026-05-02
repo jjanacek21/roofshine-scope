@@ -5,8 +5,10 @@ export const LEAD_STATUSES = [
   { value: "contacted", label: "Contacted", color: "#eab308" },
   { value: "qualified", label: "Qualified", color: "#a855f7" },
   { value: "quoted", label: "Quoted", color: "#06b6d4" },
+  { value: "report_sent", label: "Report Sent", color: "#f97316" },
   { value: "won", label: "Won", color: "#22c55e" },
   { value: "lost", label: "Lost", color: "#ef4444" },
+  { value: "dnc", label: "Do Not Contact", color: "#71717a" },
 ] as const;
 
 export type LeadStatus = (typeof LEAD_STATUSES)[number]["value"];
