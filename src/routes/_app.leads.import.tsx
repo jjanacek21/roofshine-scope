@@ -153,9 +153,10 @@ function ImportLeads() {
   const [filename, setFilename] = useState("");
   const [drag, setDrag] = useState(false);
 
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+
   const importMut = useMutation({
     mutationFn: async (leads: ParsedLead[]) => {
-      // Get current session token to authenticate the server function
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token) {
@@ -164,14 +165,21 @@ function ImportLeads() {
       const headers = { Authorization: `Bearer ${token}` };
 
       let inserted = 0;
+      let contactsInserted = 0;
+      let phonesInserted = 0;
+      let emailsInserted = 0;
       const errors: string[] = [];
 
-      // Send in batches to avoid timeouts/payload limits
+      setProgress({ done: 0, total: leads.length });
+
       for (let i = 0; i < leads.length; i += BATCH_SIZE) {
         const batch = leads.slice(i, i + BATCH_SIZE);
         try {
           const res = await importFn({ data: { leads: batch }, headers });
           inserted += res.inserted ?? 0;
+          contactsInserted += res.contactsInserted ?? 0;
+          phonesInserted += res.phonesInserted ?? 0;
+          emailsInserted += res.emailsInserted ?? 0;
           if (res.errors?.length) errors.push(...res.errors);
         } catch (err) {
           if (err instanceof Response) {
@@ -181,23 +189,30 @@ function ImportLeads() {
             errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${err instanceof Error ? err.message : "Unknown error"}`);
           }
         }
+        setProgress({ done: Math.min(i + BATCH_SIZE, leads.length), total: leads.length });
       }
 
-      return { inserted, errors };
+      return { inserted, contactsInserted, phonesInserted, emailsInserted, errors, attempted: leads.length };
     },
     onSuccess: (res) => {
+      setProgress(null);
       const errCount = res.errors.length;
-      if (res.inserted > 0) {
-        toast.success(`Imported ${res.inserted} leads${errCount ? ` (${errCount} errors)` : ""}`);
-        setRows([]);
-        setFilename("");
+      if (res.inserted > 0 || res.contactsInserted > 0) {
+        toast.success(
+          `Imported ${res.inserted} new leads, ${res.contactsInserted} contacts, ${res.phonesInserted} phones, ${res.emailsInserted} emails${errCount ? ` (${errCount} errors)` : ""}`,
+        );
+      } else if (errCount === 0) {
+        toast.message(`No new leads — all ${res.attempted} addresses already existed for your company.`);
       } else {
         toast.error(res.errors[0] ?? "No leads imported");
       }
       if (errCount > 0) console.warn("Import errors:", res.errors);
       qc.invalidateQueries({ queryKey: ["leads"] });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Import failed"),
+    onError: (e) => {
+      setProgress(null);
+      toast.error(e instanceof Error ? e.message : "Import failed");
+    },
   });
 
   if (!profile) return <p className="text-sm text-muted-foreground">Loading…</p>;
