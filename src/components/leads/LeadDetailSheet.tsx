@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useLead, useLeadContacts, useLeadActivities, useLeadNotes } from "@/hooks/useLeads";
@@ -7,8 +8,9 @@ import { LEAD_STATUSES, fmtMoney, fmtNum, type LeadStatus } from "@/lib/leads";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
+import { geocodeLead } from "@/server/leads.functions";
 import mapboxgl from "mapbox-gl";
-import { Phone, Mail, MessageSquare, Sparkles, FileText, Activity } from "lucide-react";
+import { Phone, Mail, MessageSquare, Sparkles, FileText, Activity, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCallPlaybook } from "@/hooks/useCallPlaybook";
 
@@ -27,7 +29,31 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
   const qc = useQueryClient();
   const playbook = useCallPlaybook();
   const [noteText, setNoteText] = useState("");
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeFailed, setGeocodeFailed] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
+  const geocodeFn = useServerFn(geocodeLead);
+
+  // Auto-geocode when lead has no coords
+  useEffect(() => {
+    if (!lead || !leadId) return;
+    if (lead.lat != null && lead.lng != null) return;
+    if (geocoding || geocodeFailed) return;
+    setGeocoding(true);
+    geocodeFn({ data: { leadId } })
+      .then((res) => {
+        if (res?.lat != null && res?.lng != null) {
+          qc.invalidateQueries({ queryKey: ["lead", leadId] });
+          qc.invalidateQueries({ queryKey: ["leads"] });
+          qc.invalidateQueries({ queryKey: ["lead-activities", leadId] });
+        } else {
+          setGeocodeFailed(true);
+        }
+      })
+      .catch(() => setGeocodeFailed(true))
+      .finally(() => setGeocoding(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadId, lead?.lat, lead?.lng]);
 
   useEffect(() => {
     if (!mapboxToken || !mapRef.current || !lead?.lat || !lead?.lng) return;
@@ -182,8 +208,27 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
               {lead.lat != null && lead.lng != null && mapboxToken ? (
                 <div ref={mapRef} className="h-48 w-full rounded-lg border" style={{ borderColor: "var(--border)" }} />
               ) : (
-                <div className="flex h-48 items-center justify-center rounded-lg border text-sm text-muted-foreground" style={{ borderColor: "var(--border)" }}>
-                  No coordinates available
+                <div className="flex h-48 flex-col items-center justify-center gap-2 rounded-lg border text-sm text-muted-foreground" style={{ borderColor: "var(--border)" }}>
+                  {geocoding ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Locating address…</span>
+                    </>
+                  ) : geocodeFailed ? (
+                    <>
+                      <span>Could not locate this address</span>
+                      <button
+                        type="button"
+                        onClick={() => { setGeocodeFailed(false); }}
+                        className="rounded-md border px-3 py-1 text-xs hover:bg-[var(--bg-hover)]"
+                        style={{ borderColor: "var(--border)" }}
+                      >
+                        Try again
+                      </button>
+                    </>
+                  ) : (
+                    <span>No coordinates available</span>
+                  )}
                 </div>
               )}
             </Section>
