@@ -125,126 +125,207 @@ function SavingsReport() {
   const totalSavings = final?.savings ?? 0;
   const roiPct = restoreUpfront > 0 ? (totalSavings / restoreUpfront) * 100 : 0;
 
-  function exportPDF() {
-    try {
-      const doc = new jsPDF({ unit: "pt", format: "letter" });
-      const W = doc.internal.pageSize.getWidth();
-      let y = 56;
+  function buildPdf(): { doc: jsPDF; safeName: string } {
+    const doc = new jsPDF({ unit: "pt", format: "letter" });
+    const W = doc.internal.pageSize.getWidth();
+    let y = 56;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text("SPF Restoration Savings Report", 56, y);
+    y += 22;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(110);
+    doc.text(`Generated ${new Date().toLocaleDateString()}`, 56, y);
+    y += 24;
+
+    if (lead) {
+      doc.setTextColor(20);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(20);
-      doc.text("SPF Restoration Savings Report", 56, y);
-      y += 22;
+      doc.setFontSize(13);
+      doc.text("Property", 56, y);
+      y += 16;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
-      doc.setTextColor(110);
-      doc.text(`Generated ${new Date().toLocaleDateString()}`, 56, y);
-      y += 24;
-
-      if (lead) {
-        doc.setTextColor(20);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(13);
-        doc.text("Property", 56, y);
-        y += 16;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(11);
-        doc.text(lead.address, 56, y);
+      doc.text(lead.address, 56, y);
+      y += 14;
+      doc.text(`${lead.city ?? ""}, ${lead.state ?? ""} ${lead.zip ?? ""}`, 56, y);
+      y += 14;
+      if (lead.owner) {
+        doc.text(`Owner: ${lead.owner}`, 56, y);
         y += 14;
-        doc.text(`${lead.city ?? ""}, ${lead.state ?? ""} ${lead.zip ?? ""}`, 56, y);
-        y += 14;
-        if (lead.owner) {
-          doc.text(`Owner: ${lead.owner}`, 56, y);
-          y += 14;
-        }
-        y += 10;
       }
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
-      doc.text("Inputs", 56, y);
-      y += 16;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      const ipairs: [string, string][] = [
-        ["Roof area", `${fmtNum(inputs.sqft)} sq ft`],
-        ["Restoration cost", `${fmtMoney(inputs.restorePsf)} / sq ft`],
-        ["Replacement cost", `${fmtMoney(inputs.replacePsf)} / sq ft`],
-        ["Energy savings vs. replace", `${inputs.energySavingsPctPerYear}% / yr`],
-        ["Baseline maintenance", `${fmtMoney(inputs.baselineOpsPerSqftPerYear)} / sqft / yr`],
-        ["Re-coat at year", `${inputs.recoatYear} (${fmtMoney(inputs.recoatPsf)} / sqft)`],
-        ["Horizon", `${inputs.years} years`],
-        ["Inflation", `${inputs.inflation}% / yr`],
-      ];
-      ipairs.forEach(([k, v]) => {
-        doc.text(k, 56, y);
-        doc.text(v, 280, y);
-        y += 14;
-      });
-
       y += 10;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
-      doc.text("Headline numbers", 56, y);
-      y += 16;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      const hpairs: [string, string][] = [
-        ["Up-front savings (Day 1)", fmtMoney(upfrontSavings)],
-        [`Total savings over ${inputs.years} years`, fmtMoney(totalSavings)],
-        ["ROI on restoration", `${roiPct.toFixed(0)}%`],
-      ];
-      hpairs.forEach(([k, v]) => {
-        doc.text(k, 56, y);
-        doc.text(v, 280, y);
-        y += 14;
-      });
+    }
 
-      y += 16;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
-      doc.text("Year-by-year cumulative cost", 56, y);
-      y += 16;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text("Year", 56, y);
-      doc.text("Restore", 130, y);
-      doc.text("Replace", 230, y);
-      doc.text("Savings", 330, y);
-      y += 12;
-      doc.setFont("helvetica", "normal");
-      rows.forEach((r) => {
-        if (y > 740) {
-          doc.addPage();
-          y = 56;
-        }
-        doc.text(String(r.year), 56, y);
-        doc.text(fmtMoney(r.restoreCum), 130, y);
-        doc.text(fmtMoney(r.replaceCum), 230, y);
-        doc.text(fmtMoney(r.savings), 330, y);
-        y += 12;
-      });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Inputs", 56, y);
+    y += 16;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    const ipairs: [string, string][] = [
+      ["Roof area", `${fmtNum(inputs.sqft)} sq ft`],
+      ["Restoration cost", `${fmtMoney(inputs.restorePsf)} / sq ft`],
+      ["Replacement cost", `${fmtMoney(inputs.replacePsf)} / sq ft`],
+      ["Energy savings vs. replace", `${inputs.energySavingsPctPerYear}% / yr`],
+      ["Baseline maintenance", `${fmtMoney(inputs.baselineOpsPerSqftPerYear)} / sqft / yr`],
+      ["Re-coat at year", `${inputs.recoatYear} (${fmtMoney(inputs.recoatPsf)} / sqft)`],
+      ["Horizon", `${inputs.years} years`],
+      ["Inflation", `${inputs.inflation}% / yr`],
+    ];
+    ipairs.forEach(([k, v]) => {
+      doc.text(k, 56, y);
+      doc.text(v, 280, y);
+      y += 14;
+    });
 
-      y += 20;
-      if (y > 720) {
+    y += 10;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Headline numbers", 56, y);
+    y += 16;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    const hpairs: [string, string][] = [
+      ["Up-front savings (Day 1)", fmtMoney(upfrontSavings)],
+      [`Total savings over ${inputs.years} years`, fmtMoney(totalSavings)],
+      ["ROI on restoration", `${roiPct.toFixed(0)}%`],
+    ];
+    hpairs.forEach(([k, v]) => {
+      doc.text(k, 56, y);
+      doc.text(v, 280, y);
+      y += 14;
+    });
+
+    y += 16;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Year-by-year cumulative cost", 56, y);
+    y += 16;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Year", 56, y);
+    doc.text("Restore", 130, y);
+    doc.text("Replace", 230, y);
+    doc.text("Savings", 330, y);
+    y += 12;
+    doc.setFont("helvetica", "normal");
+    rows.forEach((r) => {
+      if (y > 740) {
         doc.addPage();
         y = 56;
       }
-      doc.setFontSize(9);
-      doc.setTextColor(120);
-      doc.text(
-        "Estimates only. Actual results depend on roof condition, climate, energy rates, and selected system.",
-        56,
-        y,
-        { maxWidth: W - 112 },
-      );
+      doc.text(String(r.year), 56, y);
+      doc.text(fmtMoney(r.restoreCum), 130, y);
+      doc.text(fmtMoney(r.replaceCum), 230, y);
+      doc.text(fmtMoney(r.savings), 330, y);
+      y += 12;
+    });
 
-      const safeName = (lead?.address ?? "savings-report").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    y += 20;
+    if (y > 720) {
+      doc.addPage();
+      y = 56;
+    }
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(
+      "Estimates only. Actual results depend on roof condition, climate, energy rates, and selected system.",
+      56,
+      y,
+      { maxWidth: W - 112 },
+    );
+
+    const safeName = (lead?.address ?? "savings-report").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    return { doc, safeName };
+  }
+
+  function exportPDF() {
+    try {
+      const { doc, safeName } = buildPdf();
       doc.save(`${safeName}.pdf`);
       toast.success("PDF downloaded");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to export");
     }
   }
+
+  // ---------- Send report by email ----------
+  const [sendOpen, setSendOpen] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [contactEmails, setContactEmails] = useState<{ email: string; name: string }[]>([]);
+  const [recipient, setRecipient] = useState("");
+  const sendFn = useServerFn(sendLeadReport);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadEmails() {
+      if (!leadId) {
+        setContactEmails([]);
+        return;
+      }
+      const { data: contacts } = await supabase
+        .from("lead_contacts")
+        .select("name, lead_contact_emails(email)")
+        .eq("lead_id", leadId);
+      if (cancelled) return;
+      const list: { email: string; name: string }[] = [];
+      (contacts ?? []).forEach((c: { name: string; lead_contact_emails: { email: string }[] | null }) => {
+        (c.lead_contact_emails ?? []).forEach((e) => {
+          if (e.email) list.push({ email: e.email, name: c.name });
+        });
+      });
+      setContactEmails(list);
+      setRecipient(list[0]?.email ?? "");
+    }
+    loadEmails();
+    return () => {
+      cancelled = true;
+    };
+  }, [leadId]);
+
+  function openSend() {
+    if (!leadId) {
+      toast.error("Pick a lead first to send the report.");
+      return;
+    }
+    setSendOpen(true);
+  }
+
+  async function handleSend() {
+    if (!leadId || !recipient.trim()) {
+      toast.error("Recipient email required");
+      return;
+    }
+    setSending(true);
+    try {
+      const { doc, safeName } = buildPdf();
+      // jsPDF datauristring → strip "data:application/pdf;filename=...;base64,"
+      const datauri = doc.output("datauristring");
+      const b64 = datauri.split(",")[1] ?? "";
+      const res = await sendFn({
+        data: {
+          leadId,
+          channel: "email",
+          recipient: recipient.trim(),
+          reportName: safeName,
+          pdfBase64: b64,
+        },
+      });
+      if (!res.ok) {
+        toast.error(res.error ?? "Failed to send");
+      } else {
+        toast.success("Report emailed — added to Follow-Up");
+        setSendOpen(false);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send");
+    } finally {
+      setSending(false);
+    }
+  }
+
 
   return (
     <div className="space-y-5">
