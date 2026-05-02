@@ -5,8 +5,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { importLeads } from "@/server/leads.functions";
 import { useIsCompanyAdmin, useProfile } from "@/hooks/useProfile";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, FileText, AlertTriangle } from "lucide-react";
+
+const BATCH_SIZE = 100;
 
 export const Route = createFileRoute("/_app/leads/import")({
   component: ImportLeads,
