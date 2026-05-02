@@ -16,6 +16,7 @@ const TABS: { to: string; label: string; icon: typeof LayoutDashboard; exact?: b
   { to: "/leads/import", label: "Import", icon: Upload },
   { to: "/leads/wizard", label: "AI Wizard", icon: Sparkles },
   { to: "/leads/savings", label: "Savings", icon: Calculator },
+  { to: "/leads/followup", label: "Follow-Up", icon: Send },
   { to: "/leads/training", label: "Training", icon: BookOpen },
 ];
 
