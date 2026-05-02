@@ -82,14 +82,49 @@ function AIRoofWizard() {
     };
   }, [token]);
 
-  // Fly to selected lead
+  // Fly to selected lead — geocode on demand if coords are missing
   useEffect(() => {
-    if (!mapRef.current || !selectedLead?.lat || !selectedLead?.lng) return;
-    mapRef.current.flyTo({ center: [selectedLead.lng, selectedLead.lat], zoom: 19 });
+    if (!selectedLead) {
+      setResolvedCoords(null);
+      return;
+    }
     setPins([]);
     setMeasurements(null);
     setAnalysis("");
     setAnalysisImage("");
+
+    const flyHere = (lat: number, lng: number) => {
+      setResolvedCoords({ lat, lng });
+      mapRef.current?.flyTo({ center: [lng, lat], zoom: 19 });
+    };
+
+    if (selectedLead.lat != null && selectedLead.lng != null) {
+      flyHere(selectedLead.lat, selectedLead.lng);
+      return;
+    }
+
+    // No coords — geocode
+    const leadIdAtStart = selectedLead.id;
+    setResolvedCoords(null);
+    setLocating(true);
+    geocode({ data: { leadId: selectedLead.id } })
+      .then((res) => {
+        if (leadIdAtStart !== selectedLeadId) return; // user moved on
+        if (res.lat != null && res.lng != null) {
+          flyHere(res.lat, res.lng);
+          qc.invalidateQueries({ queryKey: ["leads"] });
+        } else {
+          toast.error(res.error ?? "Couldn't locate this address — drop pins manually.");
+        }
+      })
+      .catch((e) => {
+        if (leadIdAtStart !== selectedLeadId) return;
+        toast.error(e instanceof Error ? e.message : "Geocoding failed");
+      })
+      .finally(() => {
+        if (leadIdAtStart === selectedLeadId) setLocating(false);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLead?.id]);
 
   // Render pin markers
