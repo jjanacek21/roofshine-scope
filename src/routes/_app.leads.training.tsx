@@ -53,7 +53,7 @@ function TrainingCenter() {
                 type="button"
                 onClick={() => setActiveId(cat.id)}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
+                  "flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors lg:w-full",
                   isActive
                     ? "bg-[var(--bg-hover)] text-foreground font-medium"
                     : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
