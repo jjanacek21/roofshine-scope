@@ -181,7 +181,7 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
         kind: "savings",
         name: `Savings Report — ${lead.address}`,
         pdf_path: path,
-        inputs: inputs as unknown as Record<string, unknown>,
+        inputs: inputs as unknown as never,
       }]);
       if (insErr) throw insErr;
 
