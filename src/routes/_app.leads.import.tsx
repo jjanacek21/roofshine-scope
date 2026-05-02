@@ -38,7 +38,10 @@ interface ParsedLead {
 
 function splitPipe(s: string | undefined): string[] {
   if (!s) return [];
-  return s.split("|").map((x) => x.trim()).filter(Boolean);
+  return s
+    .split("|")
+    .map((x) => x.trim())
+    .filter((x) => x.length >= 3 && x.length <= 200);
 }
 
 function parseAddressFull(s: string): { address: string; city?: string; state?: string; zip?: string } {
@@ -72,17 +75,19 @@ function mapRow(r: CsvRow): ParsedLead | null {
       }
     }
     const sqft = r.sqft ? parseInt(r.sqft.replace(/[^\d]/g, ""), 10) : null;
+    const addr = (r.street || r.address || "").trim();
+    if (!addr) return null;
     return {
-      address: r.street || r.address,
-      city: r.city || null,
-      state: r.state || "FL",
-      zip: r.zip || null,
+      address: addr.slice(0, 500),
+      city: (r.city || "").slice(0, 120) || null,
+      state: ((r.state || "FL").trim()).slice(0, 40),
+      zip: (r.zip || "").slice(0, 20) || null,
       sqft: Number.isFinite(sqft as number) ? sqft : null,
-      year_built: r.year_built || null,
-      property_type: r.property_type || "Commercial",
-      reported_owner: r.reported_owner || null,
-      owner: r.reported_owner || null,
-      contacts,
+      year_built: (r.year_built || "").slice(0, 20) || null,
+      property_type: (r.property_type || "Commercial").slice(0, 80),
+      reported_owner: (r.reported_owner || "").slice(0, 200) || null,
+      owner: (r.reported_owner || "").slice(0, 200) || null,
+      contacts: contacts.filter((c) => c.name && c.name.length >= 1),
     };
   }
   // Raw Reonomy
@@ -92,23 +97,26 @@ function mapRow(r: CsvRow): ParsedLead | null {
       ? parseInt(r.gross_building_area.replace(/[^\d]/g, ""), 10)
       : null;
     const contacts: ParsedContact[] = [];
-    if (r.contact_name) {
+    if (r.contact_name && r.contact_name.trim()) {
+      const phone = (r.contact_phone_1 || "").trim();
+      const email = (r.contact_email_1 || "").trim();
       contacts.push({
-        name: r.contact_name,
-        title: r.contact_title || null,
-        phones: r.contact_phone_1 ? [r.contact_phone_1] : [],
-        emails: r.contact_email_1 ? [r.contact_email_1] : [],
+        name: r.contact_name.trim().slice(0, 200),
+        title: (r.contact_title || "").slice(0, 200) || null,
+        phones: phone.length >= 3 && phone.length <= 40 ? [phone] : [],
+        emails: email.length >= 3 && email.length <= 200 ? [email] : [],
       });
     }
+    if (!parsed.address || !parsed.address.trim()) return null;
     return {
-      address: parsed.address,
-      city: parsed.city ?? null,
-      state: parsed.state ?? "FL",
-      zip: parsed.zip ?? null,
+      address: parsed.address.slice(0, 500),
+      city: (parsed.city ?? "").slice(0, 120) || null,
+      state: (parsed.state ?? "FL").slice(0, 40),
+      zip: (parsed.zip ?? "").slice(0, 20) || null,
       sqft: Number.isFinite(sqft as number) ? sqft : null,
-      year_built: r.year_built || null,
-      property_type: r.property_type || "Commercial",
-      sale_amount: r.sale_amount || null,
+      year_built: (r.year_built || "").slice(0, 20) || null,
+      property_type: (r.property_type || "Commercial").slice(0, 80),
+      sale_amount: (r.sale_amount || "").slice(0, 80) || null,
       contacts,
     };
   }
@@ -143,9 +151,26 @@ function ImportLeads() {
   const [drag, setDrag] = useState(false);
 
   const importMut = useMutation({
-    mutationFn: async (leads: ParsedLead[]) => importFn({ data: { leads } }),
+    mutationFn: async (leads: ParsedLead[]) => {
+      try {
+        return await importFn({ data: { leads } });
+      } catch (err) {
+        // TanStack Start may throw a raw Response on server errors
+        if (err instanceof Response) {
+          const text = await err.text().catch(() => "");
+          throw new Error(text || `Server error ${err.status}`);
+        }
+        throw err;
+      }
+    },
     onSuccess: (res) => {
-      toast.success(`Imported ${res.inserted} leads${res.errors.length ? ` (${res.errors.length} errors)` : ""}`);
+      const errCount = res.errors?.length ?? 0;
+      if (res.inserted > 0) {
+        toast.success(`Imported ${res.inserted} leads${errCount ? ` (${errCount} errors)` : ""}`);
+      } else {
+        toast.error(res.errors?.[0] ?? "No leads imported");
+      }
+      if (errCount > 0) console.warn("Import errors:", res.errors);
       setRows([]);
       setFilename("");
       qc.invalidateQueries({ queryKey: ["leads"] });
