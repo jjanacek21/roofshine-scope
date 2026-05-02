@@ -104,17 +104,19 @@ export const importLeads = createServerFn({ method: "POST" })
       // .upsert with onConflict being unsupported here — fall back to:
       //   1) select existing addresses for this company in the chunk
       //   2) insert only the missing ones
-      let insertedLeadCount = 0;
+      let createdLeadCount = 0;
       const addressToId = new Map<string, string>();
+      const preExistingLeadIds = new Set<string>();
+
+      const normPhone = (s: string) => s.replace(/\D+/g, "");
+      const normEmail = (s: string) => s.trim().toLowerCase();
+      const normName = (s: string) => s.trim().toLowerCase();
 
       const LEAD_CHUNK = 200;
       for (let i = 0; i < leadRowsForInsert.length; i += LEAD_CHUNK) {
         const chunk = leadRowsForInsert.slice(i, i + LEAD_CHUNK);
         const chunkAddrs = chunk.map((r) => r.address);
 
-        // Fetch existing leads for this company by raw address (case-insensitive match
-        // is not directly available in REST; addresses were trimmed, so equality works
-        // for our just-trimmed values). We map them out of the insert set.
         const { data: existing, error: exErr } = await supabase
           .from("leads")
           .select("id, address")
@@ -126,8 +128,10 @@ export const importLeads = createServerFn({ method: "POST" })
         }
         const existingByAddr = new Map<string, string>();
         for (const e of existing ?? []) {
-          existingByAddr.set(e.address.trim().toLowerCase(), e.id);
-          addressToId.set(e.address.trim().toLowerCase(), e.id);
+          const k = e.address.trim().toLowerCase();
+          existingByAddr.set(k, e.id);
+          addressToId.set(k, e.id);
+          preExistingLeadIds.add(e.id);
         }
 
         const toInsert = chunk.filter(
@@ -143,16 +147,16 @@ export const importLeads = createServerFn({ method: "POST" })
             errors.push(`Insert chunk ${Math.floor(i / LEAD_CHUNK) + 1}: ${insErr.message}`);
             continue;
           }
-          insertedLeadCount += inserted?.length ?? 0;
+          createdLeadCount += inserted?.length ?? 0;
           for (const r of inserted ?? []) {
             addressToId.set(r.address.trim().toLowerCase(), r.id);
           }
         }
       }
 
-      // Build contacts for all leads we know about (newly inserted OR pre-existing).
-      type PendingContact = {
-        lead_id: string;
+      // Group incoming contacts by lead. Track which leads pre-existed so we can
+      // diff contact info before deciding whether to merge or skip.
+      type IncomingContact = {
         name: string;
         title: string | null;
         company: string | null;
@@ -160,53 +164,151 @@ export const importLeads = createServerFn({ method: "POST" })
         phones: string[];
         emails: string[];
       };
-      const pendingContacts: PendingContact[] = [];
+      const incomingByLead = new Map<string, IncomingContact[]>();
       for (const row of dedupedRows) {
         const leadId = addressToId.get(row.address.trim().toLowerCase());
         if (!leadId || !row.contacts) continue;
+        const list = incomingByLead.get(leadId) ?? [];
         row.contacts.forEach((c, idx) => {
-          pendingContacts.push({
-            lead_id: leadId,
+          list.push({
             name: c.name,
             title: c.title ?? null,
             company: c.company ?? null,
             sort_order: idx,
-            phones: c.phones ?? [],
-            emails: c.emails ?? [],
+            phones: (c.phones ?? []).filter((p) => normPhone(p).length > 0),
+            emails: (c.emails ?? []).filter((e) => normEmail(e).length > 0),
           });
         });
+        incomingByLead.set(leadId, list);
       }
 
-      // Skip contacts that already exist (by lead_id + name) so retries don't duplicate.
+      // Pre-load existing contacts (and their phones/emails) for pre-existing leads,
+      // so we can decide what to merge vs. skip without ever inserting duplicates.
+      const existingContactsByLead = new Map<
+        string,
+        { id: string; nameKey: string; phones: Set<string>; emails: Set<string> }[]
+      >();
+
+      const preIds = Array.from(preExistingLeadIds);
+      const PRELOAD_CHUNK = 200;
+      for (let i = 0; i < preIds.length; i += PRELOAD_CHUNK) {
+        const slice = preIds.slice(i, i + PRELOAD_CHUNK);
+        const { data: cs, error: cErr } = await supabase
+          .from("lead_contacts")
+          .select("id, lead_id, name")
+          .in("lead_id", slice);
+        if (cErr) {
+          errors.push(`Existing contact lookup: ${cErr.message}`);
+          continue;
+        }
+        const contactIds = (cs ?? []).map((c) => c.id);
+        const phonesByContact = new Map<string, Set<string>>();
+        const emailsByContact = new Map<string, Set<string>>();
+        if (contactIds.length > 0) {
+          const { data: ps } = await supabase
+            .from("lead_contact_phones")
+            .select("contact_id, phone")
+            .in("contact_id", contactIds);
+          for (const p of ps ?? []) {
+            const set = phonesByContact.get(p.contact_id) ?? new Set<string>();
+            set.add(normPhone(p.phone));
+            phonesByContact.set(p.contact_id, set);
+          }
+          const { data: es } = await supabase
+            .from("lead_contact_emails")
+            .select("contact_id, email")
+            .in("contact_id", contactIds);
+          for (const e of es ?? []) {
+            const set = emailsByContact.get(e.contact_id) ?? new Set<string>();
+            set.add(normEmail(e.email));
+            emailsByContact.set(e.contact_id, set);
+          }
+        }
+        for (const c of cs ?? []) {
+          const arr = existingContactsByLead.get(c.lead_id) ?? [];
+          arr.push({
+            id: c.id,
+            nameKey: normName(c.name),
+            phones: phonesByContact.get(c.id) ?? new Set<string>(),
+            emails: emailsByContact.get(c.id) ?? new Set<string>(),
+          });
+          existingContactsByLead.set(c.lead_id, arr);
+        }
+      }
+
+      // Decide per lead: created, merged, or duplicate-skip. Build insert queues.
+      const newContactsToInsert: {
+        lead_id: string;
+        name: string;
+        title: string | null;
+        company: string | null;
+        sort_order: number;
+        // attached afterwards via returned id
+        phones: string[];
+        emails: string[];
+      }[] = [];
+      const phonesToInsertExisting: { contact_id: string; phone: string; phone_type: string }[] = [];
+      const emailsToInsertExisting: { contact_id: string; email: string }[] = [];
+      const mergedLeadIds = new Set<string>();
+
+      for (const [leadId, contacts] of incomingByLead.entries()) {
+        const isNewLead = !preExistingLeadIds.has(leadId);
+        const existingContacts = existingContactsByLead.get(leadId) ?? [];
+
+        for (const c of contacts) {
+          const nameKey = normName(c.name);
+          const match = existingContacts.find((ec) => ec.nameKey === nameKey);
+          if (!match) {
+            // Brand-new contact on this lead.
+            newContactsToInsert.push({
+              lead_id: leadId,
+              name: c.name,
+              title: c.title,
+              company: c.company,
+              sort_order: c.sort_order,
+              phones: c.phones,
+              emails: c.emails,
+            });
+            if (!isNewLead) mergedLeadIds.add(leadId);
+          } else {
+            // Existing contact — diff phones/emails.
+            const newPhones = c.phones.filter((p) => {
+              const n = normPhone(p);
+              if (!n || match.phones.has(n)) return false;
+              match.phones.add(n);
+              return true;
+            });
+            const newEmails = c.emails.filter((e) => {
+              const n = normEmail(e);
+              if (!n || match.emails.has(n)) return false;
+              match.emails.add(n);
+              return true;
+            });
+            for (const p of newPhones) {
+              phonesToInsertExisting.push({ contact_id: match.id, phone: p, phone_type: "unknown" });
+            }
+            for (const e of newEmails) {
+              emailsToInsertExisting.push({ contact_id: match.id, email: e });
+            }
+            if (!isNewLead && (newPhones.length > 0 || newEmails.length > 0)) {
+              mergedLeadIds.add(leadId);
+            }
+          }
+        }
+      }
+
+      // Insert queued new contacts (in chunks), then their phones/emails.
       let contactsInserted = 0;
       let phonesInserted = 0;
       let emailsInserted = 0;
 
       const CONTACT_CHUNK = 300;
-      for (let i = 0; i < pendingContacts.length; i += CONTACT_CHUNK) {
-        const chunk = pendingContacts.slice(i, i + CONTACT_CHUNK);
-        const leadIds = Array.from(new Set(chunk.map((c) => c.lead_id)));
-        const { data: existingC, error: exCErr } = await supabase
-          .from("lead_contacts")
-          .select("id, lead_id, name")
-          .in("lead_id", leadIds);
-        if (exCErr) {
-          errors.push(`Contact lookup chunk ${Math.floor(i / CONTACT_CHUNK) + 1}: ${exCErr.message}`);
-          continue;
-        }
-        const existingKey = new Set(
-          (existingC ?? []).map((c) => `${c.lead_id}::${c.name.toLowerCase()}`),
-        );
-
-        const toInsert = chunk.filter(
-          (c) => !existingKey.has(`${c.lead_id}::${c.name.toLowerCase()}`),
-        );
-        if (toInsert.length === 0) continue;
-
+      for (let i = 0; i < newContactsToInsert.length; i += CONTACT_CHUNK) {
+        const chunk = newContactsToInsert.slice(i, i + CONTACT_CHUNK);
         const { data: inserted, error: insCErr } = await supabase
           .from("lead_contacts")
           .insert(
-            toInsert.map((c) => ({
+            chunk.map((c) => ({
               lead_id: c.lead_id,
               name: c.name,
               title: c.title,
@@ -221,44 +323,60 @@ export const importLeads = createServerFn({ method: "POST" })
         }
         contactsInserted += inserted?.length ?? 0;
 
-        // Map back so we can attach phones/emails.
         const idByKey = new Map<string, string>();
         for (const r of inserted ?? []) {
-          idByKey.set(`${r.lead_id}::${r.name.toLowerCase()}`, r.id);
+          idByKey.set(`${r.lead_id}::${normName(r.name)}`, r.id);
         }
 
         const phoneRows: { contact_id: string; phone: string; phone_type: string }[] = [];
         const emailRows: { contact_id: string; email: string }[] = [];
-        for (const c of toInsert) {
-          const cid = idByKey.get(`${c.lead_id}::${c.name.toLowerCase()}`);
+        for (const c of chunk) {
+          const cid = idByKey.get(`${c.lead_id}::${normName(c.name)}`);
           if (!cid) continue;
           for (const p of c.phones) phoneRows.push({ contact_id: cid, phone: p, phone_type: "unknown" });
           for (const e of c.emails) emailRows.push({ contact_id: cid, email: e });
         }
 
-        if (phoneRows.length > 0) {
-          // Insert in sub-chunks to stay within payload limits.
-          const PCHUNK = 500;
-          for (let j = 0; j < phoneRows.length; j += PCHUNK) {
-            const sub = phoneRows.slice(j, j + PCHUNK);
-            const { error: pErr } = await supabase.from("lead_contact_phones").insert(sub);
-            if (pErr) errors.push(`Phones sub-chunk: ${pErr.message}`);
-            else phonesInserted += sub.length;
-          }
+        const PCHUNK = 500;
+        for (let j = 0; j < phoneRows.length; j += PCHUNK) {
+          const sub = phoneRows.slice(j, j + PCHUNK);
+          const { error: pErr } = await supabase.from("lead_contact_phones").insert(sub);
+          if (pErr) errors.push(`Phones sub-chunk: ${pErr.message}`);
+          else phonesInserted += sub.length;
         }
-        if (emailRows.length > 0) {
-          const ECHUNK = 500;
-          for (let j = 0; j < emailRows.length; j += ECHUNK) {
-            const sub = emailRows.slice(j, j + ECHUNK);
-            const { error: eErr } = await supabase.from("lead_contact_emails").insert(sub);
-            if (eErr) errors.push(`Emails sub-chunk: ${eErr.message}`);
-            else emailsInserted += sub.length;
-          }
+        for (let j = 0; j < emailRows.length; j += PCHUNK) {
+          const sub = emailRows.slice(j, j + PCHUNK);
+          const { error: eErr } = await supabase.from("lead_contact_emails").insert(sub);
+          if (eErr) errors.push(`Emails sub-chunk: ${eErr.message}`);
+          else emailsInserted += sub.length;
         }
       }
 
+      // Insert new phones/emails attached to pre-existing contacts.
+      const PCHUNK2 = 500;
+      for (let j = 0; j < phonesToInsertExisting.length; j += PCHUNK2) {
+        const sub = phonesToInsertExisting.slice(j, j + PCHUNK2);
+        const { error: pErr } = await supabase.from("lead_contact_phones").insert(sub);
+        if (pErr) errors.push(`Merged phones sub-chunk: ${pErr.message}`);
+        else phonesInserted += sub.length;
+      }
+      for (let j = 0; j < emailsToInsertExisting.length; j += PCHUNK2) {
+        const sub = emailsToInsertExisting.slice(j, j + PCHUNK2);
+        const { error: eErr } = await supabase.from("lead_contact_emails").insert(sub);
+        if (eErr) errors.push(`Merged emails sub-chunk: ${eErr.message}`);
+        else emailsInserted += sub.length;
+      }
+
+      // Skipped = pre-existing leads that didn't get merged.
+      const mergedCount = mergedLeadIds.size;
+      const skippedDuplicates = preExistingLeadIds.size - mergedCount;
+
       return {
-        inserted: insertedLeadCount,
+        // Back-compat alias so older clients still read a sensible number.
+        inserted: createdLeadCount,
+        created: createdLeadCount,
+        merged: mergedCount,
+        skippedDuplicates,
         contactsInserted,
         phonesInserted,
         emailsInserted,
@@ -268,6 +386,9 @@ export const importLeads = createServerFn({ method: "POST" })
       console.error("importLeads fatal:", e);
       return {
         inserted: 0,
+        created: 0,
+        merged: 0,
+        skippedDuplicates: 0,
         contactsInserted: 0,
         phonesInserted: 0,
         emailsInserted: 0,
