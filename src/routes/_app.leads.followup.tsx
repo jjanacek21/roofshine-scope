@@ -13,7 +13,6 @@ export const Route = createFileRoute("/_app/leads/followup")({
 type ChannelFilter = "all" | "email" | "text";
 
 function FollowUpPage() {
-  const { data: leads = [] } = useLeads();
   const { data, isLoading } = useQuery({
     queryKey: ["followups"],
     queryFn: () => listFollowUps(),
@@ -23,11 +22,6 @@ function FollowUpPage() {
   const [channel, setChannel] = useState<ChannelFilter>("all");
   const [search, setSearch] = useState("");
   const [openLeadId, setOpenLeadId] = useState<string | null>(null);
-
-  const openLead = useMemo(
-    () => (openLeadId ? leads.find((l) => l.id === openLeadId) ?? null : null),
-    [openLeadId, leads],
-  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
