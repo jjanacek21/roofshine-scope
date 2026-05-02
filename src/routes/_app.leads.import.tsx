@@ -165,6 +165,9 @@ function ImportLeads() {
       const headers = { Authorization: `Bearer ${token}` };
 
       let inserted = 0;
+      let created = 0;
+      let merged = 0;
+      let skippedDuplicates = 0;
       let contactsInserted = 0;
       let phonesInserted = 0;
       let emailsInserted = 0;
@@ -177,6 +180,9 @@ function ImportLeads() {
         try {
           const res = await importFn({ data: { leads: batch }, headers });
           inserted += res.inserted ?? 0;
+          created += res.created ?? res.inserted ?? 0;
+          merged += res.merged ?? 0;
+          skippedDuplicates += res.skippedDuplicates ?? 0;
           contactsInserted += res.contactsInserted ?? 0;
           phonesInserted += res.phonesInserted ?? 0;
           emailsInserted += res.emailsInserted ?? 0;
@@ -192,17 +198,23 @@ function ImportLeads() {
         setProgress({ done: Math.min(i + BATCH_SIZE, leads.length), total: leads.length });
       }
 
-      return { inserted, contactsInserted, phonesInserted, emailsInserted, errors, attempted: leads.length };
+      return { inserted, created, merged, skippedDuplicates, contactsInserted, phonesInserted, emailsInserted, errors, attempted: leads.length };
     },
     onSuccess: (res) => {
       setProgress(null);
       const errCount = res.errors.length;
-      if (res.inserted > 0 || res.contactsInserted > 0) {
+      const enrichedBits: string[] = [];
+      if (res.contactsInserted) enrichedBits.push(`+${res.contactsInserted} contacts`);
+      if (res.phonesInserted) enrichedBits.push(`+${res.phonesInserted} phones`);
+      if (res.emailsInserted) enrichedBits.push(`+${res.emailsInserted} emails`);
+      const enrichedSuffix = enrichedBits.length ? ` (${enrichedBits.join(", ")})` : "";
+
+      if (res.created > 0 || res.merged > 0) {
         toast.success(
-          `Imported ${res.inserted} new leads, ${res.contactsInserted} contacts, ${res.phonesInserted} phones, ${res.emailsInserted} emails${errCount ? ` (${errCount} errors)` : ""}`,
+          `Created ${res.created} · Merged ${res.merged} · Skipped ${res.skippedDuplicates} duplicate${res.skippedDuplicates === 1 ? "" : "s"}${enrichedSuffix}${errCount ? ` (${errCount} errors)` : ""}`,
         );
       } else if (errCount === 0) {
-        toast.message(`No new leads — all ${res.attempted} addresses already existed for your company.`);
+        toast.message(`No changes — all ${res.attempted} addresses already existed with the same contact info.`);
       } else {
         toast.error(res.errors[0] ?? "No leads imported");
       }
