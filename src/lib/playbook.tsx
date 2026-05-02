@@ -1,6 +1,8 @@
 // Roof Kings cold-call playbook — verbatim content from the company sales guide.
 // Used by both the Training Center (full library) and the floating on-call panel.
 
+import * as React from "react";
+
 export type PlaybookColor =
   | "blue"
   | "green"
