@@ -58,9 +58,13 @@ import { Route as AdminPriceBooksNewRouteImport } from './routes/admin.price-boo
 import { Route as AdminAssembliesImportRouteImport } from './routes/admin.assemblies.import'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
+import { Route as AppLeadsWizardRouteImport } from './routes/_app.leads.wizard'
+import { Route as AppLeadsTrainingRouteImport } from './routes/_app.leads.training'
+import { Route as AppLeadsSavingsRouteImport } from './routes/_app.leads.savings'
 import { Route as AppLeadsPipelineRouteImport } from './routes/_app.leads.pipeline'
 import { Route as AppLeadsMapRouteImport } from './routes/_app.leads.map'
 import { Route as AppLeadsListRouteImport } from './routes/_app.leads.list'
+import { Route as AppLeadsImportRouteImport } from './routes/_app.leads.import'
 import { Route as AppJobsNewRouteImport } from './routes/_app.jobs.new'
 import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
@@ -316,6 +320,21 @@ const AppPriceBooksNewRoute = AppPriceBooksNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AppPriceBooksRoute,
 } as any)
+const AppLeadsWizardRoute = AppLeadsWizardRouteImport.update({
+  id: '/wizard',
+  path: '/wizard',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppLeadsTrainingRoute = AppLeadsTrainingRouteImport.update({
+  id: '/training',
+  path: '/training',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppLeadsSavingsRoute = AppLeadsSavingsRouteImport.update({
+  id: '/savings',
+  path: '/savings',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
 const AppLeadsPipelineRoute = AppLeadsPipelineRouteImport.update({
   id: '/pipeline',
   path: '/pipeline',
@@ -329,6 +348,11 @@ const AppLeadsMapRoute = AppLeadsMapRouteImport.update({
 const AppLeadsListRoute = AppLeadsListRouteImport.update({
   id: '/list',
   path: '/list',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppLeadsImportRoute = AppLeadsImportRouteImport.update({
+  id: '/import',
+  path: '/import',
   getParentRoute: () => AppLeadsRoute,
 } as any)
 const AppJobsNewRoute = AppJobsNewRouteImport.update({
@@ -421,9 +445,13 @@ export interface FileRoutesByFullPath {
   '/clients/$id': typeof AppClientsIdRoute
   '/jobs/$id': typeof AppJobsIdRouteWithChildren
   '/jobs/new': typeof AppJobsNewRoute
+  '/leads/import': typeof AppLeadsImportRoute
   '/leads/list': typeof AppLeadsListRoute
   '/leads/map': typeof AppLeadsMapRoute
   '/leads/pipeline': typeof AppLeadsPipelineRoute
+  '/leads/savings': typeof AppLeadsSavingsRoute
+  '/leads/training': typeof AppLeadsTrainingRoute
+  '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -479,9 +507,13 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
   '/jobs/new': typeof AppJobsNewRoute
+  '/leads/import': typeof AppLeadsImportRoute
   '/leads/list': typeof AppLeadsListRoute
   '/leads/map': typeof AppLeadsMapRoute
   '/leads/pipeline': typeof AppLeadsPipelineRoute
+  '/leads/savings': typeof AppLeadsSavingsRoute
+  '/leads/training': typeof AppLeadsTrainingRoute
+  '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -543,9 +575,13 @@ export interface FileRoutesById {
   '/_app/clients/$id': typeof AppClientsIdRoute
   '/_app/jobs/$id': typeof AppJobsIdRouteWithChildren
   '/_app/jobs/new': typeof AppJobsNewRoute
+  '/_app/leads/import': typeof AppLeadsImportRoute
   '/_app/leads/list': typeof AppLeadsListRoute
   '/_app/leads/map': typeof AppLeadsMapRoute
   '/_app/leads/pipeline': typeof AppLeadsPipelineRoute
+  '/_app/leads/savings': typeof AppLeadsSavingsRoute
+  '/_app/leads/training': typeof AppLeadsTrainingRoute
+  '/_app/leads/wizard': typeof AppLeadsWizardRoute
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -607,9 +643,13 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/jobs/$id'
     | '/jobs/new'
+    | '/leads/import'
     | '/leads/list'
     | '/leads/map'
     | '/leads/pipeline'
+    | '/leads/savings'
+    | '/leads/training'
+    | '/leads/wizard'
     | '/price-books/new'
     | '/team/invites'
     | '/admin/assemblies/import'
@@ -665,9 +705,13 @@ export interface FileRouteTypes {
     | '/admin'
     | '/clients/$id'
     | '/jobs/new'
+    | '/leads/import'
     | '/leads/list'
     | '/leads/map'
     | '/leads/pipeline'
+    | '/leads/savings'
+    | '/leads/training'
+    | '/leads/wizard'
     | '/price-books/new'
     | '/team/invites'
     | '/admin/assemblies/import'
@@ -728,9 +772,13 @@ export interface FileRouteTypes {
     | '/_app/clients/$id'
     | '/_app/jobs/$id'
     | '/_app/jobs/new'
+    | '/_app/leads/import'
     | '/_app/leads/list'
     | '/_app/leads/map'
     | '/_app/leads/pipeline'
+    | '/_app/leads/savings'
+    | '/_app/leads/training'
+    | '/_app/leads/wizard'
     | '/_app/price-books/new'
     | '/_app/team/invites'
     | '/admin/assemblies/import'
@@ -1114,6 +1162,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPriceBooksNewRouteImport
       parentRoute: typeof AppPriceBooksRoute
     }
+    '/_app/leads/wizard': {
+      id: '/_app/leads/wizard'
+      path: '/wizard'
+      fullPath: '/leads/wizard'
+      preLoaderRoute: typeof AppLeadsWizardRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
+    '/_app/leads/training': {
+      id: '/_app/leads/training'
+      path: '/training'
+      fullPath: '/leads/training'
+      preLoaderRoute: typeof AppLeadsTrainingRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
+    '/_app/leads/savings': {
+      id: '/_app/leads/savings'
+      path: '/savings'
+      fullPath: '/leads/savings'
+      preLoaderRoute: typeof AppLeadsSavingsRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
     '/_app/leads/pipeline': {
       id: '/_app/leads/pipeline'
       path: '/pipeline'
@@ -1133,6 +1202,13 @@ declare module '@tanstack/react-router' {
       path: '/list'
       fullPath: '/leads/list'
       preLoaderRoute: typeof AppLeadsListRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
+    '/_app/leads/import': {
+      id: '/_app/leads/import'
+      path: '/import'
+      fullPath: '/leads/import'
+      preLoaderRoute: typeof AppLeadsImportRouteImport
       parentRoute: typeof AppLeadsRoute
     }
     '/_app/jobs/new': {
@@ -1214,16 +1290,24 @@ const AppClientsRouteWithChildren = AppClientsRoute._addFileChildren(
 )
 
 interface AppLeadsRouteChildren {
+  AppLeadsImportRoute: typeof AppLeadsImportRoute
   AppLeadsListRoute: typeof AppLeadsListRoute
   AppLeadsMapRoute: typeof AppLeadsMapRoute
   AppLeadsPipelineRoute: typeof AppLeadsPipelineRoute
+  AppLeadsSavingsRoute: typeof AppLeadsSavingsRoute
+  AppLeadsTrainingRoute: typeof AppLeadsTrainingRoute
+  AppLeadsWizardRoute: typeof AppLeadsWizardRoute
   AppLeadsIndexRoute: typeof AppLeadsIndexRoute
 }
 
 const AppLeadsRouteChildren: AppLeadsRouteChildren = {
+  AppLeadsImportRoute: AppLeadsImportRoute,
   AppLeadsListRoute: AppLeadsListRoute,
   AppLeadsMapRoute: AppLeadsMapRoute,
   AppLeadsPipelineRoute: AppLeadsPipelineRoute,
+  AppLeadsSavingsRoute: AppLeadsSavingsRoute,
+  AppLeadsTrainingRoute: AppLeadsTrainingRoute,
+  AppLeadsWizardRoute: AppLeadsWizardRoute,
   AppLeadsIndexRoute: AppLeadsIndexRoute,
 }
 
