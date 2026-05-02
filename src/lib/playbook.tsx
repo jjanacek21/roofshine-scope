@@ -733,9 +733,7 @@ export function renderInline(text: string): React.ReactNode[] {
   return out;
 }
 
-// React import lives here for renderInline (kept at file end so the data above
-// is plain TS without React noise).
-import * as React from "react";
+// (React already imported at top of file)
 
 /* =============================================================
    Backwards-compat shims for the old API used by other modules
