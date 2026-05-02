@@ -24,7 +24,7 @@ export function Logo({ collapsed = false, size = "md" }: LogoProps) {
             "inset 0 1px 0 rgba(255,255,255,0.3), 0 2px 8px rgba(0,0,0,0.5)",
         }}
       >
-        B
+        G
       </div>
       {!collapsed && (
         <div className="flex flex-col leading-none">
@@ -32,7 +32,7 @@ export function Logo({ collapsed = false, size = "md" }: LogoProps) {
             className="font-extrabold tracking-tight text-foreground"
             style={{ fontSize: nameSize, letterSpacing: "-0.3px" }}
           >
-            BuildScopeAI
+            GCN App
           </span>
           <span
             className="mt-1 text-[10px] font-medium uppercase"

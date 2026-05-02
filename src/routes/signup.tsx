@@ -67,7 +67,7 @@ function SignupPage() {
           className="mb-7 mt-1.5 text-[13px]"
           style={{ color: "var(--text-muted)" }}
         >
-          Get started with BuildScopeAI in under a minute
+          Get started with GCN App in under a minute
         </p>
 
         <form onSubmit={onSubmit} className="space-y-4">

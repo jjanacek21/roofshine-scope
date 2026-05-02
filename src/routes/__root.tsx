@@ -33,7 +33,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BuildScopeAI — Multi-Trade Estimating for Contractors" },
+      { title: "GCN App — Multi-Trade Estimating for Contractors" },
       {
         name: "description",
         content:

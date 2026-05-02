@@ -96,7 +96,7 @@ function OnboardingPage() {
       toast.error(profileErr.message);
       return;
     }
-    toast.success("Welcome to BuildScopeAI");
+    toast.success("Welcome to GCN App");
     navigate({ to: "/" });
   }
 
