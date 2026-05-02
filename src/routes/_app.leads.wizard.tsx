@@ -45,9 +45,13 @@ function AIRoofWizard() {
   const [analysis, setAnalysis] = useState<string>("");
   const [analysisImage, setAnalysisImage] = useState<string>("");
   const [loading, setLoading] = useState<"none" | "measure" | "analyze">("none");
+  const [resolvedCoords, setResolvedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
 
   const getMeasurements = useServerFn(getRoofMeasurements);
   const analyze = useServerFn(analyzeRoofWithAI);
+  const geocode = useServerFn(geocodeLead);
+  const qc = useQueryClient();
 
   const selectedLead = useMemo(
     () => leads.find((l) => l.id === selectedLeadId) ?? null,
