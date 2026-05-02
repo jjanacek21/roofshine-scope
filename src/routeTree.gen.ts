@@ -65,6 +65,7 @@ import { Route as AppLeadsPipelineRouteImport } from './routes/_app.leads.pipeli
 import { Route as AppLeadsMapRouteImport } from './routes/_app.leads.map'
 import { Route as AppLeadsListRouteImport } from './routes/_app.leads.list'
 import { Route as AppLeadsImportRouteImport } from './routes/_app.leads.import'
+import { Route as AppLeadsFollowupRouteImport } from './routes/_app.leads.followup'
 import { Route as AppJobsNewRouteImport } from './routes/_app.jobs.new'
 import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
@@ -355,6 +356,11 @@ const AppLeadsImportRoute = AppLeadsImportRouteImport.update({
   path: '/import',
   getParentRoute: () => AppLeadsRoute,
 } as any)
+const AppLeadsFollowupRoute = AppLeadsFollowupRouteImport.update({
+  id: '/followup',
+  path: '/followup',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
 const AppJobsNewRoute = AppJobsNewRouteImport.update({
   id: '/jobs/new',
   path: '/jobs/new',
@@ -445,6 +451,7 @@ export interface FileRoutesByFullPath {
   '/clients/$id': typeof AppClientsIdRoute
   '/jobs/$id': typeof AppJobsIdRouteWithChildren
   '/jobs/new': typeof AppJobsNewRoute
+  '/leads/followup': typeof AppLeadsFollowupRoute
   '/leads/import': typeof AppLeadsImportRoute
   '/leads/list': typeof AppLeadsListRoute
   '/leads/map': typeof AppLeadsMapRoute
@@ -507,6 +514,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
   '/jobs/new': typeof AppJobsNewRoute
+  '/leads/followup': typeof AppLeadsFollowupRoute
   '/leads/import': typeof AppLeadsImportRoute
   '/leads/list': typeof AppLeadsListRoute
   '/leads/map': typeof AppLeadsMapRoute
@@ -575,6 +583,7 @@ export interface FileRoutesById {
   '/_app/clients/$id': typeof AppClientsIdRoute
   '/_app/jobs/$id': typeof AppJobsIdRouteWithChildren
   '/_app/jobs/new': typeof AppJobsNewRoute
+  '/_app/leads/followup': typeof AppLeadsFollowupRoute
   '/_app/leads/import': typeof AppLeadsImportRoute
   '/_app/leads/list': typeof AppLeadsListRoute
   '/_app/leads/map': typeof AppLeadsMapRoute
@@ -643,6 +652,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/jobs/$id'
     | '/jobs/new'
+    | '/leads/followup'
     | '/leads/import'
     | '/leads/list'
     | '/leads/map'
@@ -705,6 +715,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/clients/$id'
     | '/jobs/new'
+    | '/leads/followup'
     | '/leads/import'
     | '/leads/list'
     | '/leads/map'
@@ -772,6 +783,7 @@ export interface FileRouteTypes {
     | '/_app/clients/$id'
     | '/_app/jobs/$id'
     | '/_app/jobs/new'
+    | '/_app/leads/followup'
     | '/_app/leads/import'
     | '/_app/leads/list'
     | '/_app/leads/map'
@@ -1211,6 +1223,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLeadsImportRouteImport
       parentRoute: typeof AppLeadsRoute
     }
+    '/_app/leads/followup': {
+      id: '/_app/leads/followup'
+      path: '/followup'
+      fullPath: '/leads/followup'
+      preLoaderRoute: typeof AppLeadsFollowupRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
     '/_app/jobs/new': {
       id: '/_app/jobs/new'
       path: '/jobs/new'
@@ -1290,6 +1309,7 @@ const AppClientsRouteWithChildren = AppClientsRoute._addFileChildren(
 )
 
 interface AppLeadsRouteChildren {
+  AppLeadsFollowupRoute: typeof AppLeadsFollowupRoute
   AppLeadsImportRoute: typeof AppLeadsImportRoute
   AppLeadsListRoute: typeof AppLeadsListRoute
   AppLeadsMapRoute: typeof AppLeadsMapRoute
@@ -1301,6 +1321,7 @@ interface AppLeadsRouteChildren {
 }
 
 const AppLeadsRouteChildren: AppLeadsRouteChildren = {
+  AppLeadsFollowupRoute: AppLeadsFollowupRoute,
   AppLeadsImportRoute: AppLeadsImportRoute,
   AppLeadsListRoute: AppLeadsListRoute,
   AppLeadsMapRoute: AppLeadsMapRoute,
