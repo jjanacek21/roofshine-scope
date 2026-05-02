@@ -282,7 +282,7 @@ export const updateLeadStatus = createServerFn({ method: "POST" })
     z
       .object({
         leadId: z.string().uuid(),
-        status: z.enum(["new", "contacted", "qualified", "quoted", "won", "lost"]),
+        status: z.enum(["new", "contacted", "qualified", "quoted", "report_sent", "won", "lost", "dnc"]),
       })
       .parse(data),
   )
