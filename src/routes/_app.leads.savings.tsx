@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
-import { Calculator, FileDown, Building2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Calculator, FileDown, Building2, Mail, MessageSquare, Loader2, X } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -15,8 +15,11 @@ import {
 } from "recharts";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
 import { useLeads } from "@/hooks/useLeads";
 import { fmtMoney, fmtNum } from "@/lib/leads";
+import { sendLeadReport } from "@/server/lead-reports.functions";
 
 export const Route = createFileRoute("/_app/leads/savings")({
   component: SavingsReport,
