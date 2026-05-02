@@ -1006,6 +1006,45 @@ export type Database = {
           },
         ]
       }
+      lead_documents: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          kind: string
+          lead_id: string
+          mime_type: string | null
+          name: string
+          size_bytes: number | null
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          kind?: string
+          lead_id: string
+          mime_type?: string | null
+          name: string
+          size_bytes?: number | null
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          lead_id?: string
+          mime_type?: string | null
+          name?: string
+          size_bytes?: number | null
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       lead_notes: {
         Row: {
           content: string
@@ -1037,6 +1076,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lead_reports: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          inputs: Json
+          kind: string
+          lead_id: string
+          name: string
+          pdf_path: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inputs?: Json
+          kind?: string
+          lead_id: string
+          name: string
+          pdf_path: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inputs?: Json
+          kind?: string
+          lead_id?: string
+          name?: string
+          pdf_path?: string
+        }
+        Relationships: []
       }
       leads: {
         Row: {
