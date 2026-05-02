@@ -36,12 +36,12 @@ function TrainingCenter() {
       </header>
 
       <div
-        className="grid gap-0 rounded-xl border"
-        style={{ borderColor: "var(--border)", gridTemplateColumns: "224px 1fr" }}
+        className="grid grid-cols-1 gap-0 overflow-hidden rounded-xl border lg:grid-cols-[224px_1fr]"
+        style={{ borderColor: "var(--border)" }}
       >
-        {/* LEFT: category sidebar (sticky on desktop) */}
+        {/* LEFT: category sidebar (horizontal scroll on mobile, sticky sidebar on desktop) */}
         <nav
-          className="self-start border-r p-2 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto"
+          className="flex gap-1 overflow-x-auto border-b p-2 lg:flex-col lg:gap-0 lg:self-start lg:overflow-x-visible lg:border-b-0 lg:border-r lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto"
           style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
         >
           {PLAYBOOK.map((cat) => {
@@ -53,7 +53,7 @@ function TrainingCenter() {
                 type="button"
                 onClick={() => setActiveId(cat.id)}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
+                  "flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors lg:w-full",
                   isActive
                     ? "bg-[var(--bg-hover)] text-foreground font-medium"
                     : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
@@ -74,7 +74,7 @@ function TrainingCenter() {
         </nav>
 
         {/* RIGHT: scrollable content */}
-        <div className="p-5" style={{ backgroundColor: "var(--bg-card)" }}>
+        <div className="min-w-0 p-4 sm:p-5" style={{ backgroundColor: "var(--bg-card)" }}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="text-2xl leading-none">{active.emoji}</span>

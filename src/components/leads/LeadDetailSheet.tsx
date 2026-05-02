@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,9 +10,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { geocodeLead } from "@/server/leads.functions";
 import mapboxgl from "mapbox-gl";
-import { Phone, Mail, MessageSquare, Sparkles, FileText, Activity, Loader2 } from "lucide-react";
+import "mapbox-gl/dist/mapbox-gl.css";
+import {
+  Phone, Mail, MessageSquare, Sparkles, FileText, Activity, Loader2,
+  BookOpen, FileDown, Upload, Download, Trash2, Paperclip,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useCallPlaybook } from "@/hooks/useCallPlaybook";
+import { buildSavingsReportPdf, defaultsForLead } from "@/lib/lead-report-pdf";
 
 interface Props {
   leadId: string | null;
@@ -31,7 +36,9 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
   const [noteText, setNoteText] = useState("");
   const [geocoding, setGeocoding] = useState(false);
   const [geocodeFailed, setGeocodeFailed] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const geocodeFn = useServerFn(geocodeLead);
 
   // Auto-geocode when lead has no coords
@@ -65,7 +72,10 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
       zoom: 18,
       interactive: false,
     });
-    return () => m.remove();
+    // Force a resize once the sheet finishes its open animation so the canvas
+    // matches the actual container width (otherwise it renders 0×0).
+    const t = setTimeout(() => m.resize(), 250);
+    return () => { clearTimeout(t); m.remove(); };
   }, [mapboxToken, lead?.lat, lead?.lng]);
 
   const updateStatus = useMutation({
@@ -111,6 +121,150 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  // ---- Reports & Documents lists ----
+  const { data: reports = [] } = useQuery({
+    queryKey: ["lead-reports", leadId],
+    enabled: !!leadId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lead_reports")
+        .select("id, name, kind, pdf_path, created_at")
+        .eq("lead_id", leadId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: documents = [] } = useQuery({
+    queryKey: ["lead-documents", leadId],
+    enabled: !!leadId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lead_documents")
+        .select("id, name, kind, mime_type, size_bytes, storage_path, created_at")
+        .eq("lead_id", leadId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  async function openSignedUrl(bucket: string, path: string, filename: string) {
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 5, { download: filename });
+    if (error || !data?.signedUrl) {
+      toast.error(error?.message ?? "Could not open file");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+
+  async function generateAndSaveReport() {
+    if (!lead || !leadId) return;
+    setGeneratingReport(true);
+    try {
+      const inputs = defaultsForLead(lead);
+      const { doc, safeName } = buildSavingsReportPdf({ inputs, lead });
+      const blob = doc.output("blob");
+      const filename = `${safeName}-${Date.now()}.pdf`;
+      const path = `${lead.company_id}/${leadId}/${filename}`;
+
+      const { error: upErr } = await supabase.storage
+        .from("lead-reports")
+        .upload(path, blob, { contentType: "application/pdf", upsert: false });
+      if (upErr) throw upErr;
+
+      const { error: insErr } = await supabase.from("lead_reports").insert([{
+        lead_id: leadId,
+        company_id: lead.company_id,
+        created_by: user?.id,
+        kind: "savings",
+        name: `Savings Report — ${lead.address}`,
+        pdf_path: path,
+        inputs: inputs as unknown as never,
+      }]);
+      if (insErr) throw insErr;
+
+      await supabase.from("lead_activities").insert({
+        lead_id: leadId,
+        user_id: user?.id,
+        type: "report_generated",
+        note: `Savings report saved`,
+      });
+
+      qc.invalidateQueries({ queryKey: ["lead-reports", leadId] });
+      qc.invalidateQueries({ queryKey: ["lead-activities", leadId] });
+      toast.success("Report generated and saved to lead");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save report");
+    } finally {
+      setGeneratingReport(false);
+    }
+  }
+
+  async function handleFileUpload(files: FileList | null) {
+    if (!files || files.length === 0 || !lead || !leadId) return;
+    const errors: string[] = [];
+    for (const file of Array.from(files)) {
+      if (file.size > 25 * 1024 * 1024) {
+        errors.push(`${file.name}: exceeds 25 MB`);
+        continue;
+      }
+      const safe = file.name.replace(/[^a-z0-9._-]+/gi, "-");
+      const path = `${lead.company_id}/${leadId}/${Date.now()}-${safe}`;
+      const kind = file.type.startsWith("image/") ? "photo" : "document";
+
+      const { error: upErr } = await supabase.storage
+        .from("lead-documents")
+        .upload(path, file, { contentType: file.type || undefined, upsert: false });
+      if (upErr) {
+        errors.push(`${file.name}: ${upErr.message}`);
+        continue;
+      }
+
+      const { error: insErr } = await supabase.from("lead_documents").insert({
+        lead_id: leadId,
+        company_id: lead.company_id,
+        uploaded_by: user?.id,
+        name: file.name,
+        mime_type: file.type || null,
+        size_bytes: file.size,
+        storage_path: path,
+        kind,
+      });
+      if (insErr) {
+        errors.push(`${file.name}: ${insErr.message}`);
+        // Best-effort cleanup of orphaned object
+        await supabase.storage.from("lead-documents").remove([path]);
+        continue;
+      }
+
+      await supabase.from("lead_activities").insert({
+        lead_id: leadId,
+        user_id: user?.id,
+        type: "document_uploaded",
+        note: `${kind === "photo" ? "Photo" : "Document"}: ${file.name}`,
+      });
+    }
+    qc.invalidateQueries({ queryKey: ["lead-documents", leadId] });
+    qc.invalidateQueries({ queryKey: ["lead-activities", leadId] });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (errors.length) toast.error(errors.join("; "));
+    else toast.success(`${files.length} file${files.length > 1 ? "s" : ""} uploaded`);
+  }
+
+  async function deleteDocument(id: string, path: string) {
+    if (!confirm("Delete this file?")) return;
+    const { error } = await supabase.from("lead_documents").delete().eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await supabase.storage.from("lead-documents").remove([path]);
+    qc.invalidateQueries({ queryKey: ["lead-documents", leadId] });
+    toast.success("File deleted");
+  }
+
   async function logQuickAction(type: "call" | "email" | "text") {
     if (!leadId) return;
     await supabase.from("lead_activities").insert({
@@ -121,16 +275,21 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
     });
     qc.invalidateQueries({ queryKey: ["lead-activities", leadId] });
     if (type === "call" && lead) {
-      playbook.openFor({
-        id: lead.id,
-        address: lead.address,
-        city: lead.city,
-        owner: lead.owner,
-        sqft: lead.sqft,
-        roof_type: lead.roof_type,
-        year_built: lead.year_built,
-      });
+      openPlaybook();
     }
+  }
+
+  function openPlaybook() {
+    if (!lead) return;
+    playbook.openFor({
+      id: lead.id,
+      address: lead.address,
+      city: lead.city,
+      owner: lead.owner,
+      sqft: lead.sqft,
+      roof_type: lead.roof_type,
+      year_built: lead.year_built,
+    });
   }
 
   return (
@@ -160,6 +319,29 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Est. Value</div>
                 <div className="font-mono-num text-lg font-bold text-foreground">{fmtMoney(lead.estimated_value)}</div>
               </div>
+            </div>
+
+            {/* Primary tools row — always visible */}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={openPlaybook}
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border text-xs font-semibold text-foreground transition-colors hover:bg-[var(--bg-hover)]"
+                style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
+              >
+                <BookOpen className="h-3.5 w-3.5 text-[var(--primary)]" />
+                Open Playbook
+              </button>
+              <button
+                type="button"
+                onClick={generateAndSaveReport}
+                disabled={generatingReport}
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md text-xs font-semibold text-white disabled:opacity-50"
+                style={{ backgroundColor: "var(--primary)" }}
+              >
+                {generatingReport ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                {generatingReport ? "Saving…" : "Generate Report"}
+              </button>
             </div>
 
             <Section title="Property Info">
@@ -206,7 +388,7 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
 
             <Section title="Satellite View">
               {lead.lat != null && lead.lng != null && mapboxToken ? (
-                <div ref={mapRef} className="h-48 w-full rounded-lg border" style={{ borderColor: "var(--border)" }} />
+                <div ref={mapRef} className="h-48 w-full overflow-hidden rounded-lg border" style={{ borderColor: "var(--border)" }} />
               ) : (
                 <div className="flex h-48 flex-col items-center justify-center gap-2 rounded-lg border text-sm text-muted-foreground" style={{ borderColor: "var(--border)" }}>
                   {geocoding ? (
@@ -226,6 +408,8 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
                         Try again
                       </button>
                     </>
+                  ) : !mapboxToken ? (
+                    <span>Loading map…</span>
                   ) : (
                     <span>No coordinates available</span>
                   )}
@@ -238,6 +422,101 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
               <ActionBtn color="#3b82f6" icon={<Mail className="h-3.5 w-3.5" />} label="Email" onClick={() => logQuickAction("email")} />
               <ActionBtn color="#a855f7" icon={<MessageSquare className="h-3.5 w-3.5" />} label="Text" onClick={() => logQuickAction("text")} />
             </div>
+
+            <Section title="Reports">
+              {reports.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No reports saved yet. Use “Generate Report” above to build one.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {reports.map((r) => (
+                    <li
+                      key={r.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border p-2"
+                      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                          <FileText className="h-3.5 w-3.5 text-[var(--primary)] shrink-0" />
+                          <span className="truncate">{r.name}</span>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {r.kind} • {new Date(r.created_at).toLocaleString()}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openSignedUrl("lead-reports", r.pdf_path, `${r.name}.pdf`)}
+                        className="inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] font-medium hover:bg-[var(--bg-hover)]"
+                        style={{ borderColor: "var(--border)" }}
+                      >
+                        <Download className="h-3 w-3" /> Open
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+
+            <Section title="Photos & Documents">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                className="hidden"
+                onChange={(e) => handleFileUpload(e.target.files)}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="mb-2 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border-2 border-dashed text-xs font-medium text-muted-foreground transition-colors hover:bg-[var(--bg-hover)] hover:text-foreground"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <Upload className="h-3.5 w-3.5" />
+                Upload photos or PDFs
+              </button>
+              {documents.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No files uploaded yet.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {documents.map((d) => (
+                    <li
+                      key={d.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border p-2"
+                      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                          <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="truncate">{d.name}</span>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {d.kind} • {d.size_bytes ? `${(d.size_bytes / 1024).toFixed(0)} KB` : "—"} • {new Date(d.created_at).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openSignedUrl("lead-documents", d.storage_path, d.name)}
+                          className="inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] font-medium hover:bg-[var(--bg-hover)]"
+                          style={{ borderColor: "var(--border)" }}
+                        >
+                          <Download className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteDocument(d.id, d.storage_path)}
+                          className="inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] font-medium text-[#ef4444] hover:bg-[var(--bg-hover)]"
+                          style={{ borderColor: "var(--border)" }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
 
             <Section title="Add Note">
               <Textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={3} placeholder="Type a note…" />
@@ -325,6 +604,9 @@ function ActivityIcon({ type }: { type: string }) {
     note: <FileText className="h-3.5 w-3.5 text-muted-foreground" />,
     status: <Activity className="h-3.5 w-3.5 text-[#fde047]" />,
     ai_analysis: <Sparkles className="h-3.5 w-3.5 text-[#7dc3ff]" />,
+    report_sent: <Mail className="h-3.5 w-3.5 text-[#7dc3ff]" />,
+    report_generated: <FileText className="h-3.5 w-3.5 text-[var(--primary)]" />,
+    document_uploaded: <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />,
   };
   return <div className="mt-0.5">{map[type] ?? <Activity className="h-3.5 w-3.5" />}</div>;
 }
