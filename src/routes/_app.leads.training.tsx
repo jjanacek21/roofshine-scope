@@ -36,12 +36,12 @@ function TrainingCenter() {
       </header>
 
       <div
-        className="grid gap-0 rounded-xl border"
-        style={{ borderColor: "var(--border)", gridTemplateColumns: "224px 1fr" }}
+        className="grid grid-cols-1 gap-0 overflow-hidden rounded-xl border lg:grid-cols-[224px_1fr]"
+        style={{ borderColor: "var(--border)" }}
       >
-        {/* LEFT: category sidebar (sticky on desktop) */}
+        {/* LEFT: category sidebar (horizontal scroll on mobile, sticky sidebar on desktop) */}
         <nav
-          className="self-start border-r p-2 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto"
+          className="flex gap-1 overflow-x-auto border-b p-2 lg:flex-col lg:gap-0 lg:self-start lg:overflow-x-visible lg:border-b-0 lg:border-r lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto"
           style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
         >
           {PLAYBOOK.map((cat) => {
