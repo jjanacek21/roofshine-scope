@@ -174,7 +174,7 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
         .upload(path, blob, { contentType: "application/pdf", upsert: false });
       if (upErr) throw upErr;
 
-      const { error: insErr } = await supabase.from("lead_reports").insert({
+      const { error: insErr } = await supabase.from("lead_reports").insert([{
         lead_id: leadId,
         company_id: lead.company_id,
         created_by: user?.id,
@@ -182,7 +182,7 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
         name: `Savings Report — ${lead.address}`,
         pdf_path: path,
         inputs: inputs as unknown as Record<string, unknown>,
-      });
+      }]);
       if (insErr) throw insErr;
 
       await supabase.from("lead_activities").insert({
