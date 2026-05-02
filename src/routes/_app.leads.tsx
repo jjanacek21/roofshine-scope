@@ -26,7 +26,7 @@ function LeadsLayout() {
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Lead Center</h1>
+            <h1 className="text-3xl font-bold text-foreground">Lead Management Center</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Commercial roofing prospects · spray foam restoration
             </p>
