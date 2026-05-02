@@ -285,7 +285,11 @@ function ImportLeads() {
               <span className="text-muted-foreground">· {rows.length} rows</span>
             </div>
             <button onClick={doImport} disabled={importMut.isPending} className="btn-brand h-8 rounded-md px-4 text-xs font-semibold disabled:opacity-40">
-              {importMut.isPending ? "Importing…" : `Import ${rows.length} Leads`}
+              {importMut.isPending
+                ? progress
+                  ? `Importing ${progress.done}/${progress.total}…`
+                  : "Importing…"
+                : `Import ${rows.length} Leads`}
             </button>
           </div>
           <div className="overflow-x-auto">
