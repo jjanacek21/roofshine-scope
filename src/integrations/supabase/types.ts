@@ -878,6 +878,241 @@ export type Database = {
           },
         ]
       }
+      lead_activities: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string
+          note: string | null
+          type: Database["public"]["Enums"]["lead_activity_type"]
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id: string
+          note?: string | null
+          type: Database["public"]["Enums"]["lead_activity_type"]
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string
+          note?: string | null
+          type?: Database["public"]["Enums"]["lead_activity_type"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_contact_emails: {
+        Row: {
+          contact_id: string
+          email: string
+          id: string
+        }
+        Insert: {
+          contact_id: string
+          email: string
+          id?: string
+        }
+        Update: {
+          contact_id?: string
+          email?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_contact_emails_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "lead_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_contact_phones: {
+        Row: {
+          contact_id: string
+          id: string
+          phone: string
+          phone_type: string
+        }
+        Insert: {
+          contact_id: string
+          id?: string
+          phone: string
+          phone_type?: string
+        }
+        Update: {
+          contact_id?: string
+          id?: string
+          phone?: string
+          phone_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_contact_phones_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "lead_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_contacts: {
+        Row: {
+          company: string | null
+          created_at: string
+          id: string
+          lead_id: string
+          name: string
+          sort_order: number
+          title: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          id?: string
+          lead_id: string
+          name: string
+          sort_order?: number
+          title?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string
+          name?: string
+          sort_order?: number
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_contacts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          lead_id: string
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_notes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          address: string
+          ai_report: Json
+          city: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          estimated_value: number | null
+          id: string
+          import_date: string
+          lat: number | null
+          lng: number | null
+          owner: string | null
+          property_type: string | null
+          reported_owner: string | null
+          roof_type: string | null
+          sale_amount: string | null
+          sqft: number | null
+          state: string | null
+          status: Database["public"]["Enums"]["lead_status"]
+          updated_at: string
+          year_built: string | null
+          zip: string | null
+        }
+        Insert: {
+          address: string
+          ai_report?: Json
+          city?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          estimated_value?: number | null
+          id?: string
+          import_date?: string
+          lat?: number | null
+          lng?: number | null
+          owner?: string | null
+          property_type?: string | null
+          reported_owner?: string | null
+          roof_type?: string | null
+          sale_amount?: string | null
+          sqft?: number | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+          year_built?: string | null
+          zip?: string | null
+        }
+        Update: {
+          address?: string
+          ai_report?: Json
+          city?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          estimated_value?: number | null
+          id?: string
+          import_date?: string
+          lat?: number | null
+          lng?: number | null
+          owner?: string | null
+          property_type?: string | null
+          reported_owner?: string | null
+          roof_type?: string | null
+          sale_amount?: string | null
+          sqft?: number | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+          year_built?: string | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
       line_item_master: {
         Row: {
           category: string | null
@@ -1222,6 +1457,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      playbook_preferences: {
+        Row: {
+          id: string
+          selected_sections: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          selected_sections?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          selected_sections?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       price_books: {
         Row: {
@@ -1792,6 +2048,14 @@ export type Database = {
         | "signed"
         | "in_progress"
         | "complete"
+      lead_activity_type:
+        | "call"
+        | "email"
+        | "text"
+        | "note"
+        | "status"
+        | "ai_analysis"
+      lead_status: "new" | "contacted" | "qualified" | "quoted" | "won" | "lost"
       price_book_pricing_type: "default" | "insurance" | "retail"
       price_book_status: "active" | "archived"
       property_type: "residential" | "commercial"
@@ -1961,6 +2225,15 @@ export const Constants = {
         "in_progress",
         "complete",
       ],
+      lead_activity_type: [
+        "call",
+        "email",
+        "text",
+        "note",
+        "status",
+        "ai_analysis",
+      ],
+      lead_status: ["new", "contacted", "qualified", "quoted", "won", "lost"],
       price_book_pricing_type: ["default", "insurance", "retail"],
       price_book_status: ["active", "archived"],
       property_type: ["residential", "commercial"],
