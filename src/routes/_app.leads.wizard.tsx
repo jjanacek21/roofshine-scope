@@ -9,9 +9,11 @@ import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { useLeads } from "@/hooks/useLeads";
 import { fmtNum } from "@/lib/leads";
 import { getRoofMeasurements, analyzeRoofWithAI } from "@/server/lead-ai.functions";
+import { geocodeLead } from "@/server/leads.functions";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_app/leads/wizard")({
   component: AIRoofWizard,
@@ -43,9 +45,13 @@ function AIRoofWizard() {
   const [analysis, setAnalysis] = useState<string>("");
   const [analysisImage, setAnalysisImage] = useState<string>("");
   const [loading, setLoading] = useState<"none" | "measure" | "analyze">("none");
+  const [resolvedCoords, setResolvedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
 
   const getMeasurements = useServerFn(getRoofMeasurements);
   const analyze = useServerFn(analyzeRoofWithAI);
+  const geocode = useServerFn(geocodeLead);
+  const qc = useQueryClient();
 
   const selectedLead = useMemo(
     () => leads.find((l) => l.id === selectedLeadId) ?? null,
@@ -76,14 +82,49 @@ function AIRoofWizard() {
     };
   }, [token]);
 
-  // Fly to selected lead
+  // Fly to selected lead — geocode on demand if coords are missing
   useEffect(() => {
-    if (!mapRef.current || !selectedLead?.lat || !selectedLead?.lng) return;
-    mapRef.current.flyTo({ center: [selectedLead.lng, selectedLead.lat], zoom: 19 });
+    if (!selectedLead) {
+      setResolvedCoords(null);
+      return;
+    }
     setPins([]);
     setMeasurements(null);
     setAnalysis("");
     setAnalysisImage("");
+
+    const flyHere = (lat: number, lng: number) => {
+      setResolvedCoords({ lat, lng });
+      mapRef.current?.flyTo({ center: [lng, lat], zoom: 19 });
+    };
+
+    if (selectedLead.lat != null && selectedLead.lng != null) {
+      flyHere(selectedLead.lat, selectedLead.lng);
+      return;
+    }
+
+    // No coords — geocode
+    const leadIdAtStart = selectedLead.id;
+    setResolvedCoords(null);
+    setLocating(true);
+    geocode({ data: { leadId: selectedLead.id } })
+      .then((res) => {
+        if (leadIdAtStart !== selectedLeadId) return; // user moved on
+        if (res.lat != null && res.lng != null) {
+          flyHere(res.lat, res.lng);
+          qc.invalidateQueries({ queryKey: ["leads"] });
+        } else {
+          toast.error(res.error ?? "Couldn't locate this address — drop pins manually.");
+        }
+      })
+      .catch((e) => {
+        if (leadIdAtStart !== selectedLeadId) return;
+        toast.error(e instanceof Error ? e.message : "Geocoding failed");
+      })
+      .finally(() => {
+        if (leadIdAtStart === selectedLeadId) setLocating(false);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLead?.id]);
 
   // Render pin markers
@@ -110,8 +151,9 @@ function AIRoofWizard() {
     if (selectedLead?.lat != null && selectedLead?.lng != null) {
       return { lat: selectedLead.lat, lng: selectedLead.lng };
     }
+    if (resolvedCoords) return resolvedCoords;
     return null;
-  }, [pins, selectedLead]);
+  }, [pins, selectedLead, resolvedCoords]);
 
   async function runMeasurements() {
     if (!center) {
@@ -253,6 +295,12 @@ function AIRoofWizard() {
             {selectedLead && (
               <div className="mt-2 text-xs text-[var(--text-dim)]">
                 {selectedLead.city}, {selectedLead.state} · {fmtNum(selectedLead.sqft)} sq ft on file
+              </div>
+            )}
+            {locating && (
+              <div className="mt-2 flex items-center gap-1.5 text-xs text-[var(--text-dim)]">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Locating address…
               </div>
             )}
           </div>

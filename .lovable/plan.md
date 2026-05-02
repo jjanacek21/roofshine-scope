@@ -1,64 +1,44 @@
-# Smart Duplicate Handling on Lead Import
+# Fix: map doesn't move when selecting an address
 
-Today the importer already skips leads whose address exists for the company, but it always tries to add their contacts. Two problems:
+## Root cause
 
-1. A duplicate row with the same contact info still creates noise (we treat "no new contacts" as success).
-2. There's no clear signal back to the user about how many were skipped vs. merged vs. created.
+In `src/routes/_app.leads.wizard.tsx`, the "fly to selected lead" effect bails out when the lead has no `lat`/`lng`:
 
-You want: **address-based dedupe** with **contact-aware merge** — only "replace/enrich" the existing lead when the new row brings contact info that wasn't already on it.
-
-## Behavior
-
-For each address in the import file:
-
-- **Address not in system** → create new lead + insert all contacts/phones/emails. Counts as **created**.
-- **Address already in system, no new contact info** → fully skip. Lead untouched. Counts as **skipped (duplicate)**.
-- **Address already in system, brings new contact info** (a contact name we don't have, OR an existing contact gains a new phone/email) → keep the existing lead row, merge in the new contact data only. Counts as **merged**.
-
-"New contact info" rules:
-- New contact = `(lead_id, lower(name))` not already present → insert contact + its phones/emails.
-- Existing contact + new phone = phone string not already on that contact (case-insensitive, digits-only compare) → insert phone.
-- Existing contact + new email = email not already on that contact (lowercased) → insert email.
-- If after applying these rules nothing would be added, the row is a true duplicate → skip.
-
-We do **not** overwrite existing fields on the `leads` row itself (owner, sqft, etc.) — only enrich contacts. This avoids destroying manually-edited data.
-
-## Implementation
-
-**File: `src/server/leads.functions.ts` — `importLeads` handler**
-
-Replace the current "insert leads → insert contacts" block with:
-
-1. Look up existing leads by address for the chunk (already done).
-2. Insert only the addresses that don't exist (already done) — track them as `created`.
-3. For every row whose address already existed, **before inserting any contacts**, fetch:
-   - existing `lead_contacts` for that lead (id, name)
-   - existing `lead_contact_phones` for those contact ids (contact_id, phone)
-   - existing `lead_contact_emails` for those contact ids (contact_id, email)
-4. For each incoming contact:
-   - normalize name (`trim().toLowerCase()`), phones (digits only), emails (lowercased)
-   - if contact name not in existing set → queue full insert (counts row as `merged`)
-   - else compute phone/email diffs against the existing sets; if any non-empty → queue inserts on the existing contact id (counts row as `merged`)
-   - else → contribute nothing (row stays `skipped` unless another contact on the same row qualifies)
-5. Apply the same insert pipeline (contacts → phones → emails) using the queued items.
-
-Counters returned by the server function become:
-```
-{ created, merged, skippedDuplicates, contactsInserted, phonesInserted, emailsInserted, errors }
+```ts
+if (!mapRef.current || !selectedLead?.lat || !selectedLead?.lng) return;
 ```
 
-Per-chunk batching stays the same (LEAD_CHUNK=200, CONTACT_CHUNK=300, sub-chunks of 500). Lookups for existing phones/emails are batched by `contact_id` `IN (...)` to keep round-trips bounded.
+Most imported leads don't have coordinates yet, so picking them does nothing. The lead detail sheet already solves this with an on-demand call to the existing `geocodeLead` server function — the wizard just isn't using it.
 
-**File: `src/routes/_app.leads.import.tsx`**
+## Changes
 
-- Sum `created`, `merged`, `skippedDuplicates` across chunks alongside the existing totals.
-- Replace the success toast with: `Created N · Merged M · Skipped K duplicates`. If `created + merged === 0`, show `All K addresses already existed — nothing to import.`
-- Show the same three numbers in the post-import results card.
+**File: `src/routes/_app.leads.wizard.tsx`**
 
-**Activity log (optional, tiny):** when `merged > 0`, write a `lead_activities` entry per merged lead with `type='note'` and a body like `"Enriched from import: +1 phone, +1 email"`. Skip if it adds too much noise — confirm before wiring this in.
+1. Import the existing geocoder:
+   ```ts
+   import { geocodeLead } from "@/server/leads.functions";
+   ```
+   and wrap with `useServerFn(geocodeLead)`.
+
+2. Add local state for the resolved coordinates so the map updates immediately without waiting for `useLeads` to refetch:
+   ```ts
+   const [resolvedCoords, setResolvedCoords] = useState<{ lat: number; lng: number } | null>(null);
+   const [locating, setLocating] = useState(false);
+   ```
+
+3. Rewrite the "fly to selected lead" effect:
+   - When a lead is picked, reset pins/measurements/analysis as today.
+   - If `lead.lat` and `lead.lng` exist → `flyTo` immediately and store them in `resolvedCoords`.
+   - Otherwise set `locating = true`, call `geocodeLead({ leadId })`, and on success store the returned coords + `flyTo`. On failure show a toast (`"Couldn't locate this address — drop pins manually."`).
+   - Guard against race conditions: capture the current `selectedLeadId` and ignore the result if the user picked a different lead in the meantime.
+
+4. Update the `center` memo so it falls back to `resolvedCoords` (then `selectedLead.lat/lng`) when there are no pins. This way "Get measurements" works on a freshly-geocoded lead even before `useLeads` refetches.
+
+5. UI feedback: when `locating` is true, show a small `"Locating address…"` row with a spinner under the lead picker, and disable the "Get measurements" / "Analyze" buttons while locating.
+
+6. Also invalidate the `["leads"]` query after a successful geocode so the dropdown's "no coords" hint disappears for that lead.
 
 ## Out of scope
 
-- Fuzzy address matching (e.g. "123 Main St" vs "123 Main Street"). Current exact-match (case-insensitive, trimmed) stays. We can layer normalization later.
-- Updating non-contact lead fields (owner, sqft, year_built) from the new file. Existing values win.
-- Cross-company dedupe. Scope is per company only, as today.
+- Changing `geocodeLead` itself — it already updates the DB and logs an activity.
+- Reverse-fitting the map to a bounding box of pins (current `flyTo` zoom 19 stays).
