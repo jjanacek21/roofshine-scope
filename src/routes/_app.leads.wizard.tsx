@@ -151,8 +151,9 @@ function AIRoofWizard() {
     if (selectedLead?.lat != null && selectedLead?.lng != null) {
       return { lat: selectedLead.lat, lng: selectedLead.lng };
     }
+    if (resolvedCoords) return resolvedCoords;
     return null;
-  }, [pins, selectedLead]);
+  }, [pins, selectedLead, resolvedCoords]);
 
   async function runMeasurements() {
     if (!center) {
