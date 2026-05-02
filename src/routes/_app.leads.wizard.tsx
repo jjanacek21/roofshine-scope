@@ -3,12 +3,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useServerFn } from "@tanstack/react-start";
-import { Sparkles, MapPin, Loader2, RotateCcw, Save } from "lucide-react";
+import { Sparkles, MapPin, Loader2, RotateCcw, Save, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { useLeads } from "@/hooks/useLeads";
 import { fmtNum } from "@/lib/leads";
 import { getRoofMeasurements, analyzeRoofWithAI } from "@/server/lead-ai.functions";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/leads/wizard")({
   component: AIRoofWizard,
