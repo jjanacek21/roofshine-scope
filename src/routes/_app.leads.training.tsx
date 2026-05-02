@@ -74,7 +74,7 @@ function TrainingCenter() {
         </nav>
 
         {/* RIGHT: scrollable content */}
-        <div className="overflow-y-auto p-5" style={{ backgroundColor: "var(--bg-card)" }}>
+        <div className="p-5" style={{ backgroundColor: "var(--bg-card)" }}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="text-2xl leading-none">{active.emoji}</span>
