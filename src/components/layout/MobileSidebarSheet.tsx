@@ -11,6 +11,7 @@ import {
   LogOut,
   UserCog,
   Shield,
+  Target,
 } from "lucide-react";
 import {
   Sheet,
@@ -27,6 +28,7 @@ import { cn } from "@/lib/utils";
 const WORKSPACE_NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, badgeKey: null },
   { to: "/jobs", label: "Jobs", icon: Briefcase, badgeKey: "jobs" as const },
+  { to: "/leads", label: "Leads", icon: Target, badgeKey: null },
   { to: "/clients", label: "Clients", icon: Users, badgeKey: null },
 ] as const;
 
