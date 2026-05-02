@@ -155,27 +155,46 @@ function ImportLeads() {
 
   const importMut = useMutation({
     mutationFn: async (leads: ParsedLead[]) => {
-      try {
-        return await importFn({ data: { leads } });
-      } catch (err) {
-        // TanStack Start may throw a raw Response on server errors
-        if (err instanceof Response) {
-          const text = await err.text().catch(() => "");
-          throw new Error(text || `Server error ${err.status}`);
-        }
-        throw err;
+      // Get current session token to authenticate the server function
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        throw new Error("Please sign in again before importing leads.");
       }
+      const headers = { Authorization: `Bearer ${token}` };
+
+      let inserted = 0;
+      const errors: string[] = [];
+
+      // Send in batches to avoid timeouts/payload limits
+      for (let i = 0; i < leads.length; i += BATCH_SIZE) {
+        const batch = leads.slice(i, i + BATCH_SIZE);
+        try {
+          const res = await importFn({ data: { leads: batch }, headers });
+          inserted += res.inserted ?? 0;
+          if (res.errors?.length) errors.push(...res.errors);
+        } catch (err) {
+          if (err instanceof Response) {
+            const text = await err.text().catch(() => "");
+            errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${text || `Server error ${err.status}`}`);
+          } else {
+            errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${err instanceof Error ? err.message : "Unknown error"}`);
+          }
+        }
+      }
+
+      return { inserted, errors };
     },
     onSuccess: (res) => {
-      const errCount = res.errors?.length ?? 0;
+      const errCount = res.errors.length;
       if (res.inserted > 0) {
         toast.success(`Imported ${res.inserted} leads${errCount ? ` (${errCount} errors)` : ""}`);
+        setRows([]);
+        setFilename("");
       } else {
-        toast.error(res.errors?.[0] ?? "No leads imported");
+        toast.error(res.errors[0] ?? "No leads imported");
       }
       if (errCount > 0) console.warn("Import errors:", res.errors);
-      setRows([]);
-      setFilename("");
       qc.invalidateQueries({ queryKey: ["leads"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Import failed"),
