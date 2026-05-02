@@ -301,3 +301,107 @@ export const updateLeadStatus = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+// ---------- Geocoding ----------
+
+async function mapboxGeocode(query: string, token: string): Promise<{ lat: number; lng: number } | null> {
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?limit=1&access_token=${token}`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const json = (await res.json()) as { features?: { center?: [number, number] }[] };
+  const center = json.features?.[0]?.center;
+  if (!center) return null;
+  return { lng: center[0], lat: center[1] };
+}
+
+export const geocodeLead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ leadId: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const token = process.env.MAPBOX_API_TOKEN;
+    if (!token) return { lat: null, lng: null, error: "Mapbox token not configured" };
+
+    const { data: lead, error: lerr } = await supabase
+      .from("leads")
+      .select("id, address, city, state, zip, lat, lng")
+      .eq("id", data.leadId)
+      .maybeSingle();
+    if (lerr || !lead) return { lat: null, lng: null, error: "Lead not found" };
+    if (lead.lat != null && lead.lng != null) return { lat: lead.lat, lng: lead.lng };
+
+    const query = [lead.address, lead.city, lead.state, lead.zip].filter(Boolean).join(", ");
+    const result = await mapboxGeocode(query, token);
+    if (!result) return { lat: null, lng: null, error: "Address could not be located" };
+
+    await supabase.from("leads").update({ lat: result.lat, lng: result.lng }).eq("id", data.leadId);
+    await supabase.from("lead_activities").insert({
+      lead_id: data.leadId,
+      user_id: userId,
+      type: "geocoded",
+      note: `Geocoded address`,
+    });
+    return { lat: result.lat, lng: result.lng };
+  });
+
+export const backfillGeocodes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const token = process.env.MAPBOX_API_TOKEN;
+    if (!token) return { processed: 0, succeeded: 0, error: "Mapbox token not configured" };
+
+    const { data: leads } = await supabase
+      .from("leads")
+      .select("id, address, city, state, zip")
+      .is("lat", null)
+      .limit(50);
+
+    let succeeded = 0;
+    for (const l of leads ?? []) {
+      const q = [l.address, l.city, l.state, l.zip].filter(Boolean).join(", ");
+      const r = await mapboxGeocode(q, token);
+      if (!r) continue;
+      await supabase.from("leads").update({ lat: r.lat, lng: r.lng }).eq("id", l.id);
+      await supabase.from("lead_activities").insert({
+        lead_id: l.id,
+        user_id: userId,
+        type: "geocoded",
+        note: "Geocoded address (backfill)",
+      });
+      succeeded++;
+    }
+    return { processed: leads?.length ?? 0, succeeded };
+  });
+
+export const bulkDeleteLeads = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ ids: z.array(z.string().uuid()).min(1).max(2000) }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // Verify admin role
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId!)
+      .maybeSingle();
+    const role = profile?.role;
+    if (role !== "owner" && role !== "admin" && role !== "super_admin") {
+      throw new Error("Only company owners and admins can delete leads");
+    }
+
+    // Log activity before delete
+    await supabase.from("lead_activities").insert(
+      data.ids.map((id) => ({
+        lead_id: id,
+        user_id: userId,
+        type: "lead_deleted",
+        note: "Lead deleted",
+      })),
+    );
+
+    const { error } = await supabase.from("leads").delete().in("id", data.ids);
+    if (error) throw new Error(error.message);
+    return { deleted: data.ids.length };
+  });
