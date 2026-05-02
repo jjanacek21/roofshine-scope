@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, Map, List, Kanban, Upload, Sparkles, Calculator, BookOpen } from "lucide-react";
+import { LayoutDashboard, Map, List, Kanban, Upload, Sparkles, Calculator, BookOpen, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CallPlaybookProvider } from "@/hooks/useCallPlaybook";
 import { CallPlaybookPanel } from "@/components/leads/CallPlaybookPanel";
