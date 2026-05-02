@@ -151,9 +151,26 @@ function ImportLeads() {
   const [drag, setDrag] = useState(false);
 
   const importMut = useMutation({
-    mutationFn: async (leads: ParsedLead[]) => importFn({ data: { leads } }),
+    mutationFn: async (leads: ParsedLead[]) => {
+      try {
+        return await importFn({ data: { leads } });
+      } catch (err) {
+        // TanStack Start may throw a raw Response on server errors
+        if (err instanceof Response) {
+          const text = await err.text().catch(() => "");
+          throw new Error(text || `Server error ${err.status}`);
+        }
+        throw err;
+      }
+    },
     onSuccess: (res) => {
-      toast.success(`Imported ${res.inserted} leads${res.errors.length ? ` (${res.errors.length} errors)` : ""}`);
+      const errCount = res.errors?.length ?? 0;
+      if (res.inserted > 0) {
+        toast.success(`Imported ${res.inserted} leads${errCount ? ` (${errCount} errors)` : ""}`);
+      } else {
+        toast.error(res.errors?.[0] ?? "No leads imported");
+      }
+      if (errCount > 0) console.warn("Import errors:", res.errors);
       setRows([]);
       setFilename("");
       qc.invalidateQueries({ queryKey: ["leads"] });
