@@ -53,120 +53,142 @@ async function geocodeAddress(
 
 export const importLeads = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => ImportSchema.parse(data))
+  .inputValidator((data) => {
+    const r = ImportSchema.safeParse(data);
+    if (!r.success) {
+      const msg = r.error.issues
+        .slice(0, 3)
+        .map((i) => `${i.path.join(".")}: ${i.message}`)
+        .join("; ");
+      throw new Error(`Invalid import data: ${msg}`);
+    }
+    return r.data;
+  })
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    try {
+      const { supabase, userId } = context;
 
-    // Verify caller is a company admin (owner/admin/super_admin)
-    const { data: profile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("role, company_id")
-      .eq("id", userId)
-      .maybeSingle();
-    if (profileErr) throw new Error(profileErr.message);
-    if (!profile?.company_id) throw new Error("No company found for user");
-    const role = profile.role;
-    if (role !== "owner" && role !== "admin" && role !== "super_admin") {
-      throw new Error("Forbidden: only company admins can import leads");
-    }
-
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-    let inserted = 0;
-    const errors: string[] = [];
-
-    // Limit geocode calls per import to avoid runaway cost
-    let geocodeBudget = 100;
-
-    for (const row of data.leads) {
-      try {
-        let lat = row.lat ?? null;
-        let lng = row.lng ?? null;
-        if ((lat == null || lng == null) && apiKey && geocodeBudget > 0) {
-          const full = [row.address, row.city, row.state, row.zip]
-            .filter(Boolean)
-            .join(", ");
-          const geo = await geocodeAddress(full, apiKey);
-          if (geo) {
-            lat = geo.lat;
-            lng = geo.lng;
-          }
-          geocodeBudget--;
-        }
-
-        const estimated =
-          row.estimated_value ?? (row.sqft ? row.sqft * 4.5 : null);
-
-        const { data: leadRow, error: leadErr } = await supabase
-          .from("leads")
-          .insert({
-            company_id: profile.company_id,
-            created_by: userId,
-            address: row.address,
-            city: row.city ?? null,
-            state: row.state ?? "FL",
-            zip: row.zip ?? null,
-            owner: row.owner ?? row.reported_owner ?? null,
-            sqft: row.sqft ?? null,
-            year_built: row.year_built ?? null,
-            lat,
-            lng,
-            roof_type: row.roof_type ?? "Unknown",
-            property_type: row.property_type ?? "Commercial",
-            estimated_value: estimated,
-            sale_amount: row.sale_amount ?? null,
-            reported_owner: row.reported_owner ?? null,
-          })
-          .select("id")
-          .single();
-        if (leadErr || !leadRow) throw new Error(leadErr?.message ?? "Insert failed");
-
-        if (row.contacts && row.contacts.length > 0) {
-          for (let i = 0; i < row.contacts.length; i++) {
-            const c = row.contacts[i];
-            const { data: contactRow, error: cErr } = await supabase
-              .from("lead_contacts")
-              .insert({
-                lead_id: leadRow.id,
-                name: c.name,
-                title: c.title ?? null,
-                company: c.company ?? null,
-                sort_order: i,
-              })
-              .select("id")
-              .single();
-            if (cErr || !contactRow) continue;
-
-            if (c.phones && c.phones.length > 0) {
-              await supabase.from("lead_contact_phones").insert(
-                c.phones.map((p) => ({
-                  contact_id: contactRow.id,
-                  phone: p,
-                  phone_type: "unknown",
-                })),
-              );
-            }
-            if (c.emails && c.emails.length > 0) {
-              await supabase.from("lead_contact_emails").insert(
-                c.emails.map((e) => ({
-                  contact_id: contactRow.id,
-                  email: e,
-                })),
-              );
-            }
-          }
-        }
-
-        inserted++;
-      } catch (e) {
-        errors.push(
-          row.address +
-            ": " +
-            (e instanceof Error ? e.message : "unknown error"),
-        );
+      // Verify caller is a company admin (owner/admin/super_admin)
+      const { data: profile, error: profileErr } = await supabase
+        .from("profiles")
+        .select("role, company_id")
+        .eq("id", userId)
+        .maybeSingle();
+      if (profileErr) {
+        return { inserted: 0, errors: [`Profile lookup failed: ${profileErr.message}`] };
       }
-    }
+      if (!profile?.company_id) {
+        return { inserted: 0, errors: ["No company found for your account"] };
+      }
+      const role = profile.role;
+      if (role !== "owner" && role !== "admin" && role !== "super_admin") {
+        return { inserted: 0, errors: ["Forbidden: only company admins can import leads"] };
+      }
 
-    return { inserted, errors };
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      let inserted = 0;
+      const errors: string[] = [];
+
+      // Limit geocode calls per import to avoid runaway cost
+      let geocodeBudget = 100;
+
+      for (const row of data.leads) {
+        try {
+          let lat = row.lat ?? null;
+          let lng = row.lng ?? null;
+          if ((lat == null || lng == null) && apiKey && geocodeBudget > 0) {
+            const full = [row.address, row.city, row.state, row.zip]
+              .filter(Boolean)
+              .join(", ");
+            const geo = await geocodeAddress(full, apiKey);
+            if (geo) {
+              lat = geo.lat;
+              lng = geo.lng;
+            }
+            geocodeBudget--;
+          }
+
+          const estimated =
+            row.estimated_value ?? (row.sqft ? row.sqft * 4.5 : null);
+
+          const { data: leadRow, error: leadErr } = await supabase
+            .from("leads")
+            .insert({
+              company_id: profile.company_id,
+              created_by: userId,
+              address: row.address,
+              city: row.city ?? null,
+              state: row.state ?? "FL",
+              zip: row.zip ?? null,
+              owner: row.owner ?? row.reported_owner ?? null,
+              sqft: row.sqft ?? null,
+              year_built: row.year_built ?? null,
+              lat,
+              lng,
+              roof_type: row.roof_type ?? "Unknown",
+              property_type: row.property_type ?? "Commercial",
+              estimated_value: estimated,
+              sale_amount: row.sale_amount ?? null,
+              reported_owner: row.reported_owner ?? null,
+            })
+            .select("id")
+            .single();
+          if (leadErr || !leadRow) throw new Error(leadErr?.message ?? "Insert failed");
+
+          if (row.contacts && row.contacts.length > 0) {
+            for (let i = 0; i < row.contacts.length; i++) {
+              const c = row.contacts[i];
+              const { data: contactRow, error: cErr } = await supabase
+                .from("lead_contacts")
+                .insert({
+                  lead_id: leadRow.id,
+                  name: c.name,
+                  title: c.title ?? null,
+                  company: c.company ?? null,
+                  sort_order: i,
+                })
+                .select("id")
+                .single();
+              if (cErr || !contactRow) continue;
+
+              if (c.phones && c.phones.length > 0) {
+                await supabase.from("lead_contact_phones").insert(
+                  c.phones.map((p) => ({
+                    contact_id: contactRow.id,
+                    phone: p,
+                    phone_type: "unknown",
+                  })),
+                );
+              }
+              if (c.emails && c.emails.length > 0) {
+                await supabase.from("lead_contact_emails").insert(
+                  c.emails.map((e) => ({
+                    contact_id: contactRow.id,
+                    email: e,
+                  })),
+                );
+              }
+            }
+          }
+
+          inserted++;
+        } catch (e) {
+          errors.push(
+            row.address +
+              ": " +
+              (e instanceof Error ? e.message : "unknown error"),
+          );
+        }
+      }
+
+      return { inserted, errors };
+    } catch (e) {
+      console.error("importLeads fatal:", e);
+      return {
+        inserted: 0,
+        errors: [e instanceof Error ? e.message : "Unexpected server error"],
+      };
+    }
   });
 
 export const updateLeadStatus = createServerFn({ method: "POST" })
