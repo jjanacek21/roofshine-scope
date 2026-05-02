@@ -36,12 +36,12 @@ function TrainingCenter() {
       </header>
 
       <div
-        className="grid gap-0 overflow-hidden rounded-xl border"
-        style={{ borderColor: "var(--border)", maxHeight: "85vh", gridTemplateColumns: "224px 1fr" }}
+        className="grid gap-0 rounded-xl border"
+        style={{ borderColor: "var(--border)", gridTemplateColumns: "224px 1fr" }}
       >
-        {/* LEFT: category sidebar */}
+        {/* LEFT: category sidebar (sticky on desktop) */}
         <nav
-          className="overflow-y-auto border-r p-2"
+          className="self-start border-r p-2 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto"
           style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
         >
           {PLAYBOOK.map((cat) => {
@@ -74,7 +74,7 @@ function TrainingCenter() {
         </nav>
 
         {/* RIGHT: scrollable content */}
-        <div className="overflow-y-auto p-5" style={{ backgroundColor: "var(--bg-card)" }}>
+        <div className="p-5" style={{ backgroundColor: "var(--bg-card)" }}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="text-2xl leading-none">{active.emoji}</span>

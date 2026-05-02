@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
-import { Calculator, FileDown, Building2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Calculator, FileDown, Building2, Mail, MessageSquare, Loader2, X } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -15,8 +15,11 @@ import {
 } from "recharts";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
 import { useLeads } from "@/hooks/useLeads";
 import { fmtMoney, fmtNum } from "@/lib/leads";
+import { sendLeadReport } from "@/server/lead-reports.functions";
 
 export const Route = createFileRoute("/_app/leads/savings")({
   component: SavingsReport,
@@ -122,126 +125,207 @@ function SavingsReport() {
   const totalSavings = final?.savings ?? 0;
   const roiPct = restoreUpfront > 0 ? (totalSavings / restoreUpfront) * 100 : 0;
 
-  function exportPDF() {
-    try {
-      const doc = new jsPDF({ unit: "pt", format: "letter" });
-      const W = doc.internal.pageSize.getWidth();
-      let y = 56;
+  function buildPdf(): { doc: jsPDF; safeName: string } {
+    const doc = new jsPDF({ unit: "pt", format: "letter" });
+    const W = doc.internal.pageSize.getWidth();
+    let y = 56;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text("SPF Restoration Savings Report", 56, y);
+    y += 22;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(110);
+    doc.text(`Generated ${new Date().toLocaleDateString()}`, 56, y);
+    y += 24;
+
+    if (lead) {
+      doc.setTextColor(20);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(20);
-      doc.text("SPF Restoration Savings Report", 56, y);
-      y += 22;
+      doc.setFontSize(13);
+      doc.text("Property", 56, y);
+      y += 16;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
-      doc.setTextColor(110);
-      doc.text(`Generated ${new Date().toLocaleDateString()}`, 56, y);
-      y += 24;
-
-      if (lead) {
-        doc.setTextColor(20);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(13);
-        doc.text("Property", 56, y);
-        y += 16;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(11);
-        doc.text(lead.address, 56, y);
+      doc.text(lead.address, 56, y);
+      y += 14;
+      doc.text(`${lead.city ?? ""}, ${lead.state ?? ""} ${lead.zip ?? ""}`, 56, y);
+      y += 14;
+      if (lead.owner) {
+        doc.text(`Owner: ${lead.owner}`, 56, y);
         y += 14;
-        doc.text(`${lead.city ?? ""}, ${lead.state ?? ""} ${lead.zip ?? ""}`, 56, y);
-        y += 14;
-        if (lead.owner) {
-          doc.text(`Owner: ${lead.owner}`, 56, y);
-          y += 14;
-        }
-        y += 10;
       }
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
-      doc.text("Inputs", 56, y);
-      y += 16;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      const ipairs: [string, string][] = [
-        ["Roof area", `${fmtNum(inputs.sqft)} sq ft`],
-        ["Restoration cost", `${fmtMoney(inputs.restorePsf)} / sq ft`],
-        ["Replacement cost", `${fmtMoney(inputs.replacePsf)} / sq ft`],
-        ["Energy savings vs. replace", `${inputs.energySavingsPctPerYear}% / yr`],
-        ["Baseline maintenance", `${fmtMoney(inputs.baselineOpsPerSqftPerYear)} / sqft / yr`],
-        ["Re-coat at year", `${inputs.recoatYear} (${fmtMoney(inputs.recoatPsf)} / sqft)`],
-        ["Horizon", `${inputs.years} years`],
-        ["Inflation", `${inputs.inflation}% / yr`],
-      ];
-      ipairs.forEach(([k, v]) => {
-        doc.text(k, 56, y);
-        doc.text(v, 280, y);
-        y += 14;
-      });
-
       y += 10;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
-      doc.text("Headline numbers", 56, y);
-      y += 16;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      const hpairs: [string, string][] = [
-        ["Up-front savings (Day 1)", fmtMoney(upfrontSavings)],
-        [`Total savings over ${inputs.years} years`, fmtMoney(totalSavings)],
-        ["ROI on restoration", `${roiPct.toFixed(0)}%`],
-      ];
-      hpairs.forEach(([k, v]) => {
-        doc.text(k, 56, y);
-        doc.text(v, 280, y);
-        y += 14;
-      });
+    }
 
-      y += 16;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
-      doc.text("Year-by-year cumulative cost", 56, y);
-      y += 16;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text("Year", 56, y);
-      doc.text("Restore", 130, y);
-      doc.text("Replace", 230, y);
-      doc.text("Savings", 330, y);
-      y += 12;
-      doc.setFont("helvetica", "normal");
-      rows.forEach((r) => {
-        if (y > 740) {
-          doc.addPage();
-          y = 56;
-        }
-        doc.text(String(r.year), 56, y);
-        doc.text(fmtMoney(r.restoreCum), 130, y);
-        doc.text(fmtMoney(r.replaceCum), 230, y);
-        doc.text(fmtMoney(r.savings), 330, y);
-        y += 12;
-      });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Inputs", 56, y);
+    y += 16;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    const ipairs: [string, string][] = [
+      ["Roof area", `${fmtNum(inputs.sqft)} sq ft`],
+      ["Restoration cost", `${fmtMoney(inputs.restorePsf)} / sq ft`],
+      ["Replacement cost", `${fmtMoney(inputs.replacePsf)} / sq ft`],
+      ["Energy savings vs. replace", `${inputs.energySavingsPctPerYear}% / yr`],
+      ["Baseline maintenance", `${fmtMoney(inputs.baselineOpsPerSqftPerYear)} / sqft / yr`],
+      ["Re-coat at year", `${inputs.recoatYear} (${fmtMoney(inputs.recoatPsf)} / sqft)`],
+      ["Horizon", `${inputs.years} years`],
+      ["Inflation", `${inputs.inflation}% / yr`],
+    ];
+    ipairs.forEach(([k, v]) => {
+      doc.text(k, 56, y);
+      doc.text(v, 280, y);
+      y += 14;
+    });
 
-      y += 20;
-      if (y > 720) {
+    y += 10;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Headline numbers", 56, y);
+    y += 16;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    const hpairs: [string, string][] = [
+      ["Up-front savings (Day 1)", fmtMoney(upfrontSavings)],
+      [`Total savings over ${inputs.years} years`, fmtMoney(totalSavings)],
+      ["ROI on restoration", `${roiPct.toFixed(0)}%`],
+    ];
+    hpairs.forEach(([k, v]) => {
+      doc.text(k, 56, y);
+      doc.text(v, 280, y);
+      y += 14;
+    });
+
+    y += 16;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Year-by-year cumulative cost", 56, y);
+    y += 16;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Year", 56, y);
+    doc.text("Restore", 130, y);
+    doc.text("Replace", 230, y);
+    doc.text("Savings", 330, y);
+    y += 12;
+    doc.setFont("helvetica", "normal");
+    rows.forEach((r) => {
+      if (y > 740) {
         doc.addPage();
         y = 56;
       }
-      doc.setFontSize(9);
-      doc.setTextColor(120);
-      doc.text(
-        "Estimates only. Actual results depend on roof condition, climate, energy rates, and selected system.",
-        56,
-        y,
-        { maxWidth: W - 112 },
-      );
+      doc.text(String(r.year), 56, y);
+      doc.text(fmtMoney(r.restoreCum), 130, y);
+      doc.text(fmtMoney(r.replaceCum), 230, y);
+      doc.text(fmtMoney(r.savings), 330, y);
+      y += 12;
+    });
 
-      const safeName = (lead?.address ?? "savings-report").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    y += 20;
+    if (y > 720) {
+      doc.addPage();
+      y = 56;
+    }
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(
+      "Estimates only. Actual results depend on roof condition, climate, energy rates, and selected system.",
+      56,
+      y,
+      { maxWidth: W - 112 },
+    );
+
+    const safeName = (lead?.address ?? "savings-report").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    return { doc, safeName };
+  }
+
+  function exportPDF() {
+    try {
+      const { doc, safeName } = buildPdf();
       doc.save(`${safeName}.pdf`);
       toast.success("PDF downloaded");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to export");
     }
   }
+
+  // ---------- Send report by email ----------
+  const [sendOpen, setSendOpen] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [contactEmails, setContactEmails] = useState<{ email: string; name: string }[]>([]);
+  const [recipient, setRecipient] = useState("");
+  const sendFn = useServerFn(sendLeadReport);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadEmails() {
+      if (!leadId) {
+        setContactEmails([]);
+        return;
+      }
+      const { data: contacts } = await supabase
+        .from("lead_contacts")
+        .select("name, lead_contact_emails(email)")
+        .eq("lead_id", leadId);
+      if (cancelled) return;
+      const list: { email: string; name: string }[] = [];
+      (contacts ?? []).forEach((c: { name: string; lead_contact_emails: { email: string }[] | null }) => {
+        (c.lead_contact_emails ?? []).forEach((e) => {
+          if (e.email) list.push({ email: e.email, name: c.name });
+        });
+      });
+      setContactEmails(list);
+      setRecipient(list[0]?.email ?? "");
+    }
+    loadEmails();
+    return () => {
+      cancelled = true;
+    };
+  }, [leadId]);
+
+  function openSend() {
+    if (!leadId) {
+      toast.error("Pick a lead first to send the report.");
+      return;
+    }
+    setSendOpen(true);
+  }
+
+  async function handleSend() {
+    if (!leadId || !recipient.trim()) {
+      toast.error("Recipient email required");
+      return;
+    }
+    setSending(true);
+    try {
+      const { doc, safeName } = buildPdf();
+      // jsPDF datauristring → strip "data:application/pdf;filename=...;base64,"
+      const datauri = doc.output("datauristring");
+      const b64 = datauri.split(",")[1] ?? "";
+      const res = await sendFn({
+        data: {
+          leadId,
+          channel: "email",
+          recipient: recipient.trim(),
+          reportName: safeName,
+          pdfBase64: b64,
+        },
+      });
+      if (!res.ok) {
+        toast.error(res.error ?? "Failed to send");
+      } else {
+        toast.success("Report emailed — added to Follow-Up");
+        setSendOpen(false);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send");
+    } finally {
+      setSending(false);
+    }
+  }
+
 
   return (
     <div className="space-y-5">
@@ -352,7 +436,122 @@ function SavingsReport() {
           >
             <FileDown className="h-4 w-4" /> Export PDF
           </button>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={openSend}
+              disabled={!leadId}
+              className="flex h-9 items-center justify-center gap-1.5 rounded-md border text-xs font-semibold transition-colors disabled:opacity-50"
+              style={{
+                borderColor: "var(--border)",
+                backgroundColor: "var(--bg-elevated)",
+                color: "var(--text)",
+              }}
+            >
+              <Mail className="h-3.5 w-3.5" /> Email to contact
+            </button>
+            <button
+              type="button"
+              disabled
+              title="SMS provider not configured yet"
+              className="flex h-9 cursor-not-allowed items-center justify-center gap-1.5 rounded-md border text-xs font-semibold opacity-50"
+              style={{
+                borderColor: "var(--border)",
+                backgroundColor: "var(--bg-elevated)",
+                color: "var(--text-dim)",
+              }}
+            >
+              <MessageSquare className="h-3.5 w-3.5" /> Text to contact
+            </button>
+          </div>
+          {!leadId && (
+            <p className="text-[11px] text-[var(--text-dim)]">Pick a lead above to enable sending.</p>
+          )}
         </aside>
+
+        {sendOpen && (
+          <div
+            className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+            onClick={() => !sending && setSendOpen(false)}
+          >
+            <div
+              className="w-full max-w-md rounded-xl border p-5 shadow-xl"
+              style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-3 flex items-start justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-foreground">Email Savings Report</h3>
+                  <p className="text-xs text-[var(--text-dim)]">
+                    {lead?.address ?? "—"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => !sending && setSendOpen(false)}
+                  className="rounded p-1 text-[var(--text-dim)] hover:bg-[var(--bg-hover)]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {contactEmails.length > 0 && (
+                <div className="mb-3">
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
+                    Contact on file
+                  </label>
+                  <select
+                    value={contactEmails.find((c) => c.email === recipient) ? recipient : ""}
+                    onChange={(e) => setRecipient(e.target.value)}
+                    className="w-full rounded-md border bg-[var(--bg-elevated)] px-2 py-1.5 text-sm"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    <option value="">— Custom email —</option>
+                    {contactEmails.map((c, i) => (
+                      <option key={`${c.email}-${i}`} value={c.email}>
+                        {c.name} · {c.email}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
+                Send to
+              </label>
+              <input
+                type="email"
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                placeholder="name@company.com"
+                className="mb-4 w-full rounded-md border bg-[var(--bg-elevated)] px-2 py-2 text-sm"
+                style={{ borderColor: "var(--border)" }}
+              />
+
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSendOpen(false)}
+                  disabled={sending}
+                  className="rounded-md border px-3 py-2 text-xs font-semibold"
+                  style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  disabled={sending || !recipient.trim()}
+                  className="btn-brand inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold"
+                >
+                  {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                  {sending ? "Sending…" : "Send PDF"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div ref={reportRef} className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">

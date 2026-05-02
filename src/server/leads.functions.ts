@@ -526,3 +526,100 @@ export const bulkDeleteLeads = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { deleted: data.ids.length };
   });
+
+// ---------- Follow-Up: leads that received a report ----------
+
+export const listFollowUps = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context;
+
+    // All report_sent activities visible to this user (RLS scopes via lead).
+    const { data: sends, error: sendsErr } = await supabase
+      .from("lead_activities")
+      .select("id, lead_id, created_at, note, user_id")
+      .eq("type", "report_sent")
+      .order("created_at", { ascending: false })
+      .limit(2000);
+    if (sendsErr) throw new Error(sendsErr.message);
+    if (!sends || sends.length === 0) return { items: [] as FollowUpItem[] };
+
+    // Latest send per lead.
+    const latestByLead = new Map<string, typeof sends[number]>();
+    for (const s of sends) {
+      if (!latestByLead.has(s.lead_id)) latestByLead.set(s.lead_id, s);
+    }
+    const leadIds = Array.from(latestByLead.keys());
+
+    const { data: leads, error: leadsErr } = await supabase
+      .from("leads")
+      .select("id, address, city, state, zip, owner, status, sqft, roof_type, lat, lng")
+      .in("id", leadIds);
+    if (leadsErr) throw new Error(leadsErr.message);
+
+    // All activities for those leads (to compute last reply / awaiting).
+    const { data: acts } = await supabase
+      .from("lead_activities")
+      .select("lead_id, type, created_at")
+      .in("lead_id", leadIds)
+      .order("created_at", { ascending: false });
+
+    const replyTypes = new Set(["call", "email", "text", "note", "status"]);
+
+    const items: FollowUpItem[] = (leads ?? []).map((lead) => {
+      const send = latestByLead.get(lead.id)!;
+      const sentAt = send.created_at;
+      const note = send.note ?? "";
+      let channel: "email" | "text" | "other" = "other";
+      if (note.startsWith("email")) channel = "email";
+      else if (note.startsWith("text") || note.startsWith("sms")) channel = "text";
+
+      // recipient after the arrow, if present
+      const arrowIdx = note.indexOf("→");
+      const recipient = arrowIdx >= 0 ? note.slice(arrowIdx + 1).trim() : null;
+
+      const after = (acts ?? []).filter(
+        (a) => a.lead_id === lead.id && replyTypes.has(a.type) && a.created_at > sentAt,
+      );
+      const lastReplyAt = after[0]?.created_at ?? null;
+      const followupCount = after.length;
+
+      return {
+        leadId: lead.id,
+        address: lead.address,
+        city: lead.city,
+        state: lead.state,
+        zip: lead.zip,
+        owner: lead.owner,
+        status: lead.status,
+        sqft: lead.sqft,
+        roof_type: lead.roof_type,
+        sentAt,
+        channel,
+        recipient,
+        lastReplyAt,
+        followupCount,
+      };
+    });
+
+    // newest first
+    items.sort((a, b) => (a.sentAt < b.sentAt ? 1 : -1));
+    return { items };
+  });
+
+export type FollowUpItem = {
+  leadId: string;
+  address: string;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  owner: string | null;
+  status: string;
+  sqft: number | null;
+  roof_type: string | null;
+  sentAt: string;
+  channel: "email" | "text" | "other";
+  recipient: string | null;
+  lastReplyAt: string | null;
+  followupCount: number;
+};

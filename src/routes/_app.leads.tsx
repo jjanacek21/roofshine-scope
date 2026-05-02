@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, Map, List, Kanban, Upload, Sparkles, Calculator, BookOpen } from "lucide-react";
+import { LayoutDashboard, Map, List, Kanban, Upload, Sparkles, Calculator, BookOpen, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CallPlaybookProvider } from "@/hooks/useCallPlaybook";
 import { CallPlaybookPanel } from "@/components/leads/CallPlaybookPanel";
@@ -16,6 +16,7 @@ const TABS: { to: string; label: string; icon: typeof LayoutDashboard; exact?: b
   { to: "/leads/import", label: "Import", icon: Upload },
   { to: "/leads/wizard", label: "AI Wizard", icon: Sparkles },
   { to: "/leads/savings", label: "Savings", icon: Calculator },
+  { to: "/leads/followup", label: "Follow-Up", icon: Send },
   { to: "/leads/training", label: "Training", icon: BookOpen },
 ];
 
@@ -26,7 +27,7 @@ function LeadsLayout() {
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Lead Management Center</h1>
+            <h1 className="text-3xl font-bold text-foreground">Prospector</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Commercial roofing prospects · spray foam restoration
             </p>
