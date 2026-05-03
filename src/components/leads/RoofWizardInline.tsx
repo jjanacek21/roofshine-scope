@@ -202,7 +202,7 @@ export function RoofWizardInline({ lead }: Props) {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token) throw new Error("Please sign in again.");
-      const res = await analyze({
+      const res = (await analyze({
         data: {
           lat: target.lat,
           lng: target.lng,
@@ -211,7 +211,7 @@ export function RoofWizardInline({ lead }: Props) {
           leadId: lead.id,
         },
         headers: { Authorization: `Bearer ${token}` },
-      });
+      })) as { analysis: string };
       setAnalysis(res.analysis);
       qc.invalidateQueries({ queryKey: ["lead", lead.id] });
       qc.invalidateQueries({ queryKey: ["leads"] });
