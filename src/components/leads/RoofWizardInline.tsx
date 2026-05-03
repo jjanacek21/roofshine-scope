@@ -195,13 +195,14 @@ export function RoofWizardInline({ lead }: Props) {
   }
 
   async function runAnalysis() {
-    if (!center) { toast.error("Drop at least one pin first."); return; }
+    const target = center ?? (lead.lat != null && lead.lng != null ? { lat: lead.lat, lng: lead.lng } : null);
+    if (!target) { toast.error("Lead has no coordinates"); return; }
     setLoading("analyze");
     try {
       const res = await analyze({
         data: {
-          lat: center.lat,
-          lng: center.lng,
+          lat: target.lat,
+          lng: target.lng,
           address: lead.address,
           pinCount: Math.max(1, pins.length),
           leadId: lead.id,
@@ -209,9 +210,8 @@ export function RoofWizardInline({ lead }: Props) {
       });
       setAnalysis(res.analysis);
       qc.invalidateQueries({ queryKey: ["lead", lead.id] });
-      toast.success("AI analysis complete — opening report builder…");
-      // Open report builder
-      navigate({ to: "/leads/savings", search: { leadId: lead.id } });
+      qc.invalidateQueries({ queryKey: ["leads"] });
+      toast.success("AI analysis complete");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to analyze");
     } finally {
