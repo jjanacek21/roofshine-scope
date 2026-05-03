@@ -7,6 +7,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useLeads } from "@/hooks/useLeads";
 import { fmtMoney, fmtNum, type LeadRow } from "@/lib/leads";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/leads/savings")({
   validateSearch: (search: Record<string, unknown>) => ({
