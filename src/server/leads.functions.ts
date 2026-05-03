@@ -107,6 +107,7 @@ export const importLeads = createServerFn({ method: "POST" })
       let createdLeadCount = 0;
       const addressToId = new Map<string, string>();
       const preExistingLeadIds = new Set<string>();
+      const createdLeadIds = new Set<string>();
 
       const normPhone = (s: string) => s.replace(/\D+/g, "");
       const normEmail = (s: string) => s.trim().toLowerCase();
