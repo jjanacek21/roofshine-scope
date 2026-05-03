@@ -8,15 +8,13 @@ import { LEAD_STATUSES, fmtMoney, fmtNum, type LeadStatus } from "@/lib/leads";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
 import {
   Phone, Mail, MessageSquare, Sparkles, FileText, Activity, Loader2,
-  BookOpen, FileDown, Upload, Download, Trash2, Paperclip,
+  BookOpen, Upload, Download, Trash2, Paperclip,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCallPlaybook } from "@/hooks/useCallPlaybook";
-import { buildSavingsReportPdf, defaultsForLead } from "@/lib/lead-report-pdf";
+import { RoofWizardInline } from "./RoofWizardInline";
 
 interface Props {
   leadId: string | null;
