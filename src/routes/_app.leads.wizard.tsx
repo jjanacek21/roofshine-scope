@@ -217,9 +217,12 @@ function AIRoofWizard() {
     setResolvedCoords(null);
     setLocating(true);
 
-    const query = [selectedLead.address, selectedLead.city, selectedLead.state, (selectedLead as any).zip]
-      .filter(Boolean)
-      .join(", ");
+    const query = formatAddressForGeocoding({
+      address: selectedLead.address,
+      city: selectedLead.city,
+      state: selectedLead.state,
+      zip: (selectedLead as any).zip,
+    });
 
     (async () => {
       try {
