@@ -429,6 +429,20 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
               )}
             </Section>
 
+            <button
+              type="button"
+              onClick={() => {
+                if (!leadId) return;
+                onClose();
+                navigate({ to: "/leads/wizard", search: { leadId } });
+              }}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
+              style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)" }}
+            >
+              <Sparkles className="h-4 w-4" />
+              Generate AI Roof Report
+            </button>
+
             <div className="mt-4 grid grid-cols-3 gap-2">
               <ActionBtn color="#22c55e" icon={<Phone className="h-3.5 w-3.5" />} label="Call" onClick={() => logQuickAction("call")} />
               <ActionBtn color="#3b82f6" icon={<Mail className="h-3.5 w-3.5" />} label="Email" onClick={() => logQuickAction("email")} />
