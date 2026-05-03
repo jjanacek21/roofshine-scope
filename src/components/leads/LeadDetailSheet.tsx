@@ -3,12 +3,14 @@ import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { useServerFn } from "@tanstack/react-start";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 import { useLead, useLeadContacts, useLeadActivities, useLeadNotes } from "@/hooks/useLeads";
 import { LEAD_STATUSES, fmtMoney, fmtNum, type LeadStatus } from "@/lib/leads";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
-import { geocodeLead } from "@/server/leads.functions";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import {
