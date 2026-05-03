@@ -6,12 +6,79 @@ export function useLeads() {
   return useQuery({
     queryKey: ["leads"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Supabase caps any single .select() at 1000 rows. Page through with
+      // .range() so dashboards/list/map see every lead.
+      const PAGE = 1000;
+      const all: LeadRow[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("leads")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const rows = (data ?? []) as unknown as LeadRow[];
+        all.push(...rows);
+        if (rows.length < PAGE) break;
+      }
+      return all;
+    },
+  });
+}
+
+export interface LeadStatusCounts {
+  total: number;
+  byStatus: Record<string, number>;
+  wonValue: number;
+}
+
+export function useLeadStats() {
+  return useQuery({
+    queryKey: ["lead-stats"],
+    queryFn: async (): Promise<LeadStatusCounts> => {
+      const { count: total, error: totalErr } = await supabase
         .from("leads")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as LeadRow[];
+        .select("*", { count: "exact", head: true });
+      if (totalErr) throw totalErr;
+
+      const statuses = [
+        "new",
+        "contacted",
+        "qualified",
+        "quoted",
+        "report_sent",
+        "won",
+        "lost",
+        "dnc",
+      ] as const;
+      const results = await Promise.all(
+        statuses.map(async (s) => {
+          const { count, error } = await supabase
+            .from("leads")
+            .select("*", { count: "exact", head: true })
+            .eq("status", s);
+          if (error) throw error;
+          return [s, count ?? 0] as const;
+        }),
+      );
+      const byStatus: Record<string, number> = {};
+      for (const [s, c] of results) byStatus[s] = c;
+
+      let wonValue = 0;
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("leads")
+          .select("estimated_value")
+          .eq("status", "won")
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const rows = data ?? [];
+        wonValue += rows.reduce((a, r) => a + Number(r.estimated_value ?? 0), 0);
+        if (rows.length < PAGE) break;
+      }
+
+      return { total: total ?? 0, byStatus, wonValue };
     },
   });
 }

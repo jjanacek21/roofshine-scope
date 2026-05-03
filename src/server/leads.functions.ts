@@ -535,14 +535,22 @@ export const listFollowUps = createServerFn({ method: "GET" })
     const { supabase } = context;
 
     // All report_sent activities visible to this user (RLS scopes via lead).
-    const { data: sends, error: sendsErr } = await supabase
-      .from("lead_activities")
-      .select("id, lead_id, created_at, note, user_id")
-      .eq("type", "report_sent")
-      .order("created_at", { ascending: false })
-      .limit(2000);
-    if (sendsErr) throw new Error(sendsErr.message);
-    if (!sends || sends.length === 0) return { items: [] as FollowUpItem[] };
+    // Page through to bypass the default 1000-row cap.
+    const PAGE = 1000;
+    const sends: { id: string; lead_id: string; created_at: string; note: string | null; user_id: string | null }[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from("lead_activities")
+        .select("id, lead_id, created_at, note, user_id")
+        .eq("type", "report_sent")
+        .order("created_at", { ascending: false })
+        .range(from, from + PAGE - 1);
+      if (error) throw new Error(error.message);
+      const rows = data ?? [];
+      sends.push(...rows);
+      if (rows.length < PAGE) break;
+    }
+    if (sends.length === 0) return { items: [] as FollowUpItem[] };
 
     // Latest send per lead.
     const latestByLead = new Map<string, typeof sends[number]>();

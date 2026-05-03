@@ -1,62 +1,20 @@
-# Prospector rename + Follow-Up tab + Training scroll fix
+## Why the dashboard says 1,000
 
-## 1. Rename "Lead Management Center" → "Prospector"
+Supabase silently caps every `.select()` at 1,000 rows. `useLeads` uses a plain `.select("*")`, so the dashboard, list, pipeline, and map all stop counting at 1,000. Once the full CSV is re-imported (1,264+ leads), every screen will be wrong by the same logic.
 
-Routes stay at `/leads/*` so existing links/bookmarks keep working — only visible labels change.
+## Fix
 
-- `src/routes/_app.leads.tsx` — H1 "Lead Management Center" → "Prospector".
-- `src/components/layout/AppSidebar.tsx` — sidebar item "Lead Mgmt Center" → "Prospector".
-- `src/components/layout/MobileSidebarSheet.tsx` — same rename.
+### 1. `src/hooks/useLeads.ts`
+- Replace `useLeads` with a paginated version: loop `.range(from, from + 999)` until a short page returns. Result: every lead loads, regardless of total.
+- Add a new `useLeadStats` hook that uses `select('*', { count: 'exact', head: true })` per status. Head-only counts are fast (no rows transferred) and accurate even at 100k+ leads. It also pages through `won` leads to sum `estimated_value` for the pipeline value KPI.
 
-## 2. Fix Training Center scrolling / cut-off content
+### 2. `src/routes/_app.leads.index.tsx` (Dashboard)
+- Switch the four StatCards (Total / Contacted / Qualified / Won) to read from `useLeadStats` instead of derived counts on the in-memory list.
+- Keep `useLeads` only for the "Recent Leads" table and charts (charts already only need the list; recent table slices `.slice(0, 10)`).
+- Pipeline bar chart: build from `stats.byStatus` so it reflects the true totals.
+- Monthly imports chart: keep using paged `useLeads` data — fine now that pagination works.
 
-Root cause: `src/routes/_app.leads.training.tsx` wraps the layout in a `maxHeight: 85vh` + `overflow-hidden` grid, with the right pane as the only scrollable region. Inside the app shell that traps content and clips the bottom (and on shorter viewports the inner scroll never reaches the last sections).
+### 3. `src/server/leads.functions.ts` — `listFollowUps`
+- Replace the single `.limit(2000)` with a paged loop over `lead_activities` where `type = 'report_sent'` so the Follow-Up tab also scales beyond 1k sends.
 
-Fix: drop the height cap so the page scrolls normally; make the category sidebar sticky on desktop so it stays visible while reading.
-
-- Remove `overflow-hidden` and `maxHeight: 85vh` from the grid wrapper.
-- Sidebar `<nav>`: `self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto` (still scrollable internally if it ever overflows; on mobile it just stacks naturally).
-- Right content pane: remove `overflow-y-auto` so all sections render in normal page flow.
-
-## 3. Add a "Follow-Up" tab
-
-A list of leads that have been spoken to AND received a free damage / savings report by email or text. Source of truth: `lead_activities.type = 'report_sent'` (enum already exists).
-
-### Tab + route
-
-- `src/routes/_app.leads.tsx` — add a `Follow-Up` tab between Savings and Training, lucide icon `Send`.
-- `src/routes/_app.leads.followup.tsx` — new page.
-
-### Page layout
-
-- KPI strip: Reports sent (total), This week, Awaiting reply (no `call`/`email`/`text`/`note` activity after the latest `report_sent`), Converted (status moved to qualified/quoted/won after report).
-- Filter bar: channel (Email / Text / All), status, date range, search by name/address.
-- Table: Lead (name + address, click → opens existing `LeadDetailSheet`), Channel badge, Sent at, Days since, Last reply, Status badge, Actions (Log call, Mark contacted, Open lead).
-- Empty state: "No reports sent yet — generate a savings or damage report and send it to a contact to start tracking follow-ups here."
-
-### Server function
-
-`listFollowUps` in `src/server/leads.functions.ts`:
-- Query `lead_activities` where `type = 'report_sent'`, joined to `leads` (RLS already scopes via the existing "Access activities via lead" policy).
-- Group by lead → return latest `report_sent` (with parsed channel), follow-up activity count, latest reply timestamp, and the lead row.
-
-### Logging "report sent" (so the tab populates)
-
-Today nothing writes `report_sent`. Add send actions on the Savings page:
-
-- New `src/server/lead-reports.functions.ts` → `sendLeadReport({ leadId, contactId, channel: 'email'|'text', reportId })`:
-  - Email: Resend (secret already set) — sends a signed URL to the PDF in the `lead-reports` bucket.
-  - Text: gated. If no SMS provider is configured, the button is disabled with tooltip "SMS provider not configured" and we still ship the email path. Open question below.
-  - Inserts `lead_activities { type: 'report_sent', note: 'email→john@x.com' | 'text→+15551234' }` and bumps lead `status` from `new` → `contacted`.
-- `src/routes/_app.leads.savings.tsx` — after the existing PDF generation, add "Email to contact…" / "Text to contact…" buttons. A small dialog picks from the lead's `lead_contact_emails` / `lead_contact_phones`, then calls `sendLeadReport`.
-
-## Technical details
-
-- No schema migrations required — `lead_activity_type` already includes `report_sent`, and `lead_reports` already stores PDF metadata.
-- Channel parsing: store as a stable prefix in `lead_activities.note` (`email→…` / `text→…`) so the Follow-Up query can derive channel without a schema change. Easy to promote to a real column later.
-- Server functions follow the existing `createServerFn` pattern with Zod input + `auth_company_id()` scoping.
-- Follow-Up page uses TanStack Query with key `['followups', filters]`, matching the other leads tabs.
-
-## Open question
-
-For the SMS channel: do you already have a provider you want to use (Twilio, Telnyx, etc.), or should I ship Email-only now and leave the Text button disabled until you pick a provider?
+No schema changes, no migrations. Pure read-side fixes. After this lands, re-import yesterday's CSV and the dashboard will correctly show the full count.
