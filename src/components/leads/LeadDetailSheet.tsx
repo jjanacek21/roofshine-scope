@@ -326,9 +326,9 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
               )}
             </Section>
 
-            <Section title="Satellite View">
-              {lead.lat != null && lead.lng != null && mapboxToken ? (
-                <div ref={mapRef} className="h-48 w-full overflow-hidden rounded-lg border" style={{ borderColor: "var(--border)" }} />
+            <Section title="Roof Measurement & Report">
+              {lead.lat != null && lead.lng != null ? (
+                <RoofWizardInline lead={lead} />
               ) : (
                 <div className="flex h-48 flex-col items-center justify-center gap-2 rounded-lg border text-sm text-muted-foreground" style={{ borderColor: "var(--border)" }}>
                   {geocoding ? (
@@ -356,46 +356,6 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
                 </div>
               )}
             </Section>
-
-            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (!leadId) return;
-                  onClose();
-                  navigate({ to: "/leads/wizard", search: { leadId } });
-                }}
-                className="flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
-                style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)" }}
-              >
-                <Sparkles className="h-4 w-4" />
-                AI Roof Wizard
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!leadId) return;
-                  onClose();
-                  navigate({ to: "/leads/savings", search: { leadId } });
-                }}
-                className="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-opacity hover:bg-emerald-700"
-              >
-                <FileDown className="h-4 w-4" />
-                Generate Savings Report
-              </button>
-            </div>
-            {leadId && (
-              <button
-                type="button"
-                onClick={generateAndSaveReport}
-                disabled={generatingReport}
-                className="mt-2 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md border text-[11px] font-medium text-muted-foreground transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
-                style={{ borderColor: "var(--border)" }}
-              >
-                {generatingReport ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileDown className="h-3 w-3" />}
-                {generatingReport ? "Saving…" : "Save quick PDF to lead"}
-              </button>
-            )}
 
             <div className="mt-4 grid grid-cols-3 gap-2">
               <ActionBtn color="#22c55e" icon={<Phone className="h-3.5 w-3.5" />} label="Call" onClick={() => logQuickAction("call")} />
