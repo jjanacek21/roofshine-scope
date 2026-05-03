@@ -24,6 +24,7 @@ interface Props {
 }
 
 export function LeadDetailSheet({ leadId, onClose }: Props) {
+  const navigate = useNavigate();
   const { data: lead } = useLead(leadId);
   const { data: contacts = [] } = useLeadContacts(leadId);
   const { data: activities = [] } = useLeadActivities(leadId);
