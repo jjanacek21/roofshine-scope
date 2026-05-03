@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, Map, List, Kanban, Upload, Sparkles, Calculator, BookOpen, Send } from "lucide-react";
+import { LayoutDashboard, Map, List, Kanban, BookOpen, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CallPlaybookProvider } from "@/hooks/useCallPlaybook";
 import { CallPlaybookPanel } from "@/components/leads/CallPlaybookPanel";
@@ -13,9 +13,6 @@ const TABS: { to: string; label: string; icon: typeof LayoutDashboard; exact?: b
   { to: "/leads/map", label: "Map", icon: Map },
   { to: "/leads/list", label: "List", icon: List },
   { to: "/leads/pipeline", label: "Pipeline", icon: Kanban },
-  { to: "/leads/import", label: "Import", icon: Upload },
-  { to: "/leads/wizard", label: "AI Wizard", icon: Sparkles },
-  { to: "/leads/savings", label: "Savings", icon: Calculator },
   { to: "/leads/followup", label: "Follow-Up", icon: Send },
   { to: "/leads/training", label: "Training", icon: BookOpen },
 ];
