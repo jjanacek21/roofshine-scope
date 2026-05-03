@@ -2,6 +2,21 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+function extractRoofObservations(text: string): string[] {
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const bullets = lines
+    .filter((line) => /^([-•*]|\d+[.)])\s+/.test(line))
+    .map((line) => line.replace(/^([-•*]|\d+[.)])\s+/, "").trim())
+    .filter((line) => line.length > 4);
+  if (bullets.length >= 2) return bullets.slice(0, 10);
+  return text
+    .replace(/\s+/g, " ")
+    .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length > 15)
+    .slice(0, 8);
+}
+
 /** Google Solar API — building insights at a coordinate */
 export const getRoofMeasurements = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -133,35 +148,50 @@ export const analyzeRoofWithAI = createServerFn({ method: "POST" })
         .map((b) => b.text ?? "")
         .join("\n\n") ?? "";
 
+    let savedReport: Record<string, unknown> | null = null;
+
     if (data.leadId) {
-      const { data: existing } = await context.supabase
+      const { data: existing, error: existingError } = await context.supabase
         .from("leads")
         .select("ai_report")
         .eq("id", data.leadId)
         .maybeSingle();
+      if (existingError) throw new Error(`Could not read existing report: ${existingError.message}`);
+      if (!existing) throw new Error("Could not find this lead for report updates.");
+
       const prev = (existing?.ai_report as Record<string, unknown> | null) ?? {};
-      await context.supabase
+      const nextReport = {
+        ...prev,
+        analysis: text,
+        roof_observations: extractRoofObservations(text),
+        analysis_generated_at: new Date().toISOString(),
+        lat: data.lat,
+        lng: data.lng,
+      };
+      const { data: updated, error: updateError } = await context.supabase
         .from("leads")
         .update({
-          ai_report: {
-            ...prev,
-            analysis: text,
-            analysis_generated_at: new Date().toISOString(),
-            lat: data.lat,
-            lng: data.lng,
-          },
+          ai_report: nextReport,
         })
-        .eq("id", data.leadId);
-      await context.supabase.from("lead_activities").insert({
+        .eq("id", data.leadId)
+        .select("ai_report")
+        .maybeSingle();
+      if (updateError) throw new Error(`Could not save roof observations: ${updateError.message}`);
+      if (!updated) throw new Error("Roof observations were generated but the lead was not updated.");
+      savedReport = (updated.ai_report as Record<string, unknown> | null) ?? nextReport;
+
+      const { error: activityError } = await context.supabase.from("lead_activities").insert({
         lead_id: data.leadId,
         user_id: context.userId,
         type: "ai_analysis",
         note: "AI roof analysis generated",
       });
+      if (activityError) console.error("Could not record AI analysis activity", activityError.message);
     }
 
     return {
       analysis: text,
+      ai_report: savedReport,
       image_url: `data:image/png;base64,${b64}`,
     };
   });
