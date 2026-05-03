@@ -134,12 +134,19 @@ export const analyzeRoofWithAI = createServerFn({ method: "POST" })
         .join("\n\n") ?? "";
 
     if (data.leadId) {
+      const { data: existing } = await context.supabase
+        .from("leads")
+        .select("ai_report")
+        .eq("id", data.leadId)
+        .maybeSingle();
+      const prev = (existing?.ai_report as Record<string, unknown> | null) ?? {};
       await context.supabase
         .from("leads")
         .update({
           ai_report: {
+            ...prev,
             analysis: text,
-            generated_at: new Date().toISOString(),
+            analysis_generated_at: new Date().toISOString(),
             lat: data.lat,
             lng: data.lng,
           },

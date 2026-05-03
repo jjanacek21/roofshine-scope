@@ -1,40 +1,40 @@
-## Problems
+## Problem
 
-1. **PDF export silently fails.** `html2pdf.js` uses `html2canvas`, which can't parse the `oklch()` color values that Tailwind v4 emits (`bg-slate-900`, `text-slate-400`, etc.). The promise rejects with an `[object Response]`-style error, the toast never fires, and no file downloads.
-2. **"Run AI Analysis" still routes to the old wizard.** In `src/routes/_app.leads.savings.tsx` (line ~341), the fallback button under "Roof Observations" navigates to `/leads/wizard` instead of running the satellite-image AI vision analysis directly.
+When you click **Run AI Analysis** on the Savings Report, the toast says "observations updated" but the **Roof Observations** section stays empty.
+
+## Root cause
+
+I checked the lead in the database (`4a758e37-…`). Its `ai_report` column currently contains **only `measurements`** — no `analysis` field. There are two bugs causing this:
+
+1. **`analyzeRoofWithAI` overwrites `ai_report` instead of merging it.**
+   In `src/server/lead-ai.functions.ts` the handler does:
+   ```ts
+   .update({ ai_report: { analysis: text, generated_at, lat, lng } })
+   ```
+   This replaces the whole JSON column. So running measurements wipes the analysis, and running analysis wipes the measurements. Whoever ran last wins — in this lead's case, measurements ran last and erased the analysis text, which is why the Observations list is empty even though the call succeeded.
+
+2. **Savings page reads from a stale cached lead.**
+   `useLeads()` returns the full list and the page derives `aiObservations` from `lead.ai_report.analysis`. After the analysis call we invalidate `["leads"]`, but the toast fires *before* the new data is in the cache, and the parsed-bullets heuristic (`length < 220`, strips leading `[-•*\d]`) is also too strict — Claude's output is one or two long paragraphs, so most lines are filtered out and the section renders empty even when `analysis` *is* present.
 
 ## Fix
 
-### 1. PDF export — swap to `html2canvas-pro`
+**1. Merge instead of overwrite (`src/server/lead-ai.functions.ts`)**
+- Before updating, `select ai_report` for the lead, then write `{ ...existing, analysis, analysis_generated_at, lat, lng }`. Same pattern the inline wizard already uses for measurements.
+- Return `{ analysis, image_url }` (already does).
 
-`html2canvas-pro` is a drop-in fork that supports `oklch`/`oklab`/`color()` and modern CSS. Use it via `jspdf` directly so we control the pipeline:
+**2. Make Observations actually render the analysis (`src/routes/_app.leads.savings.tsx`)**
+- Replace the brittle bullet-extraction heuristic with a real parser:
+  - Split on blank lines into paragraphs.
+  - For lines starting with `-`, `•`, `*`, or `1.`/`2.` style, treat as list items.
+  - Otherwise, split paragraphs into sentences and take the first 6–8 substantive ones.
+- Always show *something* when `analysis` is non-empty; fall back to the raw `analysis` text in a paragraph if no bullets are found, so the section is never silently blank.
+- Show a small "Generated <date>" caption under the heading when present.
 
-- Add `html2canvas-pro` and `jspdf` (jspdf is already pulled in by html2pdf — keep it explicit).
-- Remove `html2pdf.js` import in `_app.leads.savings.tsx`.
-- Replace `exportPDF` with: render `reportRef.current` via `html2canvas-pro` (scale 2, `backgroundColor: "#0f172a"`, `useCORS: true`), then build a multi-page A4/letter `jsPDF` by slicing the canvas. Keep the existing follow-up status update + activity log.
-- Wrap in try/catch with a real error toast so future failures surface instead of silently swallowing.
-
-### 2. Rewire "Run AI Analysis" in the savings report
-
-In `_app.leads.savings.tsx`:
-- Import `useServerFn` + `analyzeRoofWithAI` from `@/server/lead-ai.functions`.
-- Add `const [analyzing, setAnalyzing] = useState(false)`.
-- Replace the button's `onClick` so it calls `analyzeRoofWithAI` inline using the selected lead's `lat`/`lng`/`address` (no pin required, `pinCount: 1`). On success, invalidate the leads query so the new `ai_report.analysis` re-renders the observations list. Show loading + toast.
-- Remove the navigation to `/leads/wizard` entirely.
-
-### 3. Wizard inline component — same upgrade
-
-In `src/components/leads/RoofWizardInline.tsx`:
-- `runAnalysis` should not require pins. If no pins are dropped, fall back to the lead's `lat`/`lng` (already partially handled by `center`). Keep the existing call into `analyzeRoofWithAI`.
-- After analysis completes, stay on the lead detail (don't navigate to `/leads/savings` automatically) — or navigate only if the user clicks the existing "Open report builder" button. This stops the disorienting tab-jump and matches the "everything happens inside the lead" workflow you described.
+**3. Refresh the page after analysis**
+- After `analyze(...)` resolves, `await qc.refetchQueries({ queryKey: ["leads"] })` (refetch, not just invalidate) so the parsed observations appear immediately on the next render.
 
 ## Files touched
+- `src/server/lead-ai.functions.ts` — merge `ai_report` JSON instead of overwriting
+- `src/routes/_app.leads.savings.tsx` — robust observations parser + refetch on success
 
-- `src/routes/_app.leads.savings.tsx` — new PDF pipeline + inline AI analysis button.
-- `src/components/leads/RoofWizardInline.tsx` — drop the post-analysis redirect, allow analysis without pins.
-- `package.json` — add `html2canvas-pro`, ensure `jspdf` is a direct dep, remove `html2pdf.js`.
-
-## Result
-
-- Clicking **Export as PDF** produces a downloaded multi-page PDF of the dark-themed report.
-- Clicking **Run AI Analysis** (from the savings report or the lead detail) calls the Claude Vision satellite analyzer in place, writes results to `lead.ai_report.analysis`, and the observations bullets populate the report — no detour through the old wizard tab.
+No DB migrations or new dependencies.
