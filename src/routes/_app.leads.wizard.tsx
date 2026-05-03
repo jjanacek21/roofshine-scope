@@ -39,6 +39,69 @@ interface PlaceResult {
   lng: number;
 }
 
+// US state name → 2-letter code, for normalizing messy CSV imports.
+const US_STATE_CODES: Record<string, string> = {
+  alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA",
+  colorado: "CO", connecticut: "CT", delaware: "DE", "district of columbia": "DC",
+  florida: "FL", georgia: "GA", hawaii: "HI", idaho: "ID", illinois: "IL",
+  indiana: "IN", iowa: "IA", kansas: "KS", kentucky: "KY", louisiana: "LA",
+  maine: "ME", maryland: "MD", massachusetts: "MA", michigan: "MI", minnesota: "MN",
+  mississippi: "MS", missouri: "MO", montana: "MT", nebraska: "NE", nevada: "NV",
+  "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
+  "north carolina": "NC", "north dakota": "ND", ohio: "OH", oklahoma: "OK",
+  oregon: "OR", pennsylvania: "PA", "rhode island": "RI", "south carolina": "SC",
+  "south dakota": "SD", tennessee: "TN", texas: "TX", utah: "UT", vermont: "VT",
+  virginia: "VA", washington: "WA", "west virginia": "WV", wisconsin: "WI",
+  wyoming: "WY",
+};
+
+function clean(s: string | null | undefined): string {
+  return (s ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/[.,;]+$/g, "")
+    .trim();
+}
+
+function normState(s: string | null | undefined): string {
+  const v = clean(s).toLowerCase();
+  if (!v) return "";
+  if (v.length === 2) return v.toUpperCase();
+  return US_STATE_CODES[v] ?? clean(s).toUpperCase();
+}
+
+function normZip(s: string | null | undefined): string {
+  const digits = (s ?? "").replace(/\D+/g, "");
+  if (digits.length >= 9) return `${digits.slice(0, 5)}-${digits.slice(5, 9)}`;
+  if (digits.length >= 5) return digits.slice(0, 5);
+  return "";
+}
+
+// Strip secondary unit info (APT 4B, #12, UNIT 3) — Mapbox's address index doesn't
+// know about these and they routinely cause "no match" results.
+function stripUnit(street: string): string {
+  return street
+    .replace(/\b(apt|apartment|unit|ste|suite|#|no\.?|number|fl|floor|bldg|building|lot|trlr|trailer|rm|room)\s*\.?\s*\S+/gi, "")
+    .replace(/\s+#\S+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatAddressForGeocoding(parts: {
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+}): string {
+  const street = stripUnit(clean(parts.address));
+  const city = clean(parts.city);
+  const state = normState(parts.state);
+  const zip = normZip(parts.zip);
+  const cityStateZip = [city, [state, zip].filter(Boolean).join(" ")]
+    .filter(Boolean)
+    .join(", ");
+  return [street, cityStateZip, "USA"].filter(Boolean).join(", ");
+}
+
 function AIRoofWizard() {
   const { data: token } = useMapboxToken();
   const { data: leads = [] } = useLeads();
