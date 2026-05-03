@@ -134,17 +134,27 @@ function SavingsReport() {
     ? `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${lead.lng},${lead.lat},19,0/600x400@2x?access_token=${mapboxToken}`
     : null;
 
-  // Extract observations from AI report
+  // Extract observations from AI report — robust parser
+  const aiReport = (lead?.ai_report ?? {}) as { analysis?: string; analysis_generated_at?: string };
+  const aiAnalysisRaw = aiReport.analysis ?? "";
+  const aiGeneratedAt = aiReport.analysis_generated_at ?? null;
   const aiObservations: string[] = (() => {
-    const r = lead?.ai_report as { analysis?: string } | undefined;
-    if (!r?.analysis) return [];
-    const lines = r.analysis.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+    if (!aiAnalysisRaw) return [];
+    const lines = aiAnalysisRaw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     const bullets = lines
-      .filter((l) => /^[-•*\d]/.test(l) || l.length < 220)
-      .map((l) => l.replace(/^[-•*\d.\s]+/, "").trim())
-      .filter((l) => l.length > 10);
-    return bullets.slice(0, 8);
+      .filter((l) => /^([-•*]|\d+[.)])\s+/.test(l))
+      .map((l) => l.replace(/^([-•*]|\d+[.)])\s+/, "").trim())
+      .filter((l) => l.length > 4);
+    if (bullets.length >= 2) return bullets.slice(0, 10);
+    // Fallback: split into sentences
+    const sentences = aiAnalysisRaw
+      .replace(/\s+/g, " ")
+      .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 15);
+    return sentences.slice(0, 8);
   })();
+
 
   async function exportPDF() {
     if (!reportRef.current) return;
