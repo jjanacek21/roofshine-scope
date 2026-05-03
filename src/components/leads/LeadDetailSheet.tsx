@@ -70,21 +70,6 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadId, lead?.lat, lead?.lng, mapboxToken]);
 
-  useEffect(() => {
-    if (!mapboxToken || !mapRef.current || !lead?.lat || !lead?.lng) return;
-    mapboxgl.accessToken = mapboxToken;
-    const m = new mapboxgl.Map({
-      container: mapRef.current,
-      style: "mapbox://styles/mapbox/satellite-v9",
-      center: [lead.lng, lead.lat],
-      zoom: 18,
-      interactive: false,
-    });
-    // Force a resize once the sheet finishes its open animation so the canvas
-    // matches the actual container width (otherwise it renders 0×0).
-    const t = setTimeout(() => m.resize(), 250);
-    return () => { clearTimeout(t); m.remove(); };
-  }, [mapboxToken, lead?.lat, lead?.lng]);
 
   const updateStatus = useMutation({
     mutationFn: async (status: LeadStatus) => {
