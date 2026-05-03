@@ -71,7 +71,16 @@ function LeadsMap() {
               .from("leads")
               .update({ lat, lng })
               .eq("id", lead.id);
-            if (!error) ok++;
+            if (!error) {
+              ok++;
+              // Patch the cached leads list immediately so the marker appears
+              // without waiting for a full refetch.
+              qc.setQueryData<typeof leads>(["leads"], (prev) =>
+                Array.isArray(prev)
+                  ? prev.map((row) => (row.id === lead.id ? { ...row, lat, lng } : row))
+                  : prev,
+              );
+            }
           }
         } catch {
           /* skip */
