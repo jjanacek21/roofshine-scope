@@ -16,6 +16,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/leads/wizard")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    leadId: typeof s.leadId === "string" ? s.leadId : undefined,
+  }),
   component: AIRoofWizard,
 });
 
