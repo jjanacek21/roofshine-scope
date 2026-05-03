@@ -152,64 +152,6 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
 
-  async function generateAndSaveReport() {
-    if (!lead || !leadId) return;
-    setGeneratingReport(true);
-    try {
-      const inputs = defaultsForLead(lead);
-      const { doc, safeName } = buildSavingsReportPdf({ inputs, lead });
-      const blob = doc.output("blob");
-      const filename = `${safeName}-${Date.now()}.pdf`;
-      const path = `${lead.company_id}/${leadId}/${filename}`;
-
-      // Open the PDF in a new tab immediately so the user sees it
-      const localUrl = URL.createObjectURL(blob);
-      const win = window.open(localUrl, "_blank", "noopener,noreferrer");
-      if (!win) {
-        // Popup blocked — fall back to downloading
-        const a = document.createElement("a");
-        a.href = localUrl;
-        a.download = `${safeName}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }
-      setTimeout(() => URL.revokeObjectURL(localUrl), 60_000);
-
-      const { error: upErr } = await supabase.storage
-        .from("lead-reports")
-        .upload(path, blob, { contentType: "application/pdf", upsert: false });
-      if (upErr) throw upErr;
-
-      const { error: insErr } = await supabase.from("lead_reports").insert([{
-        lead_id: leadId,
-        company_id: lead.company_id,
-        created_by: user?.id,
-        kind: "savings",
-        name: `Savings Report — ${lead.address}`,
-        pdf_path: path,
-        inputs: inputs as unknown as never,
-      }]);
-      if (insErr) throw insErr;
-
-      await supabase.from("lead_activities").insert({
-        lead_id: leadId,
-        user_id: user?.id,
-        type: "report_generated",
-        note: `Savings report saved`,
-      });
-
-      qc.invalidateQueries({ queryKey: ["lead-reports", leadId] });
-      qc.invalidateQueries({ queryKey: ["lead-activities", leadId] });
-      toast.success("Report opened and saved to lead");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to save report");
-    } finally {
-      setGeneratingReport(false);
-    }
-  }
-
-  async function handleFileUpload(files: FileList | null) {
     if (!files || files.length === 0 || !lead || !leadId) return;
     const errors: string[] = [];
     for (const file of Array.from(files)) {
