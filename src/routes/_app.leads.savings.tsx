@@ -383,7 +383,27 @@ function SavingsReport() {
 
           {/* Section 3 — Roof Observations */}
           <div>
-            <h3 className="mb-3 border-b border-slate-700 pb-2 text-sm font-bold tracking-wider text-white">ROOF OBSERVATIONS</h3>
+            <div className="mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
+              <h3 className="text-sm font-bold tracking-wider text-white">ROOF OBSERVATIONS</h3>
+              <div className="flex items-center gap-3">
+                {aiGeneratedAt && (
+                  <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                    Generated {new Date(aiGeneratedAt).toLocaleDateString()}
+                  </span>
+                )}
+                {aiAnalysisRaw && (
+                  <button
+                    type="button"
+                    onClick={runAIAnalysis}
+                    disabled={analyzing || !lead}
+                    className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-600 bg-slate-800 px-2 text-[10px] font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+                  >
+                    {analyzing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                    Re-run
+                  </button>
+                )}
+              </div>
+            </div>
             {aiObservations.length > 0 ? (
               <ul className="space-y-1.5">
                 {aiObservations.map((o, i) => (
@@ -393,6 +413,8 @@ function SavingsReport() {
                   </li>
                 ))}
               </ul>
+            ) : aiAnalysisRaw ? (
+              <p className="whitespace-pre-wrap text-sm text-slate-300">{aiAnalysisRaw}</p>
             ) : (
               <div className="space-y-3">
                 <p className="text-sm text-slate-400">No AI analysis yet. Run AI vision on the satellite image to generate roof observations.</p>
