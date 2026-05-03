@@ -1,11 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { Loader2, MapPin } from "lucide-react";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { useLeads } from "@/hooks/useLeads";
 import { LeadDetailSheet } from "@/components/leads/LeadDetailSheet";
 import { fmtNum, leadStatusColor } from "@/lib/leads";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/leads/map")({
   component: LeadsMap,
