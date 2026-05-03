@@ -65,6 +65,7 @@ function SavingsReport() {
   const [address, setAddress] = useState<string>("");
   const [exporting, setExporting] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [liveAnalysis, setLiveAnalysis] = useState<{ analysis: string; observations: string[]; generatedAt: string | null } | null>(null);
 
   const lead = useMemo<LeadRow | null>(
     () => leads.find((l) => l.id === leadId) ?? null,
@@ -80,6 +81,7 @@ function SavingsReport() {
   // Pre-fill from lead when one is selected
   useEffect(() => {
     if (!lead) return;
+    setLiveAnalysis(null);
     if (lead.sqft) setSqft(lead.sqft);
     setRoofType(normalizeRoofType(lead.roof_type));
     if (lead.year_built) {
@@ -135,10 +137,12 @@ function SavingsReport() {
     : null;
 
   // Extract observations from AI report — robust parser
-  const aiReport = (lead?.ai_report ?? {}) as { analysis?: string; analysis_generated_at?: string };
-  const aiAnalysisRaw = aiReport.analysis ?? "";
-  const aiGeneratedAt = aiReport.analysis_generated_at ?? null;
+  const aiReport = (lead?.ai_report ?? {}) as { analysis?: string; roof_observations?: string[]; analysis_generated_at?: string };
+  const aiAnalysisRaw = liveAnalysis?.analysis ?? aiReport.analysis ?? "";
+  const aiGeneratedAt = liveAnalysis?.generatedAt ?? aiReport.analysis_generated_at ?? null;
   const aiObservations: string[] = (() => {
+    if (liveAnalysis?.observations.length) return liveAnalysis.observations;
+    if (Array.isArray(aiReport.roof_observations) && aiReport.roof_observations.length > 0) return aiReport.roof_observations;
     if (!aiAnalysisRaw) return [];
     const lines = aiAnalysisRaw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     const bullets = lines
@@ -211,7 +215,7 @@ function SavingsReport() {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token) throw new Error("Please sign in again.");
-      await analyze({
+      const result = await analyze({
         data: {
           lat: lead.lat,
           lng: lead.lng,
@@ -221,6 +225,22 @@ function SavingsReport() {
         },
         headers: { Authorization: `Bearer ${token}` },
       });
+      setLiveAnalysis({
+        analysis: result.analysis,
+        observations: result.roof_observations,
+        generatedAt: result.analysis_generated_at,
+      });
+      qc.setQueryData<LeadRow[]>(["leads"], (current) => current?.map((item) => item.id === lead.id ? {
+        ...item,
+        ai_report: {
+          ...(item.ai_report ?? {}),
+          analysis: result.analysis,
+          roof_observations: result.roof_observations,
+          analysis_generated_at: result.analysis_generated_at,
+          lat: lead.lat,
+          lng: lead.lng,
+        },
+      } : item));
       await Promise.all([
         qc.refetchQueries({ queryKey: ["leads"] }),
         qc.refetchQueries({ queryKey: ["lead", lead.id] }),
