@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useLead, useLeadContacts, useLeadActivities, useLeadNotes } from "@/hooks/useLeads";
@@ -22,7 +22,7 @@ interface Props {
 }
 
 export function LeadDetailSheet({ leadId, onClose }: Props) {
-  const navigate = useNavigate();
+  
   const { data: lead } = useLead(leadId);
   const { data: contacts = [] } = useLeadContacts(leadId);
   const { data: activities = [] } = useLeadActivities(leadId);
