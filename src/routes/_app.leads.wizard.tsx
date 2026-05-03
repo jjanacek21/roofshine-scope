@@ -117,6 +117,7 @@ function AIRoofWizard() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pins, setPins] = useState<Pin[]>([]);
   const [measurements, setMeasurements] = useState<Measurements | null>(null);
+  const [pinStatus, setPinStatus] = useState<Record<string, { status: "pending" | "ok" | "error"; sqft?: number; message?: string }>>({});
   const [analysis, setAnalysis] = useState<string>("");
   const [analysisImage, setAnalysisImage] = useState<string>("");
   const [loading, setLoading] = useState<"none" | "measure" | "analyze">("none");
