@@ -151,16 +151,30 @@ function SavingsReport() {
     setExporting(true);
     try {
       const safeAddr = (address || "savings-report").replace(/[^a-z0-9]+/gi, "_").slice(0, 60);
-      await html2pdf()
-        .set({
-          margin: 0.3,
-          filename: `GCN_Savings_Report_${safeAddr}.pdf`,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#0f172a" },
-          jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-        })
-        .from(reportRef.current)
-        .save();
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#0f172a",
+        logging: false,
+      });
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const pdf = new jsPDF({ unit: "in", format: "letter", orientation: "portrait" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 0.3;
+      const imgW = pageW - margin * 2;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      let heightLeft = imgH;
+      let position = margin;
+      pdf.addImage(imgData, "JPEG", margin, position, imgW, imgH);
+      heightLeft -= pageH - margin * 2;
+      while (heightLeft > 0) {
+        position = margin - (imgH - heightLeft);
+        pdf.addPage();
+        pdf.addImage(imgData, "JPEG", margin, position, imgW, imgH);
+        heightLeft -= pageH - margin * 2;
+      }
+      pdf.save(`GCN_Savings_Report_${safeAddr}.pdf`);
       // Mark lead as report_sent so it appears in Follow-Up
       if (lead?.id && lead?.company_id) {
         await supabase.from("leads").update({ status: "report_sent" }).eq("id", lead.id);
@@ -172,9 +186,35 @@ function SavingsReport() {
       }
       toast.success("PDF downloaded · lead moved to Follow-Up");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to export");
+      console.error("PDF export failed:", e);
+      toast.error(e instanceof Error ? e.message : "Failed to export PDF");
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function runAIAnalysis() {
+    if (!lead) { toast.error("Pick a lead first"); return; }
+    if (lead.lat == null || lead.lng == null) { toast.error("Lead has no coordinates"); return; }
+    setAnalyzing(true);
+    try {
+      await analyze({
+        data: {
+          lat: lead.lat,
+          lng: lead.lng,
+          address: address || lead.address,
+          pinCount: 1,
+          leadId: lead.id,
+        },
+      });
+      await qc.invalidateQueries({ queryKey: ["leads"] });
+      await qc.invalidateQueries({ queryKey: ["lead", lead.id] });
+      toast.success("AI analysis complete — observations updated");
+    } catch (e) {
+      console.error("AI analysis failed:", e);
+      toast.error(e instanceof Error ? e.message : "Failed to analyze");
+    } finally {
+      setAnalyzing(false);
     }
   }
 
