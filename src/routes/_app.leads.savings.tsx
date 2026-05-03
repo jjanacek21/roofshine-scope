@@ -55,12 +55,16 @@ function SavingsReport() {
   const { data: mapboxToken } = useMapboxToken();
   const reportRef = useRef<HTMLDivElement>(null);
 
+  const qc = useQueryClient();
+  const analyze = useServerFn(analyzeRoofWithAI);
+
   const [leadId, setLeadId] = useState<string>(searchLeadId ?? "");
   const [sqft, setSqft] = useState<number>(12500);
   const [roofType, setRoofType] = useState<string>("modified");
   const [roofAge, setRoofAge] = useState<number>(18);
   const [address, setAddress] = useState<string>("");
   const [exporting, setExporting] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
 
   const lead = useMemo<LeadRow | null>(
     () => leads.find((l) => l.id === leadId) ?? null,
