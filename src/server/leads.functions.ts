@@ -150,6 +150,7 @@ export const importLeads = createServerFn({ method: "POST" })
           createdLeadCount += inserted?.length ?? 0;
           for (const r of inserted ?? []) {
             addressToId.set(r.address.trim().toLowerCase(), r.id);
+            createdLeadIds.add(r.id);
           }
         }
       }
