@@ -364,6 +364,9 @@ function AIRoofWizard() {
       const targets = pins.length > 0 ? pins : [{ id: "selected", lat: center.lat, lng: center.lng }];
       const results: Measurements[] = [];
       const failures: string[] = [];
+      const nextStatus: Record<string, { status: "pending" | "ok" | "error"; sqft?: number; message?: string }> = {};
+      targets.forEach((t) => { nextStatus[t.id] = { status: "pending" }; });
+      setPinStatus(nextStatus);
 
       for (const target of targets) {
         const response = await fetch("/api/solar-roof-extract", {
@@ -376,7 +379,9 @@ function AIRoofWizard() {
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
-          failures.push(String(payload.message ?? payload.detail ?? payload.error ?? `Pin ${failures.length + 1} failed`));
+          const msg = String(payload.message ?? payload.detail ?? payload.error ?? `Pin failed`);
+          failures.push(msg);
+          setPinStatus((prev) => ({ ...prev, [target.id]: { status: "error", message: msg } }));
           continue;
         }
         const segments = ((payload.segments ?? []) as Array<{ pitch_degrees?: number; azimuth_degrees?: number; plan_area_sqft?: number }>).map((segment) => ({
@@ -387,12 +392,14 @@ function AIRoofWizard() {
         const avgPitch = segments.length > 0
           ? segments.reduce((sum, segment) => sum + segment.pitch, 0) / segments.length
           : 0;
+        const totalSqft = Number(payload.total_plan_sqft ?? 0);
         results.push({
-          total_sqft: Number(payload.total_plan_sqft ?? 0),
+          total_sqft: totalSqft,
           sun_hours_per_year: Number(payload.max_sunshine_hours_per_year ?? 0),
           avg_pitch: avgPitch,
           segments,
         });
+        setPinStatus((prev) => ({ ...prev, [target.id]: { status: "ok", sqft: totalSqft } }));
       }
 
       if (results.length === 0) {
