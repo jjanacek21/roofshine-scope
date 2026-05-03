@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { useLeads } from "@/hooks/useLeads";
 import { fmtNum } from "@/lib/leads";
-import { getRoofMeasurements, analyzeRoofWithAI } from "@/server/lead-ai.functions";
+import { analyzeRoofWithAI } from "@/server/lead-ai.functions";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -126,7 +126,6 @@ function AIRoofWizard() {
   const [placeResults, setPlaceResults] = useState<PlaceResult[]>([]);
   const [searching, setSearching] = useState(false);
 
-  const getMeasurements = useServerFn(getRoofMeasurements);
   const analyze = useServerFn(analyzeRoofWithAI);
   const qc = useQueryClient();
 
@@ -356,14 +355,59 @@ function AIRoofWizard() {
     }
     setLoading("measure");
     try {
-      const res = await getMeasurements({ data: { lat: center.lat, lng: center.lng } });
-      if (!res.ok) {
-        toast.error(res.error);
-        setMeasurements(null);
-      } else {
-        setMeasurements(res);
-        toast.success("Measurements ready");
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error("Please sign in again to get measurements.");
+
+      const targets = pins.length > 0 ? pins : [{ id: "selected", lat: center.lat, lng: center.lng }];
+      const results: Measurements[] = [];
+      const failures: string[] = [];
+
+      for (const target of targets) {
+        const response = await fetch("/api/solar-roof-extract", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ lat: target.lat, lng: target.lng, property_id: selectedLeadId || undefined }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          failures.push(String(payload.message ?? payload.detail ?? payload.error ?? `Pin ${failures.length + 1} failed`));
+          continue;
+        }
+        const segments = ((payload.segments ?? []) as Array<{ pitch_degrees?: number; azimuth_degrees?: number; plan_area_sqft?: number }>).map((segment) => ({
+          pitch: Number(segment.pitch_degrees ?? 0),
+          azimuth: Number(segment.azimuth_degrees ?? 0),
+          area_sqft: Number(segment.plan_area_sqft ?? 0),
+        }));
+        const avgPitch = segments.length > 0
+          ? segments.reduce((sum, segment) => sum + segment.pitch, 0) / segments.length
+          : 0;
+        results.push({
+          total_sqft: Number(payload.total_plan_sqft ?? 0),
+          sun_hours_per_year: Number(payload.max_sunshine_hours_per_year ?? 0),
+          avg_pitch: avgPitch,
+          segments,
+        });
       }
+
+      if (results.length === 0) {
+        setMeasurements(null);
+        toast.error(failures[0] ?? "No roof data available for these pins.");
+        return;
+      }
+      const allSegments = results.flatMap((result) => result.segments);
+      setMeasurements({
+        total_sqft: results.reduce((sum, result) => sum + result.total_sqft, 0),
+        sun_hours_per_year: Math.max(...results.map((result) => result.sun_hours_per_year)),
+        avg_pitch: allSegments.length > 0
+          ? allSegments.reduce((sum, segment) => sum + segment.pitch, 0) / allSegments.length
+          : 0,
+        segments: allSegments,
+      });
+      toast.success(failures.length > 0 ? `Measurements ready for ${results.length} pin${results.length === 1 ? "" : "s"}` : "Measurements ready");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to measure");
     } finally {

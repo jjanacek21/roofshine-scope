@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 type SolarApiResponse = {
   solarPotential?: {
+    maxSunshineHoursPerYear?: number;
     wholeRoofStats?: { areaMeters2?: number };
     roofSegmentStats?: Array<{
       pitchDegrees?: number;
@@ -253,6 +254,7 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
           imagery_quality: data.imageryQuality ?? success.usedQuality,
           imagery_date: data.imageryDate ?? null,
           total_plan_sqft: totalPlanSqFt,
+          max_sunshine_hours_per_year: data.solarPotential?.maxSunshineHoursPerYear ?? 0,
           segment_count: segments.length,
           segments,
           used_quality: success.usedQuality,
