@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useLead, useLeadContacts, useLeadActivities, useLeadNotes } from "@/hooks/useLeads";
@@ -8,15 +8,13 @@ import { LEAD_STATUSES, fmtMoney, fmtNum, type LeadStatus } from "@/lib/leads";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
 import {
   Phone, Mail, MessageSquare, Sparkles, FileText, Activity, Loader2,
-  BookOpen, FileDown, Upload, Download, Trash2, Paperclip,
+  BookOpen, Upload, Download, Trash2, Paperclip,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCallPlaybook } from "@/hooks/useCallPlaybook";
-import { buildSavingsReportPdf, defaultsForLead } from "@/lib/lead-report-pdf";
+import { RoofWizardInline } from "./RoofWizardInline";
 
 interface Props {
   leadId: string | null;
@@ -24,7 +22,7 @@ interface Props {
 }
 
 export function LeadDetailSheet({ leadId, onClose }: Props) {
-  const navigate = useNavigate();
+  
   const { data: lead } = useLead(leadId);
   const { data: contacts = [] } = useLeadContacts(leadId);
   const { data: activities = [] } = useLeadActivities(leadId);
@@ -36,8 +34,6 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
   const [noteText, setNoteText] = useState("");
   const [geocoding, setGeocoding] = useState(false);
   const [geocodeFailed, setGeocodeFailed] = useState(false);
-  const [generatingReport, setGeneratingReport] = useState(false);
-  const mapRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-geocode (client-side via Mapbox) when lead has no coords
@@ -74,21 +70,6 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadId, lead?.lat, lead?.lng, mapboxToken]);
 
-  useEffect(() => {
-    if (!mapboxToken || !mapRef.current || !lead?.lat || !lead?.lng) return;
-    mapboxgl.accessToken = mapboxToken;
-    const m = new mapboxgl.Map({
-      container: mapRef.current,
-      style: "mapbox://styles/mapbox/satellite-v9",
-      center: [lead.lng, lead.lat],
-      zoom: 18,
-      interactive: false,
-    });
-    // Force a resize once the sheet finishes its open animation so the canvas
-    // matches the actual container width (otherwise it renders 0×0).
-    const t = setTimeout(() => m.resize(), 250);
-    return () => { clearTimeout(t); m.remove(); };
-  }, [mapboxToken, lead?.lat, lead?.lng]);
 
   const updateStatus = useMutation({
     mutationFn: async (status: LeadStatus) => {
@@ -169,63 +150,6 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
       return;
     }
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-  }
-
-  async function generateAndSaveReport() {
-    if (!lead || !leadId) return;
-    setGeneratingReport(true);
-    try {
-      const inputs = defaultsForLead(lead);
-      const { doc, safeName } = buildSavingsReportPdf({ inputs, lead });
-      const blob = doc.output("blob");
-      const filename = `${safeName}-${Date.now()}.pdf`;
-      const path = `${lead.company_id}/${leadId}/${filename}`;
-
-      // Open the PDF in a new tab immediately so the user sees it
-      const localUrl = URL.createObjectURL(blob);
-      const win = window.open(localUrl, "_blank", "noopener,noreferrer");
-      if (!win) {
-        // Popup blocked — fall back to downloading
-        const a = document.createElement("a");
-        a.href = localUrl;
-        a.download = `${safeName}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }
-      setTimeout(() => URL.revokeObjectURL(localUrl), 60_000);
-
-      const { error: upErr } = await supabase.storage
-        .from("lead-reports")
-        .upload(path, blob, { contentType: "application/pdf", upsert: false });
-      if (upErr) throw upErr;
-
-      const { error: insErr } = await supabase.from("lead_reports").insert([{
-        lead_id: leadId,
-        company_id: lead.company_id,
-        created_by: user?.id,
-        kind: "savings",
-        name: `Savings Report — ${lead.address}`,
-        pdf_path: path,
-        inputs: inputs as unknown as never,
-      }]);
-      if (insErr) throw insErr;
-
-      await supabase.from("lead_activities").insert({
-        lead_id: leadId,
-        user_id: user?.id,
-        type: "report_generated",
-        note: `Savings report saved`,
-      });
-
-      qc.invalidateQueries({ queryKey: ["lead-reports", leadId] });
-      qc.invalidateQueries({ queryKey: ["lead-activities", leadId] });
-      toast.success("Report opened and saved to lead");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to save report");
-    } finally {
-      setGeneratingReport(false);
-    }
   }
 
   async function handleFileUpload(files: FileList | null) {
@@ -402,9 +326,9 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
               )}
             </Section>
 
-            <Section title="Satellite View">
-              {lead.lat != null && lead.lng != null && mapboxToken ? (
-                <div ref={mapRef} className="h-48 w-full overflow-hidden rounded-lg border" style={{ borderColor: "var(--border)" }} />
+            <Section title="Roof Measurement & Report">
+              {lead.lat != null && lead.lng != null ? (
+                <RoofWizardInline lead={lead} />
               ) : (
                 <div className="flex h-48 flex-col items-center justify-center gap-2 rounded-lg border text-sm text-muted-foreground" style={{ borderColor: "var(--border)" }}>
                   {geocoding ? (
@@ -432,46 +356,6 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
                 </div>
               )}
             </Section>
-
-            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (!leadId) return;
-                  onClose();
-                  navigate({ to: "/leads/wizard", search: { leadId } });
-                }}
-                className="flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
-                style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)" }}
-              >
-                <Sparkles className="h-4 w-4" />
-                AI Roof Wizard
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!leadId) return;
-                  onClose();
-                  navigate({ to: "/leads/savings", search: { leadId } });
-                }}
-                className="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-opacity hover:bg-emerald-700"
-              >
-                <FileDown className="h-4 w-4" />
-                Generate Savings Report
-              </button>
-            </div>
-            {leadId && (
-              <button
-                type="button"
-                onClick={generateAndSaveReport}
-                disabled={generatingReport}
-                className="mt-2 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md border text-[11px] font-medium text-muted-foreground transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
-                style={{ borderColor: "var(--border)" }}
-              >
-                {generatingReport ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileDown className="h-3 w-3" />}
-                {generatingReport ? "Saving…" : "Save quick PDF to lead"}
-              </button>
-            )}
 
             <div className="mt-4 grid grid-cols-3 gap-2">
               <ActionBtn color="#22c55e" icon={<Phone className="h-3.5 w-3.5" />} label="Call" onClick={() => logQuickAction("call")} />

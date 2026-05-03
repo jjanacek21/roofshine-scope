@@ -7,6 +7,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useLeads } from "@/hooks/useLeads";
 import { fmtMoney, fmtNum, type LeadRow } from "@/lib/leads";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/leads/savings")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -152,7 +153,16 @@ function SavingsReport() {
         })
         .from(reportRef.current)
         .save();
-      toast.success("PDF downloaded");
+      // Mark lead as report_sent so it appears in Follow-Up
+      if (lead?.id && lead?.company_id) {
+        await supabase.from("leads").update({ status: "report_sent" }).eq("id", lead.id);
+        await supabase.from("lead_activities").insert({
+          lead_id: lead.id,
+          type: "report_sent",
+          note: `email → owner`,
+        });
+      }
+      toast.success("PDF downloaded · lead moved to Follow-Up");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to export");
     } finally {

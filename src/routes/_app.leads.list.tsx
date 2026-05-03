@@ -17,7 +17,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Phone, Mail, MessageSquare, Sparkles, Eye, Trash2, X } from "lucide-react";
+import { Phone, Mail, MessageSquare, Sparkles, Eye, Trash2, X, Upload } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { LeadDetailSheet } from "@/components/leads/LeadDetailSheet";
 import { useCallPlaybook } from "@/hooks/useCallPlaybook";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,6 +110,14 @@ function LeadsList() {
             </TabBtn>
           ))}
         </div>
+        <Link
+          to="/leads/import"
+          className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+          style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)" }}
+        >
+          <Upload className="h-3.5 w-3.5" />
+          Import addresses
+        </Link>
       </div>
 
       {selected.size > 0 && (
