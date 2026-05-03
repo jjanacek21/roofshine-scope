@@ -215,7 +215,7 @@ function SavingsReport() {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token) throw new Error("Please sign in again.");
-      const result = await analyze({
+      const result = (await analyze({
         data: {
           lat: lead.lat,
           lng: lead.lng,
@@ -224,7 +224,7 @@ function SavingsReport() {
           leadId: lead.id,
         },
         headers: { Authorization: `Bearer ${token}` },
-      });
+      })) as { analysis: string; roof_observations: string[]; analysis_generated_at: string | null };
       setLiveAnalysis({
         analysis: result.analysis,
         observations: result.roof_observations,
