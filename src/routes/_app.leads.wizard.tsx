@@ -117,6 +117,7 @@ function AIRoofWizard() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pins, setPins] = useState<Pin[]>([]);
   const [measurements, setMeasurements] = useState<Measurements | null>(null);
+  const [pinStatus, setPinStatus] = useState<Record<string, { status: "pending" | "ok" | "error"; sqft?: number; message?: string }>>({});
   const [analysis, setAnalysis] = useState<string>("");
   const [analysisImage, setAnalysisImage] = useState<string>("");
   const [loading, setLoading] = useState<"none" | "measure" | "analyze">("none");
@@ -363,6 +364,9 @@ function AIRoofWizard() {
       const targets = pins.length > 0 ? pins : [{ id: "selected", lat: center.lat, lng: center.lng }];
       const results: Measurements[] = [];
       const failures: string[] = [];
+      const nextStatus: Record<string, { status: "pending" | "ok" | "error"; sqft?: number; message?: string }> = {};
+      targets.forEach((t) => { nextStatus[t.id] = { status: "pending" }; });
+      setPinStatus(nextStatus);
 
       for (const target of targets) {
         const response = await fetch("/api/solar-roof-extract", {
@@ -375,7 +379,9 @@ function AIRoofWizard() {
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
-          failures.push(String(payload.message ?? payload.detail ?? payload.error ?? `Pin ${failures.length + 1} failed`));
+          const msg = String(payload.message ?? payload.detail ?? payload.error ?? `Pin failed`);
+          failures.push(msg);
+          setPinStatus((prev) => ({ ...prev, [target.id]: { status: "error", message: msg } }));
           continue;
         }
         const segments = ((payload.segments ?? []) as Array<{ pitch_degrees?: number; azimuth_degrees?: number; plan_area_sqft?: number }>).map((segment) => ({
@@ -386,12 +392,14 @@ function AIRoofWizard() {
         const avgPitch = segments.length > 0
           ? segments.reduce((sum, segment) => sum + segment.pitch, 0) / segments.length
           : 0;
+        const totalSqft = Number(payload.total_plan_sqft ?? 0);
         results.push({
-          total_sqft: Number(payload.total_plan_sqft ?? 0),
+          total_sqft: totalSqft,
           sun_hours_per_year: Number(payload.max_sunshine_hours_per_year ?? 0),
           avg_pitch: avgPitch,
           segments,
         });
+        setPinStatus((prev) => ({ ...prev, [target.id]: { status: "ok", sqft: totalSqft } }));
       }
 
       if (results.length === 0) {
@@ -758,7 +766,7 @@ function AIRoofWizard() {
               {pins.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => setPins([])}
+                  onClick={() => { setPins([]); setPinStatus({}); }}
                   className="flex items-center gap-1 text-[11px] text-[var(--text-dim)] hover:text-foreground"
                 >
                   <RotateCcw className="h-3 w-3" /> Clear
@@ -771,21 +779,58 @@ function AIRoofWizard() {
                 Click the satellite to drop pins.
               </p>
             ) : (
-              <ul className="space-y-1 text-xs">
-                {pins.map((p, i) => (
-                  <li key={p.id} className="flex items-center justify-between text-foreground">
-                    <span className="font-mono-num">
-                      {i + 1}. {p.lat.toFixed(5)}, {p.lng.toFixed(5)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setPins((prev) => prev.filter((x) => x.id !== p.id))}
-                      className="text-[var(--text-dim)] hover:text-foreground"
+              <ul className="space-y-1.5 text-xs">
+                {pins.map((p, i) => {
+                  const st = pinStatus[p.id];
+                  const dot = st?.status === "ok"
+                    ? "bg-emerald-500"
+                    : st?.status === "error"
+                    ? "bg-red-500"
+                    : st?.status === "pending"
+                    ? "bg-amber-400 animate-pulse"
+                    : "bg-[var(--border)]";
+                  const label = st?.status === "ok"
+                    ? `${fmtNum(Math.round(st.sqft ?? 0))} sqft`
+                    : st?.status === "error"
+                    ? "Error"
+                    : st?.status === "pending"
+                    ? "Measuring…"
+                    : "Not measured";
+                  return (
+                    <li
+                      key={p.id}
+                      className="flex items-center gap-2 rounded-md border px-2 py-1.5"
+                      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
                     >
-                      ×
-                    </button>
-                  </li>
-                ))}
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
+                      <button
+                        type="button"
+                        onClick={() => flySafe(p.lat, p.lng, 19)}
+                        className="min-w-0 flex-1 text-left hover:text-[var(--primary)]"
+                        title={st?.message ?? "Jump to pin"}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono-num text-foreground">#{i + 1}</span>
+                          <span className="truncate text-[var(--text-dim)]">{label}</span>
+                        </div>
+                        <div className="truncate font-mono-num text-[10px] text-[var(--text-dim)]">
+                          {p.lat.toFixed(5)}, {p.lng.toFixed(5)}
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPins((prev) => prev.filter((x) => x.id !== p.id));
+                          setPinStatus((prev) => { const n = { ...prev }; delete n[p.id]; return n; });
+                        }}
+                        className="text-[var(--text-dim)] hover:text-foreground"
+                        aria-label="Remove pin"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
