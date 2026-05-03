@@ -16,13 +16,20 @@ export const getRoofMeasurements = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) throw new Error("GOOGLE_MAPS_API_KEY is not configured");
-    const url = `https://solar.googleapis.com/v1/buildingInsights:findClosest?location.latitude=${data.lat}&location.longitude=${data.lng}&requiredQuality=HIGH&key=${apiKey}`;
-    const r = await fetch(url);
-    if (!r.ok) {
-      const txt = await r.text();
+    // Try HIGH quality first, fall back to MEDIUM then LOW for buildings with less coverage
+    const qualities = ["HIGH", "MEDIUM", "LOW"] as const;
+    let r: Response | null = null;
+    let lastTxt = "";
+    for (const q of qualities) {
+      const url = `https://solar.googleapis.com/v1/buildingInsights:findClosest?location.latitude=${data.lat}&location.longitude=${data.lng}&requiredQuality=${q}&key=${apiKey}`;
+      r = await fetch(url);
+      if (r.ok) break;
+      lastTxt = await r.text();
+    }
+    if (!r || !r.ok) {
       return {
         ok: false as const,
-        error: `Solar API error ${r.status}: ${txt.slice(0, 200)}`,
+        error: `No roof data available for this location. Google Solar API has limited coverage outside major US metros. (${r?.status ?? "no response"}: ${lastTxt.slice(0, 150)})`,
       };
     }
     const json = (await r.json()) as {
