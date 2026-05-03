@@ -181,6 +181,20 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
       const filename = `${safeName}-${Date.now()}.pdf`;
       const path = `${lead.company_id}/${leadId}/${filename}`;
 
+      // Open the PDF in a new tab immediately so the user sees it
+      const localUrl = URL.createObjectURL(blob);
+      const win = window.open(localUrl, "_blank", "noopener,noreferrer");
+      if (!win) {
+        // Popup blocked — fall back to downloading
+        const a = document.createElement("a");
+        a.href = localUrl;
+        a.download = `${safeName}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      setTimeout(() => URL.revokeObjectURL(localUrl), 60_000);
+
       const { error: upErr } = await supabase.storage
         .from("lead-reports")
         .upload(path, blob, { contentType: "application/pdf", upsert: false });
@@ -206,7 +220,7 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
 
       qc.invalidateQueries({ queryKey: ["lead-reports", leadId] });
       qc.invalidateQueries({ queryKey: ["lead-activities", leadId] });
-      toast.success("Report generated and saved to lead");
+      toast.success("Report opened and saved to lead");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save report");
     } finally {
