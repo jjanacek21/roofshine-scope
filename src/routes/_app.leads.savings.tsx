@@ -208,6 +208,9 @@ function SavingsReport() {
     if (lead.lat == null || lead.lng == null) { toast.error("Lead has no coordinates"); return; }
     setAnalyzing(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Please sign in again.");
       await analyze({
         data: {
           lat: lead.lat,
@@ -216,6 +219,7 @@ function SavingsReport() {
           pinCount: 1,
           leadId: lead.id,
         },
+        headers: { Authorization: `Bearer ${token}` },
       });
       await Promise.all([
         qc.refetchQueries({ queryKey: ["leads"] }),
@@ -224,7 +228,11 @@ function SavingsReport() {
       toast.success("AI analysis complete — observations updated");
     } catch (e) {
       console.error("AI analysis failed:", e);
-      toast.error(e instanceof Error ? e.message : "Failed to analyze");
+      let msg = e instanceof Error ? e.message : "Failed to analyze";
+      if (e instanceof Response) {
+        msg = (await e.text().catch(() => "")) || `Server error ${e.status}`;
+      }
+      toast.error(msg);
     } finally {
       setAnalyzing(false);
     }
