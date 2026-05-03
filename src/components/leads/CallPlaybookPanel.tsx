@@ -55,7 +55,7 @@ export function CallPlaybookPanel() {
 
   return (
     <div
-      className="fixed z-50 flex flex-col rounded-2xl border shadow-2xl"
+      className="fixed z-[100] flex flex-col rounded-2xl border shadow-2xl"
       style={{
         left: pos.x,
         top: pos.y,
