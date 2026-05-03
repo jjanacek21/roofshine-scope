@@ -469,7 +469,7 @@ function AIRoofWizard() {
     }
     setLoading("analyze");
     try {
-      const res = await analyze({
+      const res = (await analyze({
         data: {
           lat: center.lat,
           lng: center.lng,
@@ -480,7 +480,7 @@ function AIRoofWizard() {
           pinCount: Math.max(1, pins.length),
           leadId: selectedLeadId || undefined,
         },
-      });
+      })) as { analysis: string; image_url: string };
       setAnalysis(res.analysis);
       setAnalysisImage(res.image_url);
       toast.success("AI analysis complete");
