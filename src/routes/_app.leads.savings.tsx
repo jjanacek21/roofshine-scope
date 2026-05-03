@@ -134,17 +134,27 @@ function SavingsReport() {
     ? `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${lead.lng},${lead.lat},19,0/600x400@2x?access_token=${mapboxToken}`
     : null;
 
-  // Extract observations from AI report
+  // Extract observations from AI report — robust parser
+  const aiReport = (lead?.ai_report ?? {}) as { analysis?: string; analysis_generated_at?: string };
+  const aiAnalysisRaw = aiReport.analysis ?? "";
+  const aiGeneratedAt = aiReport.analysis_generated_at ?? null;
   const aiObservations: string[] = (() => {
-    const r = lead?.ai_report as { analysis?: string } | undefined;
-    if (!r?.analysis) return [];
-    const lines = r.analysis.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+    if (!aiAnalysisRaw) return [];
+    const lines = aiAnalysisRaw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     const bullets = lines
-      .filter((l) => /^[-•*\d]/.test(l) || l.length < 220)
-      .map((l) => l.replace(/^[-•*\d.\s]+/, "").trim())
-      .filter((l) => l.length > 10);
-    return bullets.slice(0, 8);
+      .filter((l) => /^([-•*]|\d+[.)])\s+/.test(l))
+      .map((l) => l.replace(/^([-•*]|\d+[.)])\s+/, "").trim())
+      .filter((l) => l.length > 4);
+    if (bullets.length >= 2) return bullets.slice(0, 10);
+    // Fallback: split into sentences
+    const sentences = aiAnalysisRaw
+      .replace(/\s+/g, " ")
+      .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 15);
+    return sentences.slice(0, 8);
   })();
+
 
   async function exportPDF() {
     if (!reportRef.current) return;
@@ -207,8 +217,10 @@ function SavingsReport() {
           leadId: lead.id,
         },
       });
-      await qc.invalidateQueries({ queryKey: ["leads"] });
-      await qc.invalidateQueries({ queryKey: ["lead", lead.id] });
+      await Promise.all([
+        qc.refetchQueries({ queryKey: ["leads"] }),
+        qc.refetchQueries({ queryKey: ["lead", lead.id] }),
+      ]);
       toast.success("AI analysis complete — observations updated");
     } catch (e) {
       console.error("AI analysis failed:", e);
@@ -371,7 +383,27 @@ function SavingsReport() {
 
           {/* Section 3 — Roof Observations */}
           <div>
-            <h3 className="mb-3 border-b border-slate-700 pb-2 text-sm font-bold tracking-wider text-white">ROOF OBSERVATIONS</h3>
+            <div className="mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
+              <h3 className="text-sm font-bold tracking-wider text-white">ROOF OBSERVATIONS</h3>
+              <div className="flex items-center gap-3">
+                {aiGeneratedAt && (
+                  <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                    Generated {new Date(aiGeneratedAt).toLocaleDateString()}
+                  </span>
+                )}
+                {aiAnalysisRaw && (
+                  <button
+                    type="button"
+                    onClick={runAIAnalysis}
+                    disabled={analyzing || !lead}
+                    className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-600 bg-slate-800 px-2 text-[10px] font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+                  >
+                    {analyzing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                    Re-run
+                  </button>
+                )}
+              </div>
+            </div>
             {aiObservations.length > 0 ? (
               <ul className="space-y-1.5">
                 {aiObservations.map((o, i) => (
@@ -381,6 +413,8 @@ function SavingsReport() {
                   </li>
                 ))}
               </ul>
+            ) : aiAnalysisRaw ? (
+              <p className="whitespace-pre-wrap text-sm text-slate-300">{aiAnalysisRaw}</p>
             ) : (
               <div className="space-y-3">
                 <p className="text-sm text-slate-400">No AI analysis yet. Run AI vision on the satellite image to generate roof observations.</p>
