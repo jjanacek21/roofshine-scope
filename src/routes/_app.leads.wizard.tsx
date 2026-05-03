@@ -400,14 +400,52 @@ function AIRoofWizard() {
         return;
       }
       const allSegments = results.flatMap((result) => result.segments);
-      setMeasurements({
+      const merged: Measurements = {
         total_sqft: results.reduce((sum, result) => sum + result.total_sqft, 0),
         sun_hours_per_year: Math.max(...results.map((result) => result.sun_hours_per_year)),
         avg_pitch: allSegments.length > 0
           ? allSegments.reduce((sum, segment) => sum + segment.pitch, 0) / allSegments.length
           : 0,
         segments: allSegments,
-      });
+      };
+      setMeasurements(merged);
+
+      // Persist measurements onto the lead so they show in the lead details
+      if (selectedLeadId) {
+        const { data: existing } = await supabase
+          .from("leads")
+          .select("ai_report")
+          .eq("id", selectedLeadId)
+          .single();
+        const prev = (existing?.ai_report as Record<string, unknown> | null) ?? {};
+        const { error: updErr } = await supabase
+          .from("leads")
+          .update({
+            ai_report: {
+              ...prev,
+              measurements: {
+                total_sqft: Math.round(merged.total_sqft),
+                sun_hours_per_year: Math.round(merged.sun_hours_per_year),
+                avg_pitch: Number(merged.avg_pitch.toFixed(2)),
+                segment_count: merged.segments.length,
+                pins: pins.map((p) => ({ lat: p.lat, lng: p.lng })),
+                generated_at: new Date().toISOString(),
+              },
+            },
+            sqft: Math.round(merged.total_sqft) || undefined,
+          })
+          .eq("id", selectedLeadId);
+        if (!updErr) {
+          await supabase.from("lead_activities").insert({
+            lead_id: selectedLeadId,
+            type: "ai_analysis",
+            note: `Roof measurements saved: ${fmtNum(Math.round(merged.total_sqft))} sqft`,
+          });
+          qc.invalidateQueries({ queryKey: ["lead", selectedLeadId] });
+          qc.invalidateQueries({ queryKey: ["leads"] });
+          qc.invalidateQueries({ queryKey: ["lead-activities", selectedLeadId] });
+        }
+      }
       toast.success(failures.length > 0 ? `Measurements ready for ${results.length} pin${results.length === 1 ? "" : "s"}` : "Measurements ready");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to measure");
