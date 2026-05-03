@@ -334,7 +334,7 @@ function AIRoofWizard() {
     setAnalysis("");
     setAnalysisImage("");
     setPickerOpen(false);
-    mapRef.current?.flyTo({ center: [place.lng, place.lat], zoom: 19 });
+    flySafe(place.lat, place.lng);
   }
 
   async function runMeasurements() {
