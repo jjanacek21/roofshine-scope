@@ -217,8 +217,10 @@ function SavingsReport() {
           leadId: lead.id,
         },
       });
-      await qc.invalidateQueries({ queryKey: ["leads"] });
-      await qc.invalidateQueries({ queryKey: ["lead", lead.id] });
+      await Promise.all([
+        qc.refetchQueries({ queryKey: ["leads"] }),
+        qc.refetchQueries({ queryKey: ["lead", lead.id] }),
+      ]);
       toast.success("AI analysis complete — observations updated");
     } catch (e) {
       console.error("AI analysis failed:", e);
