@@ -307,7 +307,7 @@ export function RoofWizardInline({ lead }: Props) {
         <button
           type="button"
           onClick={runAnalysis}
-          disabled={loading !== "none" || !center}
+          disabled={loading !== "none"}
           className="flex h-10 items-center justify-center gap-2 rounded-md text-sm font-semibold text-white disabled:opacity-40"
           style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)" }}
         >
