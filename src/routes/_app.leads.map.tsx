@@ -133,7 +133,30 @@ function LeadsMap() {
       <div className="overflow-y-auto rounded-xl border" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}>
         <div className="border-b px-4 py-3" style={{ borderColor: "var(--border)" }}>
           <h3 className="text-sm font-semibold text-foreground">Leads</h3>
-          <p className="text-xs text-muted-foreground">{leads.length} total</p>
+          <p className="text-xs text-muted-foreground">
+            {leads.length} total · {leads.length - missingCount} on map
+          </p>
+          {missingCount > 0 && (
+            <button
+              type="button"
+              onClick={geocodeMissing}
+              disabled={geocoding || !token}
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-semibold text-foreground hover:bg-[var(--bg-hover)] disabled:opacity-50"
+              style={{ borderColor: "var(--border)" }}
+            >
+              {geocoding ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Geocoding {progress.done}/{progress.total}…
+                </>
+              ) : (
+                <>
+                  <MapPin className="h-3 w-3" />
+                  Geocode {missingCount.toLocaleString()} missing
+                </>
+              )}
+            </button>
+          )}
         </div>
         <ul className="divide-y" style={{ borderColor: "var(--border)" }}>
           {leads.map((l) => (
