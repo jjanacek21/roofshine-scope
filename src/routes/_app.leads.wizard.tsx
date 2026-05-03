@@ -3,8 +3,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useServerFn } from "@tanstack/react-start";
-import { Sparkles, MapPin, Loader2, RotateCcw, Save, Check, ChevronsUpDown } from "lucide-react";
+import { Sparkles, MapPin, Loader2, RotateCcw, Save, Check, ChevronsUpDown, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { useLeads } from "@/hooks/useLeads";
 import { fmtNum } from "@/lib/leads";
@@ -399,14 +400,52 @@ function AIRoofWizard() {
         return;
       }
       const allSegments = results.flatMap((result) => result.segments);
-      setMeasurements({
+      const merged: Measurements = {
         total_sqft: results.reduce((sum, result) => sum + result.total_sqft, 0),
         sun_hours_per_year: Math.max(...results.map((result) => result.sun_hours_per_year)),
         avg_pitch: allSegments.length > 0
           ? allSegments.reduce((sum, segment) => sum + segment.pitch, 0) / allSegments.length
           : 0,
         segments: allSegments,
-      });
+      };
+      setMeasurements(merged);
+
+      // Persist measurements onto the lead so they show in the lead details
+      if (selectedLeadId) {
+        const { data: existing } = await supabase
+          .from("leads")
+          .select("ai_report")
+          .eq("id", selectedLeadId)
+          .single();
+        const prev = (existing?.ai_report as Record<string, unknown> | null) ?? {};
+        const { error: updErr } = await supabase
+          .from("leads")
+          .update({
+            ai_report: {
+              ...prev,
+              measurements: {
+                total_sqft: Math.round(merged.total_sqft),
+                sun_hours_per_year: Math.round(merged.sun_hours_per_year),
+                avg_pitch: Number(merged.avg_pitch.toFixed(2)),
+                segment_count: merged.segments.length,
+                pins: pins.map((p) => ({ lat: p.lat, lng: p.lng })),
+                generated_at: new Date().toISOString(),
+              },
+            },
+            sqft: Math.round(merged.total_sqft) || undefined,
+          })
+          .eq("id", selectedLeadId);
+        if (!updErr) {
+          await supabase.from("lead_activities").insert({
+            lead_id: selectedLeadId,
+            type: "ai_analysis",
+            note: `Roof measurements saved: ${fmtNum(Math.round(merged.total_sqft))} sqft`,
+          });
+          qc.invalidateQueries({ queryKey: ["lead", selectedLeadId] });
+          qc.invalidateQueries({ queryKey: ["leads"] });
+          qc.invalidateQueries({ queryKey: ["lead-activities", selectedLeadId] });
+        }
+      }
       toast.success(failures.length > 0 ? `Measurements ready for ${results.length} pin${results.length === 1 ? "" : "s"}` : "Measurements ready");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to measure");
@@ -441,6 +480,124 @@ function AIRoofWizard() {
       toast.error(e instanceof Error ? e.message : "Failed to analyze");
     } finally {
       setLoading("none");
+    }
+  }
+
+  async function exportWizardPdf() {
+    if (!measurements && !analysis) {
+      toast.error("Run measurements or AI analysis first.");
+      return;
+    }
+    try {
+      const doc = new jsPDF({ unit: "pt", format: "letter" });
+      const W = doc.internal.pageSize.getWidth();
+      const M = 48;
+      let y = 56;
+      const addrLabel = selectedLead?.address ?? manualPlace?.label ?? "AI Roof Report";
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(20);
+      doc.text("AI Roof Report", M, y);
+      y += 22;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(110);
+      doc.text(`Generated ${new Date().toLocaleString()}`, M, y);
+      y += 18;
+      doc.setTextColor(20);
+      doc.setFontSize(12);
+      doc.text(addrLabel, M, y, { maxWidth: W - M * 2 });
+      y += 24;
+
+      if (analysisImage) {
+        try {
+          doc.addImage(analysisImage, "PNG", M, y, 280, 200);
+          y += 216;
+        } catch (err) {
+          console.warn("Could not embed image", err);
+        }
+      }
+
+      if (measurements) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(13);
+        doc.text("Measurements (Google Solar)", M, y);
+        y += 16;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        const pairs: [string, string][] = [
+          ["Total roof area", `${fmtNum(Math.round(measurements.total_sqft))} sqft`],
+          ["Sun hours / year", fmtNum(Math.round(measurements.sun_hours_per_year))],
+          ["Average pitch", `${measurements.avg_pitch.toFixed(1)}°`],
+          ["Roof segments", fmtNum(measurements.segments.length)],
+          ["Pins analyzed", String(Math.max(1, pins.length))],
+        ];
+        pairs.forEach(([k, v]) => {
+          doc.text(k, M, y);
+          doc.text(v, M + 220, y);
+          y += 14;
+        });
+        y += 10;
+      }
+
+      if (analysis) {
+        if (y > 680) { doc.addPage(); y = 56; }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(13);
+        doc.text("AI Vision Analysis", M, y);
+        y += 16;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10.5);
+        const lines = doc.splitTextToSize(analysis, W - M * 2);
+        for (const line of lines) {
+          if (y > 740) { doc.addPage(); y = 56; }
+          doc.text(line, M, y);
+          y += 13;
+        }
+      }
+
+      const safe = (selectedLead?.address ?? "ai-roof-report").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+      const blob = doc.output("blob");
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, "_blank", "noopener,noreferrer");
+      if (!win) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${safe}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+
+      if (selectedLead && selectedLeadId) {
+        const filename = `${safe}-${Date.now()}.pdf`;
+        const path = `${selectedLead.company_id}/${selectedLeadId}/${filename}`;
+        const { error: upErr } = await supabase.storage
+          .from("lead-reports")
+          .upload(path, blob, { contentType: "application/pdf", upsert: false });
+        if (!upErr) {
+          await supabase.from("lead_reports").insert([{
+            lead_id: selectedLeadId,
+            company_id: selectedLead.company_id,
+            kind: "ai_roof",
+            name: `AI Roof Report — ${selectedLead.address}`,
+            pdf_path: path,
+          }]);
+          await supabase.from("lead_activities").insert({
+            lead_id: selectedLeadId,
+            type: "report_generated",
+            note: "AI roof report saved",
+          });
+          qc.invalidateQueries({ queryKey: ["lead-reports", selectedLeadId] });
+          qc.invalidateQueries({ queryKey: ["lead-activities", selectedLeadId] });
+          toast.success("PDF opened and saved to lead");
+          return;
+        }
+      }
+      toast.success("PDF opened");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to export PDF");
     }
   }
 
@@ -652,6 +809,15 @@ function AIRoofWizard() {
             >
               {loading === "analyze" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Run AI analysis
+            </button>
+            <button
+              type="button"
+              onClick={exportWizardPdf}
+              disabled={!measurements && !analysis}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-emerald-600 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-40"
+            >
+              <FileDown className="h-4 w-4" />
+              Export PDF
             </button>
             {selectedLeadId && analysis && (
               <p className="flex items-center gap-1.5 text-[11px] text-[var(--text-dim)]">

@@ -181,6 +181,20 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
       const filename = `${safeName}-${Date.now()}.pdf`;
       const path = `${lead.company_id}/${leadId}/${filename}`;
 
+      // Open the PDF in a new tab immediately so the user sees it
+      const localUrl = URL.createObjectURL(blob);
+      const win = window.open(localUrl, "_blank", "noopener,noreferrer");
+      if (!win) {
+        // Popup blocked — fall back to downloading
+        const a = document.createElement("a");
+        a.href = localUrl;
+        a.download = `${safeName}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      setTimeout(() => URL.revokeObjectURL(localUrl), 60_000);
+
       const { error: upErr } = await supabase.storage
         .from("lead-reports")
         .upload(path, blob, { contentType: "application/pdf", upsert: false });
@@ -206,7 +220,7 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
 
       qc.invalidateQueries({ queryKey: ["lead-reports", leadId] });
       qc.invalidateQueries({ queryKey: ["lead-activities", leadId] });
-      toast.success("Report generated and saved to lead");
+      toast.success("Report opened and saved to lead");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save report");
     } finally {
@@ -567,11 +581,29 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
               </button>
             </Section>
 
-            {lead.ai_report && Object.keys(lead.ai_report).length > 0 && (lead.ai_report as { analysis?: string }).analysis && (
-              <Section title="AI Analysis">
-                <div className="rounded-lg border p-3 text-xs leading-relaxed text-muted-foreground" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)", whiteSpace: "pre-wrap" }}>
-                  {(lead.ai_report as { analysis: string }).analysis}
-                </div>
+            {lead.ai_report && Object.keys(lead.ai_report).length > 0 && (
+              <Section title="AI Roof Report">
+                {(() => {
+                  const r = lead.ai_report as { analysis?: string; measurements?: { total_sqft?: number; sun_hours_per_year?: number; avg_pitch?: number; segment_count?: number; generated_at?: string } };
+                  const m = r.measurements;
+                  return (
+                    <div className="space-y-2">
+                      {m && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <Field k="Roof Area" v={m.total_sqft != null ? `${fmtNum(m.total_sqft)} sqft` : "—"} />
+                          <Field k="Avg Pitch" v={m.avg_pitch != null ? `${m.avg_pitch.toFixed(1)}°` : "—"} />
+                          <Field k="Sun hrs / yr" v={m.sun_hours_per_year != null ? fmtNum(m.sun_hours_per_year) : "—"} />
+                          <Field k="Segments" v={m.segment_count ?? "—"} />
+                        </div>
+                      )}
+                      {r.analysis && (
+                        <div className="rounded-lg border p-3 text-xs leading-relaxed text-muted-foreground" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)", whiteSpace: "pre-wrap" }}>
+                          {r.analysis}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </Section>
             )}
 
