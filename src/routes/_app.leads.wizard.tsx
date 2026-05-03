@@ -135,6 +135,14 @@ function AIRoofWizard() {
     [leads, selectedLeadId],
   );
 
+  // Auto-select lead when arriving via ?leadId=...
+  useEffect(() => {
+    if (!search.leadId) return;
+    if (selectedLeadId === search.leadId) return;
+    if (!leads.some((l) => l.id === search.leadId)) return;
+    setSelectedLeadId(search.leadId);
+  }, [search.leadId, leads, selectedLeadId]);
+
   // Init map
   useEffect(() => {
     if (!token || !containerRef.current || mapRef.current) return;
