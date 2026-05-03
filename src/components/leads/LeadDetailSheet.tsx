@@ -152,6 +152,7 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
 
+  async function handleFileUpload(files: FileList | null) {
     if (!files || files.length === 0 || !lead || !leadId) return;
     const errors: string[] = [];
     for (const file of Array.from(files)) {
