@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useLead, useLeadContacts, useLeadActivities, useLeadNotes } from "@/hooks/useLeads";
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function LeadDetailSheet({ leadId, onClose }: Props) {
+  const navigate = useNavigate();
   const { data: lead } = useLead(leadId);
   const { data: contacts = [] } = useLeadContacts(leadId);
   const { data: activities = [] } = useLeadActivities(leadId);
@@ -426,6 +428,20 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
                 </div>
               )}
             </Section>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (!leadId) return;
+                onClose();
+                navigate({ to: "/leads/wizard", search: { leadId } });
+              }}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
+              style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)" }}
+            >
+              <Sparkles className="h-4 w-4" />
+              Generate AI Roof Report
+            </button>
 
             <div className="mt-4 grid grid-cols-3 gap-2">
               <ActionBtn color="#22c55e" icon={<Phone className="h-3.5 w-3.5" />} label="Call" onClick={() => logQuickAction("call")} />

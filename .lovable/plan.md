@@ -1,46 +1,34 @@
-## Why most pins are missing
+## Goal
 
-The Map view only drops a marker for leads that have `lat` / `lng`. A quick check against the database:
+From the Lead Details sheet, add a **Generate Report** button directly under the satellite view that opens the AI Roof Wizard already focused on the property's address — satellite map, pin-drop, pan/zoom, measurements, and AI analysis all available in one flow.
 
-```
-total leads:        1,258
-with coordinates:      75
-missing coordinates: 1,183
-```
+## Changes
 
-So ~94% of leads were never geocoded — they were imported from CSV/spreadsheets that didn't include lat/lng, and the lazy "geocode on detail open" path only fixes one address at a time.
+### 1. `src/components/leads/LeadDetailSheet.tsx`
+- Under the existing **Satellite View** section, add a primary **Generate Report** button (Sparkles icon).
+- On click: navigate to `/leads/wizard?leadId={lead.id}` using TanStack Router's `useNavigate`. Closes the sheet.
+- Disabled state with tooltip text "Locate address first" if the lead still has no coords *and* geocoding hasn't resolved (wizard can still geocode, but we keep the affordance honest).
 
-## Fix
+### 2. `src/routes/_app.leads.wizard.tsx`
+- Add a `validateSearch` to the route accepting optional `leadId: string`.
+- On mount (and when leads finish loading), if `search.leadId` is present and matches a lead, call `setSelectedLeadId(search.leadId)` once. Existing `useEffect` for `selectedLead` then handles flying to the address, geocoding if needed, and resetting pins.
+- No changes to map interaction — pan, zoom, pin-drop, measurements, and AI analysis already work.
 
-Two parts:
+### 3. UX polish in the wizard (small)
+- When entered via `?leadId=`, scroll the wizard's right-side panel into view on small screens and show a short toast: "Loaded {address} — drop pins on roof sections to analyze."
 
-### 1. Add a "Geocode missing" action on the Map view
+## Technical Notes
 
-In `src/routes/_app.leads.map.tsx`, add a button in the right-hand sidebar header showing e.g. **"1,183 missing — Geocode now"**. When clicked it:
+- Route search validation:
+  ```ts
+  validateSearch: (s: Record<string, unknown>) => ({
+    leadId: typeof s.leadId === "string" ? s.leadId : undefined,
+  })
+  ```
+- Sheet button uses existing primary blue gradient styling consistent with other CTAs in the sheet (matches "Generate Report" PDF button already at line 353, but this one opens the wizard instead — name it **"AI Roof Report"** to avoid collision with the existing PDF generator).
+- Navigation: `navigate({ to: "/leads/wizard", search: { leadId: lead.id } })` then call the sheet's `onOpenChange(false)`.
 
-- Iterates leads where `lat == null || lng == null`.
-- For each, calls Mapbox forward geocoding client-side (same pattern already used in the Wizard and Lead Detail Sheet) using `${address}, ${city}, ${state} ${zip}` and the existing `useMapboxToken()`.
-- Concurrency-limits to 5 in flight, with a small delay, to stay well under Mapbox's 600 req/min limit.
-- On each success, `supabase.from("leads").update({ lat, lng }).eq("id", lead.id)`.
-- Live progress: `Geocoded 312 / 1,183 …` plus a small progress bar.
-- On finish, `qc.invalidateQueries({ queryKey: ["leads"] })` so new pins appear immediately, and a sonner toast summarizing successes/failures.
-- Failures (no Mapbox match) are logged to console but don't block the run.
+## Out of Scope
 
-### 2. Geocode automatically during CSV import
-
-In the lead-import path (`src/server/leads.functions.ts` — the importer used by the Import screen), after rows are inserted in a batch, kick off a server-side geocode loop for any new rows that arrived without `lat`/`lng`:
-
-- Use `fetch` against `https://api.mapbox.com/geocoding/v5/mapbox.places/{q}.json?access_token=${process.env.MAPBOX_API_TOKEN}` (token already in secrets).
-- Process in chunks of ~50 with `Promise.all`, write back `lat`/`lng` via the admin client.
-- Cap each import's geocode pass at the rows it just inserted (don't re-process the whole table on every import).
-
-This way:
-- Existing 1,183 stale rows get fixed once via the new "Geocode missing" button.
-- All future imports arrive on the map automatically.
-
-### Files
-
-- `src/routes/_app.leads.map.tsx` — add the button, progress UI, and client-side batch geocoder.
-- `src/server/leads.functions.ts` — add a server-side geocode pass at the end of the CSV import handler.
-
-No schema changes; `leads.lat` / `leads.lng` already exist and are nullable.
+- No changes to measurement/analysis server functions.
+- No new DB fields. Reports created from the wizard already persist via existing `analyzeRoofWithAI` flow.

@@ -16,6 +16,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/leads/wizard")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    leadId: typeof s.leadId === "string" ? s.leadId : undefined,
+  }),
   component: AIRoofWizard,
 });
 
@@ -105,6 +108,7 @@ function formatAddressForGeocoding(parts: {
 function AIRoofWizard() {
   const { data: token } = useMapboxToken();
   const { data: leads = [] } = useLeads();
+  const search = Route.useSearch();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -130,6 +134,14 @@ function AIRoofWizard() {
     () => leads.find((l) => l.id === selectedLeadId) ?? null,
     [leads, selectedLeadId],
   );
+
+  // Auto-select lead when arriving via ?leadId=...
+  useEffect(() => {
+    if (!search.leadId) return;
+    if (selectedLeadId === search.leadId) return;
+    if (!leads.some((l) => l.id === search.leadId)) return;
+    setSelectedLeadId(search.leadId);
+  }, [search.leadId, leads, selectedLeadId]);
 
   // Init map
   useEffect(() => {
