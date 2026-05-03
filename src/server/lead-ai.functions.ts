@@ -148,7 +148,8 @@ export const analyzeRoofWithAI = createServerFn({ method: "POST" })
         .map((b) => b.text ?? "")
         .join("\n\n") ?? "";
 
-    let savedReport: Record<string, unknown> | null = null;
+    let savedObservations: string[] = [];
+    let savedAt: string | null = null;
 
     if (data.leadId) {
       const { data: existing, error: existingError } = await context.supabase
@@ -160,11 +161,13 @@ export const analyzeRoofWithAI = createServerFn({ method: "POST" })
       if (!existing) throw new Error("Could not find this lead for report updates.");
 
       const prev = (existing?.ai_report as Record<string, unknown> | null) ?? {};
+      const observations = extractRoofObservations(text);
+      const generatedAt = new Date().toISOString();
       const nextReport = {
         ...prev,
         analysis: text,
-        roof_observations: extractRoofObservations(text),
-        analysis_generated_at: new Date().toISOString(),
+        roof_observations: observations,
+        analysis_generated_at: generatedAt,
         lat: data.lat,
         lng: data.lng,
       };
@@ -178,7 +181,8 @@ export const analyzeRoofWithAI = createServerFn({ method: "POST" })
         .maybeSingle();
       if (updateError) throw new Error(`Could not save roof observations: ${updateError.message}`);
       if (!updated) throw new Error("Roof observations were generated but the lead was not updated.");
-      savedReport = (updated.ai_report as Record<string, unknown> | null) ?? nextReport;
+      savedObservations = observations;
+      savedAt = generatedAt;
 
       const { error: activityError } = await context.supabase.from("lead_activities").insert({
         lead_id: data.leadId,
@@ -191,7 +195,8 @@ export const analyzeRoofWithAI = createServerFn({ method: "POST" })
 
     return {
       analysis: text,
-      ai_report: savedReport,
+      roof_observations: savedObservations,
+      analysis_generated_at: savedAt,
       image_url: `data:image/png;base64,${b64}`,
     };
   });
