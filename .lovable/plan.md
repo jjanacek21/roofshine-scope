@@ -1,34 +1,51 @@
 ## Goal
 
-From the Lead Details sheet, add a **Generate Report** button directly under the satellite view that opens the AI Roof Wizard already focused on the property's address — satellite map, pin-drop, pan/zoom, measurements, and AI analysis all available in one flow.
+Collapse the AI Roof Wizard and Savings Report into a single guided flow inside the lead detail sheet. Remove their top-level tabs. Once a report is generated, save it to the lead, mark the lead as `report_sent`, and surface it in the Follow-Up tab automatically.
 
-## Changes
+## Tab cleanup (`src/routes/_app.leads.tsx`)
 
-### 1. `src/components/leads/LeadDetailSheet.tsx`
-- Under the existing **Satellite View** section, add a primary **Generate Report** button (Sparkles icon).
-- On click: navigate to `/leads/wizard?leadId={lead.id}` using TanStack Router's `useNavigate`. Closes the sheet.
-- Disabled state with tooltip text "Locate address first" if the lead still has no coords *and* geocoding hasn't resolved (wizard can still geocode, but we keep the affordance honest).
+Remove the `AI Wizard` and `Savings` tabs. Final tab order:
+Dashboard · Map · List · Pipeline · Follow-Up · Training. Keep Import as a button on the List page (it already lives at `/leads/import` — change List page to render an "Import addresses" button that links there, and drop the standalone Import tab too).
 
-### 2. `src/routes/_app.leads.wizard.tsx`
-- Add a `validateSearch` to the route accepting optional `leadId: string`.
-- On mount (and when leads finish loading), if `search.leadId` is present and matches a lead, call `setSelectedLeadId(search.leadId)` once. Existing `useEffect` for `selectedLead` then handles flying to the address, geocoding if needed, and resetting pins.
-- No changes to map interaction — pan, zoom, pin-drop, measurements, and AI analysis already work.
+Keep `_app.leads.wizard.tsx` and `_app.leads.savings.tsx` files around but unlinked, so existing deep-links and the in-sheet flow can still reuse their logic during transition. (Code from both is folded into the new in-sheet experience over time; they remain reachable but are no longer in the nav.)
 
-### 3. UX polish in the wizard (small)
-- When entered via `?leadId=`, scroll the wizard's right-side panel into view on small screens and show a short toast: "Loaded {address} — drop pins on roof sections to analyze."
+## New in-sheet workflow (`src/components/leads/LeadDetailSheet.tsx`)
 
-## Technical Notes
+Replace the current "AI Roof Wizard" + "Generate Savings Report" + "Save quick PDF" buttons with a single 3-step inline flow under the existing Satellite View section:
 
-- Route search validation:
-  ```ts
-  validateSearch: (s: Record<string, unknown>) => ({
-    leadId: typeof s.leadId === "string" ? s.leadId : undefined,
-  })
-  ```
-- Sheet button uses existing primary blue gradient styling consistent with other CTAs in the sheet (matches "Generate Report" PDF button already at line 353, but this one opens the wizard instead — name it **"AI Roof Report"** to avoid collision with the existing PDF generator).
-- Navigation: `navigate({ to: "/leads/wizard", search: { leadId: lead.id } })` then call the sheet's `onOpenChange(false)`.
+```text
+Satellite View (existing 192px static map)
+─────────────────────────────────────────
+Step 1 · Drop pins on each roof  [interactive map, zoom/pan]
+        • Pin list with status dots, "Clear all"
+Step 2 · Get measurements        [button → /api/solar-roof-extract]
+        • Shows total sqft, avg pitch, sun hrs, segments
+Step 3 · Run analysis            [button → analyzeRoofWithAI]
+        • Shows AI text + image
+        ↓ on success, auto-opens
+[Report Builder modal]  ← reuses SavingsReport body
+        - editable sqft / roof type / age / address
+        - Export PDF (saves to lead-reports + marks report_sent)
+        - Send to Owner (email/text — opens compose, logs report_sent)
+```
 
-## Out of Scope
+Implementation:
+- Replace the read-only static Mapbox map with the interactive wizard map (port the init/click/markers logic from `_app.leads.wizard.tsx` into a new `<RoofWizardInline lead={lead} />` component in `src/components/leads/RoofWizardInline.tsx`). Pins persist to `leads.ai_report.measurements.pins` so they survive sheet reopen.
+- The "Get measurements" and "Run analysis" buttons reuse the existing fetch + `analyzeRoofWithAI` logic from the wizard route. Results render in the same sheet (no navigation away).
+- After analysis succeeds, open a new `<ReportBuilderDialog />` (extracted from `_app.leads.savings.tsx` as `src/components/leads/ReportBuilderDialog.tsx`) pre-filled with the lead, measurements, and AI observations. Inputs stay editable.
+- Dialog "Export as PDF" generates the PDF, uploads it to the `lead-reports` bucket, inserts into `lead_reports`, then logs a `report_sent` activity, sets `lead.status = 'report_sent'`, and toasts "Report saved & lead moved to Follow-Up".
+- "Send to Owner" opens a `mailto:` / SMS link with the report download URL prefilled and logs `report_sent` with the recipient (`email → owner@x` or `text → +1…`) so it appears in Follow-Up with the right channel.
 
-- No changes to measurement/analysis server functions.
-- No new DB fields. Reports created from the wizard already persist via existing `analyzeRoofWithAI` flow.
+## Auto follow-up
+
+`listFollowUps` already keys off `lead_activities.type = 'report_sent'`, so the dialog's existing log call is enough — once a report is exported the lead shows up in Follow-Up automatically. No DB schema changes required.
+
+## Files touched
+
+- `src/routes/_app.leads.tsx` — remove Wizard / Savings / Import tabs
+- `src/components/leads/LeadDetailSheet.tsx` — replace static map + 3 action buttons with the inline wizard + report dialog
+- `src/components/leads/RoofWizardInline.tsx` — new (extracts pin/measure/analyze logic from `_app.leads.wizard.tsx`)
+- `src/components/leads/ReportBuilderDialog.tsx` — new (wraps the savings report body in a Dialog with PDF export + status update)
+- `src/routes/_app.leads.list.tsx` — add "Import addresses" button linking to `/leads/import`
+
+No DB migrations.
