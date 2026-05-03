@@ -108,6 +108,7 @@ function formatAddressForGeocoding(parts: {
 function AIRoofWizard() {
   const { data: token } = useMapboxToken();
   const { data: leads = [] } = useLeads();
+  const search = Route.useSearch();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
