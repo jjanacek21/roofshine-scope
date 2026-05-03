@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useLead, useLeadContacts, useLeadActivities, useLeadNotes } from "@/hooks/useLeads";
@@ -8,7 +7,6 @@ import { LEAD_STATUSES, fmtMoney, fmtNum, type LeadStatus } from "@/lib/leads";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
-import { geocodeLead } from "@/server/leads.functions";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import {
@@ -39,28 +37,40 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
   const [generatingReport, setGeneratingReport] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const geocodeFn = useServerFn(geocodeLead);
 
-  // Auto-geocode when lead has no coords
+  // Auto-geocode (client-side via Mapbox) when lead has no coords
   useEffect(() => {
     if (!lead || !leadId) return;
     if (lead.lat != null && lead.lng != null) return;
+    if (!mapboxToken) return;
     if (geocoding || geocodeFailed) return;
     setGeocoding(true);
-    geocodeFn({ data: { leadId } })
-      .then((res) => {
-        if (res?.lat != null && res?.lng != null) {
-          qc.invalidateQueries({ queryKey: ["lead", leadId] });
-          qc.invalidateQueries({ queryKey: ["leads"] });
-          qc.invalidateQueries({ queryKey: ["lead-activities", leadId] });
-        } else {
+    const query = [lead.address, lead.city, lead.state, lead.zip].filter(Boolean).join(", ");
+    (async () => {
+      try {
+        const r = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?limit=1&access_token=${mapboxToken}`,
+        );
+        if (!r.ok) throw new Error("geocode failed");
+        const j = (await r.json()) as { features?: { center?: [number, number] }[] };
+        const center = j.features?.[0]?.center;
+        if (!center) {
           setGeocodeFailed(true);
+          return;
         }
-      })
-      .catch(() => setGeocodeFailed(true))
-      .finally(() => setGeocoding(false));
+        const [lng, lat] = center;
+        const { error } = await supabase.from("leads").update({ lat, lng }).eq("id", leadId);
+        if (error) throw error;
+        qc.invalidateQueries({ queryKey: ["lead", leadId] });
+        qc.invalidateQueries({ queryKey: ["leads"] });
+      } catch {
+        setGeocodeFailed(true);
+      } finally {
+        setGeocoding(false);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leadId, lead?.lat, lead?.lng]);
+  }, [leadId, lead?.lat, lead?.lng, mapboxToken]);
 
   useEffect(() => {
     if (!mapboxToken || !mapRef.current || !lead?.lat || !lead?.lng) return;
