@@ -241,7 +241,7 @@ function AIRoofWizard() {
 
     const flyHere = (lat: number, lng: number) => {
       setResolvedCoords({ lat, lng });
-      mapRef.current?.flyTo({ center: [lng, lat], zoom: 19 });
+      flySafe(lat, lng);
     };
 
     if (selectedLead.lat != null && selectedLead.lng != null) {
