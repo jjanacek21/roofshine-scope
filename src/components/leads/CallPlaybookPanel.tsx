@@ -20,6 +20,15 @@ export function CallPlaybookPanel() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(pos)); } catch { /* noop */ }
   }, [pos]);
 
+  // When opening over a right-side sheet, re-anchor to the left so it's visible.
+  useEffect(() => {
+    if (!open || typeof window === "undefined") return;
+    if (pos.x > window.innerWidth - 480) {
+      setPos({ x: 24, y: 80 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   function startDrag(e: React.MouseEvent) {
     dragRef.current = { startX: e.clientX, startY: e.clientY, baseX: pos.x, baseY: pos.y };
     window.addEventListener("mousemove", onDrag);
