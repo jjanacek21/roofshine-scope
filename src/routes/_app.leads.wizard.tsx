@@ -157,8 +157,15 @@ function AIRoofWizard() {
 
   // Debounced Mapbox forward-geocode for the search input
   useEffect(() => {
-    const q = searchInput.trim();
-    if (!token || q.length < 3) {
+    const raw = searchInput.trim();
+    if (!token || raw.length < 3) {
+      setPlaceResults([]);
+      setSearching(false);
+      return;
+    }
+    // Clean unit suffixes / extra punctuation so Mapbox's address index matches.
+    const q = stripUnit(clean(raw));
+    if (q.length < 3) {
       setPlaceResults([]);
       setSearching(false);
       return;
@@ -168,7 +175,7 @@ function AIRoofWizard() {
       try {
         const url =
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json` +
-          `?access_token=${token}&country=us&types=address&autocomplete=true&limit=5`;
+          `?access_token=${token}&country=us&types=address,postcode&autocomplete=true&limit=5`;
         const res = await fetch(url);
         const json = await res.json();
         const features: PlaceResult[] = (json?.features ?? [])
