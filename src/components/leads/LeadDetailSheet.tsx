@@ -334,25 +334,15 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
             </div>
 
             {/* Primary tools row — always visible */}
-            <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="mt-3">
               <button
                 type="button"
                 onClick={openPlaybook}
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border text-xs font-semibold text-foreground transition-colors hover:bg-[var(--bg-hover)]"
+                className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border text-xs font-semibold text-foreground transition-colors hover:bg-[var(--bg-hover)]"
                 style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
               >
                 <BookOpen className="h-3.5 w-3.5 text-[var(--primary)]" />
                 Open Playbook
-              </button>
-              <button
-                type="button"
-                onClick={generateAndSaveReport}
-                disabled={generatingReport}
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md text-xs font-semibold text-white disabled:opacity-50"
-                style={{ backgroundColor: "var(--primary)" }}
-              >
-                {generatingReport ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
-                {generatingReport ? "Saving…" : "Generate Report"}
               </button>
             </div>
 
@@ -429,19 +419,45 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
               )}
             </Section>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (!leadId) return;
-                onClose();
-                navigate({ to: "/leads/wizard", search: { leadId } });
-              }}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
-              style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)" }}
-            >
-              <Sparkles className="h-4 w-4" />
-              Generate AI Roof Report
-            </button>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!leadId) return;
+                  onClose();
+                  navigate({ to: "/leads/wizard", search: { leadId } });
+                }}
+                className="flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
+                style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)" }}
+              >
+                <Sparkles className="h-4 w-4" />
+                AI Roof Wizard
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!leadId) return;
+                  onClose();
+                  navigate({ to: "/leads/savings", search: { leadId } });
+                }}
+                className="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-opacity hover:bg-emerald-700"
+              >
+                <FileDown className="h-4 w-4" />
+                Generate Savings Report
+              </button>
+            </div>
+            {leadId && (
+              <button
+                type="button"
+                onClick={generateAndSaveReport}
+                disabled={generatingReport}
+                className="mt-2 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md border text-[11px] font-medium text-muted-foreground transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
+                style={{ borderColor: "var(--border)" }}
+              >
+                {generatingReport ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileDown className="h-3 w-3" />}
+                {generatingReport ? "Saving…" : "Save quick PDF to lead"}
+              </button>
+            )}
 
             <div className="mt-4 grid grid-cols-3 gap-2">
               <ActionBtn color="#22c55e" icon={<Phone className="h-3.5 w-3.5" />} label="Call" onClick={() => logQuickAction("call")} />
