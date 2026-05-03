@@ -1,623 +1,436 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Calculator, FileDown, Building2, Mail, MessageSquare, Loader2, X } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  Legend,
-} from "recharts";
-import jsPDF from "jspdf";
+import { Calculator, FileDown, Mail, Loader2, Check, Sparkles, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
+import html2pdf from "html2pdf.js";
+import { useNavigate } from "@tanstack/react-router";
 import { useLeads } from "@/hooks/useLeads";
-import { fmtMoney, fmtNum } from "@/lib/leads";
-import { sendLeadReport } from "@/server/lead-reports.functions";
+import { fmtMoney, fmtNum, type LeadRow } from "@/lib/leads";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
 
 export const Route = createFileRoute("/_app/leads/savings")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    leadId: typeof search.leadId === "string" ? search.leadId : undefined,
+  }),
   component: SavingsReport,
 });
 
-interface Inputs {
-  sqft: number;
-  restorePsf: number;
-  replacePsf: number;
-  energySavingsPctPerYear: number; // % vs replace baseline ops cost
-  baselineOpsPerSqftPerYear: number; // typical maintenance per sqft per year
-  recoatYear: number; // when SPF needs re-coat
-  recoatPsf: number;
-  years: number;
-  inflation: number;
-}
+// Pricing constants from spec
+const TEAROFF_COSTS: Record<string, number> = { bur: 22, tpo: 18, epdm: 17, modified: 20, metal: 25, shingle: 16 };
+const SPF_COSTS: Record<string, number> = { bur: 12, tpo: 10, epdm: 9.5, modified: 11, metal: 13, shingle: 8 };
+const MAINT_COSTS: Record<string, number> = { bur: 0.35, tpo: 0.25, epdm: 0.30, modified: 0.30, metal: 0.20, shingle: 0.40 };
+const ROOF_TYPE_OPTIONS = [
+  { value: "bur", label: "BUR (Built-Up)" },
+  { value: "tpo", label: "TPO" },
+  { value: "epdm", label: "EPDM" },
+  { value: "modified", label: "Modified Bitumen" },
+  { value: "metal", label: "Metal" },
+  { value: "shingle", label: "Shingle" },
+];
 
-// Per-roof-type pricing (Roof Kings spec). Replacement $16-$25/sqft, SPF restoration $8-$13/sqft.
-export const TEAROFF_COSTS: Record<string, number> = {
-  bur: 22, tpo: 18, epdm: 17, modified: 20, metal: 25, shingle: 16,
-};
-export const SPF_COSTS: Record<string, number> = {
-  bur: 12, tpo: 10, epdm: 9.5, modified: 11, metal: 13, shingle: 8,
-};
-export function priceForRoofType(roofType: string | null | undefined): { tearoff: number; spf: number } {
+function normalizeRoofType(roofType: string | null | undefined): string {
   const k = (roofType ?? "").toLowerCase();
-  if (k.includes("bur") || k.includes("built")) return { tearoff: TEAROFF_COSTS.bur, spf: SPF_COSTS.bur };
-  if (k.includes("tpo")) return { tearoff: TEAROFF_COSTS.tpo, spf: SPF_COSTS.tpo };
-  if (k.includes("epdm") || k.includes("rubber")) return { tearoff: TEAROFF_COSTS.epdm, spf: SPF_COSTS.epdm };
-  if (k.includes("mod")) return { tearoff: TEAROFF_COSTS.modified, spf: SPF_COSTS.modified };
-  if (k.includes("metal") || k.includes("standing") || k.includes("r-panel")) return { tearoff: TEAROFF_COSTS.metal, spf: SPF_COSTS.metal };
-  if (k.includes("shingle")) return { tearoff: TEAROFF_COSTS.shingle, spf: SPF_COSTS.shingle };
-  return { tearoff: TEAROFF_COSTS.modified, spf: SPF_COSTS.modified };
+  if (k.includes("bur") || k.includes("built")) return "bur";
+  if (k.includes("tpo")) return "tpo";
+  if (k.includes("epdm") || k.includes("rubber")) return "epdm";
+  if (k.includes("mod")) return "modified";
+  if (k.includes("metal") || k.includes("standing") || k.includes("r-panel")) return "metal";
+  if (k.includes("shingle")) return "shingle";
+  return "modified";
 }
 
-const DEFAULTS: Inputs = {
-  sqft: 30000,
-  restorePsf: SPF_COSTS.modified,      // $11/sqft default
-  replacePsf: TEAROFF_COSTS.modified,  // $20/sqft default
-  energySavingsPctPerYear: 25,
-  baselineOpsPerSqftPerYear: 0.45,
-  recoatYear: 20,
-  recoatPsf: 3.0,
-  years: 20,
-  inflation: 3,
-};
-
-interface YearRow {
-  year: number;
-  restoreCum: number;
-  replaceCum: number;
-  savings: number;
-}
-
-function project(inputs: Inputs): YearRow[] {
-  const restoreUpfront = inputs.sqft * inputs.restorePsf;
-  const replaceUpfront = inputs.sqft * inputs.replacePsf;
-  const baselineOps = inputs.sqft * inputs.baselineOpsPerSqftPerYear;
-  const energyMultiplier = 1 - inputs.energySavingsPctPerYear / 100;
-  const infl = 1 + inputs.inflation / 100;
-
-  const rows: YearRow[] = [];
-  let restoreCum = restoreUpfront;
-  let replaceCum = replaceUpfront;
-  for (let y = 1; y <= inputs.years; y++) {
-    const inflate = Math.pow(infl, y - 1);
-    const replaceOps = baselineOps * inflate;
-    const restoreOps = baselineOps * inflate * energyMultiplier;
-    replaceCum += replaceOps;
-    restoreCum += restoreOps;
-    if (y === inputs.recoatYear) {
-      restoreCum += inputs.sqft * inputs.recoatPsf * inflate;
-    }
-    rows.push({
-      year: y,
-      restoreCum: Math.round(restoreCum),
-      replaceCum: Math.round(replaceCum),
-      savings: Math.round(replaceCum - restoreCum),
-    });
-  }
-  return rows;
+function fmtRange(low: number, high: number) {
+  return `${fmtMoney(Math.round(low))}–${fmtMoney(Math.round(high))}`;
 }
 
 function SavingsReport() {
+  const { leadId: searchLeadId } = Route.useSearch();
+  const navigate = useNavigate();
   const { data: leads = [] } = useLeads();
-  const [inputs, setInputs] = useState<Inputs>(DEFAULTS);
-  const [leadId, setLeadId] = useState<string>("");
+  const { data: mapboxToken } = useMapboxToken();
   const reportRef = useRef<HTMLDivElement>(null);
 
-  const lead = useMemo(() => leads.find((l) => l.id === leadId) ?? null, [leads, leadId]);
+  const [leadId, setLeadId] = useState<string>(searchLeadId ?? "");
+  const [sqft, setSqft] = useState<number>(12500);
+  const [roofType, setRoofType] = useState<string>("modified");
+  const [roofAge, setRoofAge] = useState<number>(18);
+  const [address, setAddress] = useState<string>("");
+  const [exporting, setExporting] = useState(false);
+
+  const lead = useMemo<LeadRow | null>(
+    () => leads.find((l) => l.id === leadId) ?? null,
+    [leads, leadId],
+  );
+
+  // Sync URL search param if user picks a different lead
+  useEffect(() => {
+    if (searchLeadId && searchLeadId !== leadId) setLeadId(searchLeadId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchLeadId]);
+
+  // Pre-fill from lead when one is selected
+  useEffect(() => {
+    if (!lead) return;
+    if (lead.sqft) setSqft(lead.sqft);
+    setRoofType(normalizeRoofType(lead.roof_type));
+    if (lead.year_built) {
+      const yr = parseInt(lead.year_built, 10);
+      if (Number.isFinite(yr) && yr > 1900) setRoofAge(new Date().getFullYear() - yr);
+    }
+    const addrParts = [lead.address, lead.city, lead.state, lead.zip].filter(Boolean);
+    setAddress(addrParts.join(", "));
+  }, [lead]);
 
   function applyLead(id: string) {
     setLeadId(id);
-    const l = leads.find((x) => x.id === id);
-    if (l?.sqft) setInputs((prev) => ({ ...prev, sqft: l.sqft! }));
+    navigate({ to: "/leads/savings", search: { leadId: id || undefined } });
   }
 
-  const rows = useMemo(() => project(inputs), [inputs]);
-  const final = rows[rows.length - 1];
-  const restoreUpfront = inputs.sqft * inputs.restorePsf;
-  const replaceUpfront = inputs.sqft * inputs.replacePsf;
-  const upfrontSavings = replaceUpfront - restoreUpfront;
-  const totalSavings = final?.savings ?? 0;
-  const roiPct = restoreUpfront > 0 ? (totalSavings / restoreUpfront) * 100 : 0;
+  // ---- Calculations ----
+  const tearoffPsf = TEAROFF_COSTS[roofType];
+  const spfPsf = SPF_COSTS[roofType];
+  const maintPsf = MAINT_COSTS[roofType];
 
-  function buildPdf(): { doc: jsPDF; safeName: string } {
-    const doc = new jsPDF({ unit: "pt", format: "letter" });
-    const W = doc.internal.pageSize.getWidth();
-    let y = 56;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(20);
-    doc.text("SPF Restoration Savings Report", 56, y);
-    y += 22;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    doc.setTextColor(110);
-    doc.text(`Generated ${new Date().toLocaleDateString()}`, 56, y);
-    y += 24;
+  const tearoffCost = sqft * tearoffPsf;
+  const sprayFoamCost = sqft * spfPsf;
+  const annualMaintenance = sqft * maintPsf;
 
-    if (lead) {
-      doc.setTextColor(20);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
-      doc.text("Property", 56, y);
-      y += 16;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      doc.text(lead.address, 56, y);
-      y += 14;
-      doc.text(`${lead.city ?? ""}, ${lead.state ?? ""} ${lead.zip ?? ""}`, 56, y);
-      y += 14;
-      if (lead.owner) {
-        doc.text(`Owner: ${lead.owner}`, 56, y);
-        y += 14;
-      }
-      y += 10;
-    }
+  const energyPerSqftPerYear = 0.625;
+  const energyYear1 = Math.round(sqft * energyPerSqftPerYear);
+  const energy10yr = energyYear1 * 10;
+  const energy20yr = energyYear1 * 20;
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text("Inputs", 56, y);
-    y += 16;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    const ipairs: [string, string][] = [
-      ["Roof area", `${fmtNum(inputs.sqft)} sq ft`],
-      ["Restoration cost", `${fmtMoney(inputs.restorePsf)} / sq ft`],
-      ["Replacement cost", `${fmtMoney(inputs.replacePsf)} / sq ft`],
-      ["Energy savings vs. replace", `${inputs.energySavingsPctPerYear}% / yr`],
-      ["Baseline maintenance", `${fmtMoney(inputs.baselineOpsPerSqftPerYear)} / sqft / yr`],
-      ["Re-coat at year", `${inputs.recoatYear} (${fmtMoney(inputs.recoatPsf)} / sqft)`],
-      ["Horizon", `${inputs.years} years`],
-      ["Inflation", `${inputs.inflation}% / yr`],
-    ];
-    ipairs.forEach(([k, v]) => {
-      doc.text(k, 56, y);
-      doc.text(v, 280, y);
-      y += 14;
-    });
+  const currentMaintPerYear = sqft * maintPsf;
+  const spfMaintPerYear = sqft * 0.10;
+  const maintYear1 = Math.round(currentMaintPerYear - spfMaintPerYear);
+  const maint10yr = maintYear1 * 10;
+  const maint20yr = maintYear1 * 20;
 
-    y += 10;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text("Headline numbers", 56, y);
-    y += 16;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    const hpairs: [string, string][] = [
-      ["Up-front savings (Day 1)", fmtMoney(upfrontSavings)],
-      [`Total savings over ${inputs.years} years`, fmtMoney(totalSavings)],
-      ["ROI on restoration", `${roiPct.toFixed(0)}%`],
-    ];
-    hpairs.forEach(([k, v]) => {
-      doc.text(k, 56, y);
-      doc.text(v, 280, y);
-      y += 14;
-    });
+  const section179 = Math.round(sprayFoamCost);
+  const section179d = Math.round(sqft * 5);
 
-    y += 16;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text("Year-by-year cumulative cost", 56, y);
-    y += 16;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("Year", 56, y);
-    doc.text("Restore", 130, y);
-    doc.text("Replace", 230, y);
-    doc.text("Savings", 330, y);
-    y += 12;
-    doc.setFont("helvetica", "normal");
-    rows.forEach((r) => {
-      if (y > 740) {
-        doc.addPage();
-        y = 56;
-      }
-      doc.text(String(r.year), 56, y);
-      doc.text(fmtMoney(r.restoreCum), 130, y);
-      doc.text(fmtMoney(r.replaceCum), 230, y);
-      doc.text(fmtMoney(r.savings), 330, y);
-      y += 12;
-    });
+  const totalYear1 = energyYear1 + maintYear1 + section179 + section179d;
+  const total10yr = energy10yr + maint10yr + section179 + section179d;
+  const total20yr = energy20yr + maint20yr + section179 + section179d;
 
-    y += 20;
-    if (y > 720) {
-      doc.addPage();
-      y = 56;
-    }
-    doc.setFontSize(9);
-    doc.setTextColor(120);
-    doc.text(
-      "Estimates only. Actual results depend on roof condition, climate, energy rates, and selected system.",
-      56,
-      y,
-      { maxWidth: W - 112 },
-    );
+  const netCostRaw = sprayFoamCost * 0.63 - section179d;
+  const netCost = Math.max(0, Math.round(netCostRaw));
+  const paybackDenom = energyYear1 + maintYear1;
+  const paybackYears = paybackDenom > 0 ? (netCost / paybackDenom).toFixed(1) : "—";
 
-    const safeName = (lead?.address ?? "savings-report").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-    return { doc, safeName };
-  }
+  const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
-  function exportPDF() {
+  // Mapbox static satellite image
+  const satelliteUrl = lead?.lat != null && lead?.lng != null && mapboxToken
+    ? `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${lead.lng},${lead.lat},19,0/600x400@2x?access_token=${mapboxToken}`
+    : null;
+
+  // Extract observations from AI report
+  const aiObservations: string[] = (() => {
+    const r = lead?.ai_report as { analysis?: string } | undefined;
+    if (!r?.analysis) return [];
+    const lines = r.analysis.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+    const bullets = lines
+      .filter((l) => /^[-•*\d]/.test(l) || l.length < 220)
+      .map((l) => l.replace(/^[-•*\d.\s]+/, "").trim())
+      .filter((l) => l.length > 10);
+    return bullets.slice(0, 8);
+  })();
+
+  async function exportPDF() {
+    if (!reportRef.current) return;
+    setExporting(true);
     try {
-      const { doc, safeName } = buildPdf();
-      doc.save(`${safeName}.pdf`);
+      const safeAddr = (address || "savings-report").replace(/[^a-z0-9]+/gi, "_").slice(0, 60);
+      await html2pdf()
+        .set({
+          margin: 0.3,
+          filename: `GCN_Savings_Report_${safeAddr}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#0f172a" },
+          jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+        })
+        .from(reportRef.current)
+        .save();
       toast.success("PDF downloaded");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to export");
-    }
-  }
-
-  // ---------- Send report by email ----------
-  const [sendOpen, setSendOpen] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [contactEmails, setContactEmails] = useState<{ email: string; name: string }[]>([]);
-  const [recipient, setRecipient] = useState("");
-  const sendFn = useServerFn(sendLeadReport);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadEmails() {
-      if (!leadId) {
-        setContactEmails([]);
-        return;
-      }
-      const { data: contacts } = await supabase
-        .from("lead_contacts")
-        .select("name, lead_contact_emails(email)")
-        .eq("lead_id", leadId);
-      if (cancelled) return;
-      const list: { email: string; name: string }[] = [];
-      (contacts ?? []).forEach((c: { name: string; lead_contact_emails: { email: string }[] | null }) => {
-        (c.lead_contact_emails ?? []).forEach((e) => {
-          if (e.email) list.push({ email: e.email, name: c.name });
-        });
-      });
-      setContactEmails(list);
-      setRecipient(list[0]?.email ?? "");
-    }
-    loadEmails();
-    return () => {
-      cancelled = true;
-    };
-  }, [leadId]);
-
-  function openSend() {
-    if (!leadId) {
-      toast.error("Pick a lead first to send the report.");
-      return;
-    }
-    setSendOpen(true);
-  }
-
-  async function handleSend() {
-    if (!leadId || !recipient.trim()) {
-      toast.error("Recipient email required");
-      return;
-    }
-    setSending(true);
-    try {
-      const { doc, safeName } = buildPdf();
-      // jsPDF datauristring → strip "data:application/pdf;filename=...;base64,"
-      const datauri = doc.output("datauristring");
-      const b64 = datauri.split(",")[1] ?? "";
-      const res = await sendFn({
-        data: {
-          leadId,
-          channel: "email",
-          recipient: recipient.trim(),
-          reportName: safeName,
-          pdfBase64: b64,
-        },
-      });
-      if (!res.ok) {
-        toast.error(res.error ?? "Failed to send");
-      } else {
-        toast.success("Report emailed — added to Follow-Up");
-        setSendOpen(false);
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to send");
     } finally {
-      setSending(false);
+      setExporting(false);
     }
   }
-
 
   return (
-    <div className="space-y-5">
-      <header className="flex items-start gap-3">
-        <div
-          className="grid h-10 w-10 place-items-center rounded-xl"
-          style={{ backgroundColor: "color-mix(in oklab, var(--primary) 14%, transparent)" }}
-        >
-          <Calculator className="h-5 w-5 text-[var(--primary)]" />
+    <div className="space-y-4">
+      {/* Sticky input bar */}
+      <div className="sticky top-0 z-10 -mx-4 border-b bg-slate-900 p-4 sm:mx-0 sm:rounded-xl" style={{ borderColor: "rgb(51 65 85)" }}>
+        <div className="mb-3 flex items-center gap-2">
+          <Calculator className="h-5 w-5 text-emerald-400" />
+          <h2 className="text-base font-semibold text-white">Savings Report Builder</h2>
         </div>
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">Savings Report</h2>
-          <p className="text-sm text-[var(--text-dim)]">
-            20-year cost comparison: SPF restoration vs. tear-off + replace.
-          </p>
-        </div>
-      </header>
-
-      <div className="grid gap-5 lg:grid-cols-[340px_1fr]">
-        <aside className="space-y-3">
-          <div
-            className="rounded-xl border p-3"
-            style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
-          >
-            <label className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
-              <Building2 className="h-3.5 w-3.5" /> Pre-fill from lead
-            </label>
-            <select
-              value={leadId}
-              onChange={(e) => applyLead(e.target.value)}
-              className="w-full rounded-md border bg-[var(--bg-elevated)] px-2 py-1.5 text-sm"
-              style={{ borderColor: "var(--border)" }}
-            >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div>
+            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Pre-fill from lead</label>
+            <select value={leadId} onChange={(e) => applyLead(e.target.value)} className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white">
               <option value="">— Manual entry —</option>
-              {leads.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.address}
-                  {l.sqft ? ` (${fmtNum(l.sqft)} sf)` : ""}
-                </option>
-              ))}
+              {leads.map((l) => <option key={l.id} value={l.id}>{l.address}</option>)}
             </select>
           </div>
-
-          <NumberField
-            label="Roof area (sq ft)"
-            value={inputs.sqft}
-            step={500}
-            onChange={(v) => setInputs({ ...inputs, sqft: v })}
-          />
-          <NumberField
-            label="Restore cost ($/sqft)"
-            value={inputs.restorePsf}
-            step={0.25}
-            decimals={2}
-            onChange={(v) => setInputs({ ...inputs, restorePsf: v })}
-          />
-          <NumberField
-            label="Replace cost ($/sqft)"
-            value={inputs.replacePsf}
-            step={0.25}
-            decimals={2}
-            onChange={(v) => setInputs({ ...inputs, replacePsf: v })}
-          />
-          <NumberField
-            label="Energy savings (% / yr)"
-            value={inputs.energySavingsPctPerYear}
-            step={1}
-            onChange={(v) => setInputs({ ...inputs, energySavingsPctPerYear: v })}
-          />
-          <NumberField
-            label="Baseline ops ($/sqft/yr)"
-            value={inputs.baselineOpsPerSqftPerYear}
-            step={0.05}
-            decimals={2}
-            onChange={(v) => setInputs({ ...inputs, baselineOpsPerSqftPerYear: v })}
-          />
-          <NumberField
-            label="Re-coat year"
-            value={inputs.recoatYear}
-            step={1}
-            onChange={(v) => setInputs({ ...inputs, recoatYear: Math.round(v) })}
-          />
-          <NumberField
-            label="Re-coat ($/sqft)"
-            value={inputs.recoatPsf}
-            step={0.25}
-            decimals={2}
-            onChange={(v) => setInputs({ ...inputs, recoatPsf: v })}
-          />
-          <NumberField
-            label="Horizon (years)"
-            value={inputs.years}
-            step={1}
-            onChange={(v) => setInputs({ ...inputs, years: Math.max(1, Math.round(v)) })}
-          />
-          <NumberField
-            label="Inflation (%/yr)"
-            value={inputs.inflation}
-            step={0.5}
-            decimals={1}
-            onChange={(v) => setInputs({ ...inputs, inflation: v })}
-          />
-
+          <div>
+            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Square Footage</label>
+            <input type="number" value={sqft} onChange={(e) => setSqft(parseInt(e.target.value) || 0)} className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 font-mono-num text-sm text-white" />
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Existing Roof Type</label>
+            <select value={roofType} onChange={(e) => setRoofType(e.target.value)} className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white">
+              {ROOF_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Roof Age (yrs)</label>
+            <input type="number" value={roofAge} onChange={(e) => setRoofAge(parseInt(e.target.value) || 0)} className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 font-mono-num text-sm text-white" />
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Address</label>
+            <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white" />
+          </div>
+        </div>
+        <div className="mt-3 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => toast.info("Email-to-owner draft coming soon")}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-600 bg-slate-800 px-4 text-xs font-semibold text-white hover:bg-slate-700"
+          >
+            <Mail className="h-3.5 w-3.5" /> Send to Owner
+          </button>
           <button
             type="button"
             onClick={exportPDF}
-            className="btn-brand mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-md text-sm font-semibold"
+            disabled={exporting}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-emerald-600 px-4 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
           >
-            <FileDown className="h-4 w-4" /> Export PDF
+            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+            {exporting ? "Generating…" : "Export as PDF"}
           </button>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={openSend}
-              disabled={!leadId}
-              className="flex h-9 items-center justify-center gap-1.5 rounded-md border text-xs font-semibold transition-colors disabled:opacity-50"
-              style={{
-                borderColor: "var(--border)",
-                backgroundColor: "var(--bg-elevated)",
-                color: "var(--text)",
-              }}
-            >
-              <Mail className="h-3.5 w-3.5" /> Email to contact
-            </button>
-            <button
-              type="button"
-              disabled
-              title="SMS provider not configured yet"
-              className="flex h-9 cursor-not-allowed items-center justify-center gap-1.5 rounded-md border text-xs font-semibold opacity-50"
-              style={{
-                borderColor: "var(--border)",
-                backgroundColor: "var(--bg-elevated)",
-                color: "var(--text-dim)",
-              }}
-            >
-              <MessageSquare className="h-3.5 w-3.5" /> Text to contact
-            </button>
+      {/* The report */}
+      <div className="mx-auto max-w-4xl">
+        <div ref={reportRef} id="savings-report-content" className="space-y-6 rounded-xl bg-slate-900 p-6 text-white shadow-xl">
+          {/* Brand header */}
+          <div className="-mx-6 -mt-6 mb-0">
+            <div className="bg-slate-800 px-6 py-5">
+              <div className="text-2xl font-bold uppercase tracking-wider text-white">GCN Lead Center</div>
+              <div className="text-xs uppercase tracking-widest text-slate-400">Commercial Roofing Solutions</div>
+            </div>
+            <div className="h-1 bg-emerald-500" />
+            <div className="px-6 py-4 text-center">
+              <h1 className="text-lg font-semibold text-white">Commercial Roof Restoration — Savings Report</h1>
+            </div>
           </div>
-          {!leadId && (
-            <p className="text-[11px] text-[var(--text-dim)]">Pick a lead above to enable sending.</p>
-          )}
-        </aside>
 
-        {sendOpen && (
-          <div
-            className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
-            onClick={() => !sending && setSendOpen(false)}
-          >
-            <div
-              className="w-full max-w-md rounded-xl border p-5 shadow-xl"
-              style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="mb-3 flex items-start justify-between">
-                <div>
-                  <h3 className="text-base font-semibold text-foreground">Email Savings Report</h3>
-                  <p className="text-xs text-[var(--text-dim)]">
-                    {lead?.address ?? "—"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => !sending && setSendOpen(false)}
-                  className="rounded p-1 text-[var(--text-dim)] hover:bg-[var(--bg-hover)]"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+          {/* Section 1 — Property Info */}
+          <div className="overflow-hidden rounded-lg border border-slate-600">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-700">
+                  {["Property", "Tenant/Owner", "Roof Size", "Type", "Est. Age", "Report Date"].map((h) => (
+                    <th key={h} className="border-r border-slate-600 px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-300 last:border-r-0">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="bg-slate-800">
+                  <td className="border-r border-slate-600 px-3 py-2 text-white">{address || "—"}</td>
+                  <td className="border-r border-slate-600 px-3 py-2 text-white">{lead?.owner ?? "N/A"}</td>
+                  <td className="border-r border-slate-600 px-3 py-2 font-mono-num text-white">{fmtNum(sqft)} SF</td>
+                  <td className="border-r border-slate-600 px-3 py-2 text-white">{ROOF_TYPE_OPTIONS.find((o) => o.value === roofType)?.label}</td>
+                  <td className="border-r border-slate-600 px-3 py-2 font-mono-num text-white">{roofAge} yrs</td>
+                  <td className="px-3 py-2 text-white">{today}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-              {contactEmails.length > 0 && (
-                <div className="mb-3">
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
-                    Contact on file
-                  </label>
-                  <select
-                    value={contactEmails.find((c) => c.email === recipient) ? recipient : ""}
-                    onChange={(e) => setRecipient(e.target.value)}
-                    className="w-full rounded-md border bg-[var(--bg-elevated)] px-2 py-1.5 text-sm"
-                    style={{ borderColor: "var(--border)" }}
-                  >
-                    <option value="">— Custom email —</option>
-                    {contactEmails.map((c, i) => (
-                      <option key={`${c.email}-${i}`} value={c.email}>
-                        {c.name} · {c.email}
-                      </option>
-                    ))}
-                  </select>
+          {/* Section 2 — Satellite + Scope */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              {satelliteUrl ? (
+                <>
+                  <img src={satelliteUrl} alt="Satellite view of property" className="aspect-[3/2] w-full rounded-lg object-cover" crossOrigin="anonymous" />
+                  <div className="mt-2 text-xs text-slate-400">Building 1 ({fmtNum(sqft)} SF)</div>
+                </>
+              ) : (
+                <div className="flex aspect-[3/2] w-full items-center justify-center rounded-lg border border-slate-700 bg-slate-800 p-4 text-center text-xs text-slate-400">
+                  {lead && (lead.lat == null || lead.lng == null)
+                    ? "Lead has no coordinates yet — open the lead details to geocode it."
+                    : "Pick a lead with coordinates to show satellite imagery."}
                 </div>
               )}
+            </div>
 
-              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
-                Send to
-              </label>
-              <input
-                type="email"
-                value={recipient}
-                onChange={(e) => setRecipient(e.target.value)}
-                placeholder="name@company.com"
-                className="mb-4 w-full rounded-md border bg-[var(--bg-elevated)] px-2 py-2 text-sm"
-                style={{ borderColor: "var(--border)" }}
-              />
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-700 bg-slate-800 p-5">
+                <h3 className="mb-3 text-sm font-bold tracking-wider text-white">SCOPE OF WORK</h3>
+                <ul className="space-y-1.5 text-sm text-slate-200">
+                  {[
+                    "Pressure wash & clean surface",
+                    "Repair blisters, cracks, deterioration",
+                    "Apply SPF recovery system",
+                    "Apply silicone seamless top coat",
+                    "Flash penetrations, curbs, HVAC, drains",
+                    "Seal parapet walls & edge details",
+                    "Install new termination bars",
+                  ].map((s) => (
+                    <li key={s} className="flex items-start gap-2">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /> <span>{s}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSendOpen(false)}
-                  disabled={sending}
-                  className="rounded-md border px-3 py-2 text-xs font-semibold"
-                  style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSend}
-                  disabled={sending || !recipient.trim()}
-                  className="btn-brand inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold"
-                >
-                  {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-                  {sending ? "Sending…" : "Send PDF"}
-                </button>
+              <div className="rounded-xl border border-slate-700 bg-slate-800 p-5">
+                <h3 className="mb-3 text-sm font-bold tracking-wider text-white">RESTORATION SYSTEM</h3>
+                <ol className="space-y-2 text-sm text-slate-200">
+                  {[
+                    { n: 1, label: "High-Solids Silicone Top Coat", color: "bg-emerald-600" },
+                    { n: 2, label: "Spray Polyurethane Foam (SPF)", color: "bg-blue-600" },
+                    { n: 3, label: "Substrate Prep & Repairs", color: "bg-slate-600" },
+                  ].map((s) => (
+                    <li key={s.n} className="flex items-center gap-3">
+                      <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white ${s.color}`}>{s.n}</span>
+                      <span>{s.label}</span>
+                    </li>
+                  ))}
+                </ol>
+                <div className="mt-3 text-xs italic text-slate-400">
+                  Your existing {ROOF_TYPE_OPTIONS.find((o) => o.value === roofType)?.label} roof
+                </div>
               </div>
             </div>
           </div>
-        )}
 
-        <div ref={reportRef} className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <KPI label="Up-front savings" value={fmtMoney(upfrontSavings)} accent="var(--primary)" />
-            <KPI
-              label={`Total savings · ${inputs.years} yr`}
-              value={fmtMoney(totalSavings)}
-              accent="#22c55e"
-            />
-            <KPI label="ROI on restoration" value={`${roiPct.toFixed(0)}%`} accent="#a855f7" />
+          {/* Section 3 — Roof Observations */}
+          <div>
+            <h3 className="mb-3 border-b border-slate-700 pb-2 text-sm font-bold tracking-wider text-white">ROOF OBSERVATIONS</h3>
+            {aiObservations.length > 0 ? (
+              <ul className="space-y-1.5">
+                {aiObservations.map((o, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                    <span className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                    <span>{o}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-400">No AI analysis available. Run the AI Roof Wizard to generate roof observations.</p>
+                <button
+                  type="button"
+                  onClick={() => leadId ? navigate({ to: "/leads/wizard", search: { leadId } }) : toast.error("Pick a lead first")}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md bg-emerald-600 px-4 text-xs font-semibold text-white hover:bg-emerald-700"
+                >
+                  <Sparkles className="h-3.5 w-3.5" /> Run AI Analysis
+                </button>
+              </div>
+            )}
           </div>
 
-          <div
-            className="rounded-xl border p-4"
-            style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
-          >
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
-              Cumulative cost over {inputs.years} years
-            </p>
-            <div className="h-72">
-              <ResponsiveContainer>
-                <LineChart data={rows}>
-                  <CartesianGrid stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
-                  <XAxis dataKey="year" stroke="var(--text-dim)" fontSize={11} />
-                  <YAxis
-                    stroke="var(--text-dim)"
-                    fontSize={11}
-                    tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-                  />
-                  <Tooltip
-                    contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
-                    formatter={(v: number) => fmtMoney(v)}
-                  />
-                  <Legend />
-                  <Line type="monotone" dataKey="restoreCum" name="Restore" stroke="#22c55e" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="replaceCum" name="Replace" stroke="#ef4444" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+          {/* Section 4 — Benefits */}
+          <div>
+            <h3 className="mb-3 text-sm font-bold tracking-wider text-white">BENEFITS</h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {[
+                "Stops all leaks permanently",
+                "Drops energy bills 20–35%",
+                "Eliminates thermal bridging",
+                "Hurricane-rated wind uplift",
+                "15–20 year renewable warranty",
+                "Zero business disruption",
+              ].map((b) => (
+                <div key={b} className="flex items-start gap-2 text-sm text-slate-200">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /> <span>{b}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div
-            className="rounded-xl border p-4"
-            style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
-          >
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
-              Annual cumulative savings
-            </p>
-            <div className="h-56">
-              <ResponsiveContainer>
-                <BarChart data={rows}>
-                  <CartesianGrid stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
-                  <XAxis dataKey="year" stroke="var(--text-dim)" fontSize={11} />
-                  <YAxis
-                    stroke="var(--text-dim)"
-                    fontSize={11}
-                    tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-                  />
-                  <Tooltip
-                    contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
-                    formatter={(v: number) => fmtMoney(v)}
-                  />
-                  <Bar dataKey="savings" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+          {/* Section 5 — Three-option cost comparison */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-xl border border-red-500/30 bg-slate-800 p-4">
+              <div className="text-xs font-semibold uppercase text-red-400">Full Replacement</div>
+              <div className="mt-2 font-mono-num text-2xl font-bold text-white">{fmtRange(tearoffCost * 0.85, tearoffCost * 1.28)}</div>
+              <div className="mt-1 text-xs text-slate-400">Tear-off, weeks of disruption</div>
             </div>
+            <div className="rounded-xl border border-amber-500/30 bg-slate-800 p-4">
+              <div className="text-xs font-semibold uppercase text-amber-400">Keep Patching</div>
+              <div className="mt-2 font-mono-num text-2xl font-bold text-white">{fmtRange(annualMaintenance * 0.7, annualMaintenance * 1.35)}/yr</div>
+              <div className="mt-1 text-xs text-slate-400">Band-aids on a failing roof</div>
+            </div>
+            <div className="relative rounded-xl border border-emerald-500/50 bg-slate-800 p-4 ring-1 ring-emerald-500/30">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-600 px-3 py-1 text-[10px] font-bold uppercase text-white">Best Value</span>
+              <div className="text-xs font-semibold uppercase text-emerald-400">SPF Restoration ✓</div>
+              <div className="mt-2 font-mono-num text-2xl font-bold text-emerald-400">{fmtMoney(Math.round(sprayFoamCost))}</div>
+              <div className="mt-1 text-xs text-slate-400">Seamless, 20-yr warranty</div>
+            </div>
+          </div>
+
+          {/* Section 6 — ROI Table */}
+          <div className="overflow-hidden rounded-lg border border-slate-700">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-700">
+                  {["Benefit", "Year 1", "10-Year", "20-Year"].map((h, i) => (
+                    <th key={h} className={`px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-300 ${i === 0 ? "text-left" : "text-right"}`}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="font-mono-num">
+                {[
+                  { label: "Energy Savings", y1: energyYear1, y10: energy10yr, y20: energy20yr },
+                  { label: "Maintenance Savings", y1: maintYear1, y10: maint10yr, y20: maint20yr },
+                  { label: "Section 179 (100%)", y1: section179, y10: section179, y20: section179 },
+                  { label: "Section 179D ($5/SF)", y1: section179d, y10: section179d, y20: section179d },
+                ].map((r) => (
+                  <tr key={r.label} className="border-b border-slate-700 bg-slate-800">
+                    <td className="px-3 py-2 font-sans text-slate-200">{r.label}</td>
+                    <td className="px-3 py-2 text-right text-white">{fmtMoney(r.y1)}</td>
+                    <td className="px-3 py-2 text-right text-white">{fmtMoney(r.y10)}</td>
+                    <td className="px-3 py-2 text-right text-white">{fmtMoney(r.y20)}</td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-emerald-500 bg-slate-700">
+                  <td className="px-3 py-2 font-sans font-bold text-white">Total Savings</td>
+                  <td className="px-3 py-2 text-right font-bold text-white">{fmtMoney(totalYear1)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-white">{fmtMoney(total10yr)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-emerald-400">{fmtMoney(total20yr)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Section 7 — Stat cards */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Section 179" value="100%" sub="Full project Year 1" tone="dark" />
+            <StatCard label="Section 179D" value="$5/SF" sub="Energy deduction" tone="dark" />
+            <StatCard label="Net Cost After Tax" value={fmtMoney(netCost)} sub="Out-of-pocket" tone="green" />
+            <StatCard label="Payback" value={`${paybackYears} yr`} sub="Energy + maint savings" tone="green" />
+          </div>
+
+          {/* Section 8 — Urgency banner */}
+          <div className="flex items-center justify-center gap-2 rounded-lg bg-red-600 py-3 text-center text-sm font-semibold text-white">
+            <AlertTriangle className="h-4 w-4" />
+            Section 179 expires June 30, 2026 — Act now
+          </div>
+
+          {/* Section 9 — Footer */}
+          <div className="mt-4 flex flex-col items-start justify-between gap-2 border-t border-slate-700 pt-4 sm:flex-row">
+            <div>
+              <div className="text-sm font-bold text-white">GCN LEAD CENTER</div>
+              <div className="text-xs text-slate-400">Schedule a free roof assessment</div>
+            </div>
+            <div className="text-xs italic text-slate-500">* Estimates for illustration only. Consult your tax advisor.</div>
           </div>
         </div>
       </div>
@@ -625,56 +438,15 @@ function SavingsReport() {
   );
 }
 
-function NumberField({
-  label,
-  value,
-  step,
-  decimals,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  step: number;
-  decimals?: number;
-  onChange: (v: number) => void;
-}) {
+function StatCard({ label, value, sub, tone }: { label: string; value: string; sub: string; tone: "dark" | "green" }) {
+  const isGreen = tone === "green";
   return (
     <div
-      className="rounded-xl border p-3"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
+      className={`rounded-xl border p-4 ${isGreen ? "border-emerald-500/30 bg-emerald-900/30" : "border-slate-700 bg-slate-700"}`}
     >
-      <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
-        {label}
-      </label>
-      <input
-        type="number"
-        value={Number.isFinite(value) ? value : 0}
-        step={step}
-        onChange={(e) => {
-          const n = parseFloat(e.target.value);
-          if (Number.isFinite(n)) {
-            onChange(decimals != null ? Number(n.toFixed(decimals)) : n);
-          }
-        }}
-        className="w-full rounded-md border bg-[var(--bg-elevated)] px-2 py-1.5 font-mono-num text-sm"
-        style={{ borderColor: "var(--border)" }}
-      />
-    </div>
-  );
-}
-
-function KPI({ label, value, accent }: { label: string; value: string; accent: string }) {
-  return (
-    <div
-      className="rounded-xl border p-4"
-      style={{
-        borderColor: "var(--border)",
-        backgroundColor: "var(--bg-card)",
-        borderLeft: `3px solid ${accent}`,
-      }}
-    >
-      <div className="text-[10px] uppercase tracking-wider text-[var(--text-dim)]">{label}</div>
-      <div className="mt-1 font-mono-num text-2xl font-bold text-foreground">{value}</div>
+      <div className="text-xs uppercase tracking-wider text-slate-400">{label}</div>
+      <div className={`mt-1 font-mono-num text-2xl font-bold ${isGreen ? "text-emerald-400" : "text-white"}`}>{value}</div>
+      <div className="mt-1 text-xs text-slate-500">{sub}</div>
     </div>
   );
 }
