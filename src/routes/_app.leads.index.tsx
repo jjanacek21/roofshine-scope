@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useLeads } from "@/hooks/useLeads";
+import { useLeads, useLeadStats } from "@/hooks/useLeads";
 import { StatCard } from "@/components/brand/StatCard";
 import { LEAD_STATUSES, fmtMoney, fmtNum, leadStatusColor } from "@/lib/leads";
 import { StatusBadge } from "@/components/brand/StatusBadge";
@@ -22,37 +22,35 @@ export const Route = createFileRoute("/_app/leads/")({
 
 function LeadsDashboard() {
   const { data: leads = [], isLoading } = useLeads();
+  const { data: leadStats } = useLeadStats();
   const [openId, setOpenId] = useState<string | null>(null);
 
   const stats = useMemo(() => {
-    const total = leads.length;
-    const contacted = leads.filter(
-      (l) => l.status !== "new" && l.status !== "lost",
-    ).length;
-    const qualified = leads.filter(
-      (l) => l.status === "qualified" || l.status === "quoted" || l.status === "won",
-    ).length;
-    const won = leads.filter((l) => l.status === "won");
-    const wonValue = won.reduce((a, l) => a + (l.estimated_value ?? 0), 0);
+    const by = leadStats?.byStatus ?? {};
+    const total = leadStats?.total ?? 0;
+    const contacted = total - (by.new ?? 0) - (by.lost ?? 0);
+    const qualified = (by.qualified ?? 0) + (by.quoted ?? 0) + (by.won ?? 0);
+    const wonCount = by.won ?? 0;
+    const wonValue = leadStats?.wonValue ?? 0;
     return {
       total,
       contacted,
       qualified,
-      wonCount: won.length,
+      wonCount,
       wonValue,
       contactRate: total ? Math.round((contacted / total) * 100) : 0,
       qualRate: total ? Math.round((qualified / total) * 100) : 0,
     };
-  }, [leads]);
+  }, [leadStats]);
 
   const pipelineData = useMemo(
     () =>
       LEAD_STATUSES.map((s) => ({
         status: s.label,
-        count: leads.filter((l) => l.status === s.value).length,
+        count: leadStats?.byStatus[s.value] ?? 0,
         color: s.color,
       })),
-    [leads],
+    [leadStats],
   );
 
   const monthlyData = useMemo(() => {
