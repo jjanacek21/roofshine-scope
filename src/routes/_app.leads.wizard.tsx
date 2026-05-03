@@ -810,6 +810,15 @@ function AIRoofWizard() {
               {loading === "analyze" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Run AI analysis
             </button>
+            <button
+              type="button"
+              onClick={exportWizardPdf}
+              disabled={!measurements && !analysis}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-emerald-600 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-40"
+            >
+              <FileDown className="h-4 w-4" />
+              Export PDF
+            </button>
             {selectedLeadId && analysis && (
               <p className="flex items-center gap-1.5 text-[11px] text-[var(--text-dim)]">
                 <Save className="h-3 w-3" /> Saved to lead automatically.
