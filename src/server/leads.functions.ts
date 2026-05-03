@@ -107,6 +107,7 @@ export const importLeads = createServerFn({ method: "POST" })
       let createdLeadCount = 0;
       const addressToId = new Map<string, string>();
       const preExistingLeadIds = new Set<string>();
+      const createdLeadIds = new Set<string>();
 
       const normPhone = (s: string) => s.replace(/\D+/g, "");
       const normEmail = (s: string) => s.trim().toLowerCase();
@@ -150,6 +151,7 @@ export const importLeads = createServerFn({ method: "POST" })
           createdLeadCount += inserted?.length ?? 0;
           for (const r of inserted ?? []) {
             addressToId.set(r.address.trim().toLowerCase(), r.id);
+            createdLeadIds.add(r.id);
           }
         }
       }
@@ -370,6 +372,46 @@ export const importLeads = createServerFn({ method: "POST" })
       // Skipped = pre-existing leads that didn't get merged.
       const mergedCount = mergedLeadIds.size;
       const skippedDuplicates = preExistingLeadIds.size - mergedCount;
+
+      // Geocode newly inserted leads that don't already have lat/lng.
+      const mapboxToken = process.env.MAPBOX_API_TOKEN;
+      if (mapboxToken && createdLeadIds.size > 0) {
+        try {
+          const { data: toGeo } = await supabase
+            .from("leads")
+            .select("id, address, city, state, zip")
+            .in("id", Array.from(createdLeadIds))
+            .is("lat", null);
+          const targets = toGeo ?? [];
+          const CONCURRENCY = 5;
+          let cursor = 0;
+          async function worker() {
+            while (cursor < targets.length) {
+              const idx = cursor++;
+              const lead = targets[idx] as { id: string; address: string | null; city: string | null; state: string | null; zip: string | null };
+              const q = [lead.address, lead.city, lead.state, lead.zip].filter(Boolean).join(", ");
+              if (!q) continue;
+              try {
+                const url =
+                  `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json` +
+                  `?access_token=${mapboxToken}&country=us&limit=1`;
+                const res = await fetch(url);
+                const json: any = await res.json();
+                const f = json?.features?.[0];
+                if (f?.center) {
+                  const [lng, lat] = f.center;
+                  await supabase.from("leads").update({ lat, lng }).eq("id", lead.id);
+                }
+              } catch {
+                /* skip */
+              }
+            }
+          }
+          await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+        } catch (geoErr) {
+          console.error("import geocode pass failed:", geoErr);
+        }
+      }
 
       return {
         // Back-compat alias so older clients still read a sensible number.
