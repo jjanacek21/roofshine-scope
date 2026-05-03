@@ -199,6 +199,9 @@ export function RoofWizardInline({ lead }: Props) {
     if (!target) { toast.error("Lead has no coordinates"); return; }
     setLoading("analyze");
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Please sign in again.");
       const res = await analyze({
         data: {
           lat: target.lat,
@@ -207,13 +210,16 @@ export function RoofWizardInline({ lead }: Props) {
           pinCount: Math.max(1, pins.length),
           leadId: lead.id,
         },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setAnalysis(res.analysis);
       qc.invalidateQueries({ queryKey: ["lead", lead.id] });
       qc.invalidateQueries({ queryKey: ["leads"] });
       toast.success("AI analysis complete");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to analyze");
+      let msg = e instanceof Error ? e.message : "Failed to analyze";
+      if (e instanceof Response) msg = (await e.text().catch(() => "")) || `Server error ${e.status}`;
+      toast.error(msg);
     } finally {
       setLoading("none");
     }
