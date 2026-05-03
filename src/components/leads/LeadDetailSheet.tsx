@@ -34,8 +34,6 @@ export function LeadDetailSheet({ leadId, onClose }: Props) {
   const [noteText, setNoteText] = useState("");
   const [geocoding, setGeocoding] = useState(false);
   const [geocodeFailed, setGeocodeFailed] = useState(false);
-  const [generatingReport, setGeneratingReport] = useState(false);
-  const mapRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-geocode (client-side via Mapbox) when lead has no coords
