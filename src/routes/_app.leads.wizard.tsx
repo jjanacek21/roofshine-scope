@@ -9,11 +9,11 @@ import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { useLeads } from "@/hooks/useLeads";
 import { fmtNum } from "@/lib/leads";
 import { getRoofMeasurements, analyzeRoofWithAI } from "@/server/lead-ai.functions";
-import { geocodeLead } from "@/server/leads.functions";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/leads/wizard")({
   component: AIRoofWizard,
@@ -32,6 +32,13 @@ interface Measurements {
   segments: { pitch: number; azimuth: number; area_sqft: number }[];
 }
 
+interface PlaceResult {
+  id: string;
+  label: string;
+  lat: number;
+  lng: number;
+}
+
 function AIRoofWizard() {
   const { data: token } = useMapboxToken();
   const { data: leads = [] } = useLeads();
@@ -47,10 +54,13 @@ function AIRoofWizard() {
   const [loading, setLoading] = useState<"none" | "measure" | "analyze">("none");
   const [resolvedCoords, setResolvedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
+  const [manualPlace, setManualPlace] = useState<PlaceResult | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [placeResults, setPlaceResults] = useState<PlaceResult[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const getMeasurements = useServerFn(getRoofMeasurements);
   const analyze = useServerFn(analyzeRoofWithAI);
-  const geocode = useServerFn(geocodeLead);
   const qc = useQueryClient();
 
   const selectedLead = useMemo(
@@ -82,12 +92,47 @@ function AIRoofWizard() {
     };
   }, [token]);
 
-  // Fly to selected lead — geocode on demand if coords are missing
+  // Debounced Mapbox forward-geocode for the search input
+  useEffect(() => {
+    const q = searchInput.trim();
+    if (!token || q.length < 3) {
+      setPlaceResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const handle = setTimeout(async () => {
+      try {
+        const url =
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json` +
+          `?access_token=${token}&country=us&types=address&autocomplete=true&limit=5`;
+        const res = await fetch(url);
+        const json = await res.json();
+        const features: PlaceResult[] = (json?.features ?? [])
+          .filter((f: any) => Array.isArray(f.center))
+          .map((f: any) => ({
+            id: String(f.id),
+            label: String(f.place_name ?? f.text ?? ""),
+            lng: Number(f.center[0]),
+            lat: Number(f.center[1]),
+          }));
+        setPlaceResults(features);
+      } catch {
+        setPlaceResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [searchInput, token]);
+
+  // Fly to selected lead — geocode client-side via Mapbox if coords are missing
   useEffect(() => {
     if (!selectedLead) {
       setResolvedCoords(null);
       return;
     }
+    setManualPlace(null);
     setPins([]);
     setMeasurements(null);
     setAnalysis("");
@@ -103,29 +148,49 @@ function AIRoofWizard() {
       return;
     }
 
-    // No coords — geocode
+    if (!token) return;
+
     const leadIdAtStart = selectedLead.id;
     setResolvedCoords(null);
     setLocating(true);
-    geocode({ data: { leadId: selectedLead.id } })
-      .then((res) => {
-        if (leadIdAtStart !== selectedLeadId) return; // user moved on
-        if (res.lat != null && res.lng != null) {
-          flyHere(res.lat, res.lng);
-          qc.invalidateQueries({ queryKey: ["leads"] });
+
+    const query = [selectedLead.address, selectedLead.city, selectedLead.state, (selectedLead as any).zip]
+      .filter(Boolean)
+      .join(", ");
+
+    (async () => {
+      try {
+        const url =
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
+          `?access_token=${token}&country=us&limit=1`;
+        const res = await fetch(url);
+        const json = await res.json();
+        const f = json?.features?.[0];
+        if (leadIdAtStart !== selectedLeadId) return;
+        if (f?.center) {
+          const [lng, lat] = f.center;
+          flyHere(lat, lng);
+          // persist back to the lead
+          const { error } = await supabase
+            .from("leads")
+            .update({ lat, lng })
+            .eq("id", leadIdAtStart);
+          if (!error) {
+            qc.invalidateQueries({ queryKey: ["leads"] });
+            qc.invalidateQueries({ queryKey: ["lead", leadIdAtStart] });
+          }
         } else {
-          toast.error(res.error ?? "Couldn't locate this address — drop pins manually.");
+          toast.error("Address not found — drop pins manually.");
         }
-      })
-      .catch((e) => {
+      } catch (e) {
         if (leadIdAtStart !== selectedLeadId) return;
         toast.error(e instanceof Error ? e.message : "Geocoding failed");
-      })
-      .finally(() => {
+      } finally {
         if (leadIdAtStart === selectedLeadId) setLocating(false);
-      });
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedLead?.id]);
+  }, [selectedLead?.id, token]);
 
   // Render pin markers
   useEffect(() => {
@@ -152,8 +217,21 @@ function AIRoofWizard() {
       return { lat: selectedLead.lat, lng: selectedLead.lng };
     }
     if (resolvedCoords) return resolvedCoords;
+    if (manualPlace) return { lat: manualPlace.lat, lng: manualPlace.lng };
     return null;
-  }, [pins, selectedLead, resolvedCoords]);
+  }, [pins, selectedLead, resolvedCoords, manualPlace]);
+
+  function pickPlace(place: PlaceResult) {
+    setSelectedLeadId("");
+    setManualPlace(place);
+    setResolvedCoords({ lat: place.lat, lng: place.lng });
+    setPins([]);
+    setMeasurements(null);
+    setAnalysis("");
+    setAnalysisImage("");
+    setPickerOpen(false);
+    mapRef.current?.flyTo({ center: [place.lng, place.lat], zoom: 19 });
+  }
 
   async function runMeasurements() {
     if (!center) {
@@ -188,7 +266,10 @@ function AIRoofWizard() {
         data: {
           lat: center.lat,
           lng: center.lng,
-          address: selectedLead?.address ?? `${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}`,
+          address:
+            selectedLead?.address ??
+            manualPlace?.label ??
+            `${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}`,
           pinCount: Math.max(1, pins.length),
           leadId: selectedLeadId || undefined,
         },
@@ -203,6 +284,8 @@ function AIRoofWizard() {
     }
   }
 
+  const triggerLabel = selectedLead?.address ?? manualPlace?.label ?? "Search any address or pick a lead…";
+
   return (
     <div className="space-y-5">
       <header className="flex items-start gap-3">
@@ -215,7 +298,7 @@ function AIRoofWizard() {
         <div>
           <h2 className="text-xl font-semibold text-foreground">AI Roof Wizard</h2>
           <p className="text-sm text-[var(--text-dim)]">
-            Pick a lead, click the satellite to drop pins on the roof, then run measurements + AI analysis.
+            Search any address or pick a lead, then click the satellite to drop pins on the roof.
           </p>
         </div>
       </header>
@@ -227,7 +310,7 @@ function AIRoofWizard() {
             style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
           >
             <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-dim)]">
-              Lead
+              Address
             </label>
             <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
               <PopoverTrigger asChild>
@@ -238,56 +321,90 @@ function AIRoofWizard() {
                   className="flex w-full items-center justify-between rounded-md border bg-[var(--bg-elevated)] px-2 py-1.5 text-left text-sm"
                   style={{ borderColor: "var(--border)" }}
                 >
-                  <span className={cn("truncate", !selectedLead && "text-[var(--text-dim)]")}>
-                    {selectedLead
-                      ? selectedLead.address
-                      : "Search by address or owner…"}
+                  <span className={cn("truncate", !selectedLead && !manualPlace && "text-[var(--text-dim)]")}>
+                    {triggerLabel}
                   </span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command
-                  filter={(value, search) => {
-                    if (!search) return 1;
-                    return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
-                  }}
-                >
-                  <CommandInput placeholder="Search by address or owner…" />
-                  <CommandList className="max-h-72">
-                    <CommandEmpty>No leads found.</CommandEmpty>
-                    <CommandGroup>
-                      {leads.map((l) => {
-                        const hasCoords = l.lat != null && l.lng != null;
-                        const haystack = `${l.address ?? ""} ${l.owner ?? ""} ${l.reported_owner ?? ""} ${l.city ?? ""}`.trim();
-                        return (
+                <Command shouldFilter={false}>
+                  <div className="relative">
+                    <CommandInput
+                      placeholder="Search any address…"
+                      value={searchInput}
+                      onValueChange={setSearchInput}
+                    />
+                    {searching && (
+                      <Loader2 className="absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-[var(--text-dim)]" />
+                    )}
+                  </div>
+                  <CommandList className="max-h-80">
+                    <CommandEmpty>
+                      {searchInput.length < 3 ? "Type at least 3 characters." : "No matches."}
+                    </CommandEmpty>
+                    {placeResults.length > 0 && (
+                      <CommandGroup heading="Search results">
+                        {placeResults.map((p) => (
                           <CommandItem
-                            key={l.id}
-                            value={`${haystack} ${l.id}`}
-                            onSelect={() => {
-                              setSelectedLeadId(l.id);
-                              setPickerOpen(false);
-                            }}
+                            key={`place-${p.id}`}
+                            value={`place-${p.id}`}
+                            onSelect={() => pickPlace(p)}
                             className="flex items-start gap-2"
                           >
-                            <Check
-                              className={cn(
-                                "mt-0.5 h-4 w-4 shrink-0",
-                                selectedLeadId === l.id ? "opacity-100" : "opacity-0",
-                              )}
-                            />
+                            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--primary)]" />
                             <div className="min-w-0 flex-1">
-                              <div className="truncate text-sm">{l.address}</div>
-                              <div className="truncate text-xs text-[var(--text-dim)]">
-                                {(l.owner ?? l.reported_owner ?? "Unknown owner")}
-                                {l.city ? ` · ${l.city}, ${l.state ?? ""}` : ""}
-                                {!hasCoords ? " · no coords" : ""}
+                              <div className="truncate text-sm">{p.label}</div>
+                              <div className="truncate font-mono-num text-xs text-[var(--text-dim)]">
+                                {p.lat.toFixed(5)}, {p.lng.toFixed(5)}
                               </div>
                             </div>
                           </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
+                        ))}
+                      </CommandGroup>
+                    )}
+                    {leads.length > 0 && (
+                      <CommandGroup heading="Your leads">
+                        {leads
+                          .filter((l) => {
+                            const q = searchInput.trim().toLowerCase();
+                            if (!q) return true;
+                            const hay = `${l.address ?? ""} ${l.owner ?? ""} ${l.reported_owner ?? ""} ${l.city ?? ""}`.toLowerCase();
+                            return hay.includes(q);
+                          })
+                          .slice(0, 25)
+                          .map((l) => {
+                            const hasCoords = l.lat != null && l.lng != null;
+                            return (
+                              <CommandItem
+                                key={l.id}
+                                value={`lead-${l.id}`}
+                                onSelect={() => {
+                                  setSelectedLeadId(l.id);
+                                  setManualPlace(null);
+                                  setPickerOpen(false);
+                                }}
+                                className="flex items-start gap-2"
+                              >
+                                <Check
+                                  className={cn(
+                                    "mt-0.5 h-4 w-4 shrink-0",
+                                    selectedLeadId === l.id ? "opacity-100" : "opacity-0",
+                                  )}
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-sm">{l.address}</div>
+                                  <div className="truncate text-xs text-[var(--text-dim)]">
+                                    {(l.owner ?? l.reported_owner ?? "Unknown owner")}
+                                    {l.city ? ` · ${l.city}, ${l.state ?? ""}` : ""}
+                                    {!hasCoords ? " · no coords" : ""}
+                                  </div>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                      </CommandGroup>
+                    )}
                   </CommandList>
                 </Command>
               </PopoverContent>
@@ -295,6 +412,14 @@ function AIRoofWizard() {
             {selectedLead && (
               <div className="mt-2 text-xs text-[var(--text-dim)]">
                 {selectedLead.city}, {selectedLead.state} · {fmtNum(selectedLead.sqft)} sq ft on file
+              </div>
+            )}
+            {!selectedLead && manualPlace && (
+              <div className="mt-2 text-xs text-[var(--text-dim)]">
+                <span className="font-mono-num">
+                  {manualPlace.lat.toFixed(5)}, {manualPlace.lng.toFixed(5)}
+                </span>
+                {" · not saved as a lead"}
               </div>
             )}
             {locating && (
