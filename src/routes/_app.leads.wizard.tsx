@@ -135,13 +135,26 @@ function AIRoofWizard() {
   useEffect(() => {
     if (!token || !containerRef.current || mapRef.current) return;
     mapboxgl.accessToken = token;
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style: "mapbox://styles/mapbox/satellite-v9",
-      center: [-80.25, 25.85],
-      zoom: 17,
-    });
+    let map: mapboxgl.Map;
+    try {
+      map = new mapboxgl.Map({
+        container: containerRef.current,
+        style: "mapbox://styles/mapbox/satellite-streets-v12",
+        center: [-80.25, 25.85],
+        zoom: 17,
+        maxZoom: 20,
+        attributionControl: false,
+      });
+    } catch (err) {
+      console.error("Mapbox init failed", err);
+      toast.error("Map failed to initialize.");
+      return;
+    }
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
+    map.on("error", (e) => {
+      // Mapbox fires non-fatal tile errors here too — just log them.
+      console.warn("Mapbox event error:", e?.error?.message ?? e);
+    });
     map.on("click", (e) => {
       setPins((prev) => [
         ...prev,
@@ -150,10 +163,28 @@ function AIRoofWizard() {
     });
     mapRef.current = map;
     return () => {
-      map.remove();
+      try { map.remove(); } catch { /* noop */ }
       mapRef.current = null;
     };
   }, [token]);
+
+  // Safe fly helper — only fly when the style is loaded and coords are finite.
+  function flySafe(lat: number, lng: number, zoom = 18) {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    const go = () => {
+      try {
+        map.flyTo({ center: [lng, lat], zoom, essential: true });
+      } catch (err) {
+        console.warn("flyTo failed", err);
+        try { map.jumpTo({ center: [lng, lat], zoom }); } catch { /* noop */ }
+      }
+    };
+    if (map.isStyleLoaded()) go();
+    else map.once("load", go);
+  }
+
 
   // Debounced Mapbox forward-geocode for the search input
   useEffect(() => {
