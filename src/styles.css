@@ -317,3 +317,6 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
 }
+
+/* Hide interactive controls during PDF capture */
+.is-exporting .no-print { display: none !important; }
