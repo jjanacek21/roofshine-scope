@@ -209,6 +209,7 @@ function SavingsReport() {
       console.error("PDF export failed:", e);
       toast.error(e instanceof Error ? e.message : "Failed to export PDF");
     } finally {
+      reportRef.current?.classList.remove("is-exporting");
       setExporting(false);
     }
   }
