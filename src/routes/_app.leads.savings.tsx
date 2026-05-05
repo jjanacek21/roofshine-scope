@@ -406,7 +406,7 @@ function SavingsReport() {
 
               <div className="rounded-xl border border-slate-300 bg-slate-50 p-5">
                 <h3 className="mb-3 text-sm font-bold tracking-wider text-slate-900">RESTORATION SYSTEM</h3>
-                <ol className="space-y-2 text-sm text-slate-700">
+                <ul className="space-y-2 text-sm text-slate-700 list-none">
                   {[
                     { n: 1, label: "High-Solids Silicone Top Coat", color: "bg-emerald-600" },
                     { n: 2, label: "Spray Polyurethane Foam (SPF)", color: "bg-blue-600" },
@@ -417,7 +417,7 @@ function SavingsReport() {
                       <span>{s.label}</span>
                     </li>
                   ))}
-                </ol>
+                </ul>
                 <div className="mt-3 text-xs italic text-slate-500">
                   Your existing {ROOF_TYPE_OPTIONS.find((o) => o.value === roofType)?.label} roof
                 </div>
