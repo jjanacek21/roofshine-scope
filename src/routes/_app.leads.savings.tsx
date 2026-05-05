@@ -190,9 +190,12 @@ function SavingsReport() {
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
-        windowWidth: exportWidth,
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight,
         width: exportWidth,
         height: exportHeight,
+        scrollX: window.scrollX,
+        scrollY: window.scrollY,
       });
       const pdf = new jsPDF({ unit: "pt", format: "letter", orientation: "portrait" });
       const pageW = pdf.internal.pageSize.getWidth();
