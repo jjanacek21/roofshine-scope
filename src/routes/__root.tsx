@@ -39,6 +39,15 @@ export const Route = createRootRoute({
         content:
           "Estimate roofing, exterior, windows, interior, HVAC, plumbing, electrical, and mitigation work — all in one platform.",
       },
+      { property: "og:title", content: "GCN App — Multi-Trade Estimating for Contractors" },
+      { name: "twitter:title", content: "GCN App — Multi-Trade Estimating for Contractors" },
+      { name: "description", content: "Global Contractor App manages leads, generates roof reports, and facilitates property analysis." },
+      { property: "og:description", content: "Global Contractor App manages leads, generates roof reports, and facilitates property analysis." },
+      { name: "twitter:description", content: "Global Contractor App manages leads, generates roof reports, and facilitates property analysis." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/g4If15kXRDOjVQ3KUjFeHCxuPqy2/social-images/social-1778006021379-Image_4-28-26_at_1.11_PM.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/g4If15kXRDOjVQ3KUjFeHCxuPqy2/social-images/social-1778006021379-Image_4-28-26_at_1.11_PM.webp" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
