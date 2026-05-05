@@ -163,13 +163,16 @@ function SavingsReport() {
   async function exportPDF() {
     if (!reportRef.current) return;
     setExporting(true);
+    // Mark for export so .no-print elements are hidden during capture
+    reportRef.current.classList.add("is-exporting");
     try {
       const safeAddr = (address || "savings-report").replace(/[^a-z0-9]+/gi, "_").slice(0, 60);
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
         useCORS: true,
-        backgroundColor: "#0f172a",
+        backgroundColor: "#ffffff",
         logging: false,
+        windowWidth: reportRef.current.scrollWidth,
       });
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
       const pdf = new jsPDF({ unit: "in", format: "letter", orientation: "portrait" });
@@ -185,6 +188,9 @@ function SavingsReport() {
       while (heightLeft > 0) {
         position = margin - (imgH - heightLeft);
         pdf.addPage();
+        // Fill page with white before placing the image slice
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, 0, pageW, pageH, "F");
         pdf.addImage(imgData, "JPEG", margin, position, imgW, imgH);
         heightLeft -= pageH - margin * 2;
       }
