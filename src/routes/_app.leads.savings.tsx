@@ -571,10 +571,10 @@ function StatCard({ label, value, sub, tone }: { label: string; value: string; s
   const isGreen = tone === "green";
   return (
     <div
-      className={`rounded-xl border p-4 ${isGreen ? "border-emerald-500/30 bg-emerald-900/30" : "border-slate-700 bg-slate-700"}`}
+      className={`rounded-xl border p-4 ${isGreen ? "border-emerald-500 bg-emerald-50" : "border-slate-300 bg-slate-50"}`}
     >
-      <div className="text-xs uppercase tracking-wider text-slate-400">{label}</div>
-      <div className={`mt-1 font-mono-num text-2xl font-bold ${isGreen ? "text-emerald-400" : "text-white"}`}>{value}</div>
+      <div className="text-xs uppercase tracking-wider text-slate-600">{label}</div>
+      <div className={`mt-1 font-mono-num text-2xl font-bold ${isGreen ? "text-emerald-700" : "text-slate-900"}`}>{value}</div>
       <div className="mt-1 text-xs text-slate-500">{sub}</div>
     </div>
   );
