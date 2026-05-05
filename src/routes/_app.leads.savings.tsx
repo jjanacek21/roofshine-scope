@@ -165,42 +165,63 @@ function SavingsReport() {
     setExporting(true);
     const node = reportRef.current;
     node.classList.add("is-exporting");
-    // Force a desktop-width layout for capture so md:/lg: grids stay multi-column
-    const EXPORT_WIDTH = 1100;
+    const rect = node.getBoundingClientRect();
+    const exportWidth = Math.ceil(rect.width);
+    const exportHeight = Math.ceil(node.scrollHeight);
     const prevWidth = node.style.width;
     const prevMaxWidth = node.style.maxWidth;
-    node.style.width = `${EXPORT_WIDTH}px`;
-    node.style.maxWidth = `${EXPORT_WIDTH}px`;
+    const prevMinWidth = node.style.minWidth;
+    const prevHeight = node.style.height;
+    node.style.width = `${exportWidth}px`;
+    node.style.maxWidth = `${exportWidth}px`;
+    node.style.minWidth = `${exportWidth}px`;
+    node.style.height = `${exportHeight}px`;
     try {
+      await document.fonts?.ready;
+      await Promise.all(
+        Array.from(node.querySelectorAll("img")).map((img) => {
+          if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+          return img.decode?.().catch(() => undefined) ?? Promise.resolve();
+        }),
+      );
       const safeAddr = (address || "savings-report").replace(/[^a-z0-9]+/gi, "_").slice(0, 60);
       const canvas = await html2canvas(node, {
         scale: 2,
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
-        windowWidth: EXPORT_WIDTH,
-        width: EXPORT_WIDTH,
+        windowWidth: exportWidth,
+        width: exportWidth,
+        height: exportHeight,
       });
-      const imgData = canvas.toDataURL("image/jpeg", 0.95);
-      const pdf = new jsPDF({ unit: "in", format: "letter", orientation: "portrait" });
+      const pdf = new jsPDF({ unit: "pt", format: "letter", orientation: "portrait" });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 0.3;
+      const margin = 24;
       const imgW = pageW - margin * 2;
-      const imgH = (canvas.height * imgW) / canvas.width;
-      let heightLeft = imgH;
-      let position = margin;
-      pdf.setFillColor(255, 255, 255);
-      pdf.rect(0, 0, pageW, pageH, "F");
-      pdf.addImage(imgData, "JPEG", margin, position, imgW, imgH);
-      heightLeft -= pageH - margin * 2;
-      while (heightLeft > 0) {
-        position = margin - (imgH - heightLeft);
-        pdf.addPage();
+      const pageContentH = pageH - margin * 2;
+      const sliceHeight = Math.floor((pageContentH * canvas.width) / imgW);
+      let sourceY = 0;
+      let pageIndex = 0;
+
+      while (sourceY < canvas.height) {
+        const currentSliceHeight = Math.min(sliceHeight, canvas.height - sourceY);
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = currentSliceHeight;
+        const ctx = pageCanvas.getContext("2d");
+        if (!ctx) throw new Error("Could not prepare PDF page");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        ctx.drawImage(canvas, 0, sourceY, canvas.width, currentSliceHeight, 0, 0, canvas.width, currentSliceHeight);
+
+        if (pageIndex > 0) pdf.addPage();
         pdf.setFillColor(255, 255, 255);
         pdf.rect(0, 0, pageW, pageH, "F");
-        pdf.addImage(imgData, "JPEG", margin, position, imgW, imgH);
-        heightLeft -= pageH - margin * 2;
+        const imgH = (currentSliceHeight * imgW) / canvas.width;
+        pdf.addImage(pageCanvas.toDataURL("image/png"), "PNG", margin, margin, imgW, imgH);
+        sourceY += currentSliceHeight;
+        pageIndex += 1;
       }
       pdf.save(`GCN_Savings_Report_${safeAddr}.pdf`);
       if (lead?.id && lead?.company_id) {
@@ -218,6 +239,8 @@ function SavingsReport() {
     } finally {
       node.style.width = prevWidth;
       node.style.maxWidth = prevMaxWidth;
+      node.style.minWidth = prevMinWidth;
+      node.style.height = prevHeight;
       node.classList.remove("is-exporting");
       setExporting(false);
     }
