@@ -19,6 +19,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
 import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xactimate-pdf'
@@ -126,6 +127,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const CSlugRoute = CSlugRouteImport.update({
+  id: '/c/$slug',
+  path: '/c/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTrainFromPdfRoute = ApiTrainFromPdfRouteImport.update({
   id: '/api/train-from-pdf',
@@ -460,6 +466,7 @@ export interface FileRoutesByFullPath {
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
+  '/c/$slug': typeof CSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
   '/jobs/$id': typeof AppJobsIdRouteWithChildren
@@ -525,6 +532,7 @@ export interface FileRoutesByTo {
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
+  '/c/$slug': typeof CSlugRoute
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
@@ -595,6 +603,7 @@ export interface FileRoutesById {
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
+  '/c/$slug': typeof CSlugRoute
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/_app/clients/$id': typeof AppClientsIdRoute
@@ -667,6 +676,7 @@ export interface FileRouteTypes {
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
+    | '/c/$slug'
     | '/admin/'
     | '/clients/$id'
     | '/jobs/$id'
@@ -732,6 +742,7 @@ export interface FileRouteTypes {
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
+    | '/c/$slug'
     | '/'
     | '/admin'
     | '/clients/$id'
@@ -801,6 +812,7 @@ export interface FileRouteTypes {
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
+    | '/c/$slug'
     | '/_app/'
     | '/admin/'
     | '/_app/clients/$id'
@@ -851,6 +863,7 @@ export interface RootRouteChildren {
   ApiParseXactimatePdfRoute: typeof ApiParseXactimatePdfRoute
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
+  CSlugRoute: typeof CSlugRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
 }
 
@@ -925,6 +938,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/c/$slug': {
+      id: '/c/$slug'
+      path: '/c/$slug'
+      fullPath: '/c/$slug'
+      preLoaderRoute: typeof CSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/train-from-pdf': {
       id: '/api/train-from-pdf'
@@ -1536,6 +1556,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiParseXactimatePdfRoute: ApiParseXactimatePdfRoute,
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
+  CSlugRoute: CSlugRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
 }
 export const routeTree = rootRouteImport
