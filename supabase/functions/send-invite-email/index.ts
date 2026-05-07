@@ -30,7 +30,7 @@ serve(async (req) => {
 
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px;">
-        <h2 style="color: #111;">You've been invited to BuildScopeAI</h2>
+        <h2 style="color: #111;">You've been invited to Global Contractor</h2>
         <p style="color: #444; font-size: 15px; line-height: 1.5;">
           You were invited to join a company workspace. Click the button below to accept the invite and get started.
         </p>
