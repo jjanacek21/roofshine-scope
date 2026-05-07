@@ -2208,6 +2208,10 @@ export type Database = {
       is_card_slug_available: { Args: { _slug: string }; Returns: boolean }
       is_company_admin: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      update_company_invite_email: {
+        Args: { _id: string; _new_email: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "owner" | "admin" | "estimator" | "member" | "super_admin"

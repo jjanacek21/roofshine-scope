@@ -266,6 +266,37 @@ function OnboardingPage() {
               </div>
             )}
 
+            {invitePreview &&
+              user?.email &&
+              invitePreview.email.toLowerCase() !== user.email.toLowerCase() && (
+                <div
+                  className="mt-3 rounded-lg p-4 text-sm"
+                  style={{
+                    background: "color-mix(in oklab, var(--destructive) 10%, transparent)",
+                    border: "1px solid var(--destructive)",
+                  }}
+                >
+                  <p className="font-semibold text-foreground">Email mismatch</p>
+                  <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+                    This invite was sent to{" "}
+                    <span className="font-mono font-semibold">{invitePreview.email}</span> but
+                    you're signed in as{" "}
+                    <span className="font-mono font-semibold">{user.email}</span>. Sign out and
+                    sign in with the invited email, or ask your admin to update the invite.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      navigate({ to: "/login" });
+                    }}
+                    className="mt-3 inline-flex h-8 items-center rounded-md border border-border bg-background px-3 text-xs font-semibold hover:bg-muted"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              )}
+
             <div className="mt-6 flex flex-col gap-1.5">
               <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
                 Invite Token

@@ -1,41 +1,43 @@
-# Fix: invite emails routing to Lovable login
+# Fix invite email mismatch + add edit/clearer error
 
-## Root cause
+Michael's invite was sent to `michaelgrossofl@gmail.com` but he signed up as `michael.grosso@rrcausa.com`, so `accept_company_invite` rightly rejects it.
 
-`src/routes/_app.team.invites.tsx` builds invite links with:
+## 1. Resend to his real email (data fix)
 
-```ts
-const inviteLink = (token) => `${window.location.origin}/onboarding?invite=${token}`;
+Run a one-off update on his pending invite to point it at `michael.grosso@rrcausa.com`, then resend the email from the Team → Invites page.
+
+```sql
+UPDATE company_invites
+   SET email = 'michael.grosso@rrcausa.com',
+       expires_at = now() + interval '14 days'
+ WHERE email = 'michaelgrossofl@gmail.com'
+   AND accepted_at IS NULL;
 ```
 
-When you send an invite from inside the Lovable editor, `window.location.origin` is the **preview URL** (`id-preview--...lovable.app`). Those preview URLs are gated by Lovable workspace auth, so the invitee is prompted to "create a Lovable account" before they ever reach your app's `/onboarding` page.
+## 2. Edit invite email in Team page
 
-The same problem affects the `send-invite-email` edge function — it just forwards whatever `inviteUrl` the client sent.
+In `src/routes/_app.team.invites.tsx`, add a pencil icon next to each pending invite row. Clicking opens a small inline input → Save calls a new `update_company_invite_email(_id, _new_email)` SECURITY DEFINER RPC that:
+- Verifies caller is `is_company_admin()` for the invite's company.
+- Rejects if `accepted_at IS NOT NULL`.
+- Updates `email` and bumps `expires_at` to `now() + 14 days`.
 
-## Fix
+After save, auto-trigger the existing `send-invite-email` edge function to the new address.
 
-Always build invite links against the production app URL (`https://globalcontractor.app`), regardless of where the admin is when sending.
+## 3. Clearer error on /onboarding
 
-### Changes
+Two improvements in `src/routes/onboarding.tsx`:
 
-1. **`src/lib/app-url.ts`** (new tiny helper)
-   - Export `APP_URL = "https://globalcontractor.app"` as the canonical public origin.
-   - Single source of truth so we can swap domains later.
+a. **Better RPC error**: Update `accept_company_invite` to raise a structured message:
+   `Invite was sent to <invite_email>. You're signed in as <user_email>. Sign out and sign back in with the invited email, or ask your admin to update the invite.`
 
-2. **`src/routes/_app.team.invites.tsx`**
-   - Replace `window.location.origin` in `inviteLink()` with `APP_URL`.
-   - Both the "Copy link" button and the email payload then use the production URL.
+b. **Pre-flight check in UI**: When `invitePreview` loads, compare `invitePreview.email` to the current `user.email`. If they don't match, show an inline warning above the Accept button:
+   > ⚠️ This invite was sent to **michaelgrossofl@gmail.com** but you're signed in as **michael.grosso@rrcausa.com**. [Sign out] and sign in with the invited email, or ask your admin to update the invite.
 
-3. **`supabase/functions/send-invite-email/index.ts`** (defense in depth)
-   - If the incoming `inviteUrl` doesn't start with `https://globalcontractor.app`, rewrite it to that origin while keeping the path + query (`/onboarding?invite=...`).
-   - Guarantees emails always link to the public app even if an old client sends a preview URL.
+Sign-out button calls `supabase.auth.signOut()` and routes to `/login`.
 
-### Out of scope
+## Order of execution
 
-- No DB / RLS changes.
-- No change to the `/onboarding` accept flow itself — it already works once the user lands on the production URL.
-- Not touching auth providers; users still create an account in **your** app (email/password or Google), not a Lovable account.
-
-## After implementing
-
-Send a fresh test invite to yourself, open the email on a device where you're not logged into Lovable, and confirm the link goes straight to `globalcontractor.app/onboarding?invite=...` and shows your signup screen.
+1. Migration: update `accept_company_invite` error text + add `update_company_invite_email` RPC.
+2. Data fix: update Michael's invite row.
+3. Frontend: edit-email UI in invites page + mismatch warning in onboarding.
+4. Tell user to hit Resend on Michael's invite.
