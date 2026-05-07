@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
-import { Copy, Trash2, Send } from "lucide-react";
+import { Copy, Trash2, Send, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/_app/team/invites")({
   component: TeamInvites,
