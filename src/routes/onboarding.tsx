@@ -8,6 +8,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/onboarding")({
   validateSearch: (search: Record<string, unknown>) => ({
     invite: typeof search.invite === "string" ? search.invite : undefined,
+    pending: search.pending === "1" || search.pending === 1 ? true : undefined,
   }),
   component: OnboardingPage,
 });
@@ -16,7 +17,7 @@ type Mode = "create" | "join";
 
 function OnboardingPage() {
   const { user, loading: authLoading } = useAuth();
-  const { invite: inviteToken } = useSearch({ from: "/onboarding" });
+  const { invite: inviteToken, pending } = useSearch({ from: "/onboarding" });
   const navigate = useNavigate();
 
   const [mode, setMode] = useState<Mode>(inviteToken ? "join" : "create");
