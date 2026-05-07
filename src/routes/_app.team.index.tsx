@@ -83,18 +83,19 @@ function TeamMembers() {
             <th className="px-4 py-3 text-left">Email</th>
             <th className="px-4 py-3 text-left">Role</th>
             <th className="px-4 py-3 text-left">Joined</th>
+            <th className="px-4 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+              <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
                 Loading…
               </td>
             </tr>
           ) : rows.length === 0 ? (
             <tr>
-              <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+              <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
                 No teammates yet. Invite one from the Invites tab.
               </td>
             </tr>
