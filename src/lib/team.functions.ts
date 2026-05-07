@@ -116,7 +116,7 @@ export const updateUserAsAdmin = createServerFn({ method: "POST" })
       if (emailErr) throw new Error(emailErr.message);
     }
 
-    const profileUpdate: Record<string, unknown> = {};
+    const profileUpdate: Record<string, string | null> = {};
     if (data.first_name !== undefined) profileUpdate.first_name = data.first_name || null;
     if (data.last_name !== undefined) profileUpdate.last_name = data.last_name || null;
     if (data.email !== undefined) profileUpdate.email = data.email.toLowerCase();
@@ -126,7 +126,7 @@ export const updateUserAsAdmin = createServerFn({ method: "POST" })
     if (Object.keys(profileUpdate).length > 0) {
       const { error: updErr } = await supabaseAdmin
         .from("profiles")
-        .update(profileUpdate)
+        .update(profileUpdate as never)
         .eq("id", data.userId);
       if (updErr) throw new Error(updErr.message);
     }
