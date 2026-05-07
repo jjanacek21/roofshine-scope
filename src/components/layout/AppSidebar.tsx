@@ -10,6 +10,7 @@ import {
   UserCog,
   Shield,
   Target,
+  IdCard,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const WORKSPACE_NAV = [
   { to: "/jobs", label: "Jobs", icon: Briefcase, badgeKey: "jobs" as const },
   { to: "/leads", label: "Prospector", icon: Target, badgeKey: null },
   { to: "/clients", label: "Clients", icon: Users, badgeKey: null },
+  { to: "/card", label: "My Card", icon: IdCard, badgeKey: null },
 ] as const;
 
 export function AppSidebar() {

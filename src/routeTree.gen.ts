@@ -19,6 +19,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
 import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xactimate-pdf'
@@ -51,6 +52,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
+import { Route as AppCardRouteImport } from './routes/_app.card'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppLeadsIndexRouteImport } from './routes/_app.leads.index'
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
@@ -126,6 +128,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const CSlugRoute = CSlugRouteImport.update({
+  id: '/c/$slug',
+  path: '/c/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTrainFromPdfRoute = ApiTrainFromPdfRouteImport.update({
   id: '/api/train-from-pdf',
@@ -288,6 +295,11 @@ const AppClientsRoute = AppClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCardRoute = AppCardRouteImport.update({
+  id: '/card',
+  path: '/card',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTeamIndexRoute = AppTeamIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -428,6 +440,7 @@ export interface FileRoutesByFullPath {
   '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/card': typeof AppCardRoute
   '/clients': typeof AppClientsRouteWithChildren
   '/leads': typeof AppLeadsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
@@ -460,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
+  '/c/$slug': typeof CSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
   '/jobs/$id': typeof AppJobsIdRouteWithChildren
@@ -495,6 +509,7 @@ export interface FileRoutesByTo {
   '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/card': typeof AppCardRoute
   '/clients': typeof AppClientsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
@@ -525,6 +540,7 @@ export interface FileRoutesByTo {
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
+  '/c/$slug': typeof CSlugRoute
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
@@ -563,6 +579,7 @@ export interface FileRoutesById {
   '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/_app/card': typeof AppCardRoute
   '/_app/clients': typeof AppClientsRouteWithChildren
   '/_app/leads': typeof AppLeadsRouteWithChildren
   '/_app/price-books': typeof AppPriceBooksRouteWithChildren
@@ -595,6 +612,7 @@ export interface FileRoutesById {
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
+  '/c/$slug': typeof CSlugRoute
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/_app/clients/$id': typeof AppClientsIdRoute
@@ -635,6 +653,7 @@ export interface FileRouteTypes {
     | '/profile-setup'
     | '/reset-password'
     | '/signup'
+    | '/card'
     | '/clients'
     | '/leads'
     | '/price-books'
@@ -667,6 +686,7 @@ export interface FileRouteTypes {
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
+    | '/c/$slug'
     | '/admin/'
     | '/clients/$id'
     | '/jobs/$id'
@@ -702,6 +722,7 @@ export interface FileRouteTypes {
     | '/profile-setup'
     | '/reset-password'
     | '/signup'
+    | '/card'
     | '/clients'
     | '/price-books'
     | '/settings'
@@ -732,6 +753,7 @@ export interface FileRouteTypes {
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
+    | '/c/$slug'
     | '/'
     | '/admin'
     | '/clients/$id'
@@ -769,6 +791,7 @@ export interface FileRouteTypes {
     | '/profile-setup'
     | '/reset-password'
     | '/signup'
+    | '/_app/card'
     | '/_app/clients'
     | '/_app/leads'
     | '/_app/price-books'
@@ -801,6 +824,7 @@ export interface FileRouteTypes {
     | '/api/parse-xactimate-pdf'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
+    | '/c/$slug'
     | '/_app/'
     | '/admin/'
     | '/_app/clients/$id'
@@ -851,6 +875,7 @@ export interface RootRouteChildren {
   ApiParseXactimatePdfRoute: typeof ApiParseXactimatePdfRoute
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
+  CSlugRoute: typeof CSlugRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
 }
 
@@ -925,6 +950,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/c/$slug': {
+      id: '/c/$slug'
+      path: '/c/$slug'
+      fullPath: '/c/$slug'
+      preLoaderRoute: typeof CSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/train-from-pdf': {
       id: '/api/train-from-pdf'
@@ -1148,6 +1180,13 @@ declare module '@tanstack/react-router' {
       path: '/clients'
       fullPath: '/clients'
       preLoaderRoute: typeof AppClientsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/card': {
+      id: '/_app/card'
+      path: '/card'
+      fullPath: '/card'
+      preLoaderRoute: typeof AppCardRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/team/': {
@@ -1423,6 +1462,7 @@ const AppJobsIdRouteWithChildren = AppJobsIdRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppCardRoute: typeof AppCardRoute
   AppClientsRoute: typeof AppClientsRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
   AppPriceBooksRoute: typeof AppPriceBooksRouteWithChildren
@@ -1435,6 +1475,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCardRoute: AppCardRoute,
   AppClientsRoute: AppClientsRouteWithChildren,
   AppLeadsRoute: AppLeadsRouteWithChildren,
   AppPriceBooksRoute: AppPriceBooksRouteWithChildren,
@@ -1536,6 +1577,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiParseXactimatePdfRoute: ApiParseXactimatePdfRoute,
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
+  CSlugRoute: CSlugRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
 }
 export const routeTree = rootRouteImport
