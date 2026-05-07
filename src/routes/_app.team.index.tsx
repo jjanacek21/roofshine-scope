@@ -49,6 +49,7 @@ function TeamMembers() {
     }
   };
 
+  const load = async () => {
     if (!me?.company_id) return;
     setLoading(true);
     const { data, error } = await supabase
