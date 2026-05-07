@@ -152,20 +152,25 @@ function AdminUsers() {
               <th className="px-4 py-3 text-left">Role</th>
               <th className="px-4 py-3 text-left">Status</th>
               <th className="px-4 py-3 text-left">Joined</th>
+              <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>
+              <tr><td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">No users.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">No users.</td></tr>
             ) : (
               filtered.map((r) => (
-                <tr key={r.id} className="border-t border-border">
+                <tr
+                  key={r.id}
+                  className="border-t border-border cursor-pointer hover:bg-muted/30"
+                  onClick={() => setEditing(r)}
+                >
                   <td className="px-4 py-3">{[r.first_name, r.last_name].filter(Boolean).join(" ") || "—"}</td>
                   <td className="px-4 py-3 font-mono text-xs">{r.email}</td>
                   <td className="px-4 py-3 text-xs">{companyMap.get(r.company_id ?? "") ?? "—"}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <select
                       value={r.role}
                       onChange={(e) => updateRole(r.id, e.target.value as Profile["role"])}
@@ -184,6 +189,15 @@ function AdminUsers() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setEditing(r)}
+                      className="inline-flex items-center gap-1 rounded p-1.5 text-xs hover:bg-muted"
+                      title="Edit user"
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Edit
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
