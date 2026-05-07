@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, Sparkles, Eye, Plus, Trash2, Loader2 } from "lucide-react";
+import { CheckCircle2, Sparkles, Eye, Plus, Trash2, Loader2, Check } from "lucide-react";
 import { conditionColor, PHOTO_TAG_LABELS, type PhotoTag } from "@/lib/photo-tags";
 import { getTradeColor, getTradeLabel } from "@/lib/trades";
 
@@ -35,6 +35,9 @@ export function PhotoCard({
   onDelete,
   onAddToEstimate,
   analyzing,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
 }: {
   photo: PhotoRow;
   onView: () => void;
@@ -42,6 +45,9 @@ export function PhotoCard({
   onDelete: () => void;
   onAddToEstimate: () => void;
   analyzing: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
 
@@ -74,8 +80,9 @@ export function PhotoCard({
 
   return (
     <div
-      className="group overflow-hidden rounded-xl border"
+      className={`group overflow-hidden rounded-xl border ${selectable ? "cursor-pointer" : ""} ${selected ? "ring-2 ring-primary" : ""}`}
       style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
+      onClick={selectable ? onToggleSelect : undefined}
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-[var(--surface)]">
         {thumbUrl ? (
@@ -83,7 +90,16 @@ export function PhotoCard({
         ) : (
           <div className="h-full w-full animate-pulse bg-[var(--surface)]" />
         )}
-        {photo.tag && (
+        {selectable && (
+          <div
+            className={`absolute left-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-md border-2 ${
+              selected ? "border-primary bg-primary text-primary-foreground" : "border-white/80 bg-black/40"
+            }`}
+          >
+            {selected && <Check className="h-4 w-4" />}
+          </div>
+        )}
+        {photo.tag && !selectable && (
           <span
             className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur"
           >
