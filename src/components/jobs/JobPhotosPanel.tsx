@@ -16,6 +16,22 @@ export function JobPhotosPanel({ jobId }: { jobId: string }) {
   const [filters, setFilters] = useState<PhotoFilters>(DEFAULT_FILTERS);
   const [lightboxId, setLightboxId] = useState<string | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelect = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
 
   const { data: photos = [] } = useQuery({
     queryKey: ["job-photos", jobId],
