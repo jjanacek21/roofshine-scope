@@ -40,6 +40,43 @@ function OnboardingPage() {
     }
   }, [authLoading, user, navigate]);
 
+  if (pending) {
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center px-5 py-10"
+        style={{
+          background:
+            "radial-gradient(ellipse at top right, rgba(30,144,255,.12), transparent 50%), var(--bg)",
+        }}
+      >
+        <div
+          className="w-full max-w-[520px] p-10 text-center"
+          style={{ background: "var(--bg-card)", border: "1px solid var(--border-bright)", borderRadius: 20 }}
+        >
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "var(--bg-hover)" }}>
+            <UserPlus className="h-6 w-6" style={{ color: "var(--brand)" }} />
+          </div>
+          <h2 className="font-bold text-foreground" style={{ fontSize: 22 }}>
+            Request submitted
+          </h2>
+          <p className="mt-2 text-[13px]" style={{ color: "var(--text-muted)" }}>
+            Your request to join is waiting for a company admin to approve. You'll get access as soon as they do.
+          </p>
+          <button
+            type="button"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate({ to: "/login" });
+            }}
+            className="mt-6 inline-flex h-9 items-center rounded-md border border-border bg-background px-4 text-xs font-semibold hover:bg-muted"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Look up the invite preview if we got a token in the URL
   useEffect(() => {
     if (!inviteToken) return;
