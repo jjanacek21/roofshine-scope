@@ -124,6 +124,25 @@ export function JobPhotosPanel({ jobId }: { jobId: string }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
   });
 
+  const bulkDelete = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const targets = photos.filter((p) => ids.includes(p.id));
+      const paths = targets.flatMap((p) => {
+        const base = p.storage_path.replace(/\.[^.]+$/, "");
+        return [p.storage_path, `${base}_thumb.jpg`];
+      });
+      if (paths.length) await supabase.storage.from("roof-photos").remove(paths);
+      await supabase.from("job_photos").delete().in("id", ids);
+      return ids.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`Deleted ${n} photo${n === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["job-photos", jobId] });
+      exitSelect();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Bulk delete failed"),
+  });
+
   const handleAddToEstimate = (p?: PhotoRow) => {
     const photo = p ?? lightboxPhoto;
     const codes = (photo?.matched_line_items ?? [])
