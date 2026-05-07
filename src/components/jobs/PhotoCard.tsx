@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, Sparkles, Eye, Plus, Trash2, Loader2 } from "lucide-react";
+import { CheckCircle2, Sparkles, Eye, Plus, Trash2, Loader2, Check } from "lucide-react";
 import { conditionColor, PHOTO_TAG_LABELS, type PhotoTag } from "@/lib/photo-tags";
 import { getTradeColor, getTradeLabel } from "@/lib/trades";
 
