@@ -180,10 +180,10 @@ function NewCompanyForm({ onCreated }: { onCreated: () => void }) {
         "create_company_as_super_admin",
         {
           _name: name.trim(),
-          _address: address.trim() || null,
-          _phone: phone.trim() || null,
-          _email: email.trim() || null,
-          _website: website.trim() || null,
+          _address: address.trim() || undefined,
+          _phone: phone.trim() || undefined,
+          _email: email.trim() || undefined,
+          _website: website.trim() || undefined,
         },
       );
       if (cErr || !companyId) throw new Error(cErr?.message ?? "Could not create company");
