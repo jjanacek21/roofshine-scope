@@ -1,37 +1,41 @@
-## Diagnosis
+# Fix: invite emails routing to Lovable login
 
-`src/routes/_app.card.tsx` builds the QR + share link from `window.location.origin`:
+## Root cause
 
+`src/routes/_app.team.invites.tsx` builds invite links with:
+
+```ts
+const inviteLink = (token) => `${window.location.origin}/onboarding?invite=${token}`;
 ```
-const cardUrl = slug ? `${window.location.origin}/c/${slug}` : "";
-```
 
-When the rep is using the editor preview, that origin is `id-preview--…lovable.app`, which is gated behind a Lovable login. So the QR encodes a URL that demands a Lovable account before it ever reaches `/c/<slug>`. The public route itself is fine — visiting it on the live domain shows the card with no login.
+When you send an invite from inside the Lovable editor, `window.location.origin` is the **preview URL** (`id-preview--...lovable.app`). Those preview URLs are gated by Lovable workspace auth, so the invitee is prompted to "create a Lovable account" before they ever reach your app's `/onboarding` page.
+
+The same problem affects the `send-invite-email` edge function — it just forwards whatever `inviteUrl` the client sent.
 
 ## Fix
 
-Always generate share URLs from the project's **public** host, never from `window.location.origin`.
+Always build invite links against the production app URL (`https://globalcontractor.app`), regardless of where the admin is when sending.
 
-### Steps
+### Changes
 
-1. **Add a tiny helper** `src/lib/publicUrl.ts` exporting `getPublicCardUrl(slug)` that:
-   - Returns `https://globalcontractor.app/c/<slug>` whenever the current host is `id-preview--*.lovable.app`, `*-dev.lovable.app`, `lovable.dev`, `localhost`, or any non-production host.
-   - Otherwise returns `${window.location.origin}/c/<slug>` (so the live custom domain and `roofshine-scope.lovable.app` keep using themselves).
-   - Production host constant: `https://globalcontractor.app` (the project's primary custom domain).
+1. **`src/lib/app-url.ts`** (new tiny helper)
+   - Export `APP_URL = "https://globalcontractor.app"` as the canonical public origin.
+   - Single source of truth so we can swap domains later.
 
-2. **Use the helper** in `src/routes/_app.card.tsx`:
-   - Replace the `cardUrl` line with `getPublicCardUrl(slug)`.
-   - Show the resolved URL in the share panel so the rep can see exactly what their QR points to.
+2. **`src/routes/_app.team.invites.tsx`**
+   - Replace `window.location.origin` in `inviteLink()` with `APP_URL`.
+   - Both the "Copy link" button and the email payload then use the production URL.
 
-3. **Audit other share surfaces** for the same pattern and switch them to the helper:
-   - SMS / Email share buttons in the share panel (they currently embed `cardUrl`).
-   - Any "copy link" actions.
-   - The "View card" link in the header — keep that one as a relative `/c/<slug>` so it opens in the rep's current context (preview or prod), since the rep is already authenticated wherever they are.
+3. **`supabase/functions/send-invite-email/index.ts`** (defense in depth)
+   - If the incoming `inviteUrl` doesn't start with `https://globalcontractor.app`, rewrite it to that origin while keeping the path + query (`/onboarding?invite=...`).
+   - Guarantees emails always link to the public app even if an old client sends a preview URL.
 
-4. **Regenerate the QR** automatically whenever `cardUrl` changes (already happens via the existing `useEffect`), so the rep doesn't have to take any action — next time the page loads, the QR will encode the public URL.
+### Out of scope
 
-## Out of scope
+- No DB / RLS changes.
+- No change to the `/onboarding` accept flow itself — it already works once the user lands on the production URL.
+- Not touching auth providers; users still create an account in **your** app (email/password or Google), not a Lovable account.
 
-- Multi‑tenant per‑company custom domains for the public card (current company has only `globalcontractor.app` configured as the public host).
-- Short‑link service (e.g. `gcn.app/c/<slug>` redirect). Can be added later if URL length matters for printed QR codes.
-- Changing how the published site itself is hosted.
+## After implementing
+
+Send a fresh test invite to yourself, open the email on a device where you're not logged into Lovable, and confirm the link goes straight to `globalcontractor.app/onboarding?invite=...` and shows your signup screen.
