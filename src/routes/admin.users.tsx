@@ -265,6 +265,22 @@ function AdminUsers() {
           }}
         />
       )}
+
+      {editing && (
+        <EditUserDialog
+          user={editing}
+          companies={companies}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            load();
+          }}
+          onDeleted={() => {
+            setEditing(null);
+            setRows((r) => r.filter((p) => p.id !== editing.id));
+          }}
+        />
+      )}
     </div>
   );
 }
