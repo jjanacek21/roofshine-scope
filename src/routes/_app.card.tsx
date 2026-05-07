@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getPublicCardUrl } from "@/lib/publicUrl";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import {
@@ -214,7 +215,7 @@ function CardEditor() {
   const [videoUrlInput, setVideoUrlInput] = useState("");
 
   // Share
-  const cardUrl = slug ? `${window.location.origin}/c/${slug}` : "";
+  const cardUrl = getPublicCardUrl(slug);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const published = !!profile?.card_published;
 

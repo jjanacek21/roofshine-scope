@@ -1,35 +1,37 @@
 ## Diagnosis
 
-The invite for `michaelgrossofl@gmail.com` was created in the database (a83d65b6…, expires 2026‑05‑21, never accepted), but no email left the system. Reason:
+`src/routes/_app.card.tsx` builds the QR + share link from `window.location.origin`:
 
-- `supabase/functions/send-invite-email/index.ts` calls Resend with `from: "BuildScopeAI <onboarding@resend.dev>"`.
-- `onboarding@resend.dev` is Resend's shared test sender. Resend only delivers messages from that address to the email that owns the Resend account; sends to any other recipient (Michael's Gmail, etc.) are rejected with a 403 and the call returns silently because the UI swallows errors in a `try/catch`.
-- No Lovable email domain is configured either, so we have no verified sender at all today.
+```
+const cardUrl = slug ? `${window.location.origin}/c/${slug}` : "";
+```
 
-So every invite has been created successfully but no recipient has ever actually received an email. Admins have only been able to share invites by copying the link manually.
+When the rep is using the editor preview, that origin is `id-preview--…lovable.app`, which is gated behind a Lovable login. So the QR encodes a URL that demands a Lovable account before it ever reaches `/c/<slug>`. The public route itself is fine — visiting it on the live domain shows the card with no login.
 
-## Recommended fix — switch invites to Lovable Cloud Emails
+## Fix
 
-Lovable Cloud has built‑in transactional email with a verified sender domain, queue + retries, suppression handling, and a branded React Email template. This replaces the brittle Resend test setup.
+Always generate share URLs from the project's **public** host, never from `window.location.origin`.
 
 ### Steps
 
-1. **Set up an email sender domain** via the email setup dialog (e.g. `notify.globalcontractor.app`). DNS verification can run in the background — scaffolding doesn't have to wait.
-2. **Provision email infrastructure** (queues, cron dispatcher, suppression tables, unsubscribe tokens). One‑time setup.
-3. **Scaffold transactional email infrastructure** (server route at `/lovable/email/transactional/send`, unsubscribe page, registry).
-4. **Create a `company-invite` React Email template** in `src/lib/email-templates/company-invite.tsx` — branded with the app's blue gradient + Archivo, accepting `inviterName`, `companyName`, `inviteUrl`, `role` as props. Register it in `registry.ts`.
-5. **Add a `sendTransactionalEmail` helper** at `src/lib/email/send.ts` that posts to `/lovable/email/transactional/send` with the user's session.
-6. **Replace all 5 call sites** (`_app.team.invites.tsx`, `admin.users.tsx` ×2, `admin.companies.$id.tsx`, `admin.companies.tsx`) — swap `supabase.functions.invoke("send-invite-email", …)` for `sendTransactionalEmail({ templateName: 'company-invite', recipientEmail, idempotencyKey: \`invite-${invite.id}\`, templateData: { inviterName, companyName, inviteUrl, role } })`. Also surface failures with a toast instead of swallowing them silently so future delivery problems are visible.
-7. **Delete the old `send-invite-email` edge function** and its `[functions.send-invite-email]` block in `supabase/config.toml`.
-8. **Resend Michael's invite** from the Team → Invites page once the new pipeline is in place. The same token stays valid until 2026‑05‑21, so we don't need to recreate the row.
+1. **Add a tiny helper** `src/lib/publicUrl.ts` exporting `getPublicCardUrl(slug)` that:
+   - Returns `https://globalcontractor.app/c/<slug>` whenever the current host is `id-preview--*.lovable.app`, `*-dev.lovable.app`, `lovable.dev`, `localhost`, or any non-production host.
+   - Otherwise returns `${window.location.origin}/c/<slug>` (so the live custom domain and `roofshine-scope.lovable.app` keep using themselves).
+   - Production host constant: `https://globalcontractor.app` (the project's primary custom domain).
 
-### Why Lovable Email vs. fixing Resend
+2. **Use the helper** in `src/routes/_app.card.tsx`:
+   - Replace the `cardUrl` line with `getPublicCardUrl(slug)`.
+   - Show the resolved URL in the share panel so the rep can see exactly what their QR points to.
 
-- Resend would still work if the user verified their domain in Resend's dashboard and updated the `from:` address — but it requires a separate Resend account, separate DNS records, and we'd still be without queue/retry/suppression.
-- Lovable Email keeps everything inside the project, uses the existing branded domain, and is the native path for transactional sends in this stack.
+3. **Audit other share surfaces** for the same pattern and switch them to the helper:
+   - SMS / Email share buttons in the share panel (they currently embed `cardUrl`).
+   - Any "copy link" actions.
+   - The "View card" link in the header — keep that one as a relative `/c/<slug>` so it opens in the rep's current context (preview or prod), since the rep is already authenticated wherever they are.
+
+4. **Regenerate the QR** automatically whenever `cardUrl` changes (already happens via the existing `useEffect`), so the rep doesn't have to take any action — next time the page loads, the QR will encode the public URL.
 
 ## Out of scope
 
-- Custom analytics on invite open / click rates.
-- Bulk re‑invite of all stale rows (only Michael's exists today; we'll resend manually after the cutover).
-- Reskinning of the existing auth emails (signup confirmation, password reset). Can be added later via `scaffold_auth_email_templates` if desired.
+- Multi‑tenant per‑company custom domains for the public card (current company has only `globalcontractor.app` configured as the public host).
+- Short‑link service (e.g. `gcn.app/c/<slug>` redirect). Can be added later if URL length matters for printed QR codes.
+- Changing how the published site itself is hosted.
