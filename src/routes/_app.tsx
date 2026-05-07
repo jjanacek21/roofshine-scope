@@ -26,11 +26,15 @@ function AppLayout() {
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("company_id")
+        .select("company_id, onboarding_completed_at, role")
         .eq("id", user.id)
         .maybeSingle();
       if (!data?.company_id) {
         navigate({ to: "/onboarding", search: { invite: undefined } });
+        return;
+      }
+      if (!data.onboarding_completed_at && data.role !== "super_admin") {
+        navigate({ to: "/profile-setup" });
         return;
       }
       setChecking(false);
