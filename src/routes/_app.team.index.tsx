@@ -27,8 +27,28 @@ function TeamMembers() {
   const { data: me } = useProfile();
   const [rows, setRows] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleteFn = useServerFn(deleteTeamMember);
 
-  const load = async () => {
+  const isSuperAdmin = me?.role === "super_admin";
+  const isCompanyAdmin = me?.role === "owner" || me?.role === "admin";
+
+  const handleDelete = async (u: Member) => {
+    const fullName =
+      [u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "this user";
+    if (!confirm(`Permanently delete ${fullName}? This removes their account and cannot be undone.`)) return;
+    setDeletingId(u.id);
+    try {
+      await deleteFn({ data: { userId: u.id } });
+      toast.success("User deleted");
+      setRows((r) => r.filter((p) => p.id !== u.id));
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to delete user");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
     if (!me?.company_id) return;
     setLoading(true);
     const { data, error } = await supabase
