@@ -133,6 +133,19 @@ function TeamMembers() {
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {new Date(u.created_at).toLocaleDateString()}
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    {!isSelf && (isSuperAdmin || (isCompanyAdmin && !isSuper)) ? (
+                      <button
+                        onClick={() => handleDelete(u)}
+                        disabled={deletingId === u.id}
+                        className="inline-flex items-center gap-1 rounded-md border border-destructive/30 px-2 py-1 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                        title="Delete user"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        {deletingId === u.id ? "Deleting…" : "Delete"}
+                      </button>
+                    ) : null}
+                  </td>
                 </tr>
               );
             })
