@@ -97,6 +97,32 @@ function TeamInvites() {
     setRows((r) => r.filter((i) => i.id !== id));
   }
 
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  async function resendInvite(invite: Invite) {
+    setResendingId(invite.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-invite-email", {
+        body: {
+          email: invite.email,
+          token: invite.token,
+          inviteUrl: inviteLink(invite.token),
+        },
+      });
+      if (error) throw error;
+      if (data?.skipped) {
+        toast.warning("Email service not configured — copy link instead");
+      } else if (data?.error) {
+        toast.error(data.error);
+      } else {
+        toast.success(`Invite resent to ${invite.email}`);
+      }
+    } catch (e) {
+      toast.error((e as Error)?.message ?? "Failed to resend invite");
+    } finally {
+      setResendingId(null);
+    }
+  }
+
   function copy(token: string) {
     navigator.clipboard.writeText(inviteLink(token));
     toast.success("Invite link copied");
