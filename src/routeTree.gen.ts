@@ -52,6 +52,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
+import { Route as AppCardRouteImport } from './routes/_app.card'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppLeadsIndexRouteImport } from './routes/_app.leads.index'
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
@@ -294,6 +295,11 @@ const AppClientsRoute = AppClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCardRoute = AppCardRouteImport.update({
+  id: '/card',
+  path: '/card',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTeamIndexRoute = AppTeamIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -434,6 +440,7 @@ export interface FileRoutesByFullPath {
   '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/card': typeof AppCardRoute
   '/clients': typeof AppClientsRouteWithChildren
   '/leads': typeof AppLeadsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
@@ -502,6 +509,7 @@ export interface FileRoutesByTo {
   '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/card': typeof AppCardRoute
   '/clients': typeof AppClientsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
@@ -571,6 +579,7 @@ export interface FileRoutesById {
   '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/_app/card': typeof AppCardRoute
   '/_app/clients': typeof AppClientsRouteWithChildren
   '/_app/leads': typeof AppLeadsRouteWithChildren
   '/_app/price-books': typeof AppPriceBooksRouteWithChildren
@@ -644,6 +653,7 @@ export interface FileRouteTypes {
     | '/profile-setup'
     | '/reset-password'
     | '/signup'
+    | '/card'
     | '/clients'
     | '/leads'
     | '/price-books'
@@ -712,6 +722,7 @@ export interface FileRouteTypes {
     | '/profile-setup'
     | '/reset-password'
     | '/signup'
+    | '/card'
     | '/clients'
     | '/price-books'
     | '/settings'
@@ -780,6 +791,7 @@ export interface FileRouteTypes {
     | '/profile-setup'
     | '/reset-password'
     | '/signup'
+    | '/_app/card'
     | '/_app/clients'
     | '/_app/leads'
     | '/_app/price-books'
@@ -1170,6 +1182,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/card': {
+      id: '/_app/card'
+      path: '/card'
+      fullPath: '/card'
+      preLoaderRoute: typeof AppCardRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/team/': {
       id: '/_app/team/'
       path: '/'
@@ -1443,6 +1462,7 @@ const AppJobsIdRouteWithChildren = AppJobsIdRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppCardRoute: typeof AppCardRoute
   AppClientsRoute: typeof AppClientsRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
   AppPriceBooksRoute: typeof AppPriceBooksRouteWithChildren
@@ -1455,6 +1475,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCardRoute: AppCardRoute,
   AppClientsRoute: AppClientsRouteWithChildren,
   AppLeadsRoute: AppLeadsRouteWithChildren,
   AppPriceBooksRoute: AppPriceBooksRouteWithChildren,
