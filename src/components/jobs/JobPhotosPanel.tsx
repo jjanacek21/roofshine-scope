@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, CheckSquare, X, Trash2, Loader2 } from "lucide-react";
 import { PhotoUploader } from "./PhotoUploader";
 import { PhotoFilterBar, DEFAULT_FILTERS, type PhotoFilters } from "./PhotoFilterBar";
 import { PhotoCard, type PhotoRow } from "./PhotoCard";
