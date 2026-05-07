@@ -55,6 +55,7 @@ import { Route as AppLeadsIndexRouteImport } from './routes/_app.leads.index'
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
 import { Route as ApiPublicSignRouteImport } from './routes/api/public/sign'
 import { Route as AdminPriceBooksNewRouteImport } from './routes/admin.price-books.new'
+import { Route as AdminCompaniesIdRouteImport } from './routes/admin.companies.$id'
 import { Route as AdminAssembliesImportRouteImport } from './routes/admin.assemblies.import'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
@@ -306,6 +307,11 @@ const AdminPriceBooksNewRoute = AdminPriceBooksNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AdminPriceBooksRoute,
 } as any)
+const AdminCompaniesIdRoute = AdminCompaniesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminCompaniesRoute,
+} as any)
 const AdminAssembliesImportRoute = AdminAssembliesImportRouteImport.update({
   id: '/assemblies/import',
   path: '/assemblies/import',
@@ -423,7 +429,7 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
-  '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/companies': typeof AdminCompaniesRouteWithChildren
   '/admin/content': typeof AdminContentRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
@@ -462,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
+  '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/jobs/': typeof AppJobsIndexRoute
@@ -486,7 +493,7 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
-  '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/companies': typeof AdminCompaniesRouteWithChildren
   '/admin/content': typeof AdminContentRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
@@ -525,6 +532,7 @@ export interface FileRoutesByTo {
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
+  '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/jobs': typeof AppJobsIndexRoute
@@ -554,7 +562,7 @@ export interface FileRoutesById {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
-  '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/companies': typeof AdminCompaniesRouteWithChildren
   '/admin/content': typeof AdminContentRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
@@ -594,6 +602,7 @@ export interface FileRoutesById {
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
+  '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
@@ -663,6 +672,7 @@ export interface FileRouteTypes {
     | '/price-books/new'
     | '/team/invites'
     | '/admin/assemblies/import'
+    | '/admin/companies/$id'
     | '/admin/price-books/new'
     | '/api/public/sign'
     | '/jobs/'
@@ -726,6 +736,7 @@ export interface FileRouteTypes {
     | '/price-books/new'
     | '/team/invites'
     | '/admin/assemblies/import'
+    | '/admin/companies/$id'
     | '/admin/price-books/new'
     | '/api/public/sign'
     | '/jobs'
@@ -794,6 +805,7 @@ export interface FileRouteTypes {
     | '/_app/price-books/new'
     | '/_app/team/invites'
     | '/admin/assemblies/import'
+    | '/admin/companies/$id'
     | '/admin/price-books/new'
     | '/api/public/sign'
     | '/_app/jobs/'
@@ -1153,6 +1165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPriceBooksNewRouteImport
       parentRoute: typeof AdminPriceBooksRoute
     }
+    '/admin/companies/$id': {
+      id: '/admin/companies/$id'
+      path: '/$id'
+      fullPath: '/admin/companies/$id'
+      preLoaderRoute: typeof AdminCompaniesIdRouteImport
+      parentRoute: typeof AdminCompaniesRoute
+    }
     '/admin/assemblies/import': {
       id: '/admin/assemblies/import'
       path: '/assemblies/import'
@@ -1409,6 +1428,18 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface AdminCompaniesRouteChildren {
+  AdminCompaniesIdRoute: typeof AdminCompaniesIdRoute
+}
+
+const AdminCompaniesRouteChildren: AdminCompaniesRouteChildren = {
+  AdminCompaniesIdRoute: AdminCompaniesIdRoute,
+}
+
+const AdminCompaniesRouteWithChildren = AdminCompaniesRoute._addFileChildren(
+  AdminCompaniesRouteChildren,
+)
+
 interface AdminPriceBooksRouteChildren {
   AdminPriceBooksNewRoute: typeof AdminPriceBooksNewRoute
 }
@@ -1425,7 +1456,7 @@ interface AdminRouteChildren {
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminAnnouncementsRoute: typeof AdminAnnouncementsRoute
   AdminAuditRoute: typeof AdminAuditRoute
-  AdminCompaniesRoute: typeof AdminCompaniesRoute
+  AdminCompaniesRoute: typeof AdminCompaniesRouteWithChildren
   AdminContentRoute: typeof AdminContentRoute
   AdminEmailsRoute: typeof AdminEmailsRoute
   AdminFeaturesRoute: typeof AdminFeaturesRoute
@@ -1446,7 +1477,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminAnnouncementsRoute: AdminAnnouncementsRoute,
   AdminAuditRoute: AdminAuditRoute,
-  AdminCompaniesRoute: AdminCompaniesRoute,
+  AdminCompaniesRoute: AdminCompaniesRouteWithChildren,
   AdminContentRoute: AdminContentRoute,
   AdminEmailsRoute: AdminEmailsRoute,
   AdminFeaturesRoute: AdminFeaturesRoute,
