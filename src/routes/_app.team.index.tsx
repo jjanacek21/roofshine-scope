@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
+import { deleteTeamMember } from "@/lib/team.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/team/")({
@@ -24,6 +27,27 @@ function TeamMembers() {
   const { data: me } = useProfile();
   const [rows, setRows] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleteFn = useServerFn(deleteTeamMember);
+
+  const isSuperAdmin = me?.role === "super_admin";
+  const isCompanyAdmin = me?.role === "owner" || me?.role === "admin";
+
+  const handleDelete = async (u: Member) => {
+    const fullName =
+      [u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "this user";
+    if (!confirm(`Permanently delete ${fullName}? This removes their account and cannot be undone.`)) return;
+    setDeletingId(u.id);
+    try {
+      await deleteFn({ data: { userId: u.id } });
+      toast.success("User deleted");
+      setRows((r) => r.filter((p) => p.id !== u.id));
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to delete user");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const load = async () => {
     if (!me?.company_id) return;
@@ -59,18 +83,19 @@ function TeamMembers() {
             <th className="px-4 py-3 text-left">Email</th>
             <th className="px-4 py-3 text-left">Role</th>
             <th className="px-4 py-3 text-left">Joined</th>
+            <th className="px-4 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+              <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
                 Loading…
               </td>
             </tr>
           ) : rows.length === 0 ? (
             <tr>
-              <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+              <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
                 No teammates yet. Invite one from the Invites tab.
               </td>
             </tr>
@@ -107,6 +132,19 @@ function TeamMembers() {
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {new Date(u.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {!isSelf && (isSuperAdmin || (isCompanyAdmin && !isSuper)) ? (
+                      <button
+                        onClick={() => handleDelete(u)}
+                        disabled={deletingId === u.id}
+                        className="inline-flex items-center gap-1 rounded-md border border-destructive/30 px-2 py-1 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                        title="Delete user"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        {deletingId === u.id ? "Deleting…" : "Delete"}
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               );
