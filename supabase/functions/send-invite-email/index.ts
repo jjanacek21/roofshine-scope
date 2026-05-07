@@ -47,11 +47,11 @@ serve(async (req) => {
           You were invited to join a company workspace. Click the button below to accept the invite and get started.
         </p>
         <p style="margin: 32px 0;">
-          <a href="${inviteUrl}" style="background: #1e90ff; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Accept invite</a>
+          <a href="${safeInviteUrl}" style="background: #1e90ff; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Accept invite</a>
         </p>
         <p style="color: #888; font-size: 13px;">
           Or paste this link into your browser:<br>
-          <a href="${inviteUrl}" style="color: #1e90ff; word-break: break-all;">${inviteUrl}</a>
+          <a href="${safeInviteUrl}" style="color: #1e90ff; word-break: break-all;">${safeInviteUrl}</a>
         </p>
         <p style="color: #aaa; font-size: 12px; margin-top: 32px;">This invite expires in 14 days.</p>
       </div>
