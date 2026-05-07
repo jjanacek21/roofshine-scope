@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
-import { Copy, Trash2, Send, Mail } from "lucide-react";
+import { Copy, Trash2, Send, Mail, Pencil, Check, X } from "lucide-react";
 import { APP_URL } from "@/lib/app-url";
 
 export const Route = createFileRoute("/_app/team/invites")({
@@ -99,6 +99,10 @@ function TeamInvites() {
   }
 
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingEmail, setEditingEmail] = useState("");
+  const [savingEditId, setSavingEditId] = useState<string | null>(null);
+
   async function resendInvite(invite: Invite) {
     setResendingId(invite.id);
     try {
@@ -121,6 +125,52 @@ function TeamInvites() {
       toast.error((e as Error)?.message ?? "Failed to resend invite");
     } finally {
       setResendingId(null);
+    }
+  }
+
+  function startEdit(invite: Invite) {
+    setEditingId(invite.id);
+    setEditingEmail(invite.email);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditingEmail("");
+  }
+
+  async function saveEdit(invite: Invite) {
+    const newEmail = editingEmail.trim().toLowerCase();
+    if (!newEmail || newEmail === invite.email) {
+      cancelEdit();
+      return;
+    }
+    setSavingEditId(invite.id);
+    try {
+      const { data, error } = await supabase.rpc("update_company_invite_email", {
+        _id: invite.id,
+        _new_email: newEmail,
+      });
+      if (error) throw error;
+      const updated = data as { email: string; token: string; expires_at: string };
+      // Resend to new address
+      try {
+        await supabase.functions.invoke("send-invite-email", {
+          body: {
+            email: updated.email,
+            token: updated.token,
+            inviteUrl: inviteLink(updated.token),
+          },
+        });
+      } catch {
+        // ignore
+      }
+      toast.success(`Invite updated and resent to ${updated.email}`);
+      cancelEdit();
+      load();
+    } catch (e) {
+      toast.error((e as Error)?.message ?? "Failed to update invite");
+    } finally {
+      setSavingEditId(null);
     }
   }
 
@@ -212,7 +262,19 @@ function TeamInvites() {
                   : "pending";
                 return (
                   <tr key={i.id} className="border-t border-border">
-                    <td className="px-4 py-3">{i.email}</td>
+                    <td className="px-4 py-3">
+                      {editingId === i.id ? (
+                        <input
+                          type="email"
+                          value={editingEmail}
+                          onChange={(e) => setEditingEmail(e.target.value)}
+                          autoFocus
+                          className="h-8 w-full max-w-xs rounded border border-border bg-background px-2 text-sm"
+                        />
+                      ) : (
+                        i.email
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <span className="rounded bg-muted px-2 py-0.5 text-xs">{i.role}</span>
                     </td>
@@ -234,23 +296,49 @@ function TeamInvites() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
-                        {!i.accepted_at && (
+                        {editingId === i.id ? (
                           <>
                             <button
-                              onClick={() => resendInvite(i)}
-                              disabled={resendingId === i.id}
+                              onClick={() => saveEdit(i)}
+                              disabled={savingEditId === i.id}
                               className="flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-muted disabled:opacity-60"
                             >
-                              <Mail className="h-3 w-3" />
-                              {resendingId === i.id ? "Sending…" : "Resend"}
+                              <Check className="h-3 w-3" />
+                              {savingEditId === i.id ? "Saving…" : "Save & resend"}
                             </button>
                             <button
-                              onClick={() => copy(i.token)}
+                              onClick={cancelEdit}
                               className="flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-muted"
                             >
-                              <Copy className="h-3 w-3" /> Copy link
+                              <X className="h-3 w-3" />
                             </button>
                           </>
+                        ) : (
+                          !i.accepted_at && (
+                            <>
+                              <button
+                                onClick={() => startEdit(i)}
+                                className="flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-muted"
+                                title="Edit email"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={() => resendInvite(i)}
+                                disabled={resendingId === i.id}
+                                className="flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-muted disabled:opacity-60"
+                              >
+                                <Mail className="h-3 w-3" />
+                                {resendingId === i.id ? "Sending…" : "Resend"}
+                              </button>
+                              <button
+                                onClick={() => copy(i.token)}
+                                className="flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-muted"
+                              >
+                                <Copy className="h-3 w-3" /> Copy link
+                              </button>
+                            </>
+                          )
                         )}
                         <button
                           onClick={() => deleteInvite(i.id)}
