@@ -1629,6 +1629,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          card_published: boolean
           card_slug: string | null
           company_id: string | null
           created_at: string
@@ -1647,6 +1648,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          card_published?: boolean
           card_slug?: string | null
           company_id?: string | null
           created_at?: string
@@ -1665,6 +1667,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          card_published?: boolean
           card_slug?: string | null
           company_id?: string | null
           created_at?: string
