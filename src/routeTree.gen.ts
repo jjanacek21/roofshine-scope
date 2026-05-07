@@ -60,6 +60,7 @@ import { Route as ApiPublicSignRouteImport } from './routes/api/public/sign'
 import { Route as AdminPriceBooksNewRouteImport } from './routes/admin.price-books.new'
 import { Route as AdminCompaniesIdRouteImport } from './routes/admin.companies.$id'
 import { Route as AdminAssembliesImportRouteImport } from './routes/admin.assemblies.import'
+import { Route as AppTeamRequestsRouteImport } from './routes/_app.team.requests'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
 import { Route as AppLeadsWizardRouteImport } from './routes/_app.leads.wizard'
@@ -335,6 +336,11 @@ const AdminAssembliesImportRoute = AdminAssembliesImportRouteImport.update({
   path: '/assemblies/import',
   getParentRoute: () => AdminRoute,
 } as any)
+const AppTeamRequestsRoute = AppTeamRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => AppTeamRoute,
+} as any)
 const AppTeamInvitesRoute = AppTeamInvitesRouteImport.update({
   id: '/invites',
   path: '/invites',
@@ -488,6 +494,7 @@ export interface FileRoutesByFullPath {
   '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
+  '/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
@@ -555,6 +562,7 @@ export interface FileRoutesByTo {
   '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
+  '/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
@@ -628,6 +636,7 @@ export interface FileRoutesById {
   '/_app/leads/wizard': typeof AppLeadsWizardRoute
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
+  '/_app/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
@@ -701,6 +710,7 @@ export interface FileRouteTypes {
     | '/leads/wizard'
     | '/price-books/new'
     | '/team/invites'
+    | '/team/requests'
     | '/admin/assemblies/import'
     | '/admin/companies/$id'
     | '/admin/price-books/new'
@@ -768,6 +778,7 @@ export interface FileRouteTypes {
     | '/leads/wizard'
     | '/price-books/new'
     | '/team/invites'
+    | '/team/requests'
     | '/admin/assemblies/import'
     | '/admin/companies/$id'
     | '/admin/price-books/new'
@@ -840,6 +851,7 @@ export interface FileRouteTypes {
     | '/_app/leads/wizard'
     | '/_app/price-books/new'
     | '/_app/team/invites'
+    | '/_app/team/requests'
     | '/admin/assemblies/import'
     | '/admin/companies/$id'
     | '/admin/price-books/new'
@@ -1238,6 +1250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAssembliesImportRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_app/team/requests': {
+      id: '/_app/team/requests'
+      path: '/requests'
+      fullPath: '/team/requests'
+      preLoaderRoute: typeof AppTeamRequestsRouteImport
+      parentRoute: typeof AppTeamRoute
+    }
     '/_app/team/invites': {
       id: '/_app/team/invites'
       path: '/invites'
@@ -1428,11 +1447,13 @@ const AppPriceBooksRouteWithChildren = AppPriceBooksRoute._addFileChildren(
 
 interface AppTeamRouteChildren {
   AppTeamInvitesRoute: typeof AppTeamInvitesRoute
+  AppTeamRequestsRoute: typeof AppTeamRequestsRoute
   AppTeamIndexRoute: typeof AppTeamIndexRoute
 }
 
 const AppTeamRouteChildren: AppTeamRouteChildren = {
   AppTeamInvitesRoute: AppTeamInvitesRoute,
+  AppTeamRequestsRoute: AppTeamRequestsRoute,
   AppTeamIndexRoute: AppTeamIndexRoute,
 }
 

@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useProfile } from "@/hooks/useProfile";
-import { Users, Mail } from "lucide-react";
+import { Users, Mail, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/team")({
@@ -29,6 +29,7 @@ function TeamLayout() {
   const tabs = [
     { to: "/team", label: "Members", icon: Users, exact: true },
     { to: "/team/invites", label: "Invites", icon: Mail, exact: false },
+    { to: "/team/requests", label: "Join Requests", icon: UserPlus, exact: false },
   ];
 
   function isActive(to: string, exact: boolean) {

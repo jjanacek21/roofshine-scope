@@ -401,6 +401,39 @@ export type Database = {
           },
         ]
       }
+      company_join_requests: {
+        Row: {
+          company_id: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          note: string | null
+          requested_at: string
+          status: Database["public"]["Enums"]["join_request_status"]
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          note?: string | null
+          requested_at?: string
+          status?: Database["public"]["Enums"]["join_request_status"]
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          note?: string | null
+          requested_at?: string
+          status?: Database["public"]["Enums"]["join_request_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       company_macro_pricing: {
         Row: {
           company_id: string
@@ -2176,6 +2209,7 @@ export type Database = {
     }
     Functions: {
       accept_company_invite: { Args: { _token: string }; Returns: Json }
+      approve_join_request: { Args: { _id: string }; Returns: Json }
       auth_company_id: { Args: never; Returns: string }
       auth_tenant_id: { Args: never; Returns: string }
       create_company_as_super_admin: {
@@ -2208,6 +2242,15 @@ export type Database = {
       is_card_slug_available: { Args: { _slug: string }; Returns: boolean }
       is_company_admin: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      list_companies_for_signup: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
+      reject_join_request: { Args: { _id: string }; Returns: Json }
+      request_to_join_company: { Args: { _company_id: string }; Returns: Json }
       update_company_invite_email: {
         Args: { _id: string; _new_email: string }
         Returns: Json
@@ -2227,6 +2270,7 @@ export type Database = {
         | "signed"
         | "in_progress"
         | "complete"
+      join_request_status: "pending" | "approved" | "rejected"
       lead_activity_type:
         | "call"
         | "email"
@@ -2419,6 +2463,7 @@ export const Constants = {
         "in_progress",
         "complete",
       ],
+      join_request_status: ["pending", "approved", "rejected"],
       lead_activity_type: [
         "call",
         "email",
