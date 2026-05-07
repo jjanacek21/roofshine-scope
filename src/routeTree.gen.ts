@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -55,6 +56,7 @@ import { Route as AppLeadsIndexRouteImport } from './routes/_app.leads.index'
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
 import { Route as ApiPublicSignRouteImport } from './routes/api/public/sign'
 import { Route as AdminPriceBooksNewRouteImport } from './routes/admin.price-books.new'
+import { Route as AdminCompaniesIdRouteImport } from './routes/admin.companies.$id'
 import { Route as AdminAssembliesImportRouteImport } from './routes/admin.assemblies.import'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
@@ -84,6 +86,11 @@ const SignupRoute = SignupRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileSetupRoute = ProfileSetupRouteImport.update({
+  id: '/profile-setup',
+  path: '/profile-setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -306,6 +313,11 @@ const AdminPriceBooksNewRoute = AdminPriceBooksNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AdminPriceBooksRoute,
 } as any)
+const AdminCompaniesIdRoute = AdminCompaniesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminCompaniesRoute,
+} as any)
 const AdminAssembliesImportRoute = AdminAssembliesImportRouteImport.update({
   id: '/assemblies/import',
   path: '/assemblies/import',
@@ -413,6 +425,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/clients': typeof AppClientsRouteWithChildren
@@ -423,7 +436,7 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
-  '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/companies': typeof AdminCompaniesRouteWithChildren
   '/admin/content': typeof AdminContentRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
@@ -462,6 +475,7 @@ export interface FileRoutesByFullPath {
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
+  '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/jobs/': typeof AppJobsIndexRoute
@@ -478,6 +492,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/clients': typeof AppClientsRouteWithChildren
@@ -486,7 +501,7 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
-  '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/companies': typeof AdminCompaniesRouteWithChildren
   '/admin/content': typeof AdminContentRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
@@ -525,6 +540,7 @@ export interface FileRoutesByTo {
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
+  '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/jobs': typeof AppJobsIndexRoute
@@ -544,6 +560,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_app/clients': typeof AppClientsRouteWithChildren
@@ -554,7 +571,7 @@ export interface FileRoutesById {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
-  '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/companies': typeof AdminCompaniesRouteWithChildren
   '/admin/content': typeof AdminContentRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
@@ -594,6 +611,7 @@ export interface FileRoutesById {
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
+  '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
@@ -614,6 +632,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/onboarding'
+    | '/profile-setup'
     | '/reset-password'
     | '/signup'
     | '/clients'
@@ -663,6 +682,7 @@ export interface FileRouteTypes {
     | '/price-books/new'
     | '/team/invites'
     | '/admin/assemblies/import'
+    | '/admin/companies/$id'
     | '/admin/price-books/new'
     | '/api/public/sign'
     | '/jobs/'
@@ -679,6 +699,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/onboarding'
+    | '/profile-setup'
     | '/reset-password'
     | '/signup'
     | '/clients'
@@ -726,6 +747,7 @@ export interface FileRouteTypes {
     | '/price-books/new'
     | '/team/invites'
     | '/admin/assemblies/import'
+    | '/admin/companies/$id'
     | '/admin/price-books/new'
     | '/api/public/sign'
     | '/jobs'
@@ -744,6 +766,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/onboarding'
+    | '/profile-setup'
     | '/reset-password'
     | '/signup'
     | '/_app/clients'
@@ -794,6 +817,7 @@ export interface FileRouteTypes {
     | '/_app/price-books/new'
     | '/_app/team/invites'
     | '/admin/assemblies/import'
+    | '/admin/companies/$id'
     | '/admin/price-books/new'
     | '/api/public/sign'
     | '/_app/jobs/'
@@ -813,6 +837,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  ProfileSetupRoute: typeof ProfileSetupRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   ApiAnalyzeJobPhotosRoute: typeof ApiAnalyzeJobPhotosRoute
@@ -843,6 +868,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile-setup': {
+      id: '/profile-setup'
+      path: '/profile-setup'
+      fullPath: '/profile-setup'
+      preLoaderRoute: typeof ProfileSetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -1153,6 +1185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPriceBooksNewRouteImport
       parentRoute: typeof AdminPriceBooksRoute
     }
+    '/admin/companies/$id': {
+      id: '/admin/companies/$id'
+      path: '/$id'
+      fullPath: '/admin/companies/$id'
+      preLoaderRoute: typeof AdminCompaniesIdRouteImport
+      parentRoute: typeof AdminCompaniesRoute
+    }
     '/admin/assemblies/import': {
       id: '/admin/assemblies/import'
       path: '/assemblies/import'
@@ -1409,6 +1448,18 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface AdminCompaniesRouteChildren {
+  AdminCompaniesIdRoute: typeof AdminCompaniesIdRoute
+}
+
+const AdminCompaniesRouteChildren: AdminCompaniesRouteChildren = {
+  AdminCompaniesIdRoute: AdminCompaniesIdRoute,
+}
+
+const AdminCompaniesRouteWithChildren = AdminCompaniesRoute._addFileChildren(
+  AdminCompaniesRouteChildren,
+)
+
 interface AdminPriceBooksRouteChildren {
   AdminPriceBooksNewRoute: typeof AdminPriceBooksNewRoute
 }
@@ -1425,7 +1476,7 @@ interface AdminRouteChildren {
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminAnnouncementsRoute: typeof AdminAnnouncementsRoute
   AdminAuditRoute: typeof AdminAuditRoute
-  AdminCompaniesRoute: typeof AdminCompaniesRoute
+  AdminCompaniesRoute: typeof AdminCompaniesRouteWithChildren
   AdminContentRoute: typeof AdminContentRoute
   AdminEmailsRoute: typeof AdminEmailsRoute
   AdminFeaturesRoute: typeof AdminFeaturesRoute
@@ -1446,7 +1497,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminAnnouncementsRoute: AdminAnnouncementsRoute,
   AdminAuditRoute: AdminAuditRoute,
-  AdminCompaniesRoute: AdminCompaniesRoute,
+  AdminCompaniesRoute: AdminCompaniesRouteWithChildren,
   AdminContentRoute: AdminContentRoute,
   AdminEmailsRoute: AdminEmailsRoute,
   AdminFeaturesRoute: AdminFeaturesRoute,
@@ -1471,6 +1522,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  ProfileSetupRoute: ProfileSetupRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   ApiAnalyzeJobPhotosRoute: ApiAnalyzeJobPhotosRoute,
@@ -1489,12 +1541,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
