@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { Copy, Trash2, Send, Mail } from "lucide-react";
+import { APP_URL } from "@/lib/app-url";
 
 export const Route = createFileRoute("/_app/team/invites")({
   component: TeamInvites,
@@ -47,7 +48,7 @@ function TeamInvites() {
   }, [me?.company_id]);
 
   const inviteLink = (token: string) =>
-    `${window.location.origin}/onboarding?invite=${token}`;
+    `${APP_URL}/onboarding?invite=${token}`;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();

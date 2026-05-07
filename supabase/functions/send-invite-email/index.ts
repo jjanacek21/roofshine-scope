@@ -20,6 +20,18 @@ serve(async (req) => {
       );
     }
 
+    // Defense in depth: always rewrite the link to the production app origin so
+    // recipients never get a Lovable preview URL (which would prompt them to
+    // sign in to Lovable instead of the actual app).
+    const PUBLIC_APP_ORIGIN = "https://globalcontractor.app";
+    let safeInviteUrl = inviteUrl;
+    try {
+      const parsed = new URL(inviteUrl);
+      safeInviteUrl = `${PUBLIC_APP_ORIGIN}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+      // Fall back to the raw value if it isn't a parseable URL
+    }
+
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
       return new Response(
