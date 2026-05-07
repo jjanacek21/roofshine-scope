@@ -215,7 +215,7 @@ function CardEditor() {
   const [videoUrlInput, setVideoUrlInput] = useState("");
 
   // Share
-  const cardUrl = slug ? `${window.location.origin}/c/${slug}` : "";
+  const cardUrl = getPublicCardUrl(slug);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const published = !!profile?.card_published;
 
