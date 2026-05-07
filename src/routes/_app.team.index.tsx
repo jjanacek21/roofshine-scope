@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
+import { deleteTeamMember } from "@/lib/team.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/team/")({
