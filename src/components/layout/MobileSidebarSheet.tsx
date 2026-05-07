@@ -12,6 +12,7 @@ import {
   UserCog,
   Shield,
   Target,
+  IdCard,
 } from "lucide-react";
 import {
   Sheet,
