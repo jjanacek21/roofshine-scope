@@ -11,7 +11,7 @@ export function useProfile() {
       const { data } = await supabase
         .from("profiles")
         .select(
-          "id, email, first_name, last_name, role, company_id, avatar_url, bio, title, mobile_phone, office_phone, card_slug, onboarding_completed_at",
+          "id, email, first_name, last_name, role, company_id, avatar_url, bio, title, mobile_phone, office_phone, card_slug, card_published, onboarding_completed_at",
         )
         .eq("id", user!.id)
         .maybeSingle();
