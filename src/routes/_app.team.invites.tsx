@@ -234,12 +234,22 @@ function TeamInvites() {
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
                         {!i.accepted_at && (
-                          <button
-                            onClick={() => copy(i.token)}
-                            className="flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-muted"
-                          >
-                            <Copy className="h-3 w-3" /> Copy link
-                          </button>
+                          <>
+                            <button
+                              onClick={() => resendInvite(i)}
+                              disabled={resendingId === i.id}
+                              className="flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-muted disabled:opacity-60"
+                            >
+                              <Mail className="h-3 w-3" />
+                              {resendingId === i.id ? "Sending…" : "Resend"}
+                            </button>
+                            <button
+                              onClick={() => copy(i.token)}
+                              className="flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-muted"
+                            >
+                              <Copy className="h-3 w-3" /> Copy link
+                            </button>
+                          </>
                         )}
                         <button
                           onClick={() => deleteInvite(i.id)}
