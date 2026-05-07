@@ -35,6 +35,9 @@ export function PhotoCard({
   onDelete,
   onAddToEstimate,
   analyzing,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
 }: {
   photo: PhotoRow;
   onView: () => void;
@@ -42,6 +45,9 @@ export function PhotoCard({
   onDelete: () => void;
   onAddToEstimate: () => void;
   analyzing: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
 
