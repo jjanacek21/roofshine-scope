@@ -1,43 +1,56 @@
-# Fix invite email mismatch + add edit/clearer error
+## Goal
 
-Michael's invite was sent to `michaelgrossofl@gmail.com` but he signed up as `michael.grosso@rrcausa.com`, so `accept_company_invite` rightly rejects it.
+Make signup company-aware so new users can either join an existing company (e.g. Global Contractor Network) or create a new one, and stop Michael Grosso's invite from opening with the wrong email.
 
-## 1. Resend to his real email (data fix)
+## Part 1 — Company picker on signup
 
-Run a one-off update on his pending invite to point it at `michael.grosso@rrcausa.com`, then resend the email from the Team → Invites page.
+Today `/signup` only collects name/email/password, and `/onboarding` is where the user picks "Create company" vs "Join with invite". We'll surface that choice up-front on signup so the flow matches user expectations.
 
-```sql
-UPDATE company_invites
-   SET email = 'michael.grosso@rrcausa.com',
-       expires_at = now() + interval '14 days'
- WHERE email = 'michaelgrossofl@gmail.com'
-   AND accepted_at IS NULL;
-```
+### New signup flow
 
-## 2. Edit invite email in Team page
+1. **Step 1 — Account basics** (existing fields): first name, last name, email, password.
+2. **Step 2 — Company affiliation** (new):
+   - **Join an existing company** (default): searchable dropdown of companies. Selecting one creates a pending join request; user lands on a "waiting for approval" screen until a company admin approves them.
+   - **Create a new company**: takes them to the existing onboarding "Create company" form after sign-up.
+   - **I have an invite code**: paste the token, same as today's join flow.
 
-In `src/routes/_app.team.invites.tsx`, add a pencil icon next to each pending invite row. Clicking opens a small inline input → Save calls a new `update_company_invite_email(_id, _new_email)` SECURITY DEFINER RPC that:
-- Verifies caller is `is_company_admin()` for the invite's company.
-- Rejects if `accepted_at IS NOT NULL`.
-- Updates `email` and bumps `expires_at` to `now() + 14 days`.
+### Backend changes
 
-After save, auto-trigger the existing `send-invite-email` edge function to the new address.
+- New table `company_join_requests` (`id`, `company_id`, `user_id`, `status` enum `pending|approved|rejected`, `requested_at`, `decided_at`, `decided_by`).
+- RLS:
+  - User can insert/select their own request.
+  - Company admins can select/update requests for their `company_id`.
+  - Super admins can manage all.
+- New RPCs (SECURITY DEFINER):
+  - `request_to_join_company(_company_id uuid)` — creates a pending request for `auth.uid()`.
+  - `approve_join_request(_id uuid)` — admin sets `profiles.company_id` + role `member`, marks request approved.
+  - `reject_join_request(_id uuid)`.
+  - `list_companies_for_signup()` — returns `id, name` only (so we don't expose other company data publicly via a view).
+- Add a new tab on `/team` ("Join requests") showing pending requests with Approve/Reject buttons.
 
-## 3. Clearer error on /onboarding
+### Frontend changes
 
-Two improvements in `src/routes/onboarding.tsx`:
+- `src/routes/signup.tsx`: convert to a 2-step form with the affiliation choice.
+- `src/routes/onboarding.tsx`: keep "Create company" path; when user arrives with `?pending=1` show a "Waiting for admin approval" state.
+- `src/routes/_app.team.tsx` + new `_app.team.requests.tsx`: list and act on pending join requests.
 
-a. **Better RPC error**: Update `accept_company_invite` to raise a structured message:
-   `Invite was sent to <invite_email>. You're signed in as <user_email>. Sign out and sign back in with the invited email, or ask your admin to update the invite.`
+## Part 2 — Fix Michael Grosso's invite opening wrong email
 
-b. **Pre-flight check in UI**: When `invitePreview` loads, compare `invitePreview.email` to the current `user.email`. If they don't match, show an inline warning above the Accept button:
-   > ⚠️ This invite was sent to **michaelgrossofl@gmail.com** but you're signed in as **michael.grosso@rrcausa.com**. [Sign out] and sign in with the invited email, or ask your admin to update the invite.
+The invite link works correctly today (it carries a token, not an email), but the user's browser is auto-filling a different Google/Supabase session, so accept lands on the mismatch warning we built last turn. We'll address it two ways:
 
-Sign-out button calls `supabase.auth.signOut()` and routes to `/login`.
+1. **Preview email on the invite landing page before login.** Update `/onboarding` (and add detection on `/login` when `?invite=…` is present) so the page shows: *"This invite is for michael.grosso@rrcausa.com. You're signed in as X — switch accounts?"* with a one-click sign-out + sign-in button that pre-fills the invited email.
+2. **Investigate Michael's specific invite row** to confirm the email on the invite matches what we expect, and re-issue if needed. We'll inspect `company_invites` for his pending row and either `update_company_invite_email` or delete + recreate via the Team → Invites edit flow we shipped previously.
 
-## Order of execution
+### Open question
 
-1. Migration: update `accept_company_invite` error text + add `update_company_invite_email` RPC.
-2. Data fix: update Michael's invite row.
-3. Frontend: edit-email UI in invites page + mismatch warning in onboarding.
-4. Tell user to hit Resend on Michael's invite.
+Do you want join requests to require admin approval (recommended — prevents randoms from joining GCN), or should picking a company auto-add them as a `member` with no approval step?
+
+## Files to touch
+
+- Migration: new `company_join_requests` table, RPCs, RLS.
+- `src/routes/signup.tsx` — 2-step form with company picker.
+- `src/routes/onboarding.tsx` — pending state + better invite preview.
+- `src/routes/login.tsx` — show invite preview banner when `?invite=` present.
+- `src/routes/_app.team.tsx` — add "Requests" tab.
+- New `src/routes/_app.team.requests.tsx` — approve/reject UI.
+- Data fix: inspect/repair Michael's `company_invites` row.
