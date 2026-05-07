@@ -176,6 +176,62 @@ export function JobPhotosPanel({ jobId }: { jobId: string }) {
         />
       )}
 
+      {photos.length > 0 && (
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs text-muted-foreground">
+            {selectMode ? `${selectedIds.size} selected` : `${filtered.length} photo${filtered.length === 1 ? "" : "s"}`}
+          </div>
+          <div className="flex items-center gap-2">
+            {selectMode ? (
+              <>
+                <button
+                  onClick={() => setSelectedIds(new Set(filtered.map((p) => p.id)))}
+                  className="inline-flex h-8 items-center gap-1 rounded-md border px-3 text-xs hover:bg-[var(--surface-hover)]"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  Select all
+                </button>
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  className="inline-flex h-8 items-center gap-1 rounded-md border px-3 text-xs hover:bg-[var(--surface-hover)]"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={exitSelect}
+                  className="inline-flex h-8 items-center gap-1 rounded-md border px-3 text-xs hover:bg-[var(--surface-hover)]"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <X className="h-3 w-3" /> Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (selectedIds.size === 0) return;
+                    if (confirm(`Delete ${selectedIds.size} photo${selectedIds.size === 1 ? "" : "s"}?`)) {
+                      bulkDelete.mutate(Array.from(selectedIds));
+                    }
+                  }}
+                  disabled={selectedIds.size === 0 || bulkDelete.isPending}
+                  className="inline-flex h-8 items-center gap-1 rounded-md bg-red-500/90 px-3 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-40"
+                >
+                  {bulkDelete.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                  Delete{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setSelectMode(true)}
+                className="inline-flex h-8 items-center gap-1 rounded-md border px-3 text-xs hover:bg-[var(--surface-hover)]"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <CheckSquare className="h-3 w-3" /> Select
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {photos.length === 0 ? (
         <div
           className="flex flex-col items-center gap-2 rounded-xl border p-12 text-center"
@@ -197,6 +253,9 @@ export function JobPhotosPanel({ jobId }: { jobId: string }) {
               }}
               onAddToEstimate={() => handleAddToEstimate(p)}
               analyzing={analyzingId === p.id}
+              selectable={selectMode}
+              selected={selectedIds.has(p.id)}
+              onToggleSelect={() => toggleSelect(p.id)}
             />
           ))}
         </div>
