@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
-import { Copy, Trash2, Send } from "lucide-react";
+import { Copy, Trash2, Send, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/_app/team/invites")({
   component: TeamInvites,
@@ -95,6 +95,32 @@ function TeamInvites() {
     const { error } = await supabase.from("company_invites").delete().eq("id", id);
     if (error) return toast.error(error.message);
     setRows((r) => r.filter((i) => i.id !== id));
+  }
+
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  async function resendInvite(invite: Invite) {
+    setResendingId(invite.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-invite-email", {
+        body: {
+          email: invite.email,
+          token: invite.token,
+          inviteUrl: inviteLink(invite.token),
+        },
+      });
+      if (error) throw error;
+      if (data?.skipped) {
+        toast.warning("Email service not configured — copy link instead");
+      } else if (data?.error) {
+        toast.error(data.error);
+      } else {
+        toast.success(`Invite resent to ${invite.email}`);
+      }
+    } catch (e) {
+      toast.error((e as Error)?.message ?? "Failed to resend invite");
+    } finally {
+      setResendingId(null);
+    }
   }
 
   function copy(token: string) {
@@ -208,12 +234,22 @@ function TeamInvites() {
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
                         {!i.accepted_at && (
-                          <button
-                            onClick={() => copy(i.token)}
-                            className="flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-muted"
-                          >
-                            <Copy className="h-3 w-3" /> Copy link
-                          </button>
+                          <>
+                            <button
+                              onClick={() => resendInvite(i)}
+                              disabled={resendingId === i.id}
+                              className="flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-muted disabled:opacity-60"
+                            >
+                              <Mail className="h-3 w-3" />
+                              {resendingId === i.id ? "Sending…" : "Resend"}
+                            </button>
+                            <button
+                              onClick={() => copy(i.token)}
+                              className="flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-muted"
+                            >
+                              <Copy className="h-3 w-3" /> Copy link
+                            </button>
+                          </>
                         )}
                         <button
                           onClick={() => deleteInvite(i.id)}
