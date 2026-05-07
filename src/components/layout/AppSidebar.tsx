@@ -10,6 +10,7 @@ import {
   UserCog,
   Shield,
   Target,
+  IdCard,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
