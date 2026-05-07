@@ -1627,36 +1627,57 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
+          bio: string | null
+          card_slug: string | null
           company_id: string | null
           created_at: string
           email: string | null
           first_name: string | null
           id: string
           last_name: string | null
+          mobile_phone: string | null
+          office_phone: string | null
+          onboarding_completed_at: string | null
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
+          title: string | null
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          card_slug?: string | null
           company_id?: string | null
           created_at?: string
           email?: string | null
           first_name?: string | null
           id: string
           last_name?: string | null
+          mobile_phone?: string | null
+          office_phone?: string | null
+          onboarding_completed_at?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          title?: string | null
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          card_slug?: string | null
           company_id?: string | null
           created_at?: string
           email?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
+          mobile_phone?: string | null
+          office_phone?: string | null
+          onboarding_completed_at?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          title?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1722,6 +1743,62 @@ export type Database = {
           zip?: string | null
         }
         Relationships: []
+      }
+      rep_card_blocks: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          is_visible: boolean
+          kind: string
+          sort_order: number
+          storage_path: string | null
+          subtitle: string | null
+          thumb_url: string | null
+          title: string | null
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          kind: string
+          sort_order?: number
+          storage_path?: string | null
+          subtitle?: string | null
+          thumb_url?: string | null
+          title?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          kind?: string
+          sort_order?: number
+          storage_path?: string | null
+          subtitle?: string | null
+          thumb_url?: string | null
+          title?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rep_card_blocks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       roof_edges: {
         Row: {
@@ -2098,7 +2175,26 @@ export type Database = {
       accept_company_invite: { Args: { _token: string }; Returns: Json }
       auth_company_id: { Args: never; Returns: string }
       auth_tenant_id: { Args: never; Returns: string }
+      create_company_as_super_admin: {
+        Args: {
+          _address?: string
+          _email?: string
+          _name: string
+          _phone?: string
+          _website?: string
+        }
+        Returns: string
+      }
+      create_company_invite_as_super_admin: {
+        Args: {
+          _company_id: string
+          _email: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: Json
+      }
       get_invite_preview: { Args: { _token: string }; Returns: Json }
+      get_public_rep_card: { Args: { _slug: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2106,6 +2202,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_card_slug_available: { Args: { _slug: string }; Returns: boolean }
       is_company_admin: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
     }
