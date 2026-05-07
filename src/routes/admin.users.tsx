@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { UserPlus, Copy, Trash2, X } from "lucide-react";
+import { UserPlus, Copy, Trash2, X, Pencil } from "lucide-react";
+import { deleteTeamMember, updateUserAsAdmin } from "@/lib/team.functions";
 
 export const Route = createFileRoute("/admin/users")({
   component: AdminUsers,
@@ -42,6 +44,7 @@ function AdminUsers() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
+  const [editing, setEditing] = useState<Profile | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -149,20 +152,25 @@ function AdminUsers() {
               <th className="px-4 py-3 text-left">Role</th>
               <th className="px-4 py-3 text-left">Status</th>
               <th className="px-4 py-3 text-left">Joined</th>
+              <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>
+              <tr><td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">Loading…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">No users.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">No users.</td></tr>
             ) : (
               filtered.map((r) => (
-                <tr key={r.id} className="border-t border-border">
+                <tr
+                  key={r.id}
+                  className="border-t border-border cursor-pointer hover:bg-muted/30"
+                  onClick={() => setEditing(r)}
+                >
                   <td className="px-4 py-3">{[r.first_name, r.last_name].filter(Boolean).join(" ") || "—"}</td>
                   <td className="px-4 py-3 font-mono text-xs">{r.email}</td>
                   <td className="px-4 py-3 text-xs">{companyMap.get(r.company_id ?? "") ?? "—"}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <select
                       value={r.role}
                       onChange={(e) => updateRole(r.id, e.target.value as Profile["role"])}
@@ -181,6 +189,15 @@ function AdminUsers() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setEditing(r)}
+                      className="inline-flex items-center gap-1 rounded p-1.5 text-xs hover:bg-muted"
+                      title="Edit user"
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Edit
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -245,6 +262,22 @@ function AdminUsers() {
           onCreated={() => {
             setAddOpen(false);
             load();
+          }}
+        />
+      )}
+
+      {editing && (
+        <EditUserDialog
+          user={editing}
+          companies={companies}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            load();
+          }}
+          onDeleted={() => {
+            setEditing(null);
+            setRows((r) => r.filter((p) => p.id !== editing.id));
           }}
         />
       )}
@@ -357,6 +390,161 @@ function AddRepDialog({
           >
             {submitting ? "Creating…" : "Send invite"}
           </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function EditUserDialog({
+  user,
+  companies,
+  onClose,
+  onSaved,
+  onDeleted,
+}: {
+  user: Profile;
+  companies: Company[];
+  onClose: () => void;
+  onSaved: () => void;
+  onDeleted: () => void;
+}) {
+  const [firstName, setFirstName] = useState(user.first_name ?? "");
+  const [lastName, setLastName] = useState(user.last_name ?? "");
+  const [email, setEmail] = useState(user.email ?? "");
+  const [role, setRole] = useState<Profile["role"]>(user.role);
+  const [companyId, setCompanyId] = useState<string | "">(user.company_id ?? "");
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const updateFn = useServerFn(updateUserAsAdmin);
+  const deleteFn = useServerFn(deleteTeamMember);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await updateFn({
+        data: {
+          userId: user.id,
+          first_name: firstName.trim() || null,
+          last_name: lastName.trim() || null,
+          email: email.trim().toLowerCase(),
+          role,
+          company_id: companyId || null,
+        },
+      });
+      toast.success("User updated");
+      onSaved();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to update user");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    const fullName = [firstName, lastName].filter(Boolean).join(" ") || email || "this user";
+    if (!confirm(`Permanently delete ${fullName}? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await deleteFn({ data: { userId: user.id } });
+      toast.success("User deleted");
+      onDeleted();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to delete user");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <form
+        onSubmit={save}
+        className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl"
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Edit user</h3>
+          <button type="button" onClick={onClose} className="rounded p-1 hover:bg-muted">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <label className="block text-xs font-semibold text-muted-foreground">
+            First name
+            <input
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="field-input mt-1 font-normal text-foreground"
+            />
+          </label>
+          <label className="block text-xs font-semibold text-muted-foreground">
+            Last name
+            <input
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="field-input mt-1 font-normal text-foreground"
+            />
+          </label>
+          <label className="col-span-2 block text-xs font-semibold text-muted-foreground">
+            Email
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="field-input mt-1 font-normal text-foreground"
+            />
+          </label>
+          <label className="block text-xs font-semibold text-muted-foreground">
+            Role
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as Profile["role"])}
+              className="field-input mt-1 font-normal text-foreground"
+            >
+              {ROLES.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-muted-foreground">
+            Company
+            <select
+              value={companyId}
+              onChange={(e) => setCompanyId(e.target.value)}
+              className="field-input mt-1 font-normal text-foreground"
+            >
+              <option value="">— None —</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="mt-6 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting || saving}
+            className="inline-flex items-center gap-1 rounded-md border border-destructive/30 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {deleting ? "Deleting…" : "Delete user"}
+          </button>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="h-9 rounded-md border border-border px-4 text-sm">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || deleting}
+              className="btn-brand h-9 rounded-md px-4 text-sm font-semibold disabled:opacity-60"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+          </div>
         </div>
       </form>
     </div>
