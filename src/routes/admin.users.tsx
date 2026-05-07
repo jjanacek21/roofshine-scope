@@ -44,6 +44,7 @@ function AdminUsers() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
+  const [editing, setEditing] = useState<Profile | null>(null);
 
   const load = async () => {
     setLoading(true);
