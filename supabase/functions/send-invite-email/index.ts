@@ -45,6 +45,8 @@ serve(async (req) => {
       </div>
     `;
 
+    const FROM = Deno.env.get("RESEND_FROM") ?? "Global Contractor <noreply@globalcontractor.app>";
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -52,15 +54,16 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "BuildScopeAI <onboarding@resend.dev>",
+        from: FROM,
         to: [email],
-        subject: "You've been invited to BuildScopeAI",
+        subject: "You've been invited to Global Contractor",
         html,
       }),
     });
 
     const result = await res.json();
     if (!res.ok) {
+      console.error("Resend send failed", { status: res.status, result, from: FROM, to: email });
       return new Response(
         JSON.stringify({ error: result?.message ?? "Send failed", result }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
