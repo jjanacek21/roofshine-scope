@@ -216,6 +216,7 @@ function CardEditor() {
   // Share
   const cardUrl = slug ? `${window.location.origin}/c/${slug}` : "";
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const published = !!profile?.card_published;
 
   useEffect(() => {
     if (!cardUrl) return;
@@ -234,6 +235,22 @@ function CardEditor() {
     a.download = `${slug}-qr.png`;
     a.click();
   };
+
+  async function togglePublished(next: boolean) {
+    if (!user) return;
+    if (next && !profile?.card_slug) {
+      toast.error("Save a card handle first");
+      return;
+    }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ card_published: next })
+      .eq("id", user.id);
+    if (error) return toast.error(error.message);
+    toast.success(next ? "Card is live" : "Card unpublished");
+    refetchProfile();
+  }
+
 
   const publicAvatar = useMemo(() => publicUrl(avatarUrl), [avatarUrl]);
 
