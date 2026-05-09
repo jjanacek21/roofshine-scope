@@ -16,6 +16,8 @@ import {
   Youtube,
 } from "lucide-react";
 
+const CONSULTATION_URL = "https://globalcontractor.network/schedule-consultation";
+
 export const Route = createFileRoute("/c/$slug")({
   component: PublicCard,
   head: () => ({
