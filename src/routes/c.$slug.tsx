@@ -16,6 +16,8 @@ import {
   Youtube,
 } from "lucide-react";
 
+const CONSULTATION_URL = "https://globalcontractor.network/schedule-consultation";
+
 export const Route = createFileRoute("/c/$slug")({
   component: PublicCard,
   head: () => ({
@@ -85,7 +87,7 @@ function buildVCard(d: PublicCardData) {
   if (p.email) lines.push(`EMAIL;TYPE=WORK:${p.email}`);
   if (p.mobile_phone) lines.push(`TEL;TYPE=CELL:${p.mobile_phone}`);
   if (p.office_phone) lines.push(`TEL;TYPE=WORK:${p.office_phone}`);
-  if (d.company?.website) lines.push(`URL:${d.company.website}`);
+  lines.push(`URL:${CONSULTATION_URL}`);
   lines.push("END:VCARD");
   return lines.join("\n");
 }
@@ -291,13 +293,11 @@ function PublicCard() {
           })()}
         </div>
 
-        {company?.website && (
-          <p className="mt-12 text-center text-xs text-muted-foreground">
-            <a href={company.website} target="_blank" rel="noreferrer" className="hover:underline">
-              {company.name} · {company.website.replace(/^https?:\/\//, "")}
-            </a>
-          </p>
-        )}
+        <p className="mt-12 text-center text-xs text-muted-foreground">
+          <a href={CONSULTATION_URL} target="_blank" rel="noreferrer" className="hover:underline">
+            {company ? `${company.name} · ` : ""}Schedule a Consultation
+          </a>
+        </p>
       </div>
 
       {lightbox && (
