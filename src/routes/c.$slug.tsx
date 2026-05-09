@@ -85,7 +85,7 @@ function buildVCard(d: PublicCardData) {
   if (p.email) lines.push(`EMAIL;TYPE=WORK:${p.email}`);
   if (p.mobile_phone) lines.push(`TEL;TYPE=CELL:${p.mobile_phone}`);
   if (p.office_phone) lines.push(`TEL;TYPE=WORK:${p.office_phone}`);
-  if (d.company?.website) lines.push(`URL:${d.company.website}`);
+  lines.push(`URL:${CONSULTATION_URL}`);
   lines.push("END:VCARD");
   return lines.join("\n");
 }
