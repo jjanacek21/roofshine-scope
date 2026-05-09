@@ -291,13 +291,11 @@ function PublicCard() {
           })()}
         </div>
 
-        {company?.website && (
-          <p className="mt-12 text-center text-xs text-muted-foreground">
-            <a href={company.website} target="_blank" rel="noreferrer" className="hover:underline">
-              {company.name} · {company.website.replace(/^https?:\/\//, "")}
-            </a>
-          </p>
-        )}
+        <p className="mt-12 text-center text-xs text-muted-foreground">
+          <a href={CONSULTATION_URL} target="_blank" rel="noreferrer" className="hover:underline">
+            {company ? `${company.name} · ` : ""}Schedule a Consultation
+          </a>
+        </p>
       </div>
 
       {lightbox && (
