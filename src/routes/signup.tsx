@@ -130,7 +130,7 @@ function SignupPage() {
         }}
       >
         <div className="mb-8">
-          <Logo size="lg" />
+          <Logo size="lg" platform />
         </div>
 
         <h1 className="font-bold text-foreground" style={{ fontSize: 24, letterSpacing: "-0.5px" }}>
