@@ -12,6 +12,7 @@ import { fmtMoney, fmtNum, type LeadRow } from "@/lib/leads";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { supabase } from "@/integrations/supabase/client";
 import { analyzeRoofWithAI } from "@/server/lead-ai.functions";
+import { useCompany } from "@/hooks/useCompany";
 
 export const Route = createFileRoute("/_app/leads/savings")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -53,6 +54,8 @@ function SavingsReport() {
   const navigate = useNavigate();
   const { data: leads = [] } = useLeads();
   const { data: mapboxToken } = useMapboxToken();
+  const { data: company } = useCompany();
+  const brandName = company?.name?.toUpperCase() || "LEAD CENTER";
   const reportRef = useRef<HTMLDivElement>(null);
 
   const qc = useQueryClient();
@@ -226,7 +229,8 @@ function SavingsReport() {
         sourceY += currentSliceHeight;
         pageIndex += 1;
       }
-      pdf.save(`GCN_Savings_Report_${safeAddr}.pdf`);
+      const safeBrand = (company?.name || "Savings").replace(/[^a-z0-9]+/gi, "_").slice(0, 40);
+      pdf.save(`${safeBrand}_Savings_Report_${safeAddr}.pdf`);
       if (lead?.id && lead?.company_id) {
         await supabase.from("leads").update({ status: "report_sent" }).eq("id", lead.id);
         await supabase.from("lead_activities").insert({
@@ -360,9 +364,19 @@ function SavingsReport() {
         <div ref={reportRef} id="savings-report-content" className="space-y-6 rounded-xl bg-white p-6 text-slate-900 shadow-xl print:shadow-none">
           {/* Brand header */}
           <div className="-mx-6 -mt-6 mb-0">
-            <div className="bg-slate-900 px-6 py-5">
-              <div className="text-2xl font-bold uppercase tracking-wider text-white">GCN Lead Center</div>
-              <div className="text-xs uppercase tracking-widest text-slate-300">Commercial Roofing Solutions</div>
+            <div className="flex items-center gap-3 bg-slate-900 px-6 py-5">
+              {company?.logo_url && (
+                <img
+                  src={company.logo_url}
+                  alt=""
+                  className="h-10 w-10 rounded object-cover"
+                  crossOrigin="anonymous"
+                />
+              )}
+              <div>
+                <div className="text-2xl font-bold uppercase tracking-wider text-white">{brandName}</div>
+                <div className="text-xs uppercase tracking-widest text-slate-300">Commercial Roofing Solutions</div>
+              </div>
             </div>
             <div className="h-1 bg-emerald-500" />
             <div className="px-6 py-4 text-center">
@@ -591,8 +605,11 @@ function SavingsReport() {
           {/* Section 9 — Footer */}
           <div className="mt-4 flex flex-col items-start justify-between gap-2 border-t border-slate-300 pt-4 sm:flex-row">
             <div>
-              <div className="text-sm font-bold text-slate-900">GCN LEAD CENTER</div>
-              <div className="text-xs text-slate-600">Schedule a free roof assessment</div>
+              <div className="text-sm font-bold text-slate-900">{brandName}</div>
+              <div className="text-xs text-slate-600">
+                {[company?.phone, company?.email, company?.website].filter(Boolean).join(" · ") ||
+                  "Schedule a free roof assessment"}
+              </div>
             </div>
             <div className="text-xs italic text-slate-500">* Estimates for illustration only. Consult your tax advisor.</div>
           </div>

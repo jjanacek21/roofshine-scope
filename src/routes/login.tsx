@@ -45,7 +45,7 @@ function LoginPage() {
         }}
       >
         <div className="mb-8">
-          <Logo size="lg" />
+          <Logo size="lg" platform />
         </div>
 
         <h1
