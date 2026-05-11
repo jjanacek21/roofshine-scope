@@ -12,6 +12,7 @@ import { fmtMoney, fmtNum, type LeadRow } from "@/lib/leads";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { supabase } from "@/integrations/supabase/client";
 import { analyzeRoofWithAI } from "@/server/lead-ai.functions";
+import { useCompany } from "@/hooks/useCompany";
 
 export const Route = createFileRoute("/_app/leads/savings")({
   validateSearch: (search: Record<string, unknown>) => ({
