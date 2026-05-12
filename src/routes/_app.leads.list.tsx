@@ -21,6 +21,7 @@ import { Phone, Mail, MessageSquare, Sparkles, Eye, Trash2, X, Upload } from "lu
 import { Link } from "@tanstack/react-router";
 import { LeadDetailSheet } from "@/components/leads/LeadDetailSheet";
 import { useCallPlaybook } from "@/hooks/useCallPlaybook";
+import { useCompanyMembers, memberName } from "@/hooks/useCompanyMembers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
