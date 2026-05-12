@@ -297,13 +297,16 @@ function BuildOrderTab(props: {
   onPickTemplate: (id: string) => void;
   inputs: Record<string, number>; setInput: (k: string, v: number) => void;
   markupPct: number; taxPct: number; onMarkup: (n: number) => void; onTax: (n: number) => void;
+  dumpCost: number; permitCost: number; extraCosts: ExtraCost[];
+  onDump: (n: number) => void; onPermit: (n: number) => void;
+  setExtras: (next: ExtraCost[]) => void;
   materialRows: any[]; laborRows: any[]; totals: any;
   categories: any[]; catalogByCat: Map<string, MaterialItem[]>;
   setMatOverride: (id: string, change: any) => void; setLabOverride: (id: string, change: any) => void;
   autoQty: (f: any, coverage?: number | null, coverageBase?: string | null) => number;
   lines: any;
 }) {
-  const { templates, activeTemplate, onPickTemplate, inputs, setInput, markupPct, taxPct, onMarkup, onTax, materialRows, laborRows, totals, categories, catalogByCat, setMatOverride, setLabOverride, autoQty, lines } = props;
+  const { templates, activeTemplate, onPickTemplate, inputs, setInput, markupPct, taxPct, onMarkup, onTax, dumpCost, permitCost, extraCosts, onDump, onPermit, setExtras, materialRows, laborRows, totals, categories, catalogByCat, setMatOverride, setLabOverride, autoQty, lines } = props;
   return (
     <div className="space-y-5">
       {/* Template chips */}
