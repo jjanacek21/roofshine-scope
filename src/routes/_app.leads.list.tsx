@@ -43,6 +43,19 @@ function LeadsList() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const playbook = useCallPlaybook();
+  const { data: members = [] } = useCompanyMembers();
+  const memberMap = new Map(members.map((m) => [m.id, m]));
+  const reassignLead = useMutation({
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
+      const { error } = await supabase.from("leads").update({ assigned_to: userId }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Lead reassigned");
+      qc.invalidateQueries({ queryKey: ["leads"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Reassign failed"),
+  });
 
   const filtered = useMemo(() => {
     let rows = tab === "all" ? leads : leads.filter((l) => l.status === tab);
