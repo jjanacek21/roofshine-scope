@@ -242,8 +242,14 @@ function OrderFormPage() {
           setInput={setInput}
           markupPct={markupPct}
           taxPct={taxPct}
+          dumpCost={dumpCost}
+          permitCost={permitCost}
+          extraCosts={extraCosts}
           onMarkup={(v) => update({ markup_pct: v })}
           onTax={(v) => update({ sales_tax_pct: v })}
+          onDump={(v) => update({ dump_cost: v })}
+          onPermit={(v) => update({ permit_cost: v })}
+          setExtras={setExtras}
           materialRows={materialRows}
           laborRows={laborRows}
           totals={totals}
@@ -291,13 +297,16 @@ function BuildOrderTab(props: {
   onPickTemplate: (id: string) => void;
   inputs: Record<string, number>; setInput: (k: string, v: number) => void;
   markupPct: number; taxPct: number; onMarkup: (n: number) => void; onTax: (n: number) => void;
+  dumpCost: number; permitCost: number; extraCosts: ExtraCost[];
+  onDump: (n: number) => void; onPermit: (n: number) => void;
+  setExtras: (next: ExtraCost[]) => void;
   materialRows: any[]; laborRows: any[]; totals: any;
   categories: any[]; catalogByCat: Map<string, MaterialItem[]>;
   setMatOverride: (id: string, change: any) => void; setLabOverride: (id: string, change: any) => void;
   autoQty: (f: any, coverage?: number | null, coverageBase?: string | null) => number;
   lines: any;
 }) {
-  const { templates, activeTemplate, onPickTemplate, inputs, setInput, markupPct, taxPct, onMarkup, onTax, materialRows, laborRows, totals, categories, catalogByCat, setMatOverride, setLabOverride, autoQty, lines } = props;
+  const { templates, activeTemplate, onPickTemplate, inputs, setInput, markupPct, taxPct, onMarkup, onTax, dumpCost, permitCost, extraCosts, onDump, onPermit, setExtras, materialRows, laborRows, totals, categories, catalogByCat, setMatOverride, setLabOverride, autoQty, lines } = props;
   return (
     <div className="space-y-5">
       {/* Template chips */}
@@ -339,6 +348,58 @@ function BuildOrderTab(props: {
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <NumField label="Markup %" value={markupPct} onChange={onMarkup} />
           <NumField label="Sales Tax %" value={taxPct} onChange={onTax} />
+          <NumField label="Dump Cost $" value={dumpCost} onChange={onDump} />
+          <NumField label="Permit Cost $" value={permitCost} onChange={onPermit} />
+        </div>
+      </Card>
+
+      {/* Job Costs / Extras */}
+      <Card title="Job Costs (Extras)">
+        <div className="space-y-2">
+          {extraCosts.map((x, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Description (e.g. Crane, Equipment Rental)"
+                value={x.label ?? ""}
+                onChange={(e) => {
+                  const next = [...extraCosts];
+                  next[i] = { ...next[i], label: e.target.value };
+                  setExtras(next);
+                }}
+                className="flex-1 rounded border bg-transparent px-2 py-1.5 text-[13px] text-foreground"
+                style={{ borderColor: "var(--border)" }}
+              />
+              <input
+                type="number" min={0} step="0.01"
+                placeholder="Amount"
+                value={x.amount ?? 0}
+                onChange={(e) => {
+                  const next = [...extraCosts];
+                  next[i] = { ...next[i], amount: Number(e.target.value) };
+                  setExtras(next);
+                }}
+                className="w-32 rounded border bg-transparent px-2 py-1.5 text-right font-mono text-[13px] text-foreground"
+                style={{ borderColor: "var(--border)" }}
+              />
+              <button
+                type="button"
+                title="Remove"
+                onClick={() => setExtras(extraCosts.filter((_, j) => j !== i))}
+                className="rounded p-1 text-muted-foreground hover:bg-[var(--surface-hover)] hover:text-foreground text-[14px] leading-none"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setExtras([...extraCosts, { label: "", amount: 0 }])}
+            className="rounded border px-3 py-1.5 text-[12px] font-semibold text-foreground hover:bg-[var(--surface-hover)]"
+            style={{ borderColor: "var(--border)" }}
+          >
+            + Add Cost
+          </button>
         </div>
       </Card>
 
