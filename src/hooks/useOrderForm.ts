@@ -29,7 +29,7 @@ export type JobOrderDraft = {
   id: string; job_id: string; company_id: string;
   template_id: string | null;
   inputs: Record<string, number>;
-  material_overrides: Array<{ line_id: string; material_id?: string | null; qty?: number | null; unit_price?: number | null }>;
+  material_overrides: Array<{ line_id: string; material_id?: string | null; qty?: number | null; unit_price?: number | null; excluded?: boolean }>;
   labor_overrides: Array<{ line_id: string; qty?: number | null; rate?: number | null }>;
   markup_pct: number; sales_tax_pct: number; notes: string | null;
   dump_cost: number; permit_cost: number; extra_costs: ExtraCost[];
