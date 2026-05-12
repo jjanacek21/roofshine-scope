@@ -6,7 +6,7 @@ export type MaterialCategory = { id: string; slug: string; label: string; sort_o
 export type MaterialItem = {
   id: string; company_id: string | null; category_id: string; supplier_id: string | null;
   slug: string | null; name: string; uom: string; unit_price: number; active: boolean;
-  coverage_sq: number | null;
+  coverage_sq: number | null; coverage_base: string | null;
 };
 export type Supplier = {
   id: string; name: string; rep_name: string | null; rep_phone: string | null;
