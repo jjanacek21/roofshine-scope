@@ -1031,10 +1031,12 @@ export type Database = {
       }
       jobs: {
         Row: {
+          assigned_to: string | null
           claim_number: string | null
           client_id: string | null
           company_id: string
           created_at: string
+          created_by: string | null
           id: string
           insurance_carrier: string | null
           job_number: string | null
@@ -1051,10 +1053,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_to?: string | null
           claim_number?: string | null
           client_id?: string | null
           company_id: string
           created_at?: string
+          created_by?: string | null
           id?: string
           insurance_carrier?: string | null
           job_number?: string | null
@@ -1071,10 +1075,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_to?: string | null
           claim_number?: string | null
           client_id?: string | null
           company_id?: string
           created_at?: string
+          created_by?: string | null
           id?: string
           insurance_carrier?: string | null
           job_number?: string | null
@@ -1346,6 +1352,7 @@ export type Database = {
         Row: {
           address: string
           ai_report: Json
+          assigned_to: string | null
           city: string | null
           company_id: string
           created_at: string
@@ -1370,6 +1377,7 @@ export type Database = {
         Insert: {
           address: string
           ai_report?: Json
+          assigned_to?: string | null
           city?: string | null
           company_id: string
           created_at?: string
@@ -1394,6 +1402,7 @@ export type Database = {
         Update: {
           address?: string
           ai_report?: Json
+          assigned_to?: string | null
           city?: string | null
           company_id?: string
           created_at?: string
