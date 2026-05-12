@@ -1,52 +1,110 @@
-## Order Form Generator — Job Workflow Tab
+## Order Form: Versions, Approval, and $/SQ Pricing
 
-Add a new **"Order Form"** tab to the job workflow (between Estimate and Contract) that contractors use to pre-cap roofs, generate crew work orders, and generate supplier POs from a stored material catalog and reusable roof-system templates.
+Three tightly related additions to the existing **Order Form** tab on the job workflow.
 
-Note: you said "lead workflow" but the Contract tab lives in the **job** workflow (`/jobs/$id/...`). The new tab will sit there. Confirm if you actually meant the lead detail sheet.
+---
 
-### Tab placement
-`Overview · Measurements · Photos · Estimate · ` **`Order Form`** ` · Contract · Report`
+### 1. Real cost inputs + $/SQ math
 
-Route: `src/routes/_app.jobs.$id.order-form.tsx`
+Today the snapshot only captures materials + labor + markup. We add the missing job-level costs so the customer price is realistic and we can derive a true per-square price.
 
-### Database (new tables, all RLS-scoped via `auth_company_id()`)
-- `material_suppliers` — supplier + rep contact
-- `material_categories` — 16 seeded categories (shingles, hip_ridge, starter, underlayment_mech, underlayment_sa, low_slope, tile, metal, ventilation, pipe_flashing, fasteners, adhesives, skylights, wood, gutters, delivery)
-- `material_catalog` — ~120 SKUs seeded from the SRS 5/01/2026 pricelist in your prototype
-- `roof_system_templates` — 5 seeded templates (shingle, tile, metal, flat, gutters) with `inputs` jsonb
-- `template_material_lines` — line label + default material + formula jsonb
-- `template_labor_lines` — task + rate + formula jsonb
-- `job_order_drafts` — per-job working state (template_id, inputs jsonb, line overrides jsonb, markup_pct, sales_tax_pct)
-- `job_order_snapshots` — locked-in materials/labor/totals jsonb when "Save & Lock" is hit
+New fields on the **Build Order** tab (saved on `job_order_drafts`):
+- **Dump fees** (`dump_cost`)
+- **Permit fees** (`permit_cost`)
+- **Other costs** (`extra_costs` — list of `{label, amount}`, e.g. crane, dumpster pickup)
 
-Seed runs via the migration so every existing company gets the catalog + templates immediately.
+New totals shown in the totals card and on every print view:
+```
+Job Cost   = Materials + Labor + Dump + Permits + Extras
+Markup     = Job Cost × markup_pct
+Customer $ = Job Cost + Markup
+Profit     = Customer $ − Job Cost
+$ / SQ     = Customer $ ÷ Squares    (uses the `sq` measurement input)
+Cost / SQ  = Job Cost   ÷ Squares
+```
 
-### Sub-tabs inside the Order Form tab
-1. **Build Order** (default) — measurement inputs, materials table, labor table, totals cards (Job Cost · Markup · Customer Price · Profit). Auto-recalcs from `calcQty(formula, inputs)`.
-2. **Pre-Cap** — printable internal cost sheet
-3. **Crew Work Order** — printable scope + materials checklist with signature lines
-4. **Supplier Order** — printable PO grouped by category with supplier rep block
+`$ / SQ` only renders when `sq > 0`; otherwise shows "—".
 
-Each printable tab uses `window.print()` and a `.no-print` rule so only the active document prints.
+---
 
-### Admin (catalog + templates)
-Lives at `/_app.settings.tsx` under a new "Materials & Templates" section (admin role only via `is_company_admin()`):
-- **Material Catalog** — category chips, inline-editable SKU table
-- **Roof Templates** — template chips, inline-editable line items with formula fields
-- **Labor Rates** — inline-editable task list per template
+### 2. Snapshot version history + rollback
 
-### Branding
-Reuse existing GCN tokens from `src/styles.css` (semantic tokens, NOT the raw black/gold hex from the prototype). The dark utilitarian look already matches; print views invert to white. Numbers use `JetBrains Mono` (already loaded). No new global CSS variables.
+Snapshots already exist; we make them a real version log.
+
+New columns on `job_order_snapshots`:
+- `version_number` (auto-increment per job)
+- `status` enum: `draft` (default on save), `pending_approval`, `approved`, `superseded`, `rejected`
+- `approved_by`, `approved_at`, `approval_notes`
+- `dump_cost`, `permit_cost`, `extra_costs jsonb`
+- `per_sq_price`, `cost_per_sq`, `total_squares` (snapshotted at save time)
+- `created_by`
+
+New **Versions** sub-tab in the Order Form (sits next to Build Order / Pre-Cap / Crew / Supplier):
+- Table of all snapshots: `v#`, date, who saved, template, **Customer $**, **$/SQ**, **Profit %**, status badge.
+- Row actions per snapshot:
+  - **View** — opens read-only side panel of materials/labor/totals.
+  - **Compare** — pick any two snapshots; renders a side-by-side diff (qty, unit price, line total, $/SQ delta), with green/red deltas per line.
+  - **Rollback** — copies that snapshot's `inputs`, `material_overrides`, `labor_overrides`, dump/permit/extras, markup, and tax back into the live draft. Confirms first; creates a new "Rolled back from v#" entry in a small `job_order_history` audit row so we don't lose what was overwritten.
+  - **Submit for approval** (only on `draft`, only if you saved it).
+  - **Delete** (only on your own `draft` snapshots).
+
+---
+
+### 3. Approval workflow
+
+Snapshots become the gate between "internal working numbers" and "what the crew/supplier can see".
+
+Rules:
+- Anyone on the company can `Save Snapshot` → creates `status='draft'`.
+- Author clicks **Submit for approval** → `status='pending_approval'`.
+- A user with `is_company_admin()` sees pending versions in the Versions tab with **Approve** / **Reject** buttons (with optional note).
+- On approve: any prior `approved` snapshot for the same job flips to `superseded`; the new one becomes `approved` with `approved_by`, `approved_at`.
+- The **Pre-Cap**, **Crew Work Order**, and **Supplier Order** print views switch their data source:
+  - If a job has an `approved` snapshot → render from that snapshot, with an "APPROVED v# • {date} • {approver}" stamp in the header.
+  - If none → show a clear empty state ("No approved order yet — ask an admin to approve a snapshot before sharing with crew/supplier.") Print is disabled.
+- The **Build Order** tab keeps showing the live draft (so estimators can keep iterating).
+
+RLS: snapshots stay scoped by `company_id = auth_company_id()`. Approve/reject uses a security-definer RPC `approve_order_snapshot(_id, _note)` / `reject_order_snapshot(_id, _note)` that checks `is_company_admin()`.
+
+---
+
+### Technical details
+
+**Migration**
+- Alter `job_order_drafts`: add `dump_cost numeric default 0`, `permit_cost numeric default 0`, `extra_costs jsonb default '[]'`.
+- Alter `job_order_snapshots`: add the columns listed above; backfill `version_number` per job; default new `status='draft'`.
+- Create enum `order_snapshot_status`.
+- Trigger on insert: assign next `version_number` for `(company_id, job_id)`.
+- Functions: `submit_order_snapshot(_id)`, `approve_order_snapshot(_id, _note)`, `reject_order_snapshot(_id, _note)`, `rollback_order_snapshot(_id)` (copies snapshot back into the draft for that job, returns the new draft id).
+- Optional `job_order_history` table: `{snapshot_id, action, actor, payload, created_at}` for audit.
+
+**Hooks (new in `src/hooks/useOrderForm.ts`)**
+- `useJobOrderSnapshots(jobId)` — list, ordered desc by `version_number`.
+- `useApprovedOrderSnapshot(jobId)` — single `approved` row (used by print views).
+- Mutations: `submit`, `approve`, `reject`, `rollback`, `deleteSnapshot`.
+
+**Calc helper (`src/lib/order-form-calc.ts`)**
+- Extend `totals` to include `dump`, `permits`, `extras`, `perSq`, `costPerSq`.
+- New `diffSnapshots(a, b)` that returns per-line deltas + totals delta.
+
+**UI files**
+- `src/routes/_app.jobs.$id.order-form.tsx` — add `versions` sub-tab, gate print views on approved snapshot, surface dump/permit/extras inputs, show $/SQ.
+- New `src/components/order-form/VersionsTab.tsx` — table + actions.
+- New `src/components/order-form/SnapshotDiff.tsx` — comparison view.
+- New `src/components/order-form/SnapshotViewer.tsx` — read-only viewer used by View, Pre-Cap (when reading approved), Crew, Supplier.
+- New `src/components/order-form/ApprovalBadge.tsx` — status pill + approver stamp for headers.
+
+**Out of scope (call out so we don't scope-creep)**
+- E-signing or external customer approval. Approval is internal only.
+- Auto-syncing the contract/estimate when a snapshot is approved (we keep them independent for now).
+- Exporting snapshots as standalone PDFs (still uses `window.print()`).
+
+---
 
 ### Build order
-1. Migration: 8 tables + RLS + seed data (suppliers, 16 categories, ~120 SKUs, 5 templates with all material + labor lines)
-2. Hooks: `useMaterialCatalog`, `useRoofTemplates`, `useJobOrderDraft`
-3. `lib/order-form-calc.ts` — `calcQty`, totals math
-4. Route + sub-tab shell
-5. Build Order tab (live data, editable lines, totals)
-6. Pre-Cap / Work Order / Supplier Order print views
-7. Admin section in Settings
-8. Add "Order Form" entry to `JobTabs.tsx` between Estimate and Contract
-
-### Scope notes
-This is a large feature (~1500 LOC + a heavy migration with ~120 seeded SKUs). I'll ship it in this single approval but it will take a few minutes. Existing job/contract/estimate flow is not modified beyond the tab addition.
+1. Migration + RPCs + enum + trigger.
+2. Hook layer + calc updates.
+3. Build Order: dump/permit/extras inputs + $/SQ display.
+4. Versions sub-tab (list, view, rollback, submit, approve, reject, delete).
+5. Snapshot diff view.
+6. Gate Pre-Cap / Crew / Supplier print views on approved snapshot, render approval stamp.
