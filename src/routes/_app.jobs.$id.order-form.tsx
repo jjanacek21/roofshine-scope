@@ -98,7 +98,7 @@ function OrderFormPage() {
     if (!lines?.materials) return [] as Array<{
       line_id: string; label: string; material: MaterialItem | null;
       qty: number; unit_price: number; line_total: number; uom: string;
-      category_id: string | null;
+      category_id: string | null; excluded: boolean;
     }>;
     return lines.materials.map((ln) => {
       const ov = matOverrides.find((o) => o.line_id === ln.id);
