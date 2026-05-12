@@ -4,14 +4,23 @@ export type Formula = {
   waste_pct?: number;
   min?: number;
   fixed?: number;
+  use_material_coverage?: boolean;
 };
 
-export function calcQty(formula: Formula | null | undefined, inputs: Record<string, number>): number {
+export function calcQty(
+  formula: Formula | null | undefined,
+  inputs: Record<string, number>,
+  materialCoverage?: number | null,
+): number {
   if (!formula) return 0;
   if (formula.fixed !== undefined && formula.fixed !== null) return Number(formula.fixed);
   const base = Number(inputs[formula.base ?? ""] ?? 0) || 0;
   const raw = base * (1 + (Number(formula.waste_pct) || 0) / 100);
-  const qty = Math.ceil(raw / (Number(formula.divide_by) || 1));
+  let divisor = Number(formula.divide_by) || 1;
+  if (formula.use_material_coverage && materialCoverage && Number(materialCoverage) > 0) {
+    divisor = Number(materialCoverage);
+  }
+  const qty = Math.ceil(raw / divisor);
   return Math.max(Number(formula.min) || 0, qty);
 }
 
