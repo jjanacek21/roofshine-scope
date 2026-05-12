@@ -1,0 +1,1 @@
+ALTER TABLE public.material_catalog ADD COLUMN IF NOT EXISTS coverage_base text;

@@ -98,22 +98,24 @@ function OrderFormPage() {
     if (!lines?.materials) return [] as Array<{
       line_id: string; label: string; material: MaterialItem | null;
       qty: number; unit_price: number; line_total: number; uom: string;
-      category_id: string | null;
+      category_id: string | null; excluded: boolean;
     }>;
     return lines.materials.map((ln) => {
       const ov = matOverrides.find((o) => o.line_id === ln.id);
       const matId = ov?.material_id ?? ln.default_material_id ?? null;
       const mat = matId ? catalogById.get(matId) ?? null : null;
-      const autoQty = calcQty(ln.formula, inputs, mat?.coverage_sq);
+      const autoQty = calcQty(ln.formula, inputs, mat?.coverage_sq, mat?.coverage_base);
       const qty = ov?.qty != null ? Number(ov.qty) : autoQty;
       const unit_price = ov?.unit_price != null ? Number(ov.unit_price) : Number(mat?.unit_price ?? 0);
+      const excluded = !!ov?.excluded;
       return {
         line_id: ln.id,
         label: ln.label,
         material: mat,
-        qty, unit_price, line_total: qty * unit_price,
+        qty, unit_price, line_total: excluded ? 0 : qty * unit_price,
         uom: mat?.uom ?? "EA",
         category_id: mat?.category_id ?? null,
+        excluded,
       };
     });
   }, [lines, matOverrides, inputs, catalogById]);
@@ -175,7 +177,7 @@ function OrderFormPage() {
       company_id: company.id,
       template_label: activeTemplate?.label ?? null,
       inputs,
-      materials: materialRows.map((r) => ({
+      materials: materialRows.filter((r) => !r.excluded).map((r) => ({
         label: r.label, material_id: r.material?.id ?? null, name: r.material?.name ?? r.label,
         uom: r.uom, qty: r.qty, unit_price: r.unit_price, line_total: r.line_total,
       })),
@@ -249,7 +251,7 @@ function OrderFormPage() {
           catalogByCat={catalogByCat}
           setMatOverride={setMatOverride}
           setLabOverride={setLabOverride}
-          autoQty={(formula: any, coverage?: number | null) => calcQty(formula, inputs, coverage)}
+          autoQty={(formula: any, coverage?: number | null, coverageBase?: string | null) => calcQty(formula, inputs, coverage, coverageBase)}
           lines={lines}
         />
       )}
@@ -259,14 +261,14 @@ function OrderFormPage() {
           <PrecapView
             company={company} job={job} customer={customer}
             template={activeTemplate} inputs={inputs}
-            materialRows={materialRows} laborRows={laborRows} totals={totals}
+            materialRows={materialRows.filter((r) => !r.excluded)} laborRows={laborRows} totals={totals}
           />
         </PrintDoc>
       )}
 
       {tab === "crew" && (
         <PrintDoc>
-          <CrewView company={company} job={job} customer={customer} template={activeTemplate} materialRows={materialRows} laborRows={laborRows} />
+          <CrewView company={company} job={job} customer={customer} template={activeTemplate} materialRows={materialRows.filter((r) => !r.excluded)} laborRows={laborRows} />
         </PrintDoc>
       )}
 
@@ -275,7 +277,7 @@ function OrderFormPage() {
           <SupplierView
             company={company} job={job} customer={customer}
             supplier={supplier} categories={categories}
-            materialRows={materialRows} totals={totals}
+            materialRows={materialRows.filter((r) => !r.excluded)} totals={totals}
           />
         </PrintDoc>
       )}
@@ -292,7 +294,7 @@ function BuildOrderTab(props: {
   materialRows: any[]; laborRows: any[]; totals: any;
   categories: any[]; catalogByCat: Map<string, MaterialItem[]>;
   setMatOverride: (id: string, change: any) => void; setLabOverride: (id: string, change: any) => void;
-  autoQty: (f: any, coverage?: number | null) => number;
+  autoQty: (f: any, coverage?: number | null, coverageBase?: string | null) => number;
   lines: any;
 }) {
   const { templates, activeTemplate, onPickTemplate, inputs, setInput, markupPct, taxPct, onMarkup, onTax, materialRows, laborRows, totals, categories, catalogByCat, setMatOverride, setLabOverride, autoQty, lines } = props;
@@ -352,27 +354,39 @@ function BuildOrderTab(props: {
                 <th className="px-2 py-2">UOM</th>
                 <th className="px-2 py-2 text-right">Unit $</th>
                 <th className="px-2 py-2 text-right">Total</th>
+                <th className="px-2 py-2 w-8"></th>
               </tr>
             </thead>
             <tbody>
               {materialRows.map((r, i) => {
                 const tplLine = lines?.materials?.[i];
                 const useCoverage = !!tplLine?.formula?.use_material_coverage;
-                const auto = autoQty(tplLine?.formula, r.material?.coverage_sq);
+                const auto = autoQty(tplLine?.formula, r.material?.coverage_sq, r.material?.coverage_base);
                 const overridden = r.qty !== auto;
                 const catId = r.category_id;
                 let options: MaterialItem[] = catId ? catalogByCat.get(catId) ?? [] : [];
                 if (useCoverage) {
-                  const underlaymentCatIds = (categories ?? [])
-                    .filter((c: any) => (c.slug ?? "").toLowerCase().startsWith("underlayment"))
+                  const defaultMatId = tplLine?.default_material_id ?? null;
+                  const defaultCat = (categories ?? []).find((c: any) => c.id === (defaultMatId
+                    ? (catalogByCat.get(catId ?? "") ?? []).find((m) => m.id === defaultMatId)?.category_id ?? catId
+                    : catId));
+                  const prefix = ((defaultCat as any)?.slug ?? "").toLowerCase().split("_")[0];
+                  const matchedCatIds = (categories ?? [])
+                    .filter((c: any) => prefix && (c.slug ?? "").toLowerCase().startsWith(prefix))
                     .map((c: any) => c.id as string);
-                  options = underlaymentCatIds.flatMap((cid) => catalogByCat.get(cid) ?? []);
+                  if (matchedCatIds.length > 0) {
+                    options = matchedCatIds.flatMap((cid) => catalogByCat.get(cid) ?? []);
+                  }
                 }
                 return (
-                  <tr key={r.line_id} className="border-t" style={{ borderColor: "var(--border)" }}>
-                    <td className="px-2 py-1.5 text-foreground">{r.label}</td>
+                  <tr key={r.line_id} className={cn("border-t", r.excluded && "opacity-40")} style={{ borderColor: "var(--border)" }}>
+                    <td className="px-2 py-1.5 text-foreground">
+                      {r.label}
+                      {r.excluded && <span className="ml-2 text-[9px] uppercase text-muted-foreground">excluded</span>}
+                    </td>
                     <td className="px-2 py-1.5">
                       <select
+                        disabled={r.excluded}
                         value={r.material?.id ?? ""}
                         onChange={(e) => setMatOverride(r.line_id, { material_id: e.target.value || null, unit_price: null, qty: null })}
                         className="w-full rounded border bg-transparent px-1.5 py-1 text-[12px] text-foreground"
@@ -381,34 +395,47 @@ function BuildOrderTab(props: {
                         <option value="">— select —</option>
                         {options.map((m) => (
                           <option key={m.id} value={m.id}>
-                            {m.name}{useCoverage && m.coverage_sq ? ` — ${m.coverage_sq} sq/roll` : ""}
+                            {m.name}
+                            {useCoverage && m.coverage_sq
+                              ? ` — ${m.coverage_sq} ${m.coverage_base === "ridge_vent_lf" ? "LF" : "sq"}/${m.uom?.toLowerCase() || "unit"}`
+                              : ""}
                           </option>
                         ))}
                       </select>
                     </td>
                     <td className="px-2 py-1.5 text-right">
-                      <input type="number" min={0} step="any" value={r.qty}
+                      <input type="number" min={0} step="any" value={r.qty} disabled={r.excluded}
                         onChange={(e) => setMatOverride(r.line_id, { qty: e.target.value === "" ? null : Number(e.target.value) })}
                         className="w-20 rounded border bg-transparent px-1.5 py-1 text-right font-mono text-[12px]"
                         style={{ borderColor: "var(--border)" }} />
-                      {overridden && <div className="text-[9px] text-muted-foreground">auto: {auto}</div>}
+                      {overridden && !r.excluded && <div className="text-[9px] text-muted-foreground">auto: {auto}</div>}
                     </td>
                     <td className="px-2 py-1.5 font-mono text-muted-foreground">{r.uom}</td>
                     <td className="px-2 py-1.5 text-right">
-                      <input type="number" min={0} step="0.01" value={r.unit_price}
+                      <input type="number" min={0} step="0.01" value={r.unit_price} disabled={r.excluded}
                         onChange={(e) => setMatOverride(r.line_id, { unit_price: e.target.value === "" ? null : Number(e.target.value) })}
                         className="w-24 rounded border bg-transparent px-1.5 py-1 text-right font-mono text-[12px]"
                         style={{ borderColor: "var(--border)" }} />
                     </td>
                     <td className="px-2 py-1.5 text-right font-mono font-semibold text-foreground">{fmtMoney(r.line_total)}</td>
+                    <td className="px-2 py-1.5 text-right">
+                      <button
+                        type="button"
+                        title={r.excluded ? "Add back to job" : "Remove from this job"}
+                        onClick={() => setMatOverride(r.line_id, { excluded: !r.excluded })}
+                        className="rounded p-1 text-muted-foreground hover:bg-[var(--surface-hover)] hover:text-foreground text-[14px] leading-none"
+                      >
+                        {r.excluded ? "+" : "×"}
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
             <tfoot className="border-t-2" style={{ borderColor: "var(--border)" }}>
-              <tr><td colSpan={5} className="px-2 py-1.5 text-right uppercase text-[10px] font-bold tracking-wider text-muted-foreground">Materials Subtotal</td><td className="px-2 py-1.5 text-right font-mono font-bold">{fmtMoney(totals.matSubtotal)}</td></tr>
-              <tr><td colSpan={5} className="px-2 py-1 text-right uppercase text-[10px] font-bold tracking-wider text-muted-foreground">Sales Tax</td><td className="px-2 py-1 text-right font-mono">{fmtMoney(totals.tax)}</td></tr>
-              <tr><td colSpan={5} className="px-2 py-1.5 text-right uppercase text-[10px] font-bold tracking-wider text-foreground">Materials Total</td><td className="px-2 py-1.5 text-right font-mono font-bold text-foreground">{fmtMoney(totals.matTotal)}</td></tr>
+              <tr><td colSpan={5} className="px-2 py-1.5 text-right uppercase text-[10px] font-bold tracking-wider text-muted-foreground">Materials Subtotal</td><td className="px-2 py-1.5 text-right font-mono font-bold">{fmtMoney(totals.matSubtotal)}</td><td /></tr>
+              <tr><td colSpan={5} className="px-2 py-1 text-right uppercase text-[10px] font-bold tracking-wider text-muted-foreground">Sales Tax</td><td className="px-2 py-1 text-right font-mono">{fmtMoney(totals.tax)}</td><td /></tr>
+              <tr><td colSpan={5} className="px-2 py-1.5 text-right uppercase text-[10px] font-bold tracking-wider text-foreground">Materials Total</td><td className="px-2 py-1.5 text-right font-mono font-bold text-foreground">{fmtMoney(totals.matTotal)}</td><td /></tr>
             </tfoot>
           </table>
         </div>

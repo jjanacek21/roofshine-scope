@@ -6,7 +6,7 @@ export type MaterialCategory = { id: string; slug: string; label: string; sort_o
 export type MaterialItem = {
   id: string; company_id: string | null; category_id: string; supplier_id: string | null;
   slug: string | null; name: string; uom: string; unit_price: number; active: boolean;
-  coverage_sq: number | null;
+  coverage_sq: number | null; coverage_base: string | null;
 };
 export type Supplier = {
   id: string; name: string; rep_name: string | null; rep_phone: string | null;
@@ -29,7 +29,7 @@ export type JobOrderDraft = {
   id: string; job_id: string; company_id: string;
   template_id: string | null;
   inputs: Record<string, number>;
-  material_overrides: Array<{ line_id: string; material_id?: string | null; qty?: number | null; unit_price?: number | null }>;
+  material_overrides: Array<{ line_id: string; material_id?: string | null; qty?: number | null; unit_price?: number | null; excluded?: boolean }>;
   labor_overrides: Array<{ line_id: string; qty?: number | null; rate?: number | null }>;
   markup_pct: number; sales_tax_pct: number; notes: string | null;
   dump_cost: number; permit_cost: number; extra_costs: ExtraCost[];
