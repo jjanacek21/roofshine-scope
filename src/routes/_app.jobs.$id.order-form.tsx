@@ -433,9 +433,9 @@ function BuildOrderTab(props: {
               })}
             </tbody>
             <tfoot className="border-t-2" style={{ borderColor: "var(--border)" }}>
-              <tr><td colSpan={5} className="px-2 py-1.5 text-right uppercase text-[10px] font-bold tracking-wider text-muted-foreground">Materials Subtotal</td><td className="px-2 py-1.5 text-right font-mono font-bold">{fmtMoney(totals.matSubtotal)}</td></tr>
-              <tr><td colSpan={5} className="px-2 py-1 text-right uppercase text-[10px] font-bold tracking-wider text-muted-foreground">Sales Tax</td><td className="px-2 py-1 text-right font-mono">{fmtMoney(totals.tax)}</td></tr>
-              <tr><td colSpan={5} className="px-2 py-1.5 text-right uppercase text-[10px] font-bold tracking-wider text-foreground">Materials Total</td><td className="px-2 py-1.5 text-right font-mono font-bold text-foreground">{fmtMoney(totals.matTotal)}</td></tr>
+              <tr><td colSpan={5} className="px-2 py-1.5 text-right uppercase text-[10px] font-bold tracking-wider text-muted-foreground">Materials Subtotal</td><td className="px-2 py-1.5 text-right font-mono font-bold">{fmtMoney(totals.matSubtotal)}</td><td /></tr>
+              <tr><td colSpan={5} className="px-2 py-1 text-right uppercase text-[10px] font-bold tracking-wider text-muted-foreground">Sales Tax</td><td className="px-2 py-1 text-right font-mono">{fmtMoney(totals.tax)}</td><td /></tr>
+              <tr><td colSpan={5} className="px-2 py-1.5 text-right uppercase text-[10px] font-bold tracking-wider text-foreground">Materials Total</td><td className="px-2 py-1.5 text-right font-mono font-bold text-foreground">{fmtMoney(totals.matTotal)}</td><td /></tr>
             </tfoot>
           </table>
         </div>
