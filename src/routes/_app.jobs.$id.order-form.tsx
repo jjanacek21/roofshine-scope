@@ -177,7 +177,7 @@ function OrderFormPage() {
       company_id: company.id,
       template_label: activeTemplate?.label ?? null,
       inputs,
-      materials: materialRows.map((r) => ({
+      materials: materialRows.filter((r) => !r.excluded).map((r) => ({
         label: r.label, material_id: r.material?.id ?? null, name: r.material?.name ?? r.label,
         uom: r.uom, qty: r.qty, unit_price: r.unit_price, line_total: r.line_total,
       })),
