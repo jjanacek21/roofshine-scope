@@ -737,6 +737,8 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          dump_cost: number
+          extra_costs: Json
           id: string
           inputs: Json
           job_id: string
@@ -744,6 +746,7 @@ export type Database = {
           markup_pct: number
           material_overrides: Json
           notes: string | null
+          permit_cost: number
           sales_tax_pct: number
           template_id: string | null
           updated_at: string
@@ -751,6 +754,8 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string
+          dump_cost?: number
+          extra_costs?: Json
           id?: string
           inputs?: Json
           job_id: string
@@ -758,6 +763,7 @@ export type Database = {
           markup_pct?: number
           material_overrides?: Json
           notes?: string | null
+          permit_cost?: number
           sales_tax_pct?: number
           template_id?: string | null
           updated_at?: string
@@ -765,6 +771,8 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string
+          dump_cost?: number
+          extra_costs?: Json
           id?: string
           inputs?: Json
           job_id?: string
@@ -772,6 +780,7 @@ export type Database = {
           markup_pct?: number
           material_overrides?: Json
           notes?: string | null
+          permit_cost?: number
           sales_tax_pct?: number
           template_id?: string | null
           updated_at?: string
@@ -793,42 +802,122 @@ export type Database = {
           },
         ]
       }
-      job_order_snapshots: {
+      job_order_history: {
         Row: {
+          action: string
+          actor: string | null
           company_id: string
           created_at: string
+          id: string
+          job_id: string
+          payload: Json
+          snapshot_id: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          job_id: string
+          payload?: Json
+          snapshot_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          payload?: Json
+          snapshot_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_order_history_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "job_order_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_order_snapshots: {
+        Row: {
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string
+          cost_per_sq: number
+          created_at: string
+          created_by: string | null
+          dump_cost: number
+          extra_costs: Json
           id: string
           inputs: Json
           job_id: string
           labor: Json
           materials: Json
+          per_sq_price: number
+          permit_cost: number
           snapshot_date: string
+          status: Database["public"]["Enums"]["order_snapshot_status"]
+          submitted_at: string | null
           template_label: string | null
+          total_squares: number
           totals: Json
+          version_number: number | null
         }
         Insert: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           company_id: string
+          cost_per_sq?: number
           created_at?: string
+          created_by?: string | null
+          dump_cost?: number
+          extra_costs?: Json
           id?: string
           inputs?: Json
           job_id: string
           labor?: Json
           materials?: Json
+          per_sq_price?: number
+          permit_cost?: number
           snapshot_date?: string
+          status?: Database["public"]["Enums"]["order_snapshot_status"]
+          submitted_at?: string | null
           template_label?: string | null
+          total_squares?: number
           totals?: Json
+          version_number?: number | null
         }
         Update: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           company_id?: string
+          cost_per_sq?: number
           created_at?: string
+          created_by?: string | null
+          dump_cost?: number
+          extra_costs?: Json
           id?: string
           inputs?: Json
           job_id?: string
           labor?: Json
           materials?: Json
+          per_sq_price?: number
+          permit_cost?: number
           snapshot_date?: string
+          status?: Database["public"]["Enums"]["order_snapshot_status"]
+          submitted_at?: string | null
           template_label?: string | null
+          total_squares?: number
           totals?: Json
+          version_number?: number | null
         }
         Relationships: [
           {
@@ -2608,6 +2697,40 @@ export type Database = {
     Functions: {
       accept_company_invite: { Args: { _token: string }; Returns: Json }
       approve_join_request: { Args: { _id: string }; Returns: Json }
+      approve_order_snapshot: {
+        Args: { _id: string; _note?: string }
+        Returns: {
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string
+          cost_per_sq: number
+          created_at: string
+          created_by: string | null
+          dump_cost: number
+          extra_costs: Json
+          id: string
+          inputs: Json
+          job_id: string
+          labor: Json
+          materials: Json
+          per_sq_price: number
+          permit_cost: number
+          snapshot_date: string
+          status: Database["public"]["Enums"]["order_snapshot_status"]
+          submitted_at: string | null
+          template_label: string | null
+          total_squares: number
+          totals: Json
+          version_number: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_order_snapshots"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       auth_company_id: { Args: never; Returns: string }
       auth_tenant_id: { Args: never; Returns: string }
       create_company_as_super_admin: {
@@ -2648,7 +2771,101 @@ export type Database = {
         }[]
       }
       reject_join_request: { Args: { _id: string }; Returns: Json }
+      reject_order_snapshot: {
+        Args: { _id: string; _note?: string }
+        Returns: {
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string
+          cost_per_sq: number
+          created_at: string
+          created_by: string | null
+          dump_cost: number
+          extra_costs: Json
+          id: string
+          inputs: Json
+          job_id: string
+          labor: Json
+          materials: Json
+          per_sq_price: number
+          permit_cost: number
+          snapshot_date: string
+          status: Database["public"]["Enums"]["order_snapshot_status"]
+          submitted_at: string | null
+          template_label: string | null
+          total_squares: number
+          totals: Json
+          version_number: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_order_snapshots"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       request_to_join_company: { Args: { _company_id: string }; Returns: Json }
+      rollback_order_snapshot: {
+        Args: { _id: string }
+        Returns: {
+          company_id: string
+          created_at: string
+          dump_cost: number
+          extra_costs: Json
+          id: string
+          inputs: Json
+          job_id: string
+          labor_overrides: Json
+          markup_pct: number
+          material_overrides: Json
+          notes: string | null
+          permit_cost: number
+          sales_tax_pct: number
+          template_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_order_drafts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      submit_order_snapshot: {
+        Args: { _id: string }
+        Returns: {
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string
+          cost_per_sq: number
+          created_at: string
+          created_by: string | null
+          dump_cost: number
+          extra_costs: Json
+          id: string
+          inputs: Json
+          job_id: string
+          labor: Json
+          materials: Json
+          per_sq_price: number
+          permit_cost: number
+          snapshot_date: string
+          status: Database["public"]["Enums"]["order_snapshot_status"]
+          submitted_at: string | null
+          template_label: string | null
+          total_squares: number
+          totals: Json
+          version_number: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_order_snapshots"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       update_company_invite_email: {
         Args: { _id: string; _new_email: string }
         Returns: Json
@@ -2692,6 +2909,12 @@ export type Database = {
         | "lost"
         | "dnc"
         | "report_sent"
+      order_snapshot_status:
+        | "draft"
+        | "pending_approval"
+        | "approved"
+        | "superseded"
+        | "rejected"
       price_book_pricing_type: "default" | "insurance" | "retail"
       price_book_status: "active" | "archived"
       property_type: "residential" | "commercial"
@@ -2886,6 +3109,13 @@ export const Constants = {
         "lost",
         "dnc",
         "report_sent",
+      ],
+      order_snapshot_status: [
+        "draft",
+        "pending_approval",
+        "approved",
+        "superseded",
+        "rejected",
       ],
       price_book_pricing_type: ["default", "insurance", "retail"],
       price_book_status: ["active", "archived"],
