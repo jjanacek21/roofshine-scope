@@ -357,23 +357,32 @@ function BuildOrderTab(props: {
             <tbody>
               {materialRows.map((r, i) => {
                 const tplLine = lines?.materials?.[i];
-                const auto = autoQty(tplLine?.formula);
+                const useCoverage = !!tplLine?.formula?.use_material_coverage;
+                const auto = autoQty(tplLine?.formula, r.material?.coverage_sq);
                 const overridden = r.qty !== auto;
                 const catId = r.category_id;
-                const options = catId ? catalogByCat.get(catId) ?? [] : [];
+                let options: MaterialItem[] = catId ? catalogByCat.get(catId) ?? [] : [];
+                if (useCoverage) {
+                  const underlaymentCatIds = (categories ?? [])
+                    .filter((c: any) => (c.slug ?? "").toLowerCase().startsWith("underlayment"))
+                    .map((c: any) => c.id as string);
+                  options = underlaymentCatIds.flatMap((cid) => catalogByCat.get(cid) ?? []);
+                }
                 return (
                   <tr key={r.line_id} className="border-t" style={{ borderColor: "var(--border)" }}>
                     <td className="px-2 py-1.5 text-foreground">{r.label}</td>
                     <td className="px-2 py-1.5">
                       <select
                         value={r.material?.id ?? ""}
-                        onChange={(e) => setMatOverride(r.line_id, { material_id: e.target.value || null, unit_price: null })}
+                        onChange={(e) => setMatOverride(r.line_id, { material_id: e.target.value || null, unit_price: null, qty: null })}
                         className="w-full rounded border bg-transparent px-1.5 py-1 text-[12px] text-foreground"
                         style={{ borderColor: "var(--border)" }}
                       >
                         <option value="">— select —</option>
                         {options.map((m) => (
-                          <option key={m.id} value={m.id}>{m.name}</option>
+                          <option key={m.id} value={m.id}>
+                            {m.name}{useCoverage && m.coverage_sq ? ` — ${m.coverage_sq} sq/roll` : ""}
+                          </option>
                         ))}
                       </select>
                     </td>
