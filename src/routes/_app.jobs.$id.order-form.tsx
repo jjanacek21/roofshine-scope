@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Hammer, Calculator, FileText, Package, Printer, Save } from "lucide-react";
+import { Hammer, Calculator, FileText, Package, Printer, Save, History, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -12,11 +12,14 @@ import {
   useTemplateLines,
   useJobOrderDraft,
   useSuppliers,
+  useApprovedOrderSnapshot,
   type MaterialItem,
   type RoofTemplate,
+  type ExtraCost,
 } from "@/hooks/useOrderForm";
 import { useCompany } from "@/hooks/useCompany";
-import { calcQty, fmtMoney, fmtNum, INPUT_LABELS } from "@/lib/order-form-calc";
+import { calcQty, fmtMoney, fmtNum, INPUT_LABELS, computeOrderTotals } from "@/lib/order-form-calc";
+import { VersionsTab } from "@/components/order-form/VersionsTab";
 
 export const Route = createFileRoute("/_app/jobs/$id/order-form")({
   component: OrderFormPage,
