@@ -242,8 +242,14 @@ function OrderFormPage() {
           setInput={setInput}
           markupPct={markupPct}
           taxPct={taxPct}
+          dumpCost={dumpCost}
+          permitCost={permitCost}
+          extraCosts={extraCosts}
           onMarkup={(v) => update({ markup_pct: v })}
           onTax={(v) => update({ sales_tax_pct: v })}
+          onDump={(v) => update({ dump_cost: v })}
+          onPermit={(v) => update({ permit_cost: v })}
+          setExtras={setExtras}
           materialRows={materialRows}
           laborRows={laborRows}
           totals={totals}
