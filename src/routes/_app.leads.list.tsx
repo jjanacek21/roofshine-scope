@@ -193,6 +193,7 @@ function LeadsList() {
                 <th className="px-5 py-3 font-semibold">Year</th>
                 <th className="px-5 py-3 font-semibold">Roof</th>
                 <th className="px-5 py-3 font-semibold">Status</th>
+                <th className="px-5 py-3 font-semibold">Rep</th>
                 <th className="px-5 py-3 font-semibold text-right">Actions</th>
               </tr>
             </thead>
