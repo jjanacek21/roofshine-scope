@@ -11,10 +11,12 @@ export function calcQty(
   formula: Formula | null | undefined,
   inputs: Record<string, number>,
   materialCoverage?: number | null,
+  materialCoverageBase?: string | null,
 ): number {
   if (!formula) return 0;
   if (formula.fixed !== undefined && formula.fixed !== null) return Number(formula.fixed);
-  const base = Number(inputs[formula.base ?? ""] ?? 0) || 0;
+  const baseKey = (formula.use_material_coverage && materialCoverageBase) ? materialCoverageBase : (formula.base ?? "");
+  const base = Number(inputs[baseKey] ?? 0) || 0;
   const raw = base * (1 + (Number(formula.waste_pct) || 0) / 100);
   let divisor = Number(formula.divide_by) || 1;
   if (formula.use_material_coverage && materialCoverage && Number(materialCoverage) > 0) {
