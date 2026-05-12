@@ -23,6 +23,7 @@ export type TemplateLaborLine = {
   id: string; template_id: string; task: string; uom: string; rate: number;
   formula: any; sort_order: number;
 };
+export type ExtraCost = { label: string; amount: number };
 export type JobOrderDraft = {
   id: string; job_id: string; company_id: string;
   template_id: string | null;
@@ -30,6 +31,22 @@ export type JobOrderDraft = {
   material_overrides: Array<{ line_id: string; material_id?: string | null; qty?: number | null; unit_price?: number | null }>;
   labor_overrides: Array<{ line_id: string; qty?: number | null; rate?: number | null }>;
   markup_pct: number; sales_tax_pct: number; notes: string | null;
+  dump_cost: number; permit_cost: number; extra_costs: ExtraCost[];
+};
+
+export type SnapshotStatus = 'draft' | 'pending_approval' | 'approved' | 'superseded' | 'rejected';
+export type JobOrderSnapshot = {
+  id: string; job_id: string; company_id: string;
+  version_number: number;
+  status: SnapshotStatus;
+  template_label: string | null;
+  inputs: Record<string, number>;
+  materials: any[]; labor: any[]; totals: any;
+  dump_cost: number; permit_cost: number; extra_costs: ExtraCost[];
+  total_squares: number; per_sq_price: number; cost_per_sq: number;
+  created_by: string | null; submitted_at: string | null;
+  approved_by: string | null; approved_at: string | null; approval_notes: string | null;
+  created_at: string; snapshot_date: string;
 };
 
 export function useMaterialCategories() {
