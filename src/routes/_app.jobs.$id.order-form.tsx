@@ -25,10 +25,11 @@ export const Route = createFileRoute("/_app/jobs/$id/order-form")({
   component: OrderFormPage,
 });
 
-type SubTab = "build" | "precap" | "crew" | "supplier";
+type SubTab = "build" | "versions" | "precap" | "crew" | "supplier";
 
 const SUB_TABS: { id: SubTab; label: string; icon: typeof Hammer }[] = [
   { id: "build", label: "Build Order", icon: Hammer },
+  { id: "versions", label: "Versions", icon: History },
   { id: "precap", label: "Pre-Cap", icon: Calculator },
   { id: "crew", label: "Crew Work Order", icon: FileText },
   { id: "supplier", label: "Supplier Order", icon: Package },
