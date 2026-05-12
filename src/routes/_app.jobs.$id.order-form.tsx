@@ -104,16 +104,18 @@ function OrderFormPage() {
       const ov = matOverrides.find((o) => o.line_id === ln.id);
       const matId = ov?.material_id ?? ln.default_material_id ?? null;
       const mat = matId ? catalogById.get(matId) ?? null : null;
-      const autoQty = calcQty(ln.formula, inputs, mat?.coverage_sq);
+      const autoQty = calcQty(ln.formula, inputs, mat?.coverage_sq, mat?.coverage_base);
       const qty = ov?.qty != null ? Number(ov.qty) : autoQty;
       const unit_price = ov?.unit_price != null ? Number(ov.unit_price) : Number(mat?.unit_price ?? 0);
+      const excluded = !!ov?.excluded;
       return {
         line_id: ln.id,
         label: ln.label,
         material: mat,
-        qty, unit_price, line_total: qty * unit_price,
+        qty, unit_price, line_total: excluded ? 0 : qty * unit_price,
         uom: mat?.uom ?? "EA",
         category_id: mat?.category_id ?? null,
+        excluded,
       };
     });
   }, [lines, matOverrides, inputs, catalogById]);
