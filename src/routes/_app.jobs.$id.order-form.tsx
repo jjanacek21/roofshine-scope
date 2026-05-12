@@ -249,7 +249,7 @@ function OrderFormPage() {
           catalogByCat={catalogByCat}
           setMatOverride={setMatOverride}
           setLabOverride={setLabOverride}
-          autoQty={(formula: any) => calcQty(formula, inputs)}
+          autoQty={(formula: any, coverage?: number | null) => calcQty(formula, inputs, coverage)}
           lines={lines}
         />
       )}
