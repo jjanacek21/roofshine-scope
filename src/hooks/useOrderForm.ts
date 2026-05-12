@@ -23,6 +23,7 @@ export type TemplateLaborLine = {
   id: string; template_id: string; task: string; uom: string; rate: number;
   formula: any; sort_order: number;
 };
+export type ExtraCost = { label: string; amount: number };
 export type JobOrderDraft = {
   id: string; job_id: string; company_id: string;
   template_id: string | null;
@@ -30,6 +31,22 @@ export type JobOrderDraft = {
   material_overrides: Array<{ line_id: string; material_id?: string | null; qty?: number | null; unit_price?: number | null }>;
   labor_overrides: Array<{ line_id: string; qty?: number | null; rate?: number | null }>;
   markup_pct: number; sales_tax_pct: number; notes: string | null;
+  dump_cost: number; permit_cost: number; extra_costs: ExtraCost[];
+};
+
+export type SnapshotStatus = 'draft' | 'pending_approval' | 'approved' | 'superseded' | 'rejected';
+export type JobOrderSnapshot = {
+  id: string; job_id: string; company_id: string;
+  version_number: number;
+  status: SnapshotStatus;
+  template_label: string | null;
+  inputs: Record<string, number>;
+  materials: any[]; labor: any[]; totals: any;
+  dump_cost: number; permit_cost: number; extra_costs: ExtraCost[];
+  total_squares: number; per_sq_price: number; cost_per_sq: number;
+  created_by: string | null; submitted_at: string | null;
+  approved_by: string | null; approved_at: string | null; approval_notes: string | null;
+  created_at: string; snapshot_date: string;
 };
 
 export function useMaterialCategories() {
@@ -177,4 +194,83 @@ export function useJobOrderDraft(jobId: string) {
   });
 
   return { ...draftQ, upsert };
+}
+
+export function useJobOrderSnapshots(jobId: string) {
+  return useQuery({
+    queryKey: ["job_order_snapshots", jobId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("job_order_snapshots")
+        .select("*")
+        .eq("job_id", jobId)
+        .order("version_number", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as JobOrderSnapshot[];
+    },
+  });
+}
+
+export function useApprovedOrderSnapshot(jobId: string) {
+  return useQuery({
+    queryKey: ["job_order_snapshot_approved", jobId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("job_order_snapshots")
+        .select("*")
+        .eq("job_id", jobId)
+        .eq("status", "approved")
+        .order("version_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as any) as JobOrderSnapshot | null;
+    },
+  });
+}
+
+export function useSnapshotMutations(jobId: string) {
+  const qc = useQueryClient();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["job_order_snapshots", jobId] });
+    qc.invalidateQueries({ queryKey: ["job_order_snapshot_approved", jobId] });
+    qc.invalidateQueries({ queryKey: ["job_order_draft", jobId] });
+  };
+  return {
+    submit: useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await supabase.rpc("submit_order_snapshot" as any, { _id: id });
+        if (error) throw error;
+      },
+      onSuccess: invalidate,
+    }),
+    approve: useMutation({
+      mutationFn: async ({ id, note }: { id: string; note?: string }) => {
+        const { error } = await supabase.rpc("approve_order_snapshot" as any, { _id: id, _note: note ?? null });
+        if (error) throw error;
+      },
+      onSuccess: invalidate,
+    }),
+    reject: useMutation({
+      mutationFn: async ({ id, note }: { id: string; note?: string }) => {
+        const { error } = await supabase.rpc("reject_order_snapshot" as any, { _id: id, _note: note ?? null });
+        if (error) throw error;
+      },
+      onSuccess: invalidate,
+    }),
+    rollback: useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await supabase.rpc("rollback_order_snapshot" as any, { _id: id });
+        if (error) throw error;
+      },
+      onSuccess: invalidate,
+    }),
+    remove: useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await supabase.from("job_order_snapshots").delete().eq("id", id);
+        if (error) throw error;
+      },
+      onSuccess: invalidate,
+    }),
+  };
 }

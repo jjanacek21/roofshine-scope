@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Hammer, Calculator, FileText, Package, Printer, Save } from "lucide-react";
+import { Hammer, Calculator, FileText, Package, Printer, Save, History, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -12,20 +12,24 @@ import {
   useTemplateLines,
   useJobOrderDraft,
   useSuppliers,
+  useApprovedOrderSnapshot,
   type MaterialItem,
   type RoofTemplate,
+  type ExtraCost,
 } from "@/hooks/useOrderForm";
 import { useCompany } from "@/hooks/useCompany";
-import { calcQty, fmtMoney, fmtNum, INPUT_LABELS } from "@/lib/order-form-calc";
+import { calcQty, fmtMoney, fmtNum, INPUT_LABELS, computeOrderTotals } from "@/lib/order-form-calc";
+import { VersionsTab } from "@/components/order-form/VersionsTab";
 
 export const Route = createFileRoute("/_app/jobs/$id/order-form")({
   component: OrderFormPage,
 });
 
-type SubTab = "build" | "precap" | "crew" | "supplier";
+type SubTab = "build" | "versions" | "precap" | "crew" | "supplier";
 
 const SUB_TABS: { id: SubTab; label: string; icon: typeof Hammer }[] = [
   { id: "build", label: "Build Order", icon: Hammer },
+  { id: "versions", label: "Versions", icon: History },
   { id: "precap", label: "Pre-Cap", icon: Calculator },
   { id: "crew", label: "Crew Work Order", icon: FileText },
   { id: "supplier", label: "Supplier Order", icon: Package },
@@ -59,6 +63,7 @@ function OrderFormPage() {
   const { data: catalog = [] } = useMaterialCatalog();
   const { data: suppliers = [] } = useSuppliers();
   const { data: draft, upsert } = useJobOrderDraft(jobId);
+  const { data: approvedSnapshot } = useApprovedOrderSnapshot(jobId);
 
   const activeTemplateId = draft?.template_id ?? templates[0]?.id ?? null;
   const { data: lines } = useTemplateLines(activeTemplateId);
@@ -69,6 +74,9 @@ function OrderFormPage() {
   const labOverrides = draft?.labor_overrides ?? [];
   const markupPct = Number(draft?.markup_pct ?? 35);
   const taxPct = Number(draft?.sales_tax_pct ?? 7);
+  const dumpCost = Number(draft?.dump_cost ?? 0);
+  const permitCost = Number(draft?.permit_cost ?? 0);
+  const extraCosts = (draft?.extra_costs ?? []) as ExtraCost[];
 
   const catalogById = useMemo(() => {
     const m = new Map<string, MaterialItem>();
@@ -126,15 +134,15 @@ function OrderFormPage() {
   const totals = useMemo(() => {
     const matSubtotal = materialRows.reduce((s, r) => s + r.line_total, 0);
     const tax = matSubtotal * (taxPct / 100);
-    const matTotal = matSubtotal + tax;
     const laborTotal = laborRows.reduce((s, r) => s + r.line_total, 0);
-    const jobCost = matTotal + laborTotal;
-    const markup = jobCost * (markupPct / 100);
-    const customerPrice = jobCost + markup;
-    const profit = customerPrice - jobCost;
-    const margin = customerPrice > 0 ? (profit / customerPrice) * 100 : 0;
-    return { matSubtotal, tax, matTotal, laborTotal, jobCost, markup, customerPrice, profit, margin };
-  }, [materialRows, laborRows, taxPct, markupPct]);
+    const extras = extraCosts.reduce((s, x) => s + Number(x.amount ?? 0), 0);
+    const squares = Number(inputs["sq"] ?? 0);
+    return computeOrderTotals({
+      matSubtotal, tax, laborTotal,
+      dump: dumpCost, permits: permitCost, extras,
+      markupPct, squares,
+    });
+  }, [materialRows, laborRows, taxPct, markupPct, dumpCost, permitCost, extraCosts, inputs]);
 
   const update = (patch: any) => upsert.mutate(patch);
 
@@ -149,6 +157,7 @@ function OrderFormPage() {
     const cur = labOverrides.find((o) => o.line_id === line_id) ?? { line_id };
     update({ labor_overrides: [...others, { ...cur, ...change }] });
   };
+  const setExtras = (next: ExtraCost[]) => update({ extra_costs: next });
 
   // Initial: if no draft yet but templates loaded, set default template
   useEffect(() => {
@@ -160,6 +169,7 @@ function OrderFormPage() {
 
   const saveSnapshot = async () => {
     if (!company?.id) return;
+    const squares = Number(inputs["sq"] ?? 0);
     const { error } = await supabase.from("job_order_snapshots").insert({
       job_id: jobId,
       company_id: company.id,
@@ -171,9 +181,15 @@ function OrderFormPage() {
       })),
       labor: laborRows.map((r) => ({ task: r.task, uom: r.uom, qty: r.qty, rate: r.rate, line_total: r.line_total })),
       totals,
+      dump_cost: dumpCost,
+      permit_cost: permitCost,
+      extra_costs: extraCosts,
+      total_squares: squares,
+      per_sq_price: totals.perSq,
+      cost_per_sq: totals.costPerSq,
     } as any);
     if (error) { toast.error(error.message); return; }
-    toast.success("Order snapshot saved");
+    toast.success("Snapshot saved as draft — submit for approval from the Versions tab");
   };
 
   const supplier = suppliers[0] ?? null;
