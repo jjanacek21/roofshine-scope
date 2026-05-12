@@ -156,7 +156,7 @@ function Column({ status, label, jobs, memberMap }: { status: JobStatus; label: 
       </div>
       <div className="flex-1 space-y-2 p-3">
         {jobs.map((j) => (
-          <JobCard key={j.id} job={j} />
+          <JobCard key={j.id} job={j} memberMap={memberMap} />
         ))}
         {jobs.length === 0 && (
           <p className="py-8 text-center text-xs text-muted-foreground">No jobs</p>
@@ -166,7 +166,7 @@ function Column({ status, label, jobs, memberMap }: { status: JobStatus; label: 
   );
 }
 
-function JobCard({ job }: { job: Job }) {
+function JobCard({ job, memberMap }: { job: Job; memberMap: Map<string, CompanyMember> }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: job.id });
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
