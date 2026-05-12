@@ -245,9 +245,14 @@ function CatalogRow({
   const [slug, setSlug] = useState(row.slug ?? "");
   const [uom, setUom] = useState(row.uom);
   const [price, setPrice] = useState(String(row.unit_price));
+  const [coverage, setCoverage] = useState(row.coverage_sq != null ? String(row.coverage_sq) : "");
 
   function save() {
-    onSave({ name, slug: slug || null, uom, unit_price: Number(price) || 0 });
+    onSave({
+      name, slug: slug || null, uom,
+      unit_price: Number(price) || 0,
+      coverage_sq: coverage === "" ? null : Number(coverage),
+    });
     setEditing(false);
   }
 
@@ -258,6 +263,7 @@ function CatalogRow({
         <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{row.slug ?? "—"}</td>
         <td className="px-3 py-2 text-muted-foreground">{row.uom}</td>
         <td className="px-3 py-2 font-mono">${Number(row.unit_price).toFixed(2)}</td>
+        <td className="px-3 py-2 font-mono text-muted-foreground">{row.coverage_sq != null ? Number(row.coverage_sq) : "—"}</td>
         <td className="px-3 py-2">
           <span className={cn("rounded px-2 py-0.5 text-[10px] font-semibold uppercase", isMine ? "bg-emerald-500/15 text-emerald-300" : "bg-slate-500/15 text-slate-300")}>
             {isMine ? "Custom" : "Default"}
@@ -285,6 +291,7 @@ function CatalogRow({
       <td className="px-3 py-2"><CellInput value={slug} onChange={setSlug} mono /></td>
       <td className="px-3 py-2"><CellInput value={uom} onChange={setUom} /></td>
       <td className="px-3 py-2"><CellInput value={price} onChange={setPrice} type="number" mono /></td>
+      <td className="px-3 py-2"><CellInput value={coverage} onChange={setCoverage} type="number" mono placeholder="e.g. 10" /></td>
       <td className="px-3 py-2 text-[10px] text-muted-foreground">{isMine ? "Editing" : "New copy"}</td>
       <td className="px-3 py-2 text-right">
         <div className="flex justify-end gap-1">
