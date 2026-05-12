@@ -1677,6 +1677,7 @@ export type Database = {
           category_id: string
           company_id: string | null
           coverage: Json | null
+          coverage_base: string | null
           coverage_sq: number | null
           created_at: string
           effective_date: string | null
@@ -1695,6 +1696,7 @@ export type Database = {
           category_id: string
           company_id?: string | null
           coverage?: Json | null
+          coverage_base?: string | null
           coverage_sq?: number | null
           created_at?: string
           effective_date?: string | null
@@ -1713,6 +1715,7 @@ export type Database = {
           category_id?: string
           company_id?: string | null
           coverage?: Json | null
+          coverage_base?: string | null
           coverage_sq?: number | null
           created_at?: string
           effective_date?: string | null
