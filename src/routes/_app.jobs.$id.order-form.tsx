@@ -354,27 +354,39 @@ function BuildOrderTab(props: {
                 <th className="px-2 py-2">UOM</th>
                 <th className="px-2 py-2 text-right">Unit $</th>
                 <th className="px-2 py-2 text-right">Total</th>
+                <th className="px-2 py-2 w-8"></th>
               </tr>
             </thead>
             <tbody>
               {materialRows.map((r, i) => {
                 const tplLine = lines?.materials?.[i];
                 const useCoverage = !!tplLine?.formula?.use_material_coverage;
-                const auto = autoQty(tplLine?.formula, r.material?.coverage_sq);
+                const auto = autoQty(tplLine?.formula, r.material?.coverage_sq, r.material?.coverage_base);
                 const overridden = r.qty !== auto;
                 const catId = r.category_id;
                 let options: MaterialItem[] = catId ? catalogByCat.get(catId) ?? [] : [];
                 if (useCoverage) {
-                  const underlaymentCatIds = (categories ?? [])
-                    .filter((c: any) => (c.slug ?? "").toLowerCase().startsWith("underlayment"))
+                  const defaultMatId = tplLine?.default_material_id ?? null;
+                  const defaultCat = (categories ?? []).find((c: any) => c.id === (defaultMatId
+                    ? (catalogByCat.get(catId ?? "") ?? []).find((m) => m.id === defaultMatId)?.category_id ?? catId
+                    : catId));
+                  const prefix = ((defaultCat as any)?.slug ?? "").toLowerCase().split("_")[0];
+                  const matchedCatIds = (categories ?? [])
+                    .filter((c: any) => prefix && (c.slug ?? "").toLowerCase().startsWith(prefix))
                     .map((c: any) => c.id as string);
-                  options = underlaymentCatIds.flatMap((cid) => catalogByCat.get(cid) ?? []);
+                  if (matchedCatIds.length > 0) {
+                    options = matchedCatIds.flatMap((cid) => catalogByCat.get(cid) ?? []);
+                  }
                 }
                 return (
-                  <tr key={r.line_id} className="border-t" style={{ borderColor: "var(--border)" }}>
-                    <td className="px-2 py-1.5 text-foreground">{r.label}</td>
+                  <tr key={r.line_id} className={cn("border-t", r.excluded && "opacity-40")} style={{ borderColor: "var(--border)" }}>
+                    <td className="px-2 py-1.5 text-foreground">
+                      {r.label}
+                      {r.excluded && <span className="ml-2 text-[9px] uppercase text-muted-foreground">excluded</span>}
+                    </td>
                     <td className="px-2 py-1.5">
                       <select
+                        disabled={r.excluded}
                         value={r.material?.id ?? ""}
                         onChange={(e) => setMatOverride(r.line_id, { material_id: e.target.value || null, unit_price: null, qty: null })}
                         className="w-full rounded border bg-transparent px-1.5 py-1 text-[12px] text-foreground"
@@ -383,26 +395,39 @@ function BuildOrderTab(props: {
                         <option value="">— select —</option>
                         {options.map((m) => (
                           <option key={m.id} value={m.id}>
-                            {m.name}{useCoverage && m.coverage_sq ? ` — ${m.coverage_sq} sq/roll` : ""}
+                            {m.name}
+                            {useCoverage && m.coverage_sq
+                              ? ` — ${m.coverage_sq} ${m.coverage_base === "ridge_vent_lf" ? "LF" : "sq"}/${m.uom?.toLowerCase() || "unit"}`
+                              : ""}
                           </option>
                         ))}
                       </select>
                     </td>
                     <td className="px-2 py-1.5 text-right">
-                      <input type="number" min={0} step="any" value={r.qty}
+                      <input type="number" min={0} step="any" value={r.qty} disabled={r.excluded}
                         onChange={(e) => setMatOverride(r.line_id, { qty: e.target.value === "" ? null : Number(e.target.value) })}
                         className="w-20 rounded border bg-transparent px-1.5 py-1 text-right font-mono text-[12px]"
                         style={{ borderColor: "var(--border)" }} />
-                      {overridden && <div className="text-[9px] text-muted-foreground">auto: {auto}</div>}
+                      {overridden && !r.excluded && <div className="text-[9px] text-muted-foreground">auto: {auto}</div>}
                     </td>
                     <td className="px-2 py-1.5 font-mono text-muted-foreground">{r.uom}</td>
                     <td className="px-2 py-1.5 text-right">
-                      <input type="number" min={0} step="0.01" value={r.unit_price}
+                      <input type="number" min={0} step="0.01" value={r.unit_price} disabled={r.excluded}
                         onChange={(e) => setMatOverride(r.line_id, { unit_price: e.target.value === "" ? null : Number(e.target.value) })}
                         className="w-24 rounded border bg-transparent px-1.5 py-1 text-right font-mono text-[12px]"
                         style={{ borderColor: "var(--border)" }} />
                     </td>
                     <td className="px-2 py-1.5 text-right font-mono font-semibold text-foreground">{fmtMoney(r.line_total)}</td>
+                    <td className="px-2 py-1.5 text-right">
+                      <button
+                        type="button"
+                        title={r.excluded ? "Add back to job" : "Remove from this job"}
+                        onClick={() => setMatOverride(r.line_id, { excluded: !r.excluded })}
+                        className="rounded p-1 text-muted-foreground hover:bg-[var(--surface-hover)] hover:text-foreground text-[14px] leading-none"
+                      >
+                        {r.excluded ? "+" : "×"}
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
