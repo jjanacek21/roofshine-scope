@@ -309,11 +309,12 @@ function NewCatalogRow({ onCreate }: { onCreate: (patch: Partial<MaterialItem>) 
   const [slug, setSlug] = useState("");
   const [uom, setUom] = useState("EA");
   const [price, setPrice] = useState("0");
+  const [coverage, setCoverage] = useState("");
 
   if (!open) {
     return (
       <tr className="border-t" style={{ borderColor: "var(--border)" }}>
-        <td colSpan={6} className="px-3 py-2">
+        <td colSpan={7} className="px-3 py-2">
           <button onClick={() => setOpen(true)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
             <Plus className="h-3.5 w-3.5" /> Add new material
           </button>
@@ -328,14 +329,20 @@ function NewCatalogRow({ onCreate }: { onCreate: (patch: Partial<MaterialItem>) 
       <td className="px-3 py-2"><CellInput value={slug} onChange={setSlug} placeholder="sku-slug" mono /></td>
       <td className="px-3 py-2"><CellInput value={uom} onChange={setUom} /></td>
       <td className="px-3 py-2"><CellInput value={price} onChange={setPrice} type="number" mono /></td>
+      <td className="px-3 py-2"><CellInput value={coverage} onChange={setCoverage} type="number" mono placeholder="sq/unit" /></td>
       <td className="px-3 py-2 text-[10px] text-muted-foreground">New</td>
       <td className="px-3 py-2 text-right">
         <div className="flex justify-end gap-1">
           <button
             onClick={() => {
               if (!name) return;
-              onCreate({ name, slug: slug || null, uom, unit_price: Number(price) || 0, active: true });
-              setName(""); setSlug(""); setUom("EA"); setPrice("0"); setOpen(false);
+              onCreate({
+                name, slug: slug || null, uom,
+                unit_price: Number(price) || 0,
+                coverage_sq: coverage === "" ? null : Number(coverage),
+                active: true,
+              });
+              setName(""); setSlug(""); setUom("EA"); setPrice("0"); setCoverage(""); setOpen(false);
             }}
             className="rounded bg-[var(--brand)] px-2 py-1 text-xs font-semibold text-white"
           ><Save className="h-3 w-3" /></button>
