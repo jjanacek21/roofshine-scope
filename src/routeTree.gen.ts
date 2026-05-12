@@ -77,6 +77,7 @@ import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
 import { Route as AppJobsIdReportRouteImport } from './routes/_app.jobs.$id.report'
 import { Route as AppJobsIdPhotosRouteImport } from './routes/_app.jobs.$id.photos'
+import { Route as AppJobsIdOrderFormRouteImport } from './routes/_app.jobs.$id.order-form'
 import { Route as AppJobsIdMeasureRouteImport } from './routes/_app.jobs.$id.measure'
 import { Route as AppJobsIdEstimateRouteImport } from './routes/_app.jobs.$id.estimate'
 import { Route as AppJobsIdContractRouteImport } from './routes/_app.jobs.$id.contract'
@@ -421,6 +422,11 @@ const AppJobsIdPhotosRoute = AppJobsIdPhotosRouteImport.update({
   path: '/photos',
   getParentRoute: () => AppJobsIdRoute,
 } as any)
+const AppJobsIdOrderFormRoute = AppJobsIdOrderFormRouteImport.update({
+  id: '/order-form',
+  path: '/order-form',
+  getParentRoute: () => AppJobsIdRoute,
+} as any)
 const AppJobsIdMeasureRoute = AppJobsIdMeasureRouteImport.update({
   id: '/measure',
   path: '/measure',
@@ -505,6 +511,7 @@ export interface FileRoutesByFullPath {
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
   '/jobs/$id/measure': typeof AppJobsIdMeasureRoute
+  '/jobs/$id/order-form': typeof AppJobsIdOrderFormRoute
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
   '/jobs/$id/': typeof AppJobsIdIndexRoute
@@ -573,6 +580,7 @@ export interface FileRoutesByTo {
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
   '/jobs/$id/measure': typeof AppJobsIdMeasureRoute
+  '/jobs/$id/order-form': typeof AppJobsIdOrderFormRoute
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
   '/jobs/$id': typeof AppJobsIdIndexRoute
@@ -647,6 +655,7 @@ export interface FileRoutesById {
   '/_app/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/_app/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
   '/_app/jobs/$id/measure': typeof AppJobsIdMeasureRoute
+  '/_app/jobs/$id/order-form': typeof AppJobsIdOrderFormRoute
   '/_app/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/_app/jobs/$id/report': typeof AppJobsIdReportRoute
   '/_app/jobs/$id/': typeof AppJobsIdIndexRoute
@@ -721,6 +730,7 @@ export interface FileRouteTypes {
     | '/jobs/$id/contract'
     | '/jobs/$id/estimate'
     | '/jobs/$id/measure'
+    | '/jobs/$id/order-form'
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
     | '/jobs/$id/'
@@ -789,6 +799,7 @@ export interface FileRouteTypes {
     | '/jobs/$id/contract'
     | '/jobs/$id/estimate'
     | '/jobs/$id/measure'
+    | '/jobs/$id/order-form'
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
     | '/jobs/$id'
@@ -862,6 +873,7 @@ export interface FileRouteTypes {
     | '/_app/jobs/$id/contract'
     | '/_app/jobs/$id/estimate'
     | '/_app/jobs/$id/measure'
+    | '/_app/jobs/$id/order-form'
     | '/_app/jobs/$id/photos'
     | '/_app/jobs/$id/report'
     | '/_app/jobs/$id/'
@@ -1369,6 +1381,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJobsIdPhotosRouteImport
       parentRoute: typeof AppJobsIdRoute
     }
+    '/_app/jobs/$id/order-form': {
+      id: '/_app/jobs/$id/order-form'
+      path: '/order-form'
+      fullPath: '/jobs/$id/order-form'
+      preLoaderRoute: typeof AppJobsIdOrderFormRouteImport
+      parentRoute: typeof AppJobsIdRoute
+    }
     '/_app/jobs/$id/measure': {
       id: '/_app/jobs/$id/measure'
       path: '/measure'
@@ -1464,6 +1483,7 @@ interface AppJobsIdRouteChildren {
   AppJobsIdContractRoute: typeof AppJobsIdContractRoute
   AppJobsIdEstimateRoute: typeof AppJobsIdEstimateRoute
   AppJobsIdMeasureRoute: typeof AppJobsIdMeasureRoute
+  AppJobsIdOrderFormRoute: typeof AppJobsIdOrderFormRoute
   AppJobsIdPhotosRoute: typeof AppJobsIdPhotosRoute
   AppJobsIdReportRoute: typeof AppJobsIdReportRoute
   AppJobsIdIndexRoute: typeof AppJobsIdIndexRoute
@@ -1473,6 +1493,7 @@ const AppJobsIdRouteChildren: AppJobsIdRouteChildren = {
   AppJobsIdContractRoute: AppJobsIdContractRoute,
   AppJobsIdEstimateRoute: AppJobsIdEstimateRoute,
   AppJobsIdMeasureRoute: AppJobsIdMeasureRoute,
+  AppJobsIdOrderFormRoute: AppJobsIdOrderFormRoute,
   AppJobsIdPhotosRoute: AppJobsIdPhotosRoute,
   AppJobsIdReportRoute: AppJobsIdReportRoute,
   AppJobsIdIndexRoute: AppJobsIdIndexRoute,
