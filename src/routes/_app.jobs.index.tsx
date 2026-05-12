@@ -88,6 +88,22 @@ function JobsKanban() {
             Drag cards across columns to update their status.
           </p>
         </div>
+        {isAdmin && (
+          <div className="inline-flex rounded-lg border p-0.5" style={{ borderColor: "var(--border)" }}>
+            {(["all", "mine"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setScope(s)}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  scope === s ? "bg-[var(--surface-hover)] text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {s === "all" ? "All jobs" : "Assigned to me"}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {isLoading ? (
@@ -100,7 +116,8 @@ function JobsKanban() {
                 key={col.value}
                 status={col.value}
                 label={col.label}
-                jobs={jobs.filter((j) => j.status === col.value)}
+                jobs={visibleJobs.filter((j) => j.status === col.value)}
+                memberMap={memberMap}
               />
             ))}
           </div>
@@ -110,7 +127,7 @@ function JobsKanban() {
   );
 }
 
-function Column({ status, label, jobs }: { status: JobStatus; label: string; jobs: Job[] }) {
+function Column({ status, label, jobs, memberMap }: { status: JobStatus; label: string; jobs: Job[]; memberMap: Map<string, CompanyMember> }) {
   const { isOver, setNodeRef } = useDroppable({ id: status });
   const total = jobs.reduce((s, j) => s + Number(j.total_estimate ?? 0), 0);
 
