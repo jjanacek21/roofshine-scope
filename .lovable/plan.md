@@ -1,30 +1,37 @@
 ## Goal
-Show the rep (creator/assignee) on every job and lead, and scope the lists so reps only see their own records while admins/owners see everything.
+
+Replace the separate "Synthetic Underlayment" and "Peel & Stick (eaves/valleys)" template lines with **one line called "Underlayment"**. The rep picks which underlayment material to use per job (Synthetic, 30 lb Felt, Peel & Stick 1.5 sq, Peel & Stick 2 sq, Ice & Water Shield, Hi-Temp, etc.). Quantity auto-calculates from squares ÷ that roll's coverage + 10% waste.
 
 ## Schema changes
-- **`jobs` table**: add `created_by uuid` (set automatically) and `assigned_to uuid` (defaults to creator, editable by admins).
-- **`leads` table**: already has `created_by`; add `assigned_to uuid` so leads can be re-assigned to another rep.
-- Trigger on insert: if `created_by` is null, set to `auth.uid()`; if `assigned_to` is null, set to `created_by`.
-- Backfill: set `created_by`/`assigned_to` for existing rows to the company owner so nothing disappears.
 
-## RLS updates
-- **Jobs SELECT**: `company_id = auth_company_id() AND (is_company_admin() OR created_by = auth.uid() OR assigned_to = auth.uid())`.
-- **Leads SELECT**: same pattern.
-- UPDATE/DELETE on jobs/leads: admins always; reps only on their own (`created_by` or `assigned_to`).
-- Reassignment (`assigned_to` change): admins only — enforced via column check in policy.
-- Super admins keep full access via existing policies.
+1. **`material_catalog`**: add `coverage_sq numeric` (squares covered per unit roll/box). Editable from Settings → Materials Templates.
+2. **`material_categories`**: ensure an "Underlayment" category exists per company (and at master level).
+3. **`template_material_lines.formula`**: support a new flag `use_material_coverage: true` — when set, `calcQty` divides by the selected material's `coverage_sq` instead of `formula.divide_by`.
+
+## Data migration / seed
+
+- Backfill `coverage_sq` on existing underlayment SKUs:
+  - Synthetic (Titanium UDL / RhinoRoof U20, etc.) → 10
+  - 30 lb Felt → 2
+  - Peel & Stick 1.5 sq rolls → 1.5
+  - Peel & Stick 2 sq rolls → 2
+  - Ice & Water Shield (Polyglass IR-XE, etc.) → 2 (default; admin-editable)
+  - Hi-Temp (Titanium PSU-30, Polyglass TU-Plus) → 2
+- For each roof template:
+  - **Shingle Roof**: delete the "Synthetic Underlayment" and "Peel & Stick (eaves/valleys)" lines; insert one "Underlayment" line with `formula = { base: "sq", waste_pct: 10, use_material_coverage: true }` defaulting to Synthetic.
+  - **Metal Roof**: rename "Hi-Temp Underlayment" → "Underlayment", set the same formula, default to Hi-Temp.
+  - **Tile Roof**: rename "Tile Underlayment (Hi-Temp SA)" → "Underlayment", same formula, default to Hi-Temp SA.
+
+## Calc logic (`src/lib/order-form-calc.ts`)
+
+Update `calcQty` to accept the resolved material and, when `formula.use_material_coverage` is true and the material has `coverage_sq > 0`, divide by `coverage_sq`. Falls back to `divide_by` if coverage is missing.
 
 ## UI changes
-- **Jobs list (`_app.jobs.index.tsx`)**: new "Rep" column showing assignee name (fallback to creator). Joined fetch from `profiles`. Add an "Assigned to me / All jobs" toggle for admins (admins default to All; reps only see their own and the toggle is hidden).
-- **Job detail header (`_app.jobs.$id.tsx`)**: small "Created by {name} • Assigned to {name}" line. Admins get a dropdown to reassign to any company member.
-- **New Job (`_app.jobs.new.tsx`)**: auto-stamp `created_by` (no UI). Admins see an optional "Assign to" select; reps' jobs auto-assign to themselves.
-- **Leads list (`_app.leads.list.tsx`)**: add Rep column + same admin/rep filter + reassign action (admin only).
-- **Lead detail**: show creator + assignee, admin can reassign.
 
-## Hooks/helpers
-- New `useCompanyMembers()` hook returning `{id, first_name, last_name}` from `profiles` filtered by current `company_id` (already covered by existing profile RLS for same-company members — verify or add policy).
-- Extend existing job/lead query hooks to join the assignee/creator profile in one query (`select('*, assignee:profiles!assigned_to(...), creator:profiles!created_by(...)')`).
+- **Order form materials grid** (`_app.jobs.$id.order-form.tsx`): for the "Underlayment" line, the material dropdown filters to items in the Underlayment category so reps see only underlayment SKUs. Qty recomputes when they switch material.
+- **Settings → Materials Templates** (`MaterialsTemplatesTab.tsx`): show a "Coverage (sq)" column on material rows so admins can edit per SKU.
 
 ## Out of scope
-- Bulk reassignment, notifications on assignment, activity log entries for reassignment (can be follow-up).
-- Per-job custom permissions beyond admin/rep split.
+
+- No changes to labor lines, snapshot workflow, dump/permit costs, or pricing math beyond qty calculation.
+- No changes to the eave/rake LF input — it remains available but is no longer auto-consumed (reps can still add a manual P&S line if they need separate eave coverage on top of the field underlayment).

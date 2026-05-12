@@ -104,7 +104,7 @@ function OrderFormPage() {
       const ov = matOverrides.find((o) => o.line_id === ln.id);
       const matId = ov?.material_id ?? ln.default_material_id ?? null;
       const mat = matId ? catalogById.get(matId) ?? null : null;
-      const autoQty = calcQty(ln.formula, inputs);
+      const autoQty = calcQty(ln.formula, inputs, mat?.coverage_sq);
       const qty = ov?.qty != null ? Number(ov.qty) : autoQty;
       const unit_price = ov?.unit_price != null ? Number(ov.unit_price) : Number(mat?.unit_price ?? 0);
       return {
@@ -249,7 +249,7 @@ function OrderFormPage() {
           catalogByCat={catalogByCat}
           setMatOverride={setMatOverride}
           setLabOverride={setLabOverride}
-          autoQty={(formula: any) => calcQty(formula, inputs)}
+          autoQty={(formula: any, coverage?: number | null) => calcQty(formula, inputs, coverage)}
           lines={lines}
         />
       )}
@@ -292,7 +292,7 @@ function BuildOrderTab(props: {
   materialRows: any[]; laborRows: any[]; totals: any;
   categories: any[]; catalogByCat: Map<string, MaterialItem[]>;
   setMatOverride: (id: string, change: any) => void; setLabOverride: (id: string, change: any) => void;
-  autoQty: (f: any) => number;
+  autoQty: (f: any, coverage?: number | null) => number;
   lines: any;
 }) {
   const { templates, activeTemplate, onPickTemplate, inputs, setInput, markupPct, taxPct, onMarkup, onTax, materialRows, laborRows, totals, categories, catalogByCat, setMatOverride, setLabOverride, autoQty, lines } = props;
@@ -357,23 +357,32 @@ function BuildOrderTab(props: {
             <tbody>
               {materialRows.map((r, i) => {
                 const tplLine = lines?.materials?.[i];
-                const auto = autoQty(tplLine?.formula);
+                const useCoverage = !!tplLine?.formula?.use_material_coverage;
+                const auto = autoQty(tplLine?.formula, r.material?.coverage_sq);
                 const overridden = r.qty !== auto;
                 const catId = r.category_id;
-                const options = catId ? catalogByCat.get(catId) ?? [] : [];
+                let options: MaterialItem[] = catId ? catalogByCat.get(catId) ?? [] : [];
+                if (useCoverage) {
+                  const underlaymentCatIds = (categories ?? [])
+                    .filter((c: any) => (c.slug ?? "").toLowerCase().startsWith("underlayment"))
+                    .map((c: any) => c.id as string);
+                  options = underlaymentCatIds.flatMap((cid) => catalogByCat.get(cid) ?? []);
+                }
                 return (
                   <tr key={r.line_id} className="border-t" style={{ borderColor: "var(--border)" }}>
                     <td className="px-2 py-1.5 text-foreground">{r.label}</td>
                     <td className="px-2 py-1.5">
                       <select
                         value={r.material?.id ?? ""}
-                        onChange={(e) => setMatOverride(r.line_id, { material_id: e.target.value || null, unit_price: null })}
+                        onChange={(e) => setMatOverride(r.line_id, { material_id: e.target.value || null, unit_price: null, qty: null })}
                         className="w-full rounded border bg-transparent px-1.5 py-1 text-[12px] text-foreground"
                         style={{ borderColor: "var(--border)" }}
                       >
                         <option value="">— select —</option>
                         {options.map((m) => (
-                          <option key={m.id} value={m.id}>{m.name}</option>
+                          <option key={m.id} value={m.id}>
+                            {m.name}{useCoverage && m.coverage_sq ? ` — ${m.coverage_sq} sq/roll` : ""}
+                          </option>
                         ))}
                       </select>
                     </td>

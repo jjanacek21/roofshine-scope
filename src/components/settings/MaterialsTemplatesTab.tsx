@@ -122,6 +122,7 @@ function CatalogManager() {
         name: row.name,
         uom: row.uom,
         unit_price: row.unit_price ?? 0,
+        coverage_sq: row.coverage_sq ?? null,
         slug: row.slug ?? null,
         active: row.active ?? true,
       };
@@ -198,6 +199,7 @@ function CatalogManager() {
                 <th className="px-3 py-2">SKU</th>
                 <th className="px-3 py-2 w-24">UOM</th>
                 <th className="px-3 py-2 w-28">Unit Price</th>
+                <th className="px-3 py-2 w-28">Coverage (sq)</th>
                 <th className="px-3 py-2 w-28">Source</th>
                 <th className="px-3 py-2 w-32 text-right">Actions</th>
               </tr>
@@ -243,9 +245,14 @@ function CatalogRow({
   const [slug, setSlug] = useState(row.slug ?? "");
   const [uom, setUom] = useState(row.uom);
   const [price, setPrice] = useState(String(row.unit_price));
+  const [coverage, setCoverage] = useState(row.coverage_sq != null ? String(row.coverage_sq) : "");
 
   function save() {
-    onSave({ name, slug: slug || null, uom, unit_price: Number(price) || 0 });
+    onSave({
+      name, slug: slug || null, uom,
+      unit_price: Number(price) || 0,
+      coverage_sq: coverage === "" ? null : Number(coverage),
+    });
     setEditing(false);
   }
 
@@ -256,6 +263,7 @@ function CatalogRow({
         <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{row.slug ?? "—"}</td>
         <td className="px-3 py-2 text-muted-foreground">{row.uom}</td>
         <td className="px-3 py-2 font-mono">${Number(row.unit_price).toFixed(2)}</td>
+        <td className="px-3 py-2 font-mono text-muted-foreground">{row.coverage_sq != null ? Number(row.coverage_sq) : "—"}</td>
         <td className="px-3 py-2">
           <span className={cn("rounded px-2 py-0.5 text-[10px] font-semibold uppercase", isMine ? "bg-emerald-500/15 text-emerald-300" : "bg-slate-500/15 text-slate-300")}>
             {isMine ? "Custom" : "Default"}
@@ -283,6 +291,7 @@ function CatalogRow({
       <td className="px-3 py-2"><CellInput value={slug} onChange={setSlug} mono /></td>
       <td className="px-3 py-2"><CellInput value={uom} onChange={setUom} /></td>
       <td className="px-3 py-2"><CellInput value={price} onChange={setPrice} type="number" mono /></td>
+      <td className="px-3 py-2"><CellInput value={coverage} onChange={setCoverage} type="number" mono placeholder="e.g. 10" /></td>
       <td className="px-3 py-2 text-[10px] text-muted-foreground">{isMine ? "Editing" : "New copy"}</td>
       <td className="px-3 py-2 text-right">
         <div className="flex justify-end gap-1">
@@ -300,11 +309,12 @@ function NewCatalogRow({ onCreate }: { onCreate: (patch: Partial<MaterialItem>) 
   const [slug, setSlug] = useState("");
   const [uom, setUom] = useState("EA");
   const [price, setPrice] = useState("0");
+  const [coverage, setCoverage] = useState("");
 
   if (!open) {
     return (
       <tr className="border-t" style={{ borderColor: "var(--border)" }}>
-        <td colSpan={6} className="px-3 py-2">
+        <td colSpan={7} className="px-3 py-2">
           <button onClick={() => setOpen(true)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
             <Plus className="h-3.5 w-3.5" /> Add new material
           </button>
@@ -319,14 +329,20 @@ function NewCatalogRow({ onCreate }: { onCreate: (patch: Partial<MaterialItem>) 
       <td className="px-3 py-2"><CellInput value={slug} onChange={setSlug} placeholder="sku-slug" mono /></td>
       <td className="px-3 py-2"><CellInput value={uom} onChange={setUom} /></td>
       <td className="px-3 py-2"><CellInput value={price} onChange={setPrice} type="number" mono /></td>
+      <td className="px-3 py-2"><CellInput value={coverage} onChange={setCoverage} type="number" mono placeholder="sq/unit" /></td>
       <td className="px-3 py-2 text-[10px] text-muted-foreground">New</td>
       <td className="px-3 py-2 text-right">
         <div className="flex justify-end gap-1">
           <button
             onClick={() => {
               if (!name) return;
-              onCreate({ name, slug: slug || null, uom, unit_price: Number(price) || 0, active: true });
-              setName(""); setSlug(""); setUom("EA"); setPrice("0"); setOpen(false);
+              onCreate({
+                name, slug: slug || null, uom,
+                unit_price: Number(price) || 0,
+                coverage_sq: coverage === "" ? null : Number(coverage),
+                active: true,
+              });
+              setName(""); setSlug(""); setUom("EA"); setPrice("0"); setCoverage(""); setOpen(false);
             }}
             className="rounded bg-[var(--brand)] px-2 py-1 text-xs font-semibold text-white"
           ><Save className="h-3 w-3" /></button>
