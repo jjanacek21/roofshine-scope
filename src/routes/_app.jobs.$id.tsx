@@ -127,6 +127,8 @@ function JobLayout() {
         thumbnailUrl={thumbnailUrl}
       />
 
+      <JobOwnership jobId={job.id} createdBy={job.created_by ?? null} assignedTo={job.assigned_to ?? null} />
+
       <JobTabs jobId={job.id} />
 
       <Outlet />
