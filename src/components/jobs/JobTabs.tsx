@@ -1,11 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutGrid, Ruler, Camera, Receipt, FileText, FileSignature } from "lucide-react";
+import { LayoutGrid, Ruler, Camera, Receipt, FileText, FileSignature, Package } from "lucide-react";
 
 const TABS = [
   { to: "/jobs/$id" as const, label: "Overview", icon: LayoutGrid, exact: true },
   { to: "/jobs/$id/measure" as const, label: "Measurements", icon: Ruler },
   { to: "/jobs/$id/photos" as const, label: "Photos", icon: Camera },
   { to: "/jobs/$id/estimate" as const, label: "Estimate", icon: Receipt },
+  { to: "/jobs/$id/order-form" as const, label: "Order Form", icon: Package },
   { to: "/jobs/$id/contract" as const, label: "Contract", icon: FileSignature },
   { to: "/jobs/$id/report" as const, label: "Report", icon: FileText },
 ];
