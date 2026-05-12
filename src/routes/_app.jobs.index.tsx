@@ -201,6 +201,11 @@ function JobCard({ job, memberMap }: { job: Job; memberMap: Map<string, CompanyM
           ${Number(job.total_estimate).toLocaleString(undefined, { maximumFractionDigits: 0 })}
         </span>
       </div>
+      {(job.assigned_to || job.created_by) && (
+        <p className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+          Rep: <span className="font-semibold text-foreground/80 normal-case tracking-normal">{memberName(memberMap.get(job.assigned_to ?? job.created_by ?? ""))}</span>
+        </p>
+      )}
       <Link
         to="/jobs/$id"
         params={{ id: job.id }}
