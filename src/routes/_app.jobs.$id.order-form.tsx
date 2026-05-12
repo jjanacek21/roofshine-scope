@@ -294,7 +294,7 @@ function BuildOrderTab(props: {
   materialRows: any[]; laborRows: any[]; totals: any;
   categories: any[]; catalogByCat: Map<string, MaterialItem[]>;
   setMatOverride: (id: string, change: any) => void; setLabOverride: (id: string, change: any) => void;
-  autoQty: (f: any, coverage?: number | null) => number;
+  autoQty: (f: any, coverage?: number | null, coverageBase?: string | null) => number;
   lines: any;
 }) {
   const { templates, activeTemplate, onPickTemplate, inputs, setInput, markupPct, taxPct, onMarkup, onTax, materialRows, laborRows, totals, categories, catalogByCat, setMatOverride, setLabOverride, autoQty, lines } = props;
