@@ -195,3 +195,82 @@ export function useJobOrderDraft(jobId: string) {
 
   return { ...draftQ, upsert };
 }
+
+export function useJobOrderSnapshots(jobId: string) {
+  return useQuery({
+    queryKey: ["job_order_snapshots", jobId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("job_order_snapshots")
+        .select("*")
+        .eq("job_id", jobId)
+        .order("version_number", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as JobOrderSnapshot[];
+    },
+  });
+}
+
+export function useApprovedOrderSnapshot(jobId: string) {
+  return useQuery({
+    queryKey: ["job_order_snapshot_approved", jobId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("job_order_snapshots")
+        .select("*")
+        .eq("job_id", jobId)
+        .eq("status", "approved")
+        .order("version_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as any) as JobOrderSnapshot | null;
+    },
+  });
+}
+
+export function useSnapshotMutations(jobId: string) {
+  const qc = useQueryClient();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["job_order_snapshots", jobId] });
+    qc.invalidateQueries({ queryKey: ["job_order_snapshot_approved", jobId] });
+    qc.invalidateQueries({ queryKey: ["job_order_draft", jobId] });
+  };
+  return {
+    submit: useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await supabase.rpc("submit_order_snapshot" as any, { _id: id });
+        if (error) throw error;
+      },
+      onSuccess: invalidate,
+    }),
+    approve: useMutation({
+      mutationFn: async ({ id, note }: { id: string; note?: string }) => {
+        const { error } = await supabase.rpc("approve_order_snapshot" as any, { _id: id, _note: note ?? null });
+        if (error) throw error;
+      },
+      onSuccess: invalidate,
+    }),
+    reject: useMutation({
+      mutationFn: async ({ id, note }: { id: string; note?: string }) => {
+        const { error } = await supabase.rpc("reject_order_snapshot" as any, { _id: id, _note: note ?? null });
+        if (error) throw error;
+      },
+      onSuccess: invalidate,
+    }),
+    rollback: useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await supabase.rpc("rollback_order_snapshot" as any, { _id: id });
+        if (error) throw error;
+      },
+      onSuccess: invalidate,
+    }),
+    remove: useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await supabase.from("job_order_snapshots").delete().eq("id", id);
+        if (error) throw error;
+      },
+      onSuccess: invalidate,
+    }),
+  };
+}
