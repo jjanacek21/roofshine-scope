@@ -25,6 +25,32 @@ export function fmtNum(n: number, digits = 0): string {
   return n.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
+export type OrderTotalsInput = {
+  matSubtotal: number;
+  tax: number;
+  laborTotal: number;
+  dump: number;
+  permits: number;
+  extras: number;
+  markupPct: number;
+  squares: number;
+};
+export function computeOrderTotals(i: OrderTotalsInput) {
+  const matTotal = i.matSubtotal + i.tax;
+  const jobCost = matTotal + i.laborTotal + i.dump + i.permits + i.extras;
+  const markup = jobCost * (i.markupPct / 100);
+  const customerPrice = jobCost + markup;
+  const profit = customerPrice - jobCost;
+  const margin = customerPrice > 0 ? (profit / customerPrice) * 100 : 0;
+  const perSq = i.squares > 0 ? customerPrice / i.squares : 0;
+  const costPerSq = i.squares > 0 ? jobCost / i.squares : 0;
+  return {
+    matSubtotal: i.matSubtotal, tax: i.tax, matTotal,
+    laborTotal: i.laborTotal, dump: i.dump, permits: i.permits, extras: i.extras,
+    jobCost, markup, customerPrice, profit, margin, perSq, costPerSq,
+  };
+}
+
 export const INPUT_LABELS: Record<string, string> = {
   sq: "Squares",
   hip_ridge_lf: "Hip/Ridge LF",
