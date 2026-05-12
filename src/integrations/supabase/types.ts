@@ -733,6 +733,113 @@ export type Database = {
         }
         Relationships: []
       }
+      job_order_drafts: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          inputs: Json
+          job_id: string
+          labor_overrides: Json
+          markup_pct: number
+          material_overrides: Json
+          notes: string | null
+          sales_tax_pct: number
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          inputs?: Json
+          job_id: string
+          labor_overrides?: Json
+          markup_pct?: number
+          material_overrides?: Json
+          notes?: string | null
+          sales_tax_pct?: number
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          inputs?: Json
+          job_id?: string
+          labor_overrides?: Json
+          markup_pct?: number
+          material_overrides?: Json
+          notes?: string | null
+          sales_tax_pct?: number
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_order_drafts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_order_drafts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "roof_system_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_order_snapshots: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          inputs: Json
+          job_id: string
+          labor: Json
+          materials: Json
+          snapshot_date: string
+          template_label: string | null
+          totals: Json
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          inputs?: Json
+          job_id: string
+          labor?: Json
+          materials?: Json
+          snapshot_date?: string
+          template_label?: string | null
+          totals?: Json
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          inputs?: Json
+          job_id?: string
+          labor?: Json
+          materials?: Json
+          snapshot_date?: string
+          template_label?: string | null
+          totals?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_order_snapshots_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_photos: {
         Row: {
           ai_analysis: Json
@@ -1465,6 +1572,164 @@ export type Database = {
           },
         ]
       }
+      material_catalog: {
+        Row: {
+          active: boolean
+          brand: string | null
+          category_id: string
+          company_id: string | null
+          coverage: Json | null
+          created_at: string
+          effective_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          slug: string | null
+          supplier_id: string | null
+          unit_price: number
+          uom: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          brand?: string | null
+          category_id: string
+          company_id?: string | null
+          coverage?: Json | null
+          created_at?: string
+          effective_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          slug?: string | null
+          supplier_id?: string | null
+          unit_price?: number
+          uom: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          brand?: string | null
+          category_id?: string
+          company_id?: string | null
+          coverage?: Json | null
+          created_at?: string
+          effective_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          slug?: string | null
+          supplier_id?: string | null
+          unit_price?: number
+          uom?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_catalog_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "material_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_catalog_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_catalog_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "material_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_categories: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          label: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          label: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_suppliers: {
+        Row: {
+          active: boolean
+          branch: string | null
+          company_id: string | null
+          created_at: string
+          id: string
+          name: string
+          rep_email: string | null
+          rep_name: string | null
+          rep_phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          branch?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          rep_email?: string | null
+          rep_name?: string | null
+          rep_phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          branch?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          rep_email?: string | null
+          rep_name?: string | null
+          rep_phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_suppliers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       photo_suggestion_decisions: {
         Row: {
           ai_confidence: string | null
@@ -2047,6 +2312,139 @@ export type Database = {
             columns: ["measurement_id"]
             isOneToOne: false
             referencedRelation: "roof_measurements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roof_system_templates: {
+        Row: {
+          active: boolean
+          company_id: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          inputs: Json
+          label: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          company_id?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          inputs?: Json
+          label: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          inputs?: Json
+          label?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roof_system_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_labor_lines: {
+        Row: {
+          created_at: string
+          formula: Json
+          id: string
+          rate: number
+          sort_order: number
+          task: string
+          template_id: string
+          uom: string
+        }
+        Insert: {
+          created_at?: string
+          formula?: Json
+          id?: string
+          rate?: number
+          sort_order?: number
+          task: string
+          template_id: string
+          uom: string
+        }
+        Update: {
+          created_at?: string
+          formula?: Json
+          id?: string
+          rate?: number
+          sort_order?: number
+          task?: string
+          template_id?: string
+          uom?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_labor_lines_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "roof_system_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_material_lines: {
+        Row: {
+          created_at: string
+          default_material_id: string | null
+          formula: Json
+          id: string
+          label: string
+          sort_order: number
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_material_id?: string | null
+          formula?: Json
+          id?: string
+          label: string
+          sort_order?: number
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          default_material_id?: string | null
+          formula?: Json
+          id?: string
+          label?: string
+          sort_order?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_material_lines_default_material_id_fkey"
+            columns: ["default_material_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_material_lines_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "roof_system_templates"
             referencedColumns: ["id"]
           },
         ]
