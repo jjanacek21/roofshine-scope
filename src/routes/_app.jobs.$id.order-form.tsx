@@ -134,15 +134,15 @@ function OrderFormPage() {
   const totals = useMemo(() => {
     const matSubtotal = materialRows.reduce((s, r) => s + r.line_total, 0);
     const tax = matSubtotal * (taxPct / 100);
-    const matTotal = matSubtotal + tax;
     const laborTotal = laborRows.reduce((s, r) => s + r.line_total, 0);
-    const jobCost = matTotal + laborTotal;
-    const markup = jobCost * (markupPct / 100);
-    const customerPrice = jobCost + markup;
-    const profit = customerPrice - jobCost;
-    const margin = customerPrice > 0 ? (profit / customerPrice) * 100 : 0;
-    return { matSubtotal, tax, matTotal, laborTotal, jobCost, markup, customerPrice, profit, margin };
-  }, [materialRows, laborRows, taxPct, markupPct]);
+    const extras = extraCosts.reduce((s, x) => s + Number(x.amount ?? 0), 0);
+    const squares = Number(inputs["sq"] ?? 0);
+    return computeOrderTotals({
+      matSubtotal, tax, laborTotal,
+      dump: dumpCost, permits: permitCost, extras,
+      markupPct, squares,
+    });
+  }, [materialRows, laborRows, taxPct, markupPct, dumpCost, permitCost, extraCosts, inputs]);
 
   const update = (patch: any) => upsert.mutate(patch);
 
@@ -157,6 +157,7 @@ function OrderFormPage() {
     const cur = labOverrides.find((o) => o.line_id === line_id) ?? { line_id };
     update({ labor_overrides: [...others, { ...cur, ...change }] });
   };
+  const setExtras = (next: ExtraCost[]) => update({ extra_costs: next });
 
   // Initial: if no draft yet but templates loaded, set default template
   useEffect(() => {
@@ -168,6 +169,7 @@ function OrderFormPage() {
 
   const saveSnapshot = async () => {
     if (!company?.id) return;
+    const squares = Number(inputs["sq"] ?? 0);
     const { error } = await supabase.from("job_order_snapshots").insert({
       job_id: jobId,
       company_id: company.id,
@@ -179,9 +181,15 @@ function OrderFormPage() {
       })),
       labor: laborRows.map((r) => ({ task: r.task, uom: r.uom, qty: r.qty, rate: r.rate, line_total: r.line_total })),
       totals,
+      dump_cost: dumpCost,
+      permit_cost: permitCost,
+      extra_costs: extraCosts,
+      total_squares: squares,
+      per_sq_price: totals.perSq,
+      cost_per_sq: totals.costPerSq,
     } as any);
     if (error) { toast.error(error.message); return; }
-    toast.success("Order snapshot saved");
+    toast.success("Snapshot saved as draft — submit for approval from the Versions tab");
   };
 
   const supplier = suppliers[0] ?? null;
