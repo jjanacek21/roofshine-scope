@@ -122,6 +122,7 @@ function CatalogManager() {
         name: row.name,
         uom: row.uom,
         unit_price: row.unit_price ?? 0,
+        coverage_sq: row.coverage_sq ?? null,
         slug: row.slug ?? null,
         active: row.active ?? true,
       };
