@@ -104,7 +104,7 @@ function OrderFormPage() {
       const ov = matOverrides.find((o) => o.line_id === ln.id);
       const matId = ov?.material_id ?? ln.default_material_id ?? null;
       const mat = matId ? catalogById.get(matId) ?? null : null;
-      const autoQty = calcQty(ln.formula, inputs);
+      const autoQty = calcQty(ln.formula, inputs, mat?.coverage_sq);
       const qty = ov?.qty != null ? Number(ov.qty) : autoQty;
       const unit_price = ov?.unit_price != null ? Number(ov.unit_price) : Number(mat?.unit_price ?? 0);
       return {
