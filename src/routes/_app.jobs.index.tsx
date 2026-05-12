@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -13,6 +14,8 @@ import { TradeBadge } from "@/components/brand/TradeBadge";
 import { JOB_STATUSES, type JobStatus } from "@/lib/trades";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useProfile, useIsCompanyAdmin } from "@/hooks/useProfile";
+import { useCompanyMembers, memberName, type CompanyMember } from "@/hooks/useCompanyMembers";
 
 export const Route = createFileRoute("/_app/jobs/")({
   component: JobsKanban,
@@ -27,22 +30,33 @@ interface Job {
   total_estimate: number;
   property_address: string | null;
   client_id: string | null;
+  created_by: string | null;
+  assigned_to: string | null;
 }
 
 function JobsKanban() {
   const qc = useQueryClient();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const { data: profile } = useProfile();
+  const isAdmin = useIsCompanyAdmin();
+  const { data: members = [] } = useCompanyMembers();
+  const [scope, setScope] = useState<"all" | "mine">(isAdmin ? "all" : "mine");
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["jobs"],
     queryFn: async () => {
       const { data } = await supabase
         .from("jobs")
-        .select("id, name, job_number, status, primary_trade, total_estimate, property_address, client_id")
+        .select("id, name, job_number, status, primary_trade, total_estimate, property_address, client_id, created_by, assigned_to")
         .order("created_at", { ascending: false });
       return (data ?? []) as Job[];
     },
   });
+
+  const memberMap = new Map<string, CompanyMember>(members.map((m) => [m.id, m]));
+  const visibleJobs = scope === "mine" && profile?.id
+    ? jobs.filter((j) => j.assigned_to === profile.id || j.created_by === profile.id)
+    : jobs;
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: JobStatus }) => {
