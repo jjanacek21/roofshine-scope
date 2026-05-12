@@ -10,8 +10,9 @@ import { TradeBadge } from "@/components/brand/TradeBadge";
 import { Plus, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { MaterialsTemplatesTab } from "@/components/settings/MaterialsTemplatesTab";
 
-const TABS = ["Company", "Branding", "Defaults", "Trades", "Rules", "Users", "Integrations"] as const;
+const TABS = ["Company", "Branding", "Defaults", "Trades", "Rules", "Materials", "Users", "Integrations"] as const;
 type Tab = (typeof TABS)[number];
 const RULE_TYPES = ["required", "recommended", "conditional"] as const;
 type RuleType = (typeof RULE_TYPES)[number];
