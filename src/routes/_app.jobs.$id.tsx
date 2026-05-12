@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { JobHeader, type JobHeaderJob } from "@/components/jobs/JobHeader";
 import { JobTabs } from "@/components/jobs/JobTabs";
+import { JobOwnership } from "@/components/jobs/JobOwnership";
 
 export const Route = createFileRoute("/_app/jobs/$id")({
   component: JobLayout,
