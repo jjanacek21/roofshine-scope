@@ -63,6 +63,7 @@ function OrderFormPage() {
   const { data: catalog = [] } = useMaterialCatalog();
   const { data: suppliers = [] } = useSuppliers();
   const { data: draft, upsert } = useJobOrderDraft(jobId);
+  const { data: approvedSnapshot } = useApprovedOrderSnapshot(jobId);
 
   const activeTemplateId = draft?.template_id ?? templates[0]?.id ?? null;
   const { data: lines } = useTemplateLines(activeTemplateId);
@@ -73,6 +74,9 @@ function OrderFormPage() {
   const labOverrides = draft?.labor_overrides ?? [];
   const markupPct = Number(draft?.markup_pct ?? 35);
   const taxPct = Number(draft?.sales_tax_pct ?? 7);
+  const dumpCost = Number(draft?.dump_cost ?? 0);
+  const permitCost = Number(draft?.permit_cost ?? 0);
+  const extraCosts = (draft?.extra_costs ?? []) as ExtraCost[];
 
   const catalogById = useMemo(() => {
     const m = new Map<string, MaterialItem>();
