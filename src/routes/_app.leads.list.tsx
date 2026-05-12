@@ -21,6 +21,7 @@ import { Phone, Mail, MessageSquare, Sparkles, Eye, Trash2, X, Upload } from "lu
 import { Link } from "@tanstack/react-router";
 import { LeadDetailSheet } from "@/components/leads/LeadDetailSheet";
 import { useCallPlaybook } from "@/hooks/useCallPlaybook";
+import { useCompanyMembers, memberName } from "@/hooks/useCompanyMembers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -42,6 +43,19 @@ function LeadsList() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const playbook = useCallPlaybook();
+  const { data: members = [] } = useCompanyMembers();
+  const memberMap = new Map(members.map((m) => [m.id, m]));
+  const reassignLead = useMutation({
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
+      const { error } = await supabase.from("leads").update({ assigned_to: userId }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Lead reassigned");
+      qc.invalidateQueries({ queryKey: ["leads"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Reassign failed"),
+  });
 
   const filtered = useMemo(() => {
     let rows = tab === "all" ? leads : leads.filter((l) => l.status === tab);
@@ -179,6 +193,7 @@ function LeadsList() {
                 <th className="px-5 py-3 font-semibold">Year</th>
                 <th className="px-5 py-3 font-semibold">Roof</th>
                 <th className="px-5 py-3 font-semibold">Status</th>
+                <th className="px-5 py-3 font-semibold">Rep</th>
                 <th className="px-5 py-3 font-semibold text-right">Actions</th>
               </tr>
             </thead>
@@ -203,6 +218,28 @@ function LeadsList() {
                   <td className="px-5 py-3 font-mono-num text-muted-foreground">{l.year_built ?? "—"}</td>
                   <td className="px-5 py-3 text-muted-foreground">{l.roof_type ?? "—"}</td>
                   <td className="px-5 py-3"><StatusBadge status={l.status} /></td>
+                  <td className="px-5 py-3 text-muted-foreground">
+                    {(() => {
+                      const lr = l as unknown as { assigned_to?: string | null; created_by?: string | null };
+                      const repId = lr.assigned_to ?? lr.created_by ?? "";
+                      if (isAdmin) {
+                        return (
+                          <select
+                            value={lr.assigned_to ?? ""}
+                            onChange={(e) => reassignLead.mutate({ id: l.id, userId: e.target.value })}
+                            className="rounded border bg-transparent px-2 py-1 text-xs text-foreground"
+                            style={{ borderColor: "var(--border)" }}
+                          >
+                            <option value="">—</option>
+                            {members.map((m) => (
+                              <option key={m.id} value={m.id}>{memberName(m)}</option>
+                            ))}
+                          </select>
+                        );
+                      }
+                      return memberName(memberMap.get(repId));
+                    })()}
+                  </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-1">
                       <IconBtn

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -13,6 +14,8 @@ import { TradeBadge } from "@/components/brand/TradeBadge";
 import { JOB_STATUSES, type JobStatus } from "@/lib/trades";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useProfile, useIsCompanyAdmin } from "@/hooks/useProfile";
+import { useCompanyMembers, memberName, type CompanyMember } from "@/hooks/useCompanyMembers";
 
 export const Route = createFileRoute("/_app/jobs/")({
   component: JobsKanban,
@@ -27,22 +30,33 @@ interface Job {
   total_estimate: number;
   property_address: string | null;
   client_id: string | null;
+  created_by: string | null;
+  assigned_to: string | null;
 }
 
 function JobsKanban() {
   const qc = useQueryClient();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const { data: profile } = useProfile();
+  const isAdmin = useIsCompanyAdmin();
+  const { data: members = [] } = useCompanyMembers();
+  const [scope, setScope] = useState<"all" | "mine">(isAdmin ? "all" : "mine");
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["jobs"],
     queryFn: async () => {
       const { data } = await supabase
         .from("jobs")
-        .select("id, name, job_number, status, primary_trade, total_estimate, property_address, client_id")
+        .select("id, name, job_number, status, primary_trade, total_estimate, property_address, client_id, created_by, assigned_to")
         .order("created_at", { ascending: false });
       return (data ?? []) as Job[];
     },
   });
+
+  const memberMap = new Map<string, CompanyMember>(members.map((m) => [m.id, m]));
+  const visibleJobs = scope === "mine" && profile?.id
+    ? jobs.filter((j) => j.assigned_to === profile.id || j.created_by === profile.id)
+    : jobs;
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: JobStatus }) => {
@@ -74,6 +88,22 @@ function JobsKanban() {
             Drag cards across columns to update their status.
           </p>
         </div>
+        {isAdmin && (
+          <div className="inline-flex rounded-lg border p-0.5" style={{ borderColor: "var(--border)" }}>
+            {(["all", "mine"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setScope(s)}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  scope === s ? "bg-[var(--surface-hover)] text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {s === "all" ? "All jobs" : "Assigned to me"}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {isLoading ? (
@@ -86,7 +116,8 @@ function JobsKanban() {
                 key={col.value}
                 status={col.value}
                 label={col.label}
-                jobs={jobs.filter((j) => j.status === col.value)}
+                jobs={visibleJobs.filter((j) => j.status === col.value)}
+                memberMap={memberMap}
               />
             ))}
           </div>
@@ -96,7 +127,7 @@ function JobsKanban() {
   );
 }
 
-function Column({ status, label, jobs }: { status: JobStatus; label: string; jobs: Job[] }) {
+function Column({ status, label, jobs, memberMap }: { status: JobStatus; label: string; jobs: Job[]; memberMap: Map<string, CompanyMember> }) {
   const { isOver, setNodeRef } = useDroppable({ id: status });
   const total = jobs.reduce((s, j) => s + Number(j.total_estimate ?? 0), 0);
 
@@ -125,7 +156,7 @@ function Column({ status, label, jobs }: { status: JobStatus; label: string; job
       </div>
       <div className="flex-1 space-y-2 p-3">
         {jobs.map((j) => (
-          <JobCard key={j.id} job={j} />
+          <JobCard key={j.id} job={j} memberMap={memberMap} />
         ))}
         {jobs.length === 0 && (
           <p className="py-8 text-center text-xs text-muted-foreground">No jobs</p>
@@ -135,7 +166,7 @@ function Column({ status, label, jobs }: { status: JobStatus; label: string; job
   );
 }
 
-function JobCard({ job }: { job: Job }) {
+function JobCard({ job, memberMap }: { job: Job; memberMap: Map<string, CompanyMember> }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: job.id });
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
@@ -170,6 +201,11 @@ function JobCard({ job }: { job: Job }) {
           ${Number(job.total_estimate).toLocaleString(undefined, { maximumFractionDigits: 0 })}
         </span>
       </div>
+      {(job.assigned_to || job.created_by) && (
+        <p className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+          Rep: <span className="font-semibold text-foreground/80 normal-case tracking-normal">{memberName(memberMap.get(job.assigned_to ?? job.created_by ?? ""))}</span>
+        </p>
+      )}
       <Link
         to="/jobs/$id"
         params={{ id: job.id }}
