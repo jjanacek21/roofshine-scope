@@ -218,6 +218,28 @@ function LeadsList() {
                   <td className="px-5 py-3 font-mono-num text-muted-foreground">{l.year_built ?? "—"}</td>
                   <td className="px-5 py-3 text-muted-foreground">{l.roof_type ?? "—"}</td>
                   <td className="px-5 py-3"><StatusBadge status={l.status} /></td>
+                  <td className="px-5 py-3 text-muted-foreground">
+                    {(() => {
+                      const lr = l as unknown as { assigned_to?: string | null; created_by?: string | null };
+                      const repId = lr.assigned_to ?? lr.created_by ?? "";
+                      if (isAdmin) {
+                        return (
+                          <select
+                            value={lr.assigned_to ?? ""}
+                            onChange={(e) => reassignLead.mutate({ id: l.id, userId: e.target.value })}
+                            className="rounded border bg-transparent px-2 py-1 text-xs text-foreground"
+                            style={{ borderColor: "var(--border)" }}
+                          >
+                            <option value="">—</option>
+                            {members.map((m) => (
+                              <option key={m.id} value={m.id}>{memberName(m)}</option>
+                            ))}
+                          </select>
+                        );
+                      }
+                      return memberName(memberMap.get(repId));
+                    })()}
+                  </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-1">
                       <IconBtn
