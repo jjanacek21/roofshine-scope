@@ -493,6 +493,7 @@ function JobReport() {
         )}
 
         {/* 3. DAMAGE SUMMARY */}
+        {overrides.visible.damage && (
         <Section>
           <H2>Damage Summary</H2>
           {damageRows.length === 0 ? (
@@ -530,6 +531,7 @@ function JobReport() {
             </table>
           )}
         </Section>
+        )}
 
         {/* 4. MEASUREMENT REPORT */}
         {measurement && (
