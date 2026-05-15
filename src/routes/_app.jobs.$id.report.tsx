@@ -89,7 +89,19 @@ function JobReport() {
   const { data: mapboxToken } = useMapboxToken();
   const [hidePricing, setHidePricing] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [overrides, setOverrides] = useState<ReportOverrides>(() => loadOverrides(jobId));
   const previewRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem(`report-overrides:${jobId}`, JSON.stringify(overrides));
+  }, [overrides, jobId]);
+
+  const updateOverride = <K extends keyof ReportOverrides>(key: K, value: ReportOverrides[K]) =>
+    setOverrides((o) => ({ ...o, [key]: value }));
+  const toggleSection = (k: SectionKey) =>
+    setOverrides((o) => ({ ...o, visible: { ...o.visible, [k]: !o.visible[k] } }));
+
 
   const { data: job } = useQuery({
     queryKey: ["job", jobId],
