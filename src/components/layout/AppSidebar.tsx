@@ -11,6 +11,7 @@ import {
   Shield,
   Target,
   IdCard,
+  Receipt,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils";
 const WORKSPACE_NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, badgeKey: null },
   { to: "/jobs", label: "Jobs", icon: Briefcase, badgeKey: "jobs" as const },
+  { to: "/invoices", label: "Invoices", icon: Receipt, badgeKey: null },
   { to: "/leads", label: "Prospector", icon: Target, badgeKey: null },
   { to: "/clients", label: "Clients", icon: Users, badgeKey: null },
   { to: "/card", label: "My Card", icon: IdCard, badgeKey: null },
