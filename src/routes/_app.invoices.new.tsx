@@ -82,7 +82,7 @@ function NewInvoicePage() {
           address: client.address || job.property_address || "",
         });
       } else if (job.property_address) {
-        setCustomer((c) => ({ ...c, address: job.property_address }));
+        setCustomer((c) => ({ ...c, address: job.property_address || "" }));
       }
     }
   }

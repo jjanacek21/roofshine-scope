@@ -56,6 +56,7 @@ import { Route as AppCardRouteImport } from './routes/_app.card'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppLeadsIndexRouteImport } from './routes/_app.leads.index'
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
+import { Route as AppInvoicesIndexRouteImport } from './routes/_app.invoices.index'
 import { Route as ApiPublicSignRouteImport } from './routes/api/public/sign'
 import { Route as AdminPriceBooksNewRouteImport } from './routes/admin.price-books.new'
 import { Route as AdminCompaniesIdRouteImport } from './routes/admin.companies.$id'
@@ -73,6 +74,7 @@ import { Route as AppLeadsImportRouteImport } from './routes/_app.leads.import'
 import { Route as AppLeadsFollowupRouteImport } from './routes/_app.leads.followup'
 import { Route as AppJobsNewRouteImport } from './routes/_app.jobs.new'
 import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
+import { Route as AppInvoicesNewRouteImport } from './routes/_app.invoices.new'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -318,6 +320,11 @@ const AppJobsIndexRoute = AppJobsIndexRouteImport.update({
   path: '/jobs/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppInvoicesIndexRoute = AppInvoicesIndexRouteImport.update({
+  id: '/invoices/',
+  path: '/invoices/',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiPublicSignRoute = ApiPublicSignRouteImport.update({
   id: '/api/public/sign',
   path: '/api/public/sign',
@@ -401,6 +408,11 @@ const AppJobsNewRoute = AppJobsNewRouteImport.update({
 const AppJobsIdRoute = AppJobsIdRouteImport.update({
   id: '/jobs/$id',
   path: '/jobs/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInvoicesNewRoute = AppInvoicesNewRouteImport.update({
+  id: '/invoices/new',
+  path: '/invoices/new',
   getParentRoute: () => AppRoute,
 } as any)
 const AppClientsIdRoute = AppClientsIdRouteImport.update({
@@ -495,6 +507,7 @@ export interface FileRoutesByFullPath {
   '/c/$slug': typeof CSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
+  '/invoices/new': typeof AppInvoicesNewRoute
   '/jobs/$id': typeof AppJobsIdRouteWithChildren
   '/jobs/new': typeof AppJobsNewRoute
   '/leads/followup': typeof AppLeadsFollowupRoute
@@ -512,6 +525,7 @@ export interface FileRoutesByFullPath {
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/sign': typeof ApiPublicSignRoute
+  '/invoices/': typeof AppInvoicesIndexRoute
   '/jobs/': typeof AppJobsIndexRoute
   '/leads/': typeof AppLeadsIndexRoute
   '/team/': typeof AppTeamIndexRoute
@@ -566,6 +580,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
+  '/invoices/new': typeof AppInvoicesNewRoute
   '/jobs/new': typeof AppJobsNewRoute
   '/leads/followup': typeof AppLeadsFollowupRoute
   '/leads/import': typeof AppLeadsImportRoute
@@ -582,6 +597,7 @@ export interface FileRoutesByTo {
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/sign': typeof ApiPublicSignRoute
+  '/invoices': typeof AppInvoicesIndexRoute
   '/jobs': typeof AppJobsIndexRoute
   '/leads': typeof AppLeadsIndexRoute
   '/team': typeof AppTeamIndexRoute
@@ -641,6 +657,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/_app/clients/$id': typeof AppClientsIdRoute
+  '/_app/invoices/new': typeof AppInvoicesNewRoute
   '/_app/jobs/$id': typeof AppJobsIdRouteWithChildren
   '/_app/jobs/new': typeof AppJobsNewRoute
   '/_app/leads/followup': typeof AppLeadsFollowupRoute
@@ -658,6 +675,7 @@ export interface FileRoutesById {
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/sign': typeof ApiPublicSignRoute
+  '/_app/invoices/': typeof AppInvoicesIndexRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
   '/_app/leads/': typeof AppLeadsIndexRoute
   '/_app/team/': typeof AppTeamIndexRoute
@@ -717,6 +735,7 @@ export interface FileRouteTypes {
     | '/c/$slug'
     | '/admin/'
     | '/clients/$id'
+    | '/invoices/new'
     | '/jobs/$id'
     | '/jobs/new'
     | '/leads/followup'
@@ -734,6 +753,7 @@ export interface FileRouteTypes {
     | '/admin/companies/$id'
     | '/admin/price-books/new'
     | '/api/public/sign'
+    | '/invoices/'
     | '/jobs/'
     | '/leads/'
     | '/team/'
@@ -788,6 +808,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/clients/$id'
+    | '/invoices/new'
     | '/jobs/new'
     | '/leads/followup'
     | '/leads/import'
@@ -804,6 +825,7 @@ export interface FileRouteTypes {
     | '/admin/companies/$id'
     | '/admin/price-books/new'
     | '/api/public/sign'
+    | '/invoices'
     | '/jobs'
     | '/leads'
     | '/team'
@@ -862,6 +884,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/admin/'
     | '/_app/clients/$id'
+    | '/_app/invoices/new'
     | '/_app/jobs/$id'
     | '/_app/jobs/new'
     | '/_app/leads/followup'
@@ -879,6 +902,7 @@ export interface FileRouteTypes {
     | '/admin/companies/$id'
     | '/admin/price-books/new'
     | '/api/public/sign'
+    | '/_app/invoices/'
     | '/_app/jobs/'
     | '/_app/leads/'
     | '/_app/team/'
@@ -1248,6 +1272,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJobsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/invoices/': {
+      id: '/_app/invoices/'
+      path: '/invoices'
+      fullPath: '/invoices/'
+      preLoaderRoute: typeof AppInvoicesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/public/sign': {
       id: '/api/public/sign'
       path: '/api/public/sign'
@@ -1365,6 +1396,13 @@ declare module '@tanstack/react-router' {
       path: '/jobs/$id'
       fullPath: '/jobs/$id'
       preLoaderRoute: typeof AppJobsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/invoices/new': {
+      id: '/_app/invoices/new'
+      path: '/invoices/new'
+      fullPath: '/invoices/new'
+      preLoaderRoute: typeof AppInvoicesNewRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/clients/$id': {
@@ -1532,8 +1570,10 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppTeamRoute: typeof AppTeamRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
+  AppInvoicesNewRoute: typeof AppInvoicesNewRoute
   AppJobsIdRoute: typeof AppJobsIdRouteWithChildren
   AppJobsNewRoute: typeof AppJobsNewRoute
+  AppInvoicesIndexRoute: typeof AppInvoicesIndexRoute
   AppJobsIndexRoute: typeof AppJobsIndexRoute
 }
 
@@ -1545,8 +1585,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppTeamRoute: AppTeamRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
+  AppInvoicesNewRoute: AppInvoicesNewRoute,
   AppJobsIdRoute: AppJobsIdRouteWithChildren,
   AppJobsNewRoute: AppJobsNewRoute,
+  AppInvoicesIndexRoute: AppInvoicesIndexRoute,
   AppJobsIndexRoute: AppJobsIndexRoute,
 }
 
