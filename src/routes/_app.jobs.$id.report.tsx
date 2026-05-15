@@ -468,13 +468,29 @@ function JobReport() {
         </Section>
 
         {/* 2. EXECUTIVE SUMMARY */}
-        <Section>
-          <H2>Executive Summary</H2>
-          <p className="text-[13px] leading-relaxed text-neutral-700">
-            {primaryEstimate?.notes ||
-              `${company?.name ?? "Our team"} inspected the property at ${job.property_address ?? "the address on file"} on ${new Date().toLocaleDateString()}. Based on our findings, we recommend the scope of work outlined in this proposal.`}
-          </p>
-        </Section>
+        {overrides.visible.executive && (
+          <Section>
+            <H2>Executive Summary</H2>
+            {editing ? (
+              <textarea
+                className="w-full rounded border border-neutral-300 p-2 text-[13px] leading-relaxed text-neutral-800"
+                rows={5}
+                value={overrides.executiveText}
+                placeholder={
+                  primaryEstimate?.notes ||
+                  `${company?.name ?? "Our team"} inspected the property at ${job.property_address ?? "the address on file"} on ${new Date().toLocaleDateString()}. Based on our findings, we recommend the scope of work outlined in this proposal.`
+                }
+                onChange={(e) => updateOverride("executiveText", e.target.value)}
+              />
+            ) : (
+              <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-neutral-700">
+                {overrides.executiveText ||
+                  primaryEstimate?.notes ||
+                  `${company?.name ?? "Our team"} inspected the property at ${job.property_address ?? "the address on file"} on ${new Date().toLocaleDateString()}. Based on our findings, we recommend the scope of work outlined in this proposal.`}
+              </p>
+            )}
+          </Section>
+        )}
 
         {/* 3. DAMAGE SUMMARY */}
         <Section>
