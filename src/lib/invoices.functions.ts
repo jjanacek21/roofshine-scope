@@ -48,6 +48,7 @@ export const createInvoice = createServerFn({ method: "POST" })
       .from("invoices")
       .insert({
         company_id: profile.company_id,
+        invoice_number: "", // overwritten by assign_invoice_number trigger
         job_id: data.job_id ?? null,
         client_id: data.client_id ?? null,
         customer_name: data.customer_name ?? null,
@@ -61,7 +62,7 @@ export const createInvoice = createServerFn({ method: "POST" })
         notes: data.notes ?? null,
         terms: data.terms ?? null,
         template_id: data.template_id ?? null,
-      })
+      } as any)
       .select("*")
       .single();
 
@@ -112,7 +113,7 @@ export const updateInvoice = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase } = context;
 
-    const patch: Record<string, any> = { ...data.patch };
+    const patch: any = { ...data.patch };
     if (data.patch.status === "sent") patch.sent_at = new Date().toISOString();
 
     const { error } = await supabase.from("invoices").update(patch).eq("id", data.id);

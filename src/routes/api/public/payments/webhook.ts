@@ -14,9 +14,8 @@ function getSupabase() {
 }
 
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
-  const supabase = getSupabase();
+  const supabase = getSupabase() as any;
 
-  // Look up the intent we created when starting checkout
   const { data: intent } = await supabase
     .from("invoice_payment_intents")
     .select("*")
@@ -33,7 +32,6 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
 
   const amountPaid = (session.amount_total ?? 0) / 100;
 
-  // Idempotent: skip if we already recorded a succeeded payment for this session
   const { data: existing } = await supabase
     .from("invoice_payments")
     .select("id")
