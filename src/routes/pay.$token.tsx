@@ -44,6 +44,22 @@ function PublicPayPage() {
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4">
       <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={async () => {
+            try {
+              await downloadInvoicePdf({
+                invoice: inv,
+                lines: data.lines as any,
+                company: data.company as any,
+                layout: (data.template as any)?.layout,
+              });
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "PDF failed");
+            }
+          }}>
+            <Download className="h-4 w-4 mr-1" /> Download PDF
+          </Button>
+        </div>
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <InvoicePreview
             invoice={inv}
