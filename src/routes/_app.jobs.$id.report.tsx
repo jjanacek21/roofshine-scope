@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { FileDown, Eye, EyeOff, Loader2 } from "lucide-react";
+import { FileDown, Eye, EyeOff, Loader2, Pencil, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
@@ -11,6 +11,66 @@ import { getTradeLabel } from "@/lib/trades";
 export const Route = createFileRoute("/_app/jobs/$id/report")({
   component: JobReport,
 });
+
+type SectionKey =
+  | "executive"
+  | "damage"
+  | "measurement"
+  | "investment"
+  | "documentation"
+  | "options"
+  | "terms"
+  | "footer";
+
+const SECTION_LABELS: Record<SectionKey, string> = {
+  executive: "Executive Summary",
+  damage: "Damage Summary",
+  measurement: "Measurement Report",
+  investment: "Investment",
+  documentation: "Documentation",
+  options: "Your Options",
+  terms: "Terms & Authorization",
+  footer: "Footer",
+};
+
+const ALL_SECTIONS: SectionKey[] = [
+  "executive",
+  "damage",
+  "measurement",
+  "investment",
+  "documentation",
+  "options",
+  "terms",
+  "footer",
+];
+
+type ReportOverrides = {
+  visible: Record<SectionKey, boolean>;
+  executiveText: string;
+  termsText: string;
+  warrantyText: string;
+  financingText: string;
+};
+
+const DEFAULT_OVERRIDES: ReportOverrides = {
+  visible: ALL_SECTIONS.reduce((acc, k) => ({ ...acc, [k]: true }), {} as Record<SectionKey, boolean>),
+  executiveText: "",
+  termsText: "",
+  warrantyText: "",
+  financingText: "",
+};
+
+function loadOverrides(jobId: string): ReportOverrides {
+  try {
+    const raw = localStorage.getItem(`report-overrides:${jobId}`);
+    if (!raw) return DEFAULT_OVERRIDES;
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_OVERRIDES, ...parsed, visible: { ...DEFAULT_OVERRIDES.visible, ...(parsed.visible ?? {}) } };
+  } catch {
+    return DEFAULT_OVERRIDES;
+  }
+}
+
 
 type JobRow = {
   id: string;
@@ -29,7 +89,19 @@ function JobReport() {
   const { data: mapboxToken } = useMapboxToken();
   const [hidePricing, setHidePricing] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [overrides, setOverrides] = useState<ReportOverrides>(() => loadOverrides(jobId));
   const previewRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem(`report-overrides:${jobId}`, JSON.stringify(overrides));
+  }, [overrides, jobId]);
+
+  const updateOverride = <K extends keyof ReportOverrides>(key: K, value: ReportOverrides[K]) =>
+    setOverrides((o) => ({ ...o, [key]: value }));
+  const toggleSection = (k: SectionKey) =>
+    setOverrides((o) => ({ ...o, visible: { ...o.visible, [k]: !o.visible[k] } }));
+
 
   const { data: job } = useQuery({
     queryKey: ["job", jobId],
@@ -268,10 +340,18 @@ function JobReport() {
         <div>
           <h2 className="text-base font-bold text-foreground">Proposal preview</h2>
           <p className="text-[12px] text-muted-foreground">
-            Live preview · 9 sections · {hidePricing ? "Pricing hidden" : "Pricing visible"}
+            Live preview · {Object.values(overrides.visible).filter(Boolean).length + 1} sections ·{" "}
+            {hidePricing ? "Pricing hidden" : "Pricing visible"}
           </p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setEditing((v) => !v)}
+            className="btn-ghost flex h-9 items-center gap-2 rounded-lg px-3.5 text-[13px] font-semibold"
+          >
+            {editing ? <Check className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+            {editing ? "Done editing" : "Edit report"}
+          </button>
           <button
             onClick={() => setHidePricing((v) => !v)}
             className="btn-ghost flex h-9 items-center gap-2 rounded-lg px-3.5 text-[13px] font-semibold"
@@ -294,6 +374,34 @@ function JobReport() {
         </div>
       </div>
 
+      {editing && (
+        <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--bg-card)" }}>
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            Sections to include
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ALL_SECTIONS.filter((k) => k !== "footer").map((k) => (
+              <label
+                key={k}
+                className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-[12px]"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <input
+                  type="checkbox"
+                  checked={overrides.visible[k]}
+                  onChange={() => toggleSection(k)}
+                />
+                {SECTION_LABELS[k]}
+              </label>
+            ))}
+          </div>
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            Tip: missing your phone, email, website or logo? Fill them in under{" "}
+            <a href="/settings" className="underline">Settings → Company</a>.
+          </p>
+        </div>
+      )}
+
       <div
         ref={previewRef}
         className="mx-auto space-y-6"
@@ -302,12 +410,21 @@ function JobReport() {
         {/* 1. COVER */}
         <Section>
           <div className="flex items-start justify-between">
-            <div
-              className="flex h-16 w-16 items-center justify-center rounded-lg text-xl font-extrabold text-white"
-              style={{ background: "linear-gradient(135deg, #1e90ff, #0c5fb3)" }}
-            >
-              {company?.name?.[0] ?? "B"}
-            </div>
+            {company?.logo_url ? (
+              <img
+                src={company.logo_url}
+                alt={company.name ?? "Logo"}
+                className="h-16 w-auto object-contain"
+                crossOrigin="anonymous"
+              />
+            ) : (
+              <div
+                className="flex h-16 w-16 items-center justify-center rounded-lg text-xl font-extrabold text-white"
+                style={{ background: "linear-gradient(135deg, #1e90ff, #0c5fb3)" }}
+              >
+                {company?.name?.[0] ?? "B"}
+              </div>
+            )}
             <div className="text-right font-mono-num text-[11px] text-neutral-500">
               <div>{job.job_number ?? "DRAFT"}</div>
               <div>{new Date().toLocaleDateString()}</div>
@@ -351,15 +468,32 @@ function JobReport() {
         </Section>
 
         {/* 2. EXECUTIVE SUMMARY */}
-        <Section>
-          <H2>Executive Summary</H2>
-          <p className="text-[13px] leading-relaxed text-neutral-700">
-            {primaryEstimate?.notes ||
-              `${company?.name ?? "Our team"} inspected the property at ${job.property_address ?? "the address on file"} on ${new Date().toLocaleDateString()}. Based on our findings, we recommend the scope of work outlined in this proposal.`}
-          </p>
-        </Section>
+        {overrides.visible.executive && (
+          <Section>
+            <H2>Executive Summary</H2>
+            {editing ? (
+              <textarea
+                className="w-full rounded border border-neutral-300 p-2 text-[13px] leading-relaxed text-neutral-800"
+                rows={5}
+                value={overrides.executiveText}
+                placeholder={
+                  primaryEstimate?.notes ||
+                  `${company?.name ?? "Our team"} inspected the property at ${job.property_address ?? "the address on file"} on ${new Date().toLocaleDateString()}. Based on our findings, we recommend the scope of work outlined in this proposal.`
+                }
+                onChange={(e) => updateOverride("executiveText", e.target.value)}
+              />
+            ) : (
+              <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-neutral-700">
+                {overrides.executiveText ||
+                  primaryEstimate?.notes ||
+                  `${company?.name ?? "Our team"} inspected the property at ${job.property_address ?? "the address on file"} on ${new Date().toLocaleDateString()}. Based on our findings, we recommend the scope of work outlined in this proposal.`}
+              </p>
+            )}
+          </Section>
+        )}
 
         {/* 3. DAMAGE SUMMARY */}
+        {overrides.visible.damage && (
         <Section>
           <H2>Damage Summary</H2>
           {damageRows.length === 0 ? (
@@ -397,9 +531,10 @@ function JobReport() {
             </table>
           )}
         </Section>
+        )}
 
         {/* 4. MEASUREMENT REPORT */}
-        {measurement && (
+        {overrides.visible.measurement && measurement && (
           <Section>
             <H2>Measurement Report</H2>
             {staticMapUrl && (
@@ -490,6 +625,7 @@ function JobReport() {
         )}
 
         {/* 5. INVESTMENT */}
+        {overrides.visible.investment && (
         <Section>
           <H2>Investment</H2>
           {lineItems.length === 0 ? (
@@ -564,9 +700,10 @@ function JobReport() {
             </>
           )}
         </Section>
+        )}
 
         {/* 6. DOCUMENTATION */}
-        {photos.length > 0 && (
+        {overrides.visible.documentation && photos.length > 0 && (
           <Section>
             <H2>Documentation</H2>
             <div className="grid grid-cols-2 gap-3">
@@ -591,7 +728,7 @@ function JobReport() {
         )}
 
         {/* 7. GOOD/BETTER/BEST */}
-        {estimates.length > 1 && !hidePricing && (
+        {overrides.visible.options && estimates.length > 1 && !hidePricing && (
           <Section>
             <H2>Your Options</H2>
             <table className="w-full text-[12px]">
@@ -620,18 +757,59 @@ function JobReport() {
         )}
 
         {/* 8. TERMS & SIGNATURE */}
+        {overrides.visible.terms && (
         <Section>
           <H2>Terms & Authorization</H2>
-          {company?.warranty_blurb && (
+          {editing ? (
+            <div className="space-y-3">
+              <div>
+                <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-neutral-700">Terms</div>
+                <textarea
+                  className="w-full rounded border border-neutral-300 p-2 text-[12px] text-neutral-800"
+                  rows={4}
+                  value={overrides.termsText}
+                  placeholder="Payment terms, scope notes, change order policy…"
+                  onChange={(e) => updateOverride("termsText", e.target.value)}
+                />
+              </div>
+              <div>
+                <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-neutral-700">Warranty</div>
+                <textarea
+                  className="w-full rounded border border-neutral-300 p-2 text-[12px] text-neutral-800"
+                  rows={3}
+                  value={overrides.warrantyText}
+                  placeholder={company?.warranty_blurb ?? "Warranty terms…"}
+                  onChange={(e) => updateOverride("warrantyText", e.target.value)}
+                />
+              </div>
+              <div>
+                <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-neutral-700">Financing</div>
+                <textarea
+                  className="w-full rounded border border-neutral-300 p-2 text-[12px] text-neutral-800"
+                  rows={3}
+                  value={overrides.financingText}
+                  placeholder={company?.financing_blurb ?? "Financing options…"}
+                  onChange={(e) => updateOverride("financingText", e.target.value)}
+                />
+              </div>
+            </div>
+          ) : (
             <>
-              <h3 className="mt-2 text-[13px] font-bold text-neutral-800">Warranty</h3>
-              <p className="text-[12px] leading-relaxed text-neutral-700">{company.warranty_blurb}</p>
-            </>
-          )}
-          {company?.financing_blurb && (
-            <>
-              <h3 className="mt-3 text-[13px] font-bold text-neutral-800">Financing</h3>
-              <p className="text-[12px] leading-relaxed text-neutral-700">{company.financing_blurb}</p>
+              {(overrides.termsText) && (
+                <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-neutral-700">{overrides.termsText}</p>
+              )}
+              {(overrides.warrantyText || company?.warranty_blurb) && (
+                <>
+                  <h3 className="mt-2 text-[13px] font-bold text-neutral-800">Warranty</h3>
+                  <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-neutral-700">{overrides.warrantyText || company?.warranty_blurb}</p>
+                </>
+              )}
+              {(overrides.financingText || company?.financing_blurb) && (
+                <>
+                  <h3 className="mt-3 text-[13px] font-bold text-neutral-800">Financing</h3>
+                  <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-neutral-700">{overrides.financingText || company?.financing_blurb}</p>
+                </>
+              )}
             </>
           )}
           {company?.license_numbers && company.license_numbers.length > 0 && (
@@ -642,9 +820,7 @@ function JobReport() {
           <div className="mt-6 grid grid-cols-2 gap-6">
             <div>
               <div className="border-b border-neutral-400 pb-1 text-neutral-300">·</div>
-              <div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">
-                Customer Signature
-              </div>
+              <div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">Customer Signature</div>
             </div>
             <div>
               <div className="border-b border-neutral-400 pb-1 text-neutral-300">·</div>
@@ -652,12 +828,11 @@ function JobReport() {
             </div>
             <div className="col-span-2">
               <div className="border-b border-neutral-400 pb-1 text-neutral-300">·</div>
-              <div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">
-                Printed Name
-              </div>
+              <div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">Printed Name</div>
             </div>
           </div>
         </Section>
+        )}
 
         {/* 9. FOOTER */}
         <Section>
