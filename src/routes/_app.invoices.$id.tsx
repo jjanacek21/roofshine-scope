@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { InvoicePreview } from "@/components/invoices/InvoicePreview";
 import { RecordPaymentDialog } from "@/components/invoices/RecordPaymentDialog";
 import { DesignWithAIDialog } from "@/components/invoices/DesignWithAIDialog";
+import { downloadInvoicePdf } from "@/lib/invoice-pdf";
 
 export const Route = createFileRoute("/_app/invoices/$id")({
   component: EditInvoicePage,
