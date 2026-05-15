@@ -84,6 +84,7 @@ import { Route as AppJobsIdReportRouteImport } from './routes/_app.jobs.$id.repo
 import { Route as AppJobsIdPhotosRouteImport } from './routes/_app.jobs.$id.photos'
 import { Route as AppJobsIdOrderFormRouteImport } from './routes/_app.jobs.$id.order-form'
 import { Route as AppJobsIdMeasureRouteImport } from './routes/_app.jobs.$id.measure'
+import { Route as AppJobsIdInvoicesRouteImport } from './routes/_app.jobs.$id.invoices'
 import { Route as AppJobsIdEstimateRouteImport } from './routes/_app.jobs.$id.estimate'
 import { Route as AppJobsIdContractRouteImport } from './routes/_app.jobs.$id.contract'
 
@@ -463,6 +464,11 @@ const AppJobsIdMeasureRoute = AppJobsIdMeasureRouteImport.update({
   path: '/measure',
   getParentRoute: () => AppJobsIdRoute,
 } as any)
+const AppJobsIdInvoicesRoute = AppJobsIdInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => AppJobsIdRoute,
+} as any)
 const AppJobsIdEstimateRoute = AppJobsIdEstimateRouteImport.update({
   id: '/estimate',
   path: '/estimate',
@@ -545,6 +551,7 @@ export interface FileRoutesByFullPath {
   '/team/': typeof AppTeamIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
+  '/jobs/$id/invoices': typeof AppJobsIdInvoicesRoute
   '/jobs/$id/measure': typeof AppJobsIdMeasureRoute
   '/jobs/$id/order-form': typeof AppJobsIdOrderFormRoute
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
@@ -619,6 +626,7 @@ export interface FileRoutesByTo {
   '/team': typeof AppTeamIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
+  '/jobs/$id/invoices': typeof AppJobsIdInvoicesRoute
   '/jobs/$id/measure': typeof AppJobsIdMeasureRoute
   '/jobs/$id/order-form': typeof AppJobsIdOrderFormRoute
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
@@ -699,6 +707,7 @@ export interface FileRoutesById {
   '/_app/team/': typeof AppTeamIndexRoute
   '/_app/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/_app/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
+  '/_app/jobs/$id/invoices': typeof AppJobsIdInvoicesRoute
   '/_app/jobs/$id/measure': typeof AppJobsIdMeasureRoute
   '/_app/jobs/$id/order-form': typeof AppJobsIdOrderFormRoute
   '/_app/jobs/$id/photos': typeof AppJobsIdPhotosRoute
@@ -779,6 +788,7 @@ export interface FileRouteTypes {
     | '/team/'
     | '/jobs/$id/contract'
     | '/jobs/$id/estimate'
+    | '/jobs/$id/invoices'
     | '/jobs/$id/measure'
     | '/jobs/$id/order-form'
     | '/jobs/$id/photos'
@@ -853,6 +863,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/jobs/$id/contract'
     | '/jobs/$id/estimate'
+    | '/jobs/$id/invoices'
     | '/jobs/$id/measure'
     | '/jobs/$id/order-form'
     | '/jobs/$id/photos'
@@ -932,6 +943,7 @@ export interface FileRouteTypes {
     | '/_app/team/'
     | '/_app/jobs/$id/contract'
     | '/_app/jobs/$id/estimate'
+    | '/_app/jobs/$id/invoices'
     | '/_app/jobs/$id/measure'
     | '/_app/jobs/$id/order-form'
     | '/_app/jobs/$id/photos'
@@ -1493,6 +1505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJobsIdMeasureRouteImport
       parentRoute: typeof AppJobsIdRoute
     }
+    '/_app/jobs/$id/invoices': {
+      id: '/_app/jobs/$id/invoices'
+      path: '/invoices'
+      fullPath: '/jobs/$id/invoices'
+      preLoaderRoute: typeof AppJobsIdInvoicesRouteImport
+      parentRoute: typeof AppJobsIdRoute
+    }
     '/_app/jobs/$id/estimate': {
       id: '/_app/jobs/$id/estimate'
       path: '/estimate'
@@ -1580,6 +1599,7 @@ const AppTeamRouteWithChildren =
 interface AppJobsIdRouteChildren {
   AppJobsIdContractRoute: typeof AppJobsIdContractRoute
   AppJobsIdEstimateRoute: typeof AppJobsIdEstimateRoute
+  AppJobsIdInvoicesRoute: typeof AppJobsIdInvoicesRoute
   AppJobsIdMeasureRoute: typeof AppJobsIdMeasureRoute
   AppJobsIdOrderFormRoute: typeof AppJobsIdOrderFormRoute
   AppJobsIdPhotosRoute: typeof AppJobsIdPhotosRoute
@@ -1590,6 +1610,7 @@ interface AppJobsIdRouteChildren {
 const AppJobsIdRouteChildren: AppJobsIdRouteChildren = {
   AppJobsIdContractRoute: AppJobsIdContractRoute,
   AppJobsIdEstimateRoute: AppJobsIdEstimateRoute,
+  AppJobsIdInvoicesRoute: AppJobsIdInvoicesRoute,
   AppJobsIdMeasureRoute: AppJobsIdMeasureRoute,
   AppJobsIdOrderFormRoute: AppJobsIdOrderFormRoute,
   AppJobsIdPhotosRoute: AppJobsIdPhotosRoute,
