@@ -8,7 +8,9 @@ import { PublicStripeCheckout } from "@/components/invoices/StripeCheckout";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Building2 } from "lucide-react";
+import { CreditCard, Building2, Download } from "lucide-react";
+import { downloadInvoicePdf } from "@/lib/invoice-pdf";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/pay/$token")({
   component: PublicPayPage,
