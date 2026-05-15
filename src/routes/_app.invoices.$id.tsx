@@ -114,6 +114,7 @@ function EditInvoicePage() {
     onSuccess: () => { toast.success("Marked as sent"); qc.invalidateQueries({ queryKey: ["invoice", id] }); },
   });
 
+  if (!isValidId) return <div className="p-6 text-muted-foreground">Invalid invoice id. <Link to="/jobs" className="underline">Back to jobs</Link></div>;
   if (isLoading || !data?.invoice) return <div className="p-6 text-muted-foreground">Loading…</div>;
 
   const inv = data.invoice as any;
