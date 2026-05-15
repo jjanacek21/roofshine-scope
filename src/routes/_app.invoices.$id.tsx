@@ -49,17 +49,18 @@ function EditInvoicePage() {
   const [recordOpen, setRecordOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
 
+  const isValidId = !!id && id !== "undefined" && /^[0-9a-f]{8}-/i.test(id);
+
   const { data, isLoading } = useQuery({
     queryKey: ["invoice", id],
+    enabled: isValidId,
     queryFn: async () => {
-      const [{ data: invoice }, { data: lines }, { data: payments }, { data: templates }, { data: company }] = await Promise.all([
+      const [{ data: invoice }, { data: lines }, { data: payments }, { data: company }] = await Promise.all([
         supabase.from("invoices").select("*").eq("id", id).single(),
         supabase.from("invoice_line_items").select("*").eq("invoice_id", id).order("sort_order"),
         supabase.from("invoice_payments").select("*").eq("invoice_id", id).eq("status", "succeeded").order("paid_at"),
-        supabase.from("invoice_templates").select("*").or("company_id.is.null,company_id.eq." + (await supabase.auth.getUser()).data.user?.id),
         supabase.from("companies").select("*").limit(1).maybeSingle(),
       ]);
-      // fetch templates for this company too
       const { data: tplAll } = await supabase.from("invoice_templates").select("*").order("kind").order("name");
       return { invoice, lines: lines ?? [], payments: payments ?? [], templates: tplAll ?? [], company };
     },
@@ -113,6 +114,7 @@ function EditInvoicePage() {
     onSuccess: () => { toast.success("Marked as sent"); qc.invalidateQueries({ queryKey: ["invoice", id] }); },
   });
 
+  if (!isValidId) return <div className="p-6 text-muted-foreground">Invalid invoice id. <Link to="/jobs" className="underline">Back to jobs</Link></div>;
   if (isLoading || !data?.invoice) return <div className="p-6 text-muted-foreground">Loading…</div>;
 
   const inv = data.invoice as any;
