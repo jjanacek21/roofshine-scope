@@ -21,9 +21,14 @@ export async function generateProposalPdf({
   const pdf = new jsPDF("p", "pt", "letter");
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 24;
+  const contentWidth = pageWidth - margin * 2;
+  const contentHeight = pageHeight - margin * 2;
+  const sectionGap = 12;
+
+  let cursorY = margin;
 
   for (let i = 0; i < sections.length; i++) {
-    if (i > 0) pdf.addPage();
     const canvas = await html2canvas(sections[i], {
       backgroundColor: "#ffffff",
       scale: 2,
@@ -33,14 +38,24 @@ export async function generateProposalPdf({
     });
     const imgData = canvas.toDataURL("image/jpeg", 0.92);
     const ratio = canvas.height / canvas.width;
-    let imgWidth = pageWidth;
+    let imgWidth = contentWidth;
     let imgHeight = imgWidth * ratio;
-    if (imgHeight > pageHeight) {
-      imgHeight = pageHeight;
+
+    // If section is taller than a full page, scale it down to fit one page.
+    if (imgHeight > contentHeight) {
+      imgHeight = contentHeight;
       imgWidth = imgHeight / ratio;
     }
+
+    const remaining = pageHeight - margin - cursorY;
+    if (imgHeight > remaining && cursorY > margin) {
+      pdf.addPage();
+      cursorY = margin;
+    }
+
     const x = (pageWidth - imgWidth) / 2;
-    pdf.addImage(imgData, "JPEG", x, 0, imgWidth, imgHeight);
+    pdf.addImage(imgData, "JPEG", x, cursorY, imgWidth, imgHeight);
+    cursorY += imgHeight + sectionGap;
   }
 
   const blob = pdf.output("blob");
