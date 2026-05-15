@@ -75,6 +75,7 @@ import { Route as AppJobsNewRouteImport } from './routes/_app.jobs.new'
 import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AppJobsIdReportRouteImport } from './routes/_app.jobs.$id.report'
 import { Route as AppJobsIdPhotosRouteImport } from './routes/_app.jobs.$id.photos'
 import { Route as AppJobsIdOrderFormRouteImport } from './routes/_app.jobs.$id.order-form'
@@ -412,6 +413,12 @@ const AppJobsIdIndexRoute = AppJobsIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppJobsIdRoute,
 } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AppJobsIdReportRoute = AppJobsIdReportRouteImport.update({
   id: '/report',
   path: '/report',
@@ -514,6 +521,7 @@ export interface FileRoutesByFullPath {
   '/jobs/$id/order-form': typeof AppJobsIdOrderFormRoute
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/jobs/$id/': typeof AppJobsIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -583,6 +591,7 @@ export interface FileRoutesByTo {
   '/jobs/$id/order-form': typeof AppJobsIdOrderFormRoute
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/jobs/$id': typeof AppJobsIdIndexRoute
 }
 export interface FileRoutesById {
@@ -658,6 +667,7 @@ export interface FileRoutesById {
   '/_app/jobs/$id/order-form': typeof AppJobsIdOrderFormRoute
   '/_app/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/_app/jobs/$id/report': typeof AppJobsIdReportRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/_app/jobs/$id/': typeof AppJobsIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -733,6 +743,7 @@ export interface FileRouteTypes {
     | '/jobs/$id/order-form'
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
+    | '/api/public/payments/webhook'
     | '/jobs/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -802,6 +813,7 @@ export interface FileRouteTypes {
     | '/jobs/$id/order-form'
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
+    | '/api/public/payments/webhook'
     | '/jobs/$id'
   id:
     | '__root__'
@@ -876,6 +888,7 @@ export interface FileRouteTypes {
     | '/_app/jobs/$id/order-form'
     | '/_app/jobs/$id/photos'
     | '/_app/jobs/$id/report'
+    | '/api/public/payments/webhook'
     | '/_app/jobs/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -901,6 +914,7 @@ export interface RootRouteChildren {
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
   CSlugRoute: typeof CSlugRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1367,6 +1381,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJobsIdIndexRouteImport
       parentRoute: typeof AppJobsIdRoute
     }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/jobs/$id/report': {
       id: '/_app/jobs/$id/report'
       path: '/report'
@@ -1621,6 +1642,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
   CSlugRoute: CSlugRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
