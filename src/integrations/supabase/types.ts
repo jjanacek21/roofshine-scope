@@ -256,6 +256,7 @@ export type Database = {
         Row: {
           address: string | null
           auto_add_photo_suggestions: boolean
+          bank_instructions: Json | null
           created_at: string
           default_markup: number
           default_markup_pct: number
@@ -277,6 +278,7 @@ export type Database = {
         Insert: {
           address?: string | null
           auto_add_photo_suggestions?: boolean
+          bank_instructions?: Json | null
           created_at?: string
           default_markup?: number
           default_markup_pct?: number
@@ -298,6 +300,7 @@ export type Database = {
         Update: {
           address?: string | null
           auto_add_photo_suggestions?: boolean
+          bank_instructions?: Json | null
           created_at?: string
           default_markup?: number
           default_markup_pct?: number
@@ -919,7 +922,7 @@ export type Database = {
       }
       invoice_templates: {
         Row: {
-          company_id: string
+          company_id: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -931,7 +934,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          company_id: string
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -943,7 +946,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          company_id?: string
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string

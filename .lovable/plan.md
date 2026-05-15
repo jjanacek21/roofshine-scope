@@ -1,65 +1,119 @@
 
-# Plan: Profile cleanup, job wipe, invoicing + payments
+# Custom Invoice Maker
 
-## Part 1 — Cleanup (one-time data work)
+Schema already exists (`invoices`, `invoice_line_items`, `invoice_payments`, `invoice_templates`, `invoice_payment_intents`). Triggers auto-recompute totals, balance, and status. Missing: UI, AI template designer, payment flows.
 
-### 1a. Merge Jared profiles
-- Canonical: `e728ce16-ccdb-437e-ab2a-0810312e189d` (auth email `jaredjjanacek@gmail.com`, last sign-in May 13, owns 1,258 leads + 67 photos).
-- Reassign every FK on the duplicate `7af929a0-e652-4fd4-a1b1-a67c0f05e0e1` (`jared@globalcontractor.network`) to the canonical id across: `leads.created_by/assigned_to`, `jobs.created_by/assigned_to`, `lead_activities.user_id`, `lead_notes.user_id`, `lead_documents.uploaded_by`, `lead_reports.created_by`, `job_photos.uploaded_by`, `job_property_analyses.created_by`, `generated_reports.created_by`, `estimates`, `contracts.rep_user_id`, `job_order_*` actor/created_by/approved_by columns, `audit_log.actor_user_id`, `company_invites.invited_by`, `company_join_requests.user_id/decided_by`, `ai_measurement_runs.reviewed_by/user_id`.
-- Delete the duplicate `profiles` row, then delete `auth.users` row for `7af929a0`.
-- Log the merge in `audit_log`.
+## What you'll get
 
-### 1b. Wipe ALL test jobs
-Delete every row in `jobs` and cascade-clean dependent rows (in this order to respect FKs):
-`estimate_line_items` → `estimates` → `job_order_history` → `job_order_snapshots` → `job_order_drafts` → `job_property_analyses` → `job_photos` (+ delete underlying objects in `roof-photos` storage) → `contracts` (+ generated PDFs in `contracts` bucket) → `generated_reports` (+ `generated-pdfs`) → `ai_measurement_runs` tied to jobs → `jobs`.
-Leads, clients, companies, price books, catalog all preserved.
+1. **`/invoices`** — list of all your invoices (status pills, total, paid, due, search/filter by job/client/status).
+2. **`/invoices/new`** — pick a job (auto-fills client + property + contract price from latest approved order snapshot), or start blank. Default total = approved snapshot's `total_with_tax`. You can override.
+3. **`/invoices/$id/edit`** — full editor:
+   - Customer block (name/address/email/phone, auto-filled from client, editable).
+   - Line items: **add custom** (name + qty + unit + price) OR **search catalog** via the existing `AddLineItemCombobox` (line_item_master). Drag to reorder, edit inline.
+   - Discount, tax %, notes, terms, due date.
+   - Template picker (4 presets + "Design with AI" — see below).
+   - Live preview pane on the right (renders the selected template with your data).
+   - Save / Send / Mark sent / Void / Download PDF.
+4. **`/invoices/$id/pay`** (public, token-gated via `public_pay_token`) — what your customer sees:
+   - Branded invoice with company logo, line items, total, amount paid, **amount due**.
+   - Payment buttons: **Pay with Card**, **Pay with Link**, **Pay with PayPal**, **Pay with Bank (ACH)**, plus a "Wire / check instructions" panel.
+   - Customer can pay **any amount** (defaults to `amount_due`) — supports partial payments.
+5. **Record payment dialog** (internal, on `/invoices/$id`) — manually log cash/check/wire/Zelle with reference + date. Status auto-updates to `partial` or `paid`.
 
-## Part 2 — Invoicing module
+## AI template designer
 
-### 2a. Schema (new tables)
-- `invoice_templates` — `id, company_id, name, kind ('preset' | 'ai'), layout jsonb (sections, colors, font, logo placement, terms, footer), preview_url, is_default, created_by, timestamps`. RLS: company members manage own; super_admin all.
-- `invoices` — `id, company_id, job_id (nullable), client_id (nullable), template_id, invoice_number (auto via per-company sequence), status (`draft|sent|partial|paid|void|overdue`), issue_date, due_date, currency, notes, terms, subtotal, discount, tax_pct, tax, total, amount_paid, amount_due, pdf_path, sent_at, created_by, timestamps`.
-- `invoice_line_items` — `id, invoice_id, sort_order, kind ('catalog'|'custom'), line_item_master_id (nullable), name, description, qty, unit, unit_price, total`.
-- `invoice_payments` — `id, invoice_id, company_id, method ('stripe'|'paypal'|'cash'|'check'|'ach'|'other'), amount, currency, status ('pending'|'succeeded'|'failed'|'refunded'), provider_id (Stripe PaymentIntent / PayPal capture id), provider_meta jsonb, paid_at, recorded_by, timestamps`.
-- Trigger to auto-roll `invoice.amount_paid`, `amount_due`, and `status` whenever `invoice_payments` changes.
-- Trigger for per-company `invoice_number` (e.g. `INV-2026-0001`).
+Two modes in the template picker:
+- **4 presets** seeded once: Classic, Modern, Minimal, Bold. Stored as `invoice_templates` rows with `kind='preset'`, shared at `company_id = NULL`.
+- **"Design with AI"** dialog: free-text prompt ("clean dark mode with gold accents, big logo top-right"). Calls a `createServerFn` `generateInvoiceTemplate` that hits Lovable AI Gateway (`google/gemini-2.5-pro`) with a strict JSON schema for `layout` (colors, fonts, header style, line-item table style, footer style, accent stripes, etc.). Saves as `invoice_templates` with `kind='ai'`, `company_id = your company`. Renders live in the preview pane. You can edit, duplicate, set as default.
 
-### 2b. UI (new routes under `_app`)
-- `/invoices` — list, filter by status/client/job, search.
-- `/invoices/new` — picker: standalone OR from a job (pre-fills client + line items from approved order snapshot/estimate).
-- `/invoices/$id` — editor:
-  - Header: company logo, name, address, phone, email, license #s (from `companies`); customer block (from `clients`); job link.
-  - Template picker (preset list + "Design with AI") — sets `template_id`.
-  - Line items table with two add modes:
-    1. **Search catalog** — combobox over `line_item_master` (mirrors `AddLineItemCombobox.tsx`).
-    2. **Custom line item** — name / desc / qty / unit / unit price.
-  - Discount, tax %, notes, terms.
-  - Totals panel: subtotal, discount, tax, total, paid, balance due.
-  - Actions: Save draft · Preview PDF · Send (email via Resend, attach PDF) · Record payment · Charge card (Stripe) · Charge with PayPal · Mark void.
-- `/invoices/$id/pay` — public-ish payment page (token-gated link the customer receives) showing balance + Stripe Card Element + PayPal button.
+The PDF renderer (`src/lib/invoice-pdf.ts`, jsPDF-based, mirrors existing `lead-report-pdf.ts`) reads the `layout` JSON and renders accordingly — same code path for preset and AI templates.
 
-### 2c. AI templates
-- **Preset gallery** (4 layouts): Classic, Modern, Minimal, Bold. Each is a JSON layout schema with section order, font pair, accent color, logo placement.
-- **"Design with AI"** dialog: prompt + tone + accent color → calls `createServerFn` `generateInvoiceTemplate` which uses Lovable AI (Gemini 2.5 Pro) with a strict JSON schema → stored as a new `invoice_templates` row with `kind = 'ai'`. Free-form HTML is NOT used — AI fills the same layout schema so PDF rendering stays predictable.
-- PDF generated server-side from the layout schema (reuses jsPDF approach already in `src/lib/pdf-generator.ts`/`lead-report-pdf.ts`).
+## Payment flows
 
-### 2d. Payments
-- **Stripe** (built-in seamless Lovable Payments): enable via `payments--enable_stripe_payments` after running `payments--recommend_payment_provider`. Use Stripe Checkout / PaymentIntents for card + Apple/Google Pay + ACH. Server fn `createInvoiceCheckout` returns a hosted URL or PaymentIntent client secret. Webhook at `/api/public/webhooks/stripe` verifies signature, looks up invoice via `client_reference_id`, inserts a row into `invoice_payments` with `method='stripe'` and `status='succeeded'`.
-- **PayPal** (BYO credentials): user provides REST API client id + secret (added via `add_secret`). Server fns `createPayPalOrder` and `capturePayPalOrder` hit the PayPal REST API; webhook at `/api/public/webhooks/paypal` (signature-verified) records captures into `invoice_payments`.
-- **Manual**: "Record payment" dialog (cash/check/ACH/other) inserts into `invoice_payments` directly.
+### Stripe (card + Link + ACH)
+- New `src/lib/stripe.server.ts` (gateway-routed client).
+- `createInvoiceCheckout` server fn: takes `invoiceId` + `amount`, creates a Stripe Checkout Session in `payment` mode with `payment_method_types: ['card', 'link', 'us_bank_account']`, writes a row to `invoice_payment_intents`, returns the hosted URL.
+- Webhook at `/api/public/payments/webhook` (`?env=sandbox|live`): verifies signature, on `checkout.session.completed` looks up the `invoice_payment_intents` row by `session.id`, inserts an `invoice_payments` row (`method='stripe'`, `status='succeeded'`, amount from session). Triggers auto-recompute balance + status.
 
-### 2e. Sidebar + nav
-Add "Invoices" entry to `AppSidebar.tsx` with a receipt icon, between Jobs and Settings.
+### PayPal
+- New `src/lib/paypal.server.ts` (REST API, sandbox + live by env var).
+- `createPayPalOrder` + `capturePayPalOrder` server fns. PayPal JS SDK button on the public pay page.
+- Webhook at `/api/public/paypal/webhook`: verifies signature with `PAYPAL_WEBHOOK_ID`, on `PAYMENT.CAPTURE.COMPLETED` inserts `invoice_payments` row (`method='paypal'`).
+- Needs 3 secrets: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID` — I'll request them only when you're ready to enable PayPal. Card/Link/ACH via Stripe works immediately.
 
-## Order of execution
-1. Confirm plan → run cleanup migration (Part 1a + 1b) in one transaction.
-2. Run invoicing schema migration (Part 2a).
-3. Recommend + enable Stripe (built-in).
-4. Request PayPal credentials via `add_secret`.
-5. Build UI: list → editor → template picker → AI generator → payment flows → public pay page.
-6. Wire webhooks, test end-to-end with Stripe test cards and PayPal sandbox.
+### Bank transfer / wire / check
+- Two paths:
+  - On the public page: a "Pay by ACH" button uses Stripe's `us_bank_account` flow (above).
+  - "Wire / check" panel shows your bank instructions (configurable on company settings: routing, account, memo) — customer mails or wires, you log it manually via the **Record payment** dialog.
 
-## Notes
-- All work scoped by `company_id = auth_company_id()`; super_admin policies mirror existing tables.
-- Reusing existing patterns: `AddLineItemCombobox`, `useCompany`, `lead-report-pdf.ts`, snapshot-style server functions.
-- Public pay page lives at `/api/public/pay/$token` (signed token, no auth required).
+### Partial payments
+- All flows write rows to `invoice_payments` with whatever `amount` was paid. The `recompute_invoice_balance` trigger sums them and sets status to `paid` only when `sum >= total`, otherwise `partial`. Multiple payments per invoice supported natively.
+
+## Pulling contract price from a job
+
+When you click "Create invoice" from a job:
+- Loads the latest `job_order_snapshots` row where `status='approved'`.
+- Pre-fills line items from `materials` + `labor` JSONB (or one consolidated "Contract — {job name}" line at the snapshot's grand total — your choice via a toggle in the new-invoice dialog).
+- Pre-fills customer block from `clients` joined via `jobs.client_id`.
+- Pre-fills property address from `jobs.property_address`.
+
+## File map
+
+```text
+src/lib/
+├── stripe.server.ts                 (new — gateway client + verifyWebhook)
+├── paypal.server.ts                 (new — REST helpers; deferred until creds)
+├── invoice-pdf.ts                   (new — jsPDF renderer reading layout JSON)
+├── invoices.functions.ts            (new — CRUD + sendInvoice + recordPayment)
+├── invoice-templates.functions.ts   (new — list/create/duplicate + generateInvoiceTemplate AI fn)
+└── payments.functions.ts            (new — createInvoiceCheckout + createPayPalOrder)
+
+src/routes/
+├── _app.invoices.index.tsx          (new — list page)
+├── _app.invoices.new.tsx            (new — pick job + template, prefill)
+├── _app.invoices.$id.tsx            (new — editor with live preview + record-payment dialog)
+├── pay.$token.tsx                   (new — public page, no auth)
+└── api/public/
+    ├── payments/webhook.ts          (new — Stripe webhook)
+    └── paypal/webhook.ts            (new — PayPal webhook, deferred until creds)
+
+src/components/invoices/
+├── InvoiceEditor.tsx
+├── InvoiceLineItemRow.tsx
+├── InvoiceTemplatePicker.tsx
+├── DesignWithAIDialog.tsx
+├── InvoicePreview.tsx               (renders layout JSON in browser, mirror of PDF)
+├── RecordPaymentDialog.tsx
+└── PublicPayButtons.tsx
+
+src/hooks/useInvoice.ts
+```
+
+Plus a tiny migration to:
+- Add `bank_instructions` jsonb (routing, account, memo) to `companies`.
+- Seed the 4 preset `invoice_templates` rows (`company_id = NULL`, `kind = 'preset'`).
+- Add a nav link to `/invoices` in `AppSidebar`.
+
+## Build order
+
+1. Migration (preset templates + `companies.bank_instructions`).
+2. `stripe.server.ts` + webhook handler + `createInvoiceCheckout` fn.
+3. Invoice list + editor + line-item search/custom + record-payment dialog (full internal flow).
+4. `invoice-pdf.ts` + 4 preset templates rendering.
+5. AI template designer (Gemini 2.5 Pro + strict JSON schema).
+6. Public `/pay/$token` page with Stripe button (card/Link/ACH all work via one Checkout Session).
+7. PayPal — once you give the word, I'll request the 3 secrets and add the button + webhook.
+
+## How to test in the preview
+
+1. **Pick this job** (already loaded: `4debbc0e-…`) → click **Create invoice** → choose "Use approved contract price" → editor opens with one line item totaling the contract amount.
+2. Add a custom line: "Extra gutter run, 40 LF, $12/LF" → save.
+3. Click **Preview & Send** → "Copy public pay link" → open in incognito tab.
+4. On the public page, click **Pay with Card**, enter Stripe test card **`4242 4242 4242 4242`**, any future expiry (e.g. `12/34`), any CVC (e.g. `123`), any ZIP. Submit.
+5. Stripe redirects back. Webhook fires within ~1 sec → invoice status flips to **paid**, `amount_paid` matches.
+6. Test partial: create another invoice for $1000 → on public page change amount to $300 → pay → status becomes **partial**, `amount_due = $700`.
+7. Test ACH: same flow, pick "US bank account" → use Stripe's test routing `110000000` and account `000123456789`. Auto-verifies in test mode.
+8. Test manual: open invoice → **Record payment** → "Check #1234, $200, today" → status updates to **partial** or **paid**.
+9. Test AI template: open editor → template picker → **Design with AI** → "navy blue, white background, big logo top-left, monospace prices, no border on table" → preview updates → save → set as default → export PDF.
+
+When you're ready for PayPal, say the word and I'll request the 3 secrets and wire the button.
