@@ -733,6 +733,279 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_line_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          invoice_id: string
+          kind: Database["public"]["Enums"]["invoice_line_kind"]
+          line_item_master_id: string | null
+          name: string
+          qty: number
+          sort_order: number
+          total: number
+          unit: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_id: string
+          kind?: Database["public"]["Enums"]["invoice_line_kind"]
+          line_item_master_id?: string | null
+          name: string
+          qty?: number
+          sort_order?: number
+          total?: number
+          unit?: string
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_id?: string
+          kind?: Database["public"]["Enums"]["invoice_line_kind"]
+          line_item_master_id?: string | null
+          name?: string
+          qty?: number
+          sort_order?: number
+          total?: number
+          unit?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_number_sequences: {
+        Row: {
+          company_id: string
+          next_value: number
+          year: number
+        }
+        Insert: {
+          company_id: string
+          next_value?: number
+          year: number
+        }
+        Update: {
+          company_id?: string
+          next_value?: number
+          year?: number
+        }
+        Relationships: []
+      }
+      invoice_payments: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          currency: string
+          id: string
+          invoice_id: string
+          method: Database["public"]["Enums"]["invoice_payment_method"]
+          paid_at: string
+          provider_id: string | null
+          provider_meta: Json
+          recorded_by: string | null
+          reference: string | null
+          status: Database["public"]["Enums"]["invoice_payment_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_id: string
+          method: Database["public"]["Enums"]["invoice_payment_method"]
+          paid_at?: string
+          provider_id?: string | null
+          provider_meta?: Json
+          recorded_by?: string | null
+          reference?: string | null
+          status?: Database["public"]["Enums"]["invoice_payment_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_id?: string
+          method?: Database["public"]["Enums"]["invoice_payment_method"]
+          paid_at?: string
+          provider_id?: string | null
+          provider_meta?: Json
+          recorded_by?: string | null
+          reference?: string | null
+          status?: Database["public"]["Enums"]["invoice_payment_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_templates: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_default: boolean
+          kind: Database["public"]["Enums"]["invoice_template_kind"]
+          layout: Json
+          name: string
+          preview_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          kind?: Database["public"]["Enums"]["invoice_template_kind"]
+          layout?: Json
+          name: string
+          preview_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          kind?: Database["public"]["Enums"]["invoice_template_kind"]
+          layout?: Json
+          name?: string
+          preview_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          amount_due: number
+          amount_paid: number
+          client_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_address: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          discount: number
+          due_date: string | null
+          id: string
+          invoice_number: string
+          issue_date: string
+          job_id: string | null
+          notes: string | null
+          pdf_path: string | null
+          public_pay_token: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          subtotal: number
+          tax: number
+          tax_pct: number
+          template_id: string | null
+          terms: string | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          amount_due?: number
+          amount_paid?: number
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_address?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          discount?: number
+          due_date?: string | null
+          id?: string
+          invoice_number: string
+          issue_date?: string
+          job_id?: string | null
+          notes?: string | null
+          pdf_path?: string | null
+          public_pay_token?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tax?: number
+          tax_pct?: number
+          template_id?: string | null
+          terms?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_due?: number
+          amount_paid?: number
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_address?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          discount?: number
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          job_id?: string | null
+          notes?: string | null
+          pdf_path?: string | null
+          public_pay_token?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tax?: number
+          tax_pct?: number
+          template_id?: string | null
+          terms?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_order_drafts: {
         Row: {
           company_id: string
@@ -2785,6 +3058,14 @@ export type Database = {
           name: string
         }[]
       }
+      recompute_invoice_balance: {
+        Args: { _invoice_id: string }
+        Returns: undefined
+      }
+      recompute_invoice_totals: {
+        Args: { _invoice_id: string }
+        Returns: undefined
+      }
       reject_join_request: { Args: { _id: string }; Returns: Json }
       reject_order_snapshot: {
         Args: { _id: string; _note?: string }
@@ -2892,6 +3173,17 @@ export type Database = {
       companion_rule_type: "required" | "recommended" | "conditional"
       estimate_doc_status: "draft" | "sent" | "approved" | "rejected"
       estimate_status: "draft" | "sent" | "approved" | "rejected"
+      invoice_line_kind: "catalog" | "custom"
+      invoice_payment_method:
+        | "stripe"
+        | "paypal"
+        | "cash"
+        | "check"
+        | "ach"
+        | "other"
+      invoice_payment_status: "pending" | "succeeded" | "failed" | "refunded"
+      invoice_status: "draft" | "sent" | "partial" | "paid" | "void" | "overdue"
+      invoice_template_kind: "preset" | "ai"
       job_status:
         | "lead"
         | "inspected"
@@ -3090,6 +3382,18 @@ export const Constants = {
       companion_rule_type: ["required", "recommended", "conditional"],
       estimate_doc_status: ["draft", "sent", "approved", "rejected"],
       estimate_status: ["draft", "sent", "approved", "rejected"],
+      invoice_line_kind: ["catalog", "custom"],
+      invoice_payment_method: [
+        "stripe",
+        "paypal",
+        "cash",
+        "check",
+        "ach",
+        "other",
+      ],
+      invoice_payment_status: ["pending", "succeeded", "failed", "refunded"],
+      invoice_status: ["draft", "sent", "partial", "paid", "void", "overdue"],
+      invoice_template_kind: ["preset", "ai"],
       job_status: [
         "lead",
         "inspected",
