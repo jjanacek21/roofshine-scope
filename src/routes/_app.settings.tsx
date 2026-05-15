@@ -202,8 +202,8 @@ function CompanyTab() {
       <Field label="Phone" value={phone} onChange={setPhone} />
       <Field label="Email" value={email} onChange={setEmail} type="email" />
       <Field label="Address" value={address} onChange={setAddress} />
-      <Field label="Website" value={website} onChange={setWebsite} placeholder="globalcontractor.network" />
-      <Field label="Logo URL" value={logoUrl} onChange={setLogoUrl} placeholder="https://…/logo.png" />
+      <Field label="Website" value={website} onChange={setWebsite} />
+      <Field label="Logo URL" value={logoUrl} onChange={setLogoUrl} />
       {logoUrl && (
         <div className="rounded-lg border border-border bg-card p-3">
           <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Logo preview</div>
