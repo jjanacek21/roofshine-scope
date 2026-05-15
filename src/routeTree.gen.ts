@@ -19,6 +19,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as PayTokenRouteImport } from './routes/pay.$token'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
@@ -75,6 +76,7 @@ import { Route as AppLeadsFollowupRouteImport } from './routes/_app.leads.follow
 import { Route as AppJobsNewRouteImport } from './routes/_app.jobs.new'
 import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
 import { Route as AppInvoicesNewRouteImport } from './routes/_app.invoices.new'
+import { Route as AppInvoicesIdRouteImport } from './routes/_app.invoices.$id'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -133,6 +135,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const PayTokenRoute = PayTokenRouteImport.update({
+  id: '/pay/$token',
+  path: '/pay/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CSlugRoute = CSlugRouteImport.update({
   id: '/c/$slug',
@@ -415,6 +422,11 @@ const AppInvoicesNewRoute = AppInvoicesNewRouteImport.update({
   path: '/invoices/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppInvoicesIdRoute = AppInvoicesIdRouteImport.update({
+  id: '/invoices/$id',
+  path: '/invoices/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppClientsIdRoute = AppClientsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -505,8 +517,10 @@ export interface FileRoutesByFullPath {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/pay/$token': typeof PayTokenRoute
   '/admin/': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
+  '/invoices/$id': typeof AppInvoicesIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
   '/jobs/$id': typeof AppJobsIdRouteWithChildren
   '/jobs/new': typeof AppJobsNewRoute
@@ -577,9 +591,11 @@ export interface FileRoutesByTo {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/pay/$token': typeof PayTokenRoute
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
+  '/invoices/$id': typeof AppInvoicesIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
   '/jobs/new': typeof AppJobsNewRoute
   '/leads/followup': typeof AppLeadsFollowupRoute
@@ -654,9 +670,11 @@ export interface FileRoutesById {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/pay/$token': typeof PayTokenRoute
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/_app/clients/$id': typeof AppClientsIdRoute
+  '/_app/invoices/$id': typeof AppInvoicesIdRoute
   '/_app/invoices/new': typeof AppInvoicesNewRoute
   '/_app/jobs/$id': typeof AppJobsIdRouteWithChildren
   '/_app/jobs/new': typeof AppJobsNewRoute
@@ -733,8 +751,10 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/pay/$token'
     | '/admin/'
     | '/clients/$id'
+    | '/invoices/$id'
     | '/invoices/new'
     | '/jobs/$id'
     | '/jobs/new'
@@ -805,9 +825,11 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/pay/$token'
     | '/'
     | '/admin'
     | '/clients/$id'
+    | '/invoices/$id'
     | '/invoices/new'
     | '/jobs/new'
     | '/leads/followup'
@@ -881,9 +903,11 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/pay/$token'
     | '/_app/'
     | '/admin/'
     | '/_app/clients/$id'
+    | '/_app/invoices/$id'
     | '/_app/invoices/new'
     | '/_app/jobs/$id'
     | '/_app/jobs/new'
@@ -937,6 +961,7 @@ export interface RootRouteChildren {
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
   CSlugRoute: typeof CSlugRoute
+  PayTokenRoute: typeof PayTokenRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
@@ -1012,6 +1037,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/pay/$token': {
+      id: '/pay/$token'
+      path: '/pay/$token'
+      fullPath: '/pay/$token'
+      preLoaderRoute: typeof PayTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/c/$slug': {
       id: '/c/$slug'
@@ -1405,6 +1437,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInvoicesNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/invoices/$id': {
+      id: '/_app/invoices/$id'
+      path: '/invoices/$id'
+      fullPath: '/invoices/$id'
+      preLoaderRoute: typeof AppInvoicesIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/clients/$id': {
       id: '/_app/clients/$id'
       path: '/$id'
@@ -1570,6 +1609,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppTeamRoute: typeof AppTeamRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
+  AppInvoicesIdRoute: typeof AppInvoicesIdRoute
   AppInvoicesNewRoute: typeof AppInvoicesNewRoute
   AppJobsIdRoute: typeof AppJobsIdRouteWithChildren
   AppJobsNewRoute: typeof AppJobsNewRoute
@@ -1585,6 +1625,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppTeamRoute: AppTeamRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
+  AppInvoicesIdRoute: AppInvoicesIdRoute,
   AppInvoicesNewRoute: AppInvoicesNewRoute,
   AppJobsIdRoute: AppJobsIdRouteWithChildren,
   AppJobsNewRoute: AppJobsNewRoute,
@@ -1683,6 +1724,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
   CSlugRoute: CSlugRoute,
+  PayTokenRoute: PayTokenRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
