@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { FileDown, Eye, EyeOff, Loader2 } from "lucide-react";
+import { FileDown, Eye, EyeOff, Loader2, Pencil, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
@@ -11,6 +11,66 @@ import { getTradeLabel } from "@/lib/trades";
 export const Route = createFileRoute("/_app/jobs/$id/report")({
   component: JobReport,
 });
+
+type SectionKey =
+  | "executive"
+  | "damage"
+  | "measurement"
+  | "investment"
+  | "documentation"
+  | "options"
+  | "terms"
+  | "footer";
+
+const SECTION_LABELS: Record<SectionKey, string> = {
+  executive: "Executive Summary",
+  damage: "Damage Summary",
+  measurement: "Measurement Report",
+  investment: "Investment",
+  documentation: "Documentation",
+  options: "Your Options",
+  terms: "Terms & Authorization",
+  footer: "Footer",
+};
+
+const ALL_SECTIONS: SectionKey[] = [
+  "executive",
+  "damage",
+  "measurement",
+  "investment",
+  "documentation",
+  "options",
+  "terms",
+  "footer",
+];
+
+type ReportOverrides = {
+  visible: Record<SectionKey, boolean>;
+  executiveText: string;
+  termsText: string;
+  warrantyText: string;
+  financingText: string;
+};
+
+const DEFAULT_OVERRIDES: ReportOverrides = {
+  visible: ALL_SECTIONS.reduce((acc, k) => ({ ...acc, [k]: true }), {} as Record<SectionKey, boolean>),
+  executiveText: "",
+  termsText: "",
+  warrantyText: "",
+  financingText: "",
+};
+
+function loadOverrides(jobId: string): ReportOverrides {
+  try {
+    const raw = localStorage.getItem(`report-overrides:${jobId}`);
+    if (!raw) return DEFAULT_OVERRIDES;
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_OVERRIDES, ...parsed, visible: { ...DEFAULT_OVERRIDES.visible, ...(parsed.visible ?? {}) } };
+  } catch {
+    return DEFAULT_OVERRIDES;
+  }
+}
+
 
 type JobRow = {
   id: string;
