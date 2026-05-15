@@ -340,10 +340,18 @@ function JobReport() {
         <div>
           <h2 className="text-base font-bold text-foreground">Proposal preview</h2>
           <p className="text-[12px] text-muted-foreground">
-            Live preview · 9 sections · {hidePricing ? "Pricing hidden" : "Pricing visible"}
+            Live preview · {Object.values(overrides.visible).filter(Boolean).length + 1} sections ·{" "}
+            {hidePricing ? "Pricing hidden" : "Pricing visible"}
           </p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setEditing((v) => !v)}
+            className="btn-ghost flex h-9 items-center gap-2 rounded-lg px-3.5 text-[13px] font-semibold"
+          >
+            {editing ? <Check className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+            {editing ? "Done editing" : "Edit report"}
+          </button>
           <button
             onClick={() => setHidePricing((v) => !v)}
             className="btn-ghost flex h-9 items-center gap-2 rounded-lg px-3.5 text-[13px] font-semibold"
@@ -366,6 +374,34 @@ function JobReport() {
         </div>
       </div>
 
+      {editing && (
+        <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--bg-card)" }}>
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            Sections to include
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ALL_SECTIONS.filter((k) => k !== "footer").map((k) => (
+              <label
+                key={k}
+                className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-[12px]"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <input
+                  type="checkbox"
+                  checked={overrides.visible[k]}
+                  onChange={() => toggleSection(k)}
+                />
+                {SECTION_LABELS[k]}
+              </label>
+            ))}
+          </div>
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            Tip: missing your phone, email, website or logo? Fill them in under{" "}
+            <a href="/settings" className="underline">Settings → Company</a>.
+          </p>
+        </div>
+      )}
+
       <div
         ref={previewRef}
         className="mx-auto space-y-6"
@@ -374,12 +410,21 @@ function JobReport() {
         {/* 1. COVER */}
         <Section>
           <div className="flex items-start justify-between">
-            <div
-              className="flex h-16 w-16 items-center justify-center rounded-lg text-xl font-extrabold text-white"
-              style={{ background: "linear-gradient(135deg, #1e90ff, #0c5fb3)" }}
-            >
-              {company?.name?.[0] ?? "B"}
-            </div>
+            {company?.logo_url ? (
+              <img
+                src={company.logo_url}
+                alt={company.name ?? "Logo"}
+                className="h-16 w-auto object-contain"
+                crossOrigin="anonymous"
+              />
+            ) : (
+              <div
+                className="flex h-16 w-16 items-center justify-center rounded-lg text-xl font-extrabold text-white"
+                style={{ background: "linear-gradient(135deg, #1e90ff, #0c5fb3)" }}
+              >
+                {company?.name?.[0] ?? "B"}
+              </div>
+            )}
             <div className="text-right font-mono-num text-[11px] text-neutral-500">
               <div>{job.job_number ?? "DRAFT"}</div>
               <div>{new Date().toLocaleDateString()}</div>
