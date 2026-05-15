@@ -165,12 +165,16 @@ function CompanyTab() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
+  const [website, setWebsite] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   useEffect(() => {
     if (company) {
       setName(company.name ?? "");
       setPhone(company.phone ?? "");
       setEmail(company.email ?? "");
       setAddress(company.address ?? "");
+      setWebsite(company.website ?? "");
+      setLogoUrl(company.logo_url ?? "");
     }
   }, [company]);
 
@@ -179,7 +183,7 @@ function CompanyTab() {
       if (!company) return;
       const { error } = await supabase
         .from("companies")
-        .update({ name, phone, email, address })
+        .update({ name, phone, email, address, website, logo_url: logoUrl })
         .eq("id", company.id);
       if (error) throw error;
     },
@@ -198,6 +202,14 @@ function CompanyTab() {
       <Field label="Phone" value={phone} onChange={setPhone} />
       <Field label="Email" value={email} onChange={setEmail} type="email" />
       <Field label="Address" value={address} onChange={setAddress} />
+      <Field label="Website" value={website} onChange={setWebsite} placeholder="globalcontractor.network" />
+      <Field label="Logo URL" value={logoUrl} onChange={setLogoUrl} placeholder="https://…/logo.png" />
+      {logoUrl && (
+        <div className="rounded-lg border border-border bg-card p-3">
+          <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Logo preview</div>
+          <img src={logoUrl} alt="Logo" className="h-16 w-auto object-contain" />
+        </div>
+      )}
       <button
         onClick={() => save.mutate()}
         disabled={save.isPending}
