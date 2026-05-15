@@ -534,7 +534,7 @@ function JobReport() {
         )}
 
         {/* 4. MEASUREMENT REPORT */}
-        {measurement && (
+        {overrides.visible.measurement && measurement && (
           <Section>
             <H2>Measurement Report</H2>
             {staticMapUrl && (
@@ -625,6 +625,7 @@ function JobReport() {
         )}
 
         {/* 5. INVESTMENT */}
+        {overrides.visible.investment && (
         <Section>
           <H2>Investment</H2>
           {lineItems.length === 0 ? (
@@ -699,9 +700,10 @@ function JobReport() {
             </>
           )}
         </Section>
+        )}
 
         {/* 6. DOCUMENTATION */}
-        {photos.length > 0 && (
+        {overrides.visible.documentation && photos.length > 0 && (
           <Section>
             <H2>Documentation</H2>
             <div className="grid grid-cols-2 gap-3">
@@ -726,7 +728,7 @@ function JobReport() {
         )}
 
         {/* 7. GOOD/BETTER/BEST */}
-        {estimates.length > 1 && !hidePricing && (
+        {overrides.visible.options && estimates.length > 1 && !hidePricing && (
           <Section>
             <H2>Your Options</H2>
             <table className="w-full text-[12px]">
@@ -755,18 +757,59 @@ function JobReport() {
         )}
 
         {/* 8. TERMS & SIGNATURE */}
+        {overrides.visible.terms && (
         <Section>
           <H2>Terms & Authorization</H2>
-          {company?.warranty_blurb && (
+          {editing ? (
+            <div className="space-y-3">
+              <div>
+                <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-neutral-700">Terms</div>
+                <textarea
+                  className="w-full rounded border border-neutral-300 p-2 text-[12px] text-neutral-800"
+                  rows={4}
+                  value={overrides.termsText}
+                  placeholder="Payment terms, scope notes, change order policy…"
+                  onChange={(e) => updateOverride("termsText", e.target.value)}
+                />
+              </div>
+              <div>
+                <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-neutral-700">Warranty</div>
+                <textarea
+                  className="w-full rounded border border-neutral-300 p-2 text-[12px] text-neutral-800"
+                  rows={3}
+                  value={overrides.warrantyText}
+                  placeholder={company?.warranty_blurb ?? "Warranty terms…"}
+                  onChange={(e) => updateOverride("warrantyText", e.target.value)}
+                />
+              </div>
+              <div>
+                <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-neutral-700">Financing</div>
+                <textarea
+                  className="w-full rounded border border-neutral-300 p-2 text-[12px] text-neutral-800"
+                  rows={3}
+                  value={overrides.financingText}
+                  placeholder={company?.financing_blurb ?? "Financing options…"}
+                  onChange={(e) => updateOverride("financingText", e.target.value)}
+                />
+              </div>
+            </div>
+          ) : (
             <>
-              <h3 className="mt-2 text-[13px] font-bold text-neutral-800">Warranty</h3>
-              <p className="text-[12px] leading-relaxed text-neutral-700">{company.warranty_blurb}</p>
-            </>
-          )}
-          {company?.financing_blurb && (
-            <>
-              <h3 className="mt-3 text-[13px] font-bold text-neutral-800">Financing</h3>
-              <p className="text-[12px] leading-relaxed text-neutral-700">{company.financing_blurb}</p>
+              {(overrides.termsText) && (
+                <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-neutral-700">{overrides.termsText}</p>
+              )}
+              {(overrides.warrantyText || company?.warranty_blurb) && (
+                <>
+                  <h3 className="mt-2 text-[13px] font-bold text-neutral-800">Warranty</h3>
+                  <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-neutral-700">{overrides.warrantyText || company?.warranty_blurb}</p>
+                </>
+              )}
+              {(overrides.financingText || company?.financing_blurb) && (
+                <>
+                  <h3 className="mt-3 text-[13px] font-bold text-neutral-800">Financing</h3>
+                  <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-neutral-700">{overrides.financingText || company?.financing_blurb}</p>
+                </>
+              )}
             </>
           )}
           {company?.license_numbers && company.license_numbers.length > 0 && (
@@ -777,9 +820,7 @@ function JobReport() {
           <div className="mt-6 grid grid-cols-2 gap-6">
             <div>
               <div className="border-b border-neutral-400 pb-1 text-neutral-300">·</div>
-              <div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">
-                Customer Signature
-              </div>
+              <div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">Customer Signature</div>
             </div>
             <div>
               <div className="border-b border-neutral-400 pb-1 text-neutral-300">·</div>
@@ -787,12 +828,11 @@ function JobReport() {
             </div>
             <div className="col-span-2">
               <div className="border-b border-neutral-400 pb-1 text-neutral-300">·</div>
-              <div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">
-                Printed Name
-              </div>
+              <div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">Printed Name</div>
             </div>
           </div>
         </Section>
+        )}
 
         {/* 9. FOOTER */}
         <Section>
