@@ -146,8 +146,37 @@ function EditInvoicePage() {
           <Button variant="outline" size="sm" onClick={() => window.open(payUrl, "_blank")}>
             Preview public page
           </Button>
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
-            <Printer className="h-4 w-4 mr-1" /> Print / PDF
+          <Button variant="outline" size="sm" onClick={async () => {
+            try {
+              await downloadInvoicePdf({
+                invoice: {
+                  invoice_number: inv.invoice_number,
+                  issue_date: inv.issue_date,
+                  due_date: meta.due_date || inv.due_date,
+                  customer_name: meta.customer_name,
+                  customer_email: meta.customer_email,
+                  customer_phone: meta.customer_phone,
+                  customer_address: meta.customer_address,
+                  notes: meta.notes,
+                  terms: meta.terms,
+                  subtotal,
+                  discount: meta.discount,
+                  tax_pct: meta.tax_pct,
+                  tax,
+                  total,
+                  amount_paid: Number(inv.amount_paid),
+                  amount_due: amountDue,
+                  currency: inv.currency || "USD",
+                },
+                lines: draft.map((l) => ({ name: l.name, description: l.description, qty: l.qty, unit: l.unit, unit_price: l.unit_price })),
+                company: data.company as any,
+                layout: (tpl as any)?.layout,
+              });
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "PDF failed");
+            }
+          }}>
+            <Printer className="h-4 w-4 mr-1" /> Download PDF
           </Button>
           <Button variant="outline" size="sm" onClick={() => setRecordOpen(true)}>
             <DollarSign className="h-4 w-4 mr-1" /> Record payment
