@@ -1,101 +1,65 @@
 
-## Goal
+# Plan: Profile cleanup, job wipe, invoicing + payments
 
-1. Audit the database for duplicate companies, leads, clients, jobs, profiles, and material catalog entries.
-2. Auto-merge "safe" duplicates and produce a review report for the rest.
-3. Make this Lovable Cloud backend usable from your other apps as a shared Supabase project.
+## Part 1 — Cleanup (one-time data work)
 
----
+### 1a. Merge Jared profiles
+- Canonical: `e728ce16-ccdb-437e-ab2a-0810312e189d` (auth email `jaredjjanacek@gmail.com`, last sign-in May 13, owns 1,258 leads + 67 photos).
+- Reassign every FK on the duplicate `7af929a0-e652-4fd4-a1b1-a67c0f05e0e1` (`jared@globalcontractor.network`) to the canonical id across: `leads.created_by/assigned_to`, `jobs.created_by/assigned_to`, `lead_activities.user_id`, `lead_notes.user_id`, `lead_documents.uploaded_by`, `lead_reports.created_by`, `job_photos.uploaded_by`, `job_property_analyses.created_by`, `generated_reports.created_by`, `estimates`, `contracts.rep_user_id`, `job_order_*` actor/created_by/approved_by columns, `audit_log.actor_user_id`, `company_invites.invited_by`, `company_join_requests.user_id/decided_by`, `ai_measurement_runs.reviewed_by/user_id`.
+- Delete the duplicate `profiles` row, then delete `auth.users` row for `7af929a0`.
+- Log the merge in `audit_log`.
 
-## Part 1 — Duplicate audit & safe auto-merge
+### 1b. Wipe ALL test jobs
+Delete every row in `jobs` and cascade-clean dependent rows (in this order to respect FKs):
+`estimate_line_items` → `estimates` → `job_order_history` → `job_order_snapshots` → `job_order_drafts` → `job_property_analyses` → `job_photos` (+ delete underlying objects in `roof-photos` storage) → `contracts` (+ generated PDFs in `contracts` bucket) → `generated_reports` (+ `generated-pdfs`) → `ai_measurement_runs` tied to jobs → `jobs`.
+Leads, clients, companies, price books, catalog all preserved.
 
-I'll write a one-time SQL audit script (run via the database tool, no UI build) that produces a report and performs only the safe merges automatically.
+## Part 2 — Invoicing module
 
-### Detection rules
+### 2a. Schema (new tables)
+- `invoice_templates` — `id, company_id, name, kind ('preset' | 'ai'), layout jsonb (sections, colors, font, logo placement, terms, footer), preview_url, is_default, created_by, timestamps`. RLS: company members manage own; super_admin all.
+- `invoices` — `id, company_id, job_id (nullable), client_id (nullable), template_id, invoice_number (auto via per-company sequence), status (`draft|sent|partial|paid|void|overdue`), issue_date, due_date, currency, notes, terms, subtotal, discount, tax_pct, tax, total, amount_paid, amount_due, pdf_path, sent_at, created_by, timestamps`.
+- `invoice_line_items` — `id, invoice_id, sort_order, kind ('catalog'|'custom'), line_item_master_id (nullable), name, description, qty, unit, unit_price, total`.
+- `invoice_payments` — `id, invoice_id, company_id, method ('stripe'|'paypal'|'cash'|'check'|'ach'|'other'), amount, currency, status ('pending'|'succeeded'|'failed'|'refunded'), provider_id (Stripe PaymentIntent / PayPal capture id), provider_meta jsonb, paid_at, recorded_by, timestamps`.
+- Trigger to auto-roll `invoice.amount_paid`, `amount_due`, and `status` whenever `invoice_payments` changes.
+- Trigger for per-company `invoice_number` (e.g. `INV-2026-0001`).
 
-| Entity | Duplicate signal | Canonical = the row that… |
-|---|---|---|
-| Companies | `lower(trim(name))` match | has the most members + leads + jobs combined; ties → oldest `created_at` |
-| Profiles | `lower(email)` match | has a `company_id` set; ties → oldest |
-| Clients | `(company_id, lower(email))` OR `(company_id, normalized phone)` OR `(company_id, lower(name) + lower(address))` | most-referenced by jobs; ties → oldest |
-| Leads | `(company_id, lower(trim(address)) + zip)` OR rounded `(lat,lng)` to 5 decimals | most contacts/notes/activities; ties → oldest |
-| Jobs | `(company_id, client_id, lower(property_address))` | most line items + photos + estimates; ties → oldest |
-| Material catalog | `(company_id, lower(name), category_id)` | one referenced by recipes/templates; ties → oldest |
+### 2b. UI (new routes under `_app`)
+- `/invoices` — list, filter by status/client/job, search.
+- `/invoices/new` — picker: standalone OR from a job (pre-fills client + line items from approved order snapshot/estimate).
+- `/invoices/$id` — editor:
+  - Header: company logo, name, address, phone, email, license #s (from `companies`); customer block (from `clients`); job link.
+  - Template picker (preset list + "Design with AI") — sets `template_id`.
+  - Line items table with two add modes:
+    1. **Search catalog** — combobox over `line_item_master` (mirrors `AddLineItemCombobox.tsx`).
+    2. **Custom line item** — name / desc / qty / unit / unit price.
+  - Discount, tax %, notes, terms.
+  - Totals panel: subtotal, discount, tax, total, paid, balance due.
+  - Actions: Save draft · Preview PDF · Send (email via Resend, attach PDF) · Record payment · Charge card (Stripe) · Charge with PayPal · Mark void.
+- `/invoices/$id/pay` — public-ish payment page (token-gated link the customer receives) showing balance + Stripe Card Element + PayPal button.
 
-### "Safe" auto-merge criteria
+### 2c. AI templates
+- **Preset gallery** (4 layouts): Classic, Modern, Minimal, Bold. Each is a JSON layout schema with section order, font pair, accent color, logo placement.
+- **"Design with AI"** dialog: prompt + tone + accent color → calls `createServerFn` `generateInvoiceTemplate` which uses Lovable AI (Gemini 2.5 Pro) with a strict JSON schema → stored as a new `invoice_templates` row with `kind = 'ai'`. Free-form HTML is NOT used — AI fills the same layout schema so PDF rendering stays predictable.
+- PDF generated server-side from the layout schema (reuses jsPDF approach already in `src/lib/pdf-generator.ts`/`lead-report-pdf.ts`).
 
-A duplicate set auto-merges only if **all** are true:
-- Exactly one canonical can be picked deterministically (no tie after rules above).
-- Non-canonical row has **zero or strict-subset** child references (e.g. duplicate company with 0 leads/jobs/profiles, duplicate lead with no notes/contacts).
-- No conflicting non-null field where both sides have different values on the same column.
+### 2d. Payments
+- **Stripe** (built-in seamless Lovable Payments): enable via `payments--enable_stripe_payments` after running `payments--recommend_payment_provider`. Use Stripe Checkout / PaymentIntents for card + Apple/Google Pay + ACH. Server fn `createInvoiceCheckout` returns a hosted URL or PaymentIntent client secret. Webhook at `/api/public/webhooks/stripe` verifies signature, looks up invoice via `client_reference_id`, inserts a row into `invoice_payments` with `method='stripe'` and `status='succeeded'`.
+- **PayPal** (BYO credentials): user provides REST API client id + secret (added via `add_secret`). Server fns `createPayPalOrder` and `capturePayPalOrder` hit the PayPal REST API; webhook at `/api/public/webhooks/paypal` (signature-verified) records captures into `invoice_payments`.
+- **Manual**: "Record payment" dialog (cash/check/ACH/other) inserts into `invoice_payments` directly.
 
-Anything else lands in the **review report** — not touched.
+### 2e. Sidebar + nav
+Add "Invoices" entry to `AppSidebar.tsx` with a receipt icon, between Jobs and Settings.
 
-### Merge mechanics
+## Order of execution
+1. Confirm plan → run cleanup migration (Part 1a + 1b) in one transaction.
+2. Run invoicing schema migration (Part 2a).
+3. Recommend + enable Stripe (built-in).
+4. Request PayPal credentials via `add_secret`.
+5. Build UI: list → editor → template picker → AI generator → payment flows → public pay page.
+6. Wire webhooks, test end-to-end with Stripe test cards and PayPal sandbox.
 
-For each safe duplicate set:
-1. Reassign FK references on every `company_id` / `client_id` / `lead_id` / `line_item_master_id` table (same broad UPDATE pattern we used for the Global Contractor merge).
-2. Backfill any null fields on canonical from the duplicate's non-null values.
-3. Delete the duplicate row.
-4. Log the merge into a new `audit_log` entry (`action = 'auto_merge_dedup'`, metadata = `{entity, kept_id, removed_ids, fields_backfilled}`).
-
-### Deliverables
-
-- `audit_log` rows for every auto-merge (already-existing table).
-- A CSV report at `/mnt/documents/duplicate-review.csv` listing every duplicate set that was **not** auto-merged, with columns: entity, signal, ids, member counts, conflicting fields. You review and tell me which to merge manually.
-- Console summary: counts auto-merged vs. flagged per entity.
-
-No app code changes — this is data-only.
-
----
-
-## Part 2 — Sharing this backend with your other apps
-
-Lovable Cloud is already a real Supabase project — your apps can connect to it directly. Nothing to migrate, no downtime.
-
-### What I'll give you
-
-Your project's connection details (these already exist; surfacing them for reuse):
-
-- **Project URL**: `https://pqeheibflaetpcqzkral.supabase.co`
-- **Project ref**: `pqeheibflaetpcqzkral`
-- **Anon (publishable) key**: safe to embed in client apps — already in this app's `.env`.
-- **Service role key**: server-only, never ship to a browser. You can pull it from this project's secrets when you need it for a backend.
-
-### How your other apps connect
-
-In each external app:
-
-```ts
-import { createClient } from "@supabase/supabase-js";
-export const supabase = createClient(
-  "https://pqeheibflaetpcqzkral.supabase.co",
-  "<anon key>"
-);
-```
-
-They will hit the same tables, respect the same RLS, and share the same `auth.users`. A user signed into one app is the same user in another (as long as they all use the same project).
-
-### Things you should know before sharing
-
-1. **RLS is the ONLY gatekeeper.** Today every table is scoped via `auth_company_id()` / `is_company_admin()`. That keeps tenants isolated. Any new app using the anon key gets the same protection.
-2. **Auth providers are project-wide.** Whatever providers are enabled here (email/password, Google) work in the other apps automatically.
-3. **Storage buckets are shared.** `roof-photos`, `contracts`, etc. are accessible to any app pointed at this project — the same bucket policies apply.
-4. **Schema migrations should keep happening here.** If another app needs new columns/tables, add them via this project's migration tool so types stay in sync.
-5. **Edge functions / TanStack server fns stay app-local.** Other apps can't reuse this app's server functions; they'd need their own server layer (or call public `/api/public/*` endpoints if you expose them).
-
-### What I will NOT do
-
-- I won't dump and restore into a separate Supabase account. You picked "connect my other apps to this same backend," which is the better option (zero downtime, shared `auth.users`, no schema drift).
-- I won't change any RLS or auth settings in this pass.
-
----
-
-## Order of operations
-
-1. Run the duplicate audit (read-only first to preview counts).
-2. Show you the preview, then run the safe auto-merges.
-3. Drop `duplicate-review.csv` for your manual review.
-4. Hand you the connection snippet + a 1-page README in `/mnt/documents/shared-backend-readme.md` your other apps can follow.
-
-After you approve this plan I'll start with step 1.
+## Notes
+- All work scoped by `company_id = auth_company_id()`; super_admin policies mirror existing tables.
+- Reusing existing patterns: `AddLineItemCombobox`, `useCompany`, `lead-report-pdf.ts`, snapshot-style server functions.
+- Public pay page lives at `/api/public/pay/$token` (signed token, no auth required).
