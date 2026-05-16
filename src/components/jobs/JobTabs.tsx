@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutGrid, Ruler, Camera, Receipt, FileText, FileSignature, Package, FileBadge } from "lucide-react";
+import { LayoutGrid, Ruler, Camera, Receipt, FileText, FileSignature, Package, FileBadge, FolderOpen } from "lucide-react";
 
 const TABS = [
   { to: "/jobs/$id" as const, label: "Overview", icon: LayoutGrid, exact: true },
@@ -10,6 +10,7 @@ const TABS = [
   { to: "/jobs/$id/contract" as const, label: "Contract", icon: FileSignature },
   { to: "/jobs/$id/invoices" as const, label: "Invoices", icon: FileBadge },
   { to: "/jobs/$id/report" as const, label: "Report", icon: FileText },
+  { to: "/jobs/$id/documents" as const, label: "Documents", icon: FolderOpen },
 ];
 
 export function JobTabs({ jobId }: { jobId: string }) {
