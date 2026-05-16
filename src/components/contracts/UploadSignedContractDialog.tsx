@@ -52,7 +52,7 @@ export function UploadSignedContractDialog({
 
       const { data: pub } = supabase.storage.from("contracts").getPublicUrl(path);
 
-      const { error: insErr } = await supabase.from("contracts").insert({
+      const { data: inserted, error: insErr } = await supabase.from("contracts").insert({
         tenant_id: tenant.id,
         job_id: jobId,
         document_id: parsed.documentId,
@@ -67,11 +67,37 @@ export function UploadSignedContractDialog({
         status: "signed",
         raw_data: {},
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+      } as any).select("id").single();
       if (insErr) throw insErr;
+
+      // Mirror into job_documents so it shows in the Documents tab.
+      try {
+        const { data: u } = await supabase.auth.getUser();
+        const { data: prof } = u.user
+          ? await supabase.from("profiles").select("company_id").eq("id", u.user.id).maybeSingle()
+          : { data: null };
+        if (prof?.company_id) {
+          await supabase.from("job_documents").insert({
+            job_id: jobId,
+            company_id: prof.company_id,
+            kind: parsed.contractType === "insurance" ? "contingency" : "contract",
+            title: `${parsed.documentId}.pdf`,
+            bucket: "contracts",
+            storage_path: path,
+            mime_type: "application/pdf",
+            file_size: file.size,
+            source_table: "contracts",
+            source_id: inserted?.id ?? null,
+            created_by: u.user?.id ?? null,
+          });
+        }
+      } catch (e) {
+        console.warn("Contract saved, but failed to mirror into job_documents:", e);
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["job-contracts", jobId] });
+      qc.invalidateQueries({ queryKey: ["job-documents-all", jobId] });
       toast.success("Contract saved to job");
       setFile(null);
       setError(null);

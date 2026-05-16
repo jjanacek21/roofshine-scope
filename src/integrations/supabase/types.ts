@@ -1063,6 +1063,62 @@ export type Database = {
           },
         ]
       }
+      job_documents: {
+        Row: {
+          bucket: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          file_size: number | null
+          id: string
+          job_id: string
+          kind: string
+          mime_type: string | null
+          source_id: string | null
+          source_table: string | null
+          storage_path: string
+          title: string
+        }
+        Insert: {
+          bucket: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          file_size?: number | null
+          id?: string
+          job_id: string
+          kind: string
+          mime_type?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          storage_path: string
+          title: string
+        }
+        Update: {
+          bucket?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_size?: number | null
+          id?: string
+          job_id?: string
+          kind?: string
+          mime_type?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          storage_path?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_documents_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_order_drafts: {
         Row: {
           company_id: string
