@@ -1,119 +1,65 @@
+## Goal
 
-# Custom Invoice Maker
+A single **Documents** tab on each job that shows every file related to that job in one list, supports free-form uploads, and surfaces auto-generated PDFs (measurements, work orders, contracts/contingencies, completed reports) as soon as they're created.
 
-Schema already exists (`invoices`, `invoice_line_items`, `invoice_payments`, `invoice_templates`, `invoice_payment_intents`). Triggers auto-recompute totals, balance, and status. Missing: UI, AI template designer, payment flows.
+## Why your signed contract isn't showing
 
-## What you'll get
+I checked the database: the `contracts` table has **0 rows** and the `contracts` storage bucket has **0 objects**. Nothing was actually saved yesterday. Today the flow is:
 
-1. **`/invoices`** — list of all your invoices (status pills, total, paid, due, search/filter by job/client/status).
-2. **`/invoices/new`** — pick a job (auto-fills client + property + contract price from latest approved order snapshot), or start blank. Default total = approved snapshot's `total_with_tax`. You can override.
-3. **`/invoices/$id/edit`** — full editor:
-   - Customer block (name/address/email/phone, auto-filled from client, editable).
-   - Line items: **add custom** (name + qty + unit + price) OR **search catalog** via the existing `AddLineItemCombobox` (line_item_master). Drag to reorder, edit inline.
-   - Discount, tax %, notes, terms, due date.
-   - Template picker (4 presets + "Design with AI" — see below).
-   - Live preview pane on the right (renders the selected template with your data).
-   - Save / Send / Mark sent / Void / Download PDF.
-4. **`/invoices/$id/pay`** (public, token-gated via `public_pay_token`) — what your customer sees:
-   - Branded invoice with company logo, line items, total, amount paid, **amount due**.
-   - Payment buttons: **Pay with Card**, **Pay with Link**, **Pay with PayPal**, **Pay with Bank (ACH)**, plus a "Wire / check instructions" panel.
-   - Customer can pay **any amount** (defaults to `amount_due`) — supports partial payments.
-5. **Record payment dialog** (internal, on `/invoices/$id`) — manually log cash/check/wire/Zelle with reference + date. Status auto-updates to `partial` or `paid`.
+1. Sign in the iframe → PDF downloads to your device.
+2. You must then tap **Save signed PDF**, pick the freshly-downloaded file in the upload dialog, and tap **Upload**.
 
-## AI template designer
+If step 2 was skipped (or the upload errored and the toast was missed), nothing lands in the bucket or table. The Documents tab will make this much harder to miss (clear empty state + one upload button that handles any file type).
 
-Two modes in the template picker:
-- **4 presets** seeded once: Classic, Modern, Minimal, Bold. Stored as `invoice_templates` rows with `kind='preset'`, shared at `company_id = NULL`.
-- **"Design with AI"** dialog: free-text prompt ("clean dark mode with gold accents, big logo top-right"). Calls a `createServerFn` `generateInvoiceTemplate` that hits Lovable AI Gateway (`google/gemini-2.5-pro`) with a strict JSON schema for `layout` (colors, fonts, header style, line-item table style, footer style, accent stripes, etc.). Saves as `invoice_templates` with `kind='ai'`, `company_id = your company`. Renders live in the preview pane. You can edit, duplicate, set as default.
+## Plan
 
-The PDF renderer (`src/lib/invoice-pdf.ts`, jsPDF-based, mirrors existing `lead-report-pdf.ts`) reads the `layout` JSON and renders accordingly — same code path for preset and AI templates.
+### 1. New "Documents" job tab
 
-## Payment flows
+- Add `Documents` to `src/components/jobs/JobTabs.tsx` (between Contract and Report).
+- New route: `src/routes/_app.jobs.$id.documents.tsx` rendering a new `JobDocumentsPanel`.
 
-### Stripe (card + Link + ACH)
-- New `src/lib/stripe.server.ts` (gateway-routed client).
-- `createInvoiceCheckout` server fn: takes `invoiceId` + `amount`, creates a Stripe Checkout Session in `payment` mode with `payment_method_types: ['card', 'link', 'us_bank_account']`, writes a row to `invoice_payment_intents`, returns the hosted URL.
-- Webhook at `/api/public/payments/webhook` (`?env=sandbox|live`): verifies signature, on `checkout.session.completed` looks up the `invoice_payment_intents` row by `session.id`, inserts an `invoice_payments` row (`method='stripe'`, `status='succeeded'`, amount from session). Triggers auto-recompute balance + status.
+### 2. `job_documents` table + storage
 
-### PayPal
-- New `src/lib/paypal.server.ts` (REST API, sandbox + live by env var).
-- `createPayPalOrder` + `capturePayPalOrder` server fns. PayPal JS SDK button on the public pay page.
-- Webhook at `/api/public/paypal/webhook`: verifies signature with `PAYPAL_WEBHOOK_ID`, on `PAYMENT.CAPTURE.COMPLETED` inserts `invoice_payments` row (`method='paypal'`).
-- Needs 3 secrets: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID` — I'll request them only when you're ready to enable PayPal. Card/Link/ACH via Stripe works immediately.
+- New table `public.job_documents`:
+  - `job_id`, `company_id`, `kind` (enum: `measurement_report`, `work_order`, `contract`, `contingency`, `completed_report`, `upload`), `title`, `bucket`, `storage_path`, `mime_type`, `file_size`, `source_id` (nullable FK-ish reference to the originating row), `created_by`, `created_at`.
+  - RLS scoped by `auth_company_id()`.
+- New private bucket `job-documents` for user uploads (path: `{company_id}/{job_id}/{uuid}-{filename}`).
+- Existing PDFs stay in their current buckets (`generated-pdfs`, `contracts`, `roof-reports`). The Documents tab queries `job_documents` **plus** existing tables (`generated_reports`, `contracts`, future work-order snapshots) and unions them for display, so we don't have to migrate old files.
 
-### Bank transfer / wire / check
-- Two paths:
-  - On the public page: a "Pay by ACH" button uses Stripe's `us_bank_account` flow (above).
-  - "Wire / check" panel shows your bank instructions (configurable on company settings: routing, account, memo) — customer mails or wires, you log it manually via the **Record payment** dialog.
+### 3. UI: `JobDocumentsPanel`
 
-### Partial payments
-- All flows write rows to `invoice_payments` with whatever `amount` was paid. The `recompute_invoice_balance` trigger sums them and sets status to `paid` only when `sum >= total`, otherwise `partial`. Multiple payments per invoice supported natively.
+- Grouped list with sections: Measurement Reports, Work Orders, Contracts & Contingencies, Completed Reports, Uploads.
+- Each row: icon + title + kind badge + date + size + actions (View, Download, Delete).
+- Sticky **Upload** button → file picker (any type, 25 MB cap) → uploads to `job-documents` bucket → inserts into `job_documents` with `kind='upload'`.
+- Empty state per section.
+- Signed URLs (1h) for private buckets; direct public URL for `contracts`.
 
-## Pulling contract price from a job
+### 4. Auto-link generated PDFs
 
-When you click "Create invoice" from a job:
-- Loads the latest `job_order_snapshots` row where `status='approved'`.
-- Pre-fills line items from `materials` + `labor` JSONB (or one consolidated "Contract — {job name}" line at the snapshot's grand total — your choice via a toggle in the new-invoice dialog).
-- Pre-fills customer block from `clients` joined via `jobs.client_id`.
-- Pre-fills property address from `jobs.property_address`.
+When the app generates a PDF, also insert a `job_documents` row so it appears in the tab automatically:
 
-## File map
+- **Measurement report PDF**: when measurement report is generated/saved → insert with `kind='measurement_report'`.
+- **Work Order / Order-form snapshot**: when an order snapshot is approved/exported to PDF → insert with `kind='work_order'`.
+- **Contract / Contingency**: extend `UploadSignedContractDialog` mutation to also insert into `job_documents` (`kind` = `contract` or `contingency`) on success. Also add a row for any future contract created.
+- **Completed report**: `src/lib/pdf-generator.ts` already inserts into `generated_reports`; add a parallel `job_documents` insert (`kind='completed_report'`) using the same `pdf_path`/bucket.
 
-```text
-src/lib/
-├── stripe.server.ts                 (new — gateway client + verifyWebhook)
-├── paypal.server.ts                 (new — REST helpers; deferred until creds)
-├── invoice-pdf.ts                   (new — jsPDF renderer reading layout JSON)
-├── invoices.functions.ts            (new — CRUD + sendInvoice + recordPayment)
-├── invoice-templates.functions.ts   (new — list/create/duplicate + generateInvoiceTemplate AI fn)
-└── payments.functions.ts            (new — createInvoiceCheckout + createPayPalOrder)
+### 5. Fix the contract upload reliability gap
 
-src/routes/
-├── _app.invoices.index.tsx          (new — list page)
-├── _app.invoices.new.tsx            (new — pick job + template, prefill)
-├── _app.invoices.$id.tsx            (new — editor with live preview + record-payment dialog)
-├── pay.$token.tsx                   (new — public page, no auth)
-└── api/public/
-    ├── payments/webhook.ts          (new — Stripe webhook)
-    └── paypal/webhook.ts            (new — PayPal webhook, deferred until creds)
+- Add a toast + persistent error message if the storage upload or DB insert fails inside `UploadSignedContractDialog` (already partially there — make the error block sticky and prevent dialog close while pending).
+- After successful upload, refetch `job-contracts` **and** `job-documents` queries.
+- Add a small "Recent downloads" hint in the dialog explaining the file is in your phone's Downloads folder.
 
-src/components/invoices/
-├── InvoiceEditor.tsx
-├── InvoiceLineItemRow.tsx
-├── InvoiceTemplatePicker.tsx
-├── DesignWithAIDialog.tsx
-├── InvoicePreview.tsx               (renders layout JSON in browser, mirror of PDF)
-├── RecordPaymentDialog.tsx
-└── PublicPayButtons.tsx
+### 6. Out of scope (ask before doing)
 
-src/hooks/useInvoice.ts
-```
+- Migrating any historical files (none exist).
+- Folder/tagging system beyond the fixed kinds.
+- In-app PDF viewer (we'll open in a new tab).
 
-Plus a tiny migration to:
-- Add `bank_instructions` jsonb (routing, account, memo) to `companies`.
-- Seed the 4 preset `invoice_templates` rows (`company_id = NULL`, `kind = 'preset'`).
-- Add a nav link to `/invoices` in `AppSidebar`.
+## Technical notes
 
-## Build order
+- One SQL migration: `job_documents` table + RLS + `job-documents` bucket + bucket policies.
+- New file: `src/components/jobs/JobDocumentsPanel.tsx`, `src/routes/_app.jobs.$id.documents.tsx`.
+- Edits: `JobTabs.tsx`, `UploadSignedContractDialog.tsx`, `src/lib/pdf-generator.ts`, and wherever measurement reports + order-form PDFs are produced (I'll locate those during implementation).
+- Reuses existing semantic tokens; no new design primitives.
 
-1. Migration (preset templates + `companies.bank_instructions`).
-2. `stripe.server.ts` + webhook handler + `createInvoiceCheckout` fn.
-3. Invoice list + editor + line-item search/custom + record-payment dialog (full internal flow).
-4. `invoice-pdf.ts` + 4 preset templates rendering.
-5. AI template designer (Gemini 2.5 Pro + strict JSON schema).
-6. Public `/pay/$token` page with Stripe button (card/Link/ACH all work via one Checkout Session).
-7. PayPal — once you give the word, I'll request the 3 secrets and add the button + webhook.
-
-## How to test in the preview
-
-1. **Pick this job** (already loaded: `4debbc0e-…`) → click **Create invoice** → choose "Use approved contract price" → editor opens with one line item totaling the contract amount.
-2. Add a custom line: "Extra gutter run, 40 LF, $12/LF" → save.
-3. Click **Preview & Send** → "Copy public pay link" → open in incognito tab.
-4. On the public page, click **Pay with Card**, enter Stripe test card **`4242 4242 4242 4242`**, any future expiry (e.g. `12/34`), any CVC (e.g. `123`), any ZIP. Submit.
-5. Stripe redirects back. Webhook fires within ~1 sec → invoice status flips to **paid**, `amount_paid` matches.
-6. Test partial: create another invoice for $1000 → on public page change amount to $300 → pay → status becomes **partial**, `amount_due = $700`.
-7. Test ACH: same flow, pick "US bank account" → use Stripe's test routing `110000000` and account `000123456789`. Auto-verifies in test mode.
-8. Test manual: open invoice → **Record payment** → "Check #1234, $200, today" → status updates to **partial** or **paid**.
-9. Test AI template: open editor → template picker → **Design with AI** → "navy blue, white background, big logo top-left, monospace prices, no border on table" → preview updates → save → set as default → export PDF.
-
-When you're ready for PayPal, say the word and I'll request the 3 secrets and wire the button.
+Approve and I'll start with the migration.
