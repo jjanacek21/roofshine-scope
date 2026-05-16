@@ -1969,40 +1969,54 @@ function generatePdf() {
 
   if (!isInsurance && d.scopeStructured) {
     const trades = d.scopeStructured.trades || {};
-    Object.entries(trades).forEach(([tradeKey, fieldValues]) => {
+    // Two-column scope-of-work layout (trade per column, pair-by-pair)
+    const colGap = 14;
+    const colW = (cw - colGap) / 2;
+    const colX = [M, M + colW + colGap];
+    const renderTradeColumn = (tradeKey, fieldValues, x, startY) => {
       const schema = getSchemaForTrade(tradeKey);
-      if (!schema) return;
-      if (y > H - 120) { doc.addPage(); y = M; }
+      if (!schema) return startY;
+      let cy = startY;
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
       doc.setTextColor(143, 111, 24);
-      doc.text(schema.label.toUpperCase(), M, y);
+      doc.text(schema.label.toUpperCase(), x, cy);
       doc.setDrawColor(216, 210, 192);
       doc.setLineWidth(0.4);
-      doc.line(M, y + 2, M + cw, y + 2);
-      y += 12;
+      doc.line(x, cy + 2, x + colW, cy + 2);
+      cy += 12;
       schema.sections.forEach(sec => {
         const populatedFields = sec.fields.filter(f => fieldValues[f.id] != null && fieldValues[f.id] !== '');
         if (populatedFields.length === 0) return;
-        if (y > H - 80) { doc.addPage(); y = M; }
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8);
         doc.setTextColor(143, 111, 24);
-        doc.text(sec.title.toUpperCase(), M + 4, y);
-        y += 9;
+        doc.text(sec.title.toUpperCase(), x + 4, cy);
+        cy += 9;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8.5);
         doc.setTextColor(30, 25, 20);
         populatedFields.forEach(f => {
-          const v = fieldValues[f.id];
-          if (y > H - 40) { doc.addPage(); y = M; }
-          const line = `  ${f.label}: ${v}`;
-          y = drawWrapped(doc, line, M + 4, y, cw - 4, 11) + 2;
+          const line = `  ${f.label}: ${fieldValues[f.id]}`;
+          cy = drawWrapped(doc, line, x + 4, cy, colW - 4, 11) + 2;
         });
-        y += 4;
+        cy += 4;
       });
-      y += 6;
-    });
+      return cy + 6;
+    };
+    const tradeEntries = Object.entries(trades);
+    for (let i = 0; i < tradeEntries.length; i += 2) {
+      if (y > H - 160) { doc.addPage(); y = M; }
+      const rowStart = y;
+      const [k1, v1] = tradeEntries[i];
+      const end1 = renderTradeColumn(k1, v1, colX[0], rowStart);
+      let end2 = rowStart;
+      if (tradeEntries[i + 1]) {
+        const [k2, v2] = tradeEntries[i + 1];
+        end2 = renderTradeColumn(k2, v2, colX[1], rowStart);
+      }
+      y = Math.max(end1, end2);
+    }
     const shared = d.scopeStructured.shared || {};
     Object.entries(shared).forEach(([sharedKey, fieldValues]) => {
       const schema = getSchemaForTrade(sharedKey);
