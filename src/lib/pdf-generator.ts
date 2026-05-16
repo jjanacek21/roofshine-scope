@@ -80,13 +80,33 @@ export async function generateProposalPdf({
       .upload(path, blob, { contentType: "application/pdf", upsert: false });
     if (upErr) throw upErr;
 
-    await supabase.from("generated_reports").insert({
+    const { data: report } = await supabase.from("generated_reports").insert({
       job_id: jobId,
       estimate_id: estimateId,
       company_id: companyId,
       pdf_path: path,
       hide_pricing: hidePricing,
-    });
+    }).select("id").single();
+
+    // Mirror into job_documents so it appears in the Documents tab.
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      await supabase.from("job_documents").insert({
+        job_id: jobId,
+        company_id: companyId,
+        kind: "completed_report",
+        title: filename,
+        bucket: "generated-pdfs",
+        storage_path: path,
+        mime_type: "application/pdf",
+        file_size: blob.size,
+        source_table: "generated_reports",
+        source_id: report?.id ?? null,
+        created_by: u.user?.id ?? null,
+      });
+    } catch (e) {
+      console.warn("Report uploaded but failed to mirror into job_documents:", e);
+    }
 
     const { data: signed } = await supabase.storage
       .from("generated-pdfs")
