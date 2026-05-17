@@ -381,26 +381,41 @@ export function MapboxRoofDraw({
     // Snap the just-clicked vertex. Capture pre-click coord length on mousedown,
     // then after the click is processed, replace whichever index is new.
     let preClickLength = 0;
+
+    // Find the nearest existing line/polygon vertex to a screen pixel position,
+    // ignoring the currently in-progress feature. Used so endpoints of new
+    // lines snap onto pins of already-drawn edges → shared corners stay
+    // connected, which lets turf.polygonize close the perimeter into a ring.
+    const findSnapPin = (px: number, py: number, tolPx = 14): [number, number] | null => {
+      let best: [number, number] | null = null;
+      let bestD = tolPx;
+      const inProgId = inProgressIdRef.current;
+      for (const f of draw.getAll().features) {
+        if (inProgId && String(f.id) === inProgId) continue;
+        let coords: number[][] = [];
+        if (f.geometry.type === "LineString") coords = f.geometry.coordinates;
+        else if (f.geometry.type === "Polygon") coords = f.geometry.coordinates[0] ?? [];
+        else continue;
+        for (const c of coords) {
+          const p = map.project([c[0], c[1]] as [number, number]);
+          const d = Math.hypot(p.x - px, p.y - py);
+          if (d < bestD) {
+            bestD = d;
+            best = [c[0], c[1]];
+          }
+        }
+      }
+      return best;
+    };
+
     const onCanvasMouseDown = (ev: MouseEvent) => {
       const mode = draw.getMode();
-      if (
-        (mode === "simple_select" || mode === "direct_select") &&
-        map.getLayer("perim-segs-hit")
-      ) {
-        const hits = map.queryRenderedFeatures([ev.offsetX, ev.offsetY], {
-          layers: ["perim-segs-hit"],
-        });
-        const hit = hits[0];
-        if (hit) {
-          ev.preventDefault();
-          ev.stopImmediatePropagation();
-          const polygonId = String(hit.properties?.polygonId ?? "");
-          const segIdx = Number(hit.properties?.segIdx ?? -1);
-          if (polygonId && segIdx >= 0) {
-            openPerimeterLabelPromptRef.current?.(polygonId, segIdx);
-          }
-          return;
-        }
+
+      // While drawing lines/polygons, check for a pin to snap to under the cursor.
+      if (mode === "draw_line_string" || mode === "draw_polygon") {
+        snapPinRef.current = findSnapPin(ev.offsetX, ev.offsetY);
+      } else {
+        snapPinRef.current = null;
       }
 
       preClickLength = 0;
