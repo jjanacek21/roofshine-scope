@@ -27,6 +27,9 @@ export type MeasurementTotals = {
   sections: SectionTotal[];
 };
 
+export type PerimeterSegment = { idx: number; lf: number; label: EdgeType | null };
+export type UnlabeledLine = { id: string; lf: number };
+
 export function MeasurementTotalsPanel({
   totals,
   wastePct,
@@ -37,6 +40,10 @@ export function MeasurementTotalsPanel({
   onSectionWasteChange,
   onSectionDelete,
   onSectionRename,
+  perimeterBySection,
+  onPerimeterEdgeClick,
+  unlabeledLines,
+  onUnlabeledLineClick,
 }: {
   totals: MeasurementTotals;
   wastePct: number;
@@ -47,6 +54,10 @@ export function MeasurementTotalsPanel({
   onSectionWasteChange?: (sectionId: string, n: number) => void;
   onSectionDelete?: (sectionId: string) => void;
   onSectionRename?: (sectionId: string, name: string) => void;
+  perimeterBySection?: Record<string, PerimeterSegment[]>;
+  onPerimeterEdgeClick?: (sectionId: string, segIdx: number) => void;
+  unlabeledLines?: UnlabeledLine[];
+  onUnlabeledLineClick?: (lineId: string) => void;
 }) {
   const combinedAdjusted = useMemo(
     () =>
