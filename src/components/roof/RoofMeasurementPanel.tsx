@@ -385,7 +385,8 @@ export function RoofMeasurementPanel({
 
 type EdgeKey =
   | "eaves_lf" | "rakes_lf" | "ridges_lf" | "hips_lf" | "valleys_lf"
-  | "gutters_lf" | "wall_flashing_lf" | "step_flashing_lf" | "transition_lf";
+  | "gutters_lf" | "wall_flashing_lf" | "step_flashing_lf" | "transition_lf"
+  | "parapet_wall_lf" | "drip_edge_lf";
 
 const EDGE_KEY_MAP: Record<EdgeType, EdgeKey> = {
   eave: "eaves_lf",
@@ -397,12 +398,15 @@ const EDGE_KEY_MAP: Record<EdgeType, EdgeKey> = {
   wall_flashing: "wall_flashing_lf",
   step_flashing: "step_flashing_lf",
   transition: "transition_lf",
+  parapet_wall: "parapet_wall_lf",
+  drip_edge: "drip_edge_lf",
 };
 
 function mapboxTotalsFromFeatures(features: AnyFeature[]) {
   const totals: Record<EdgeKey, number> = {
     eaves_lf: 0, rakes_lf: 0, ridges_lf: 0, hips_lf: 0, valleys_lf: 0,
     gutters_lf: 0, wall_flashing_lf: 0, step_flashing_lf: 0, transition_lf: 0,
+    parapet_wall_lf: 0, drip_edge_lf: 0,
   };
   let total_area_sqft = 0;
   for (const f of features) {
