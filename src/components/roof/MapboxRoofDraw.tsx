@@ -4,7 +4,7 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Feature, Polygon, LineString, Point, FeatureCollection } from "geojson";
 import * as turf from "@turf/turf";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
-import { EDGE_COLORS, type EdgeType } from "@/lib/roof-math";
+import { EDGE_COLORS, LINE_COLORS, type EdgeType } from "@/lib/roof-math";
 import { MAPBOX_DRAW_STYLES, type PenetrationType } from "@/lib/mapbox-draw-styles";
 import { MeasurementPromptDialog, type PromptKind } from "./MeasurementPromptDialog";
 import { DrawToolbar } from "./DrawToolbar";
@@ -32,7 +32,7 @@ export type MapboxRoofData = {
     pitch: string;
     edges: (EdgeType | null)[];
   }>;
-  lines: Array<{ id: string; coords: number[][]; type: EdgeType }>;
+  lines: Array<{ id: string; coords: number[][]; type: EdgeType | null; is_perimeter?: boolean }>;
   // New richer shape
   features?: AnyFeature[];
   totals?: MeasurementTotals;
@@ -58,6 +58,7 @@ export function MapboxRoofDraw({
   wastePct?: number;
   onWasteChange?: (n: number) => void;
 }) {
+  const firstSectionDoneRef = useRef(false);
   const { data: token, isLoading } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
