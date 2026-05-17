@@ -97,6 +97,19 @@ export function computeTotals(features: AnyFeature[], defaultWastePct = 15): Mea
     if (t) edges[t] = (edges[t] ?? 0) + lengthFt;
   }
 
+  // Add perimeter segment labels from polygons (eave / rake / etc.)
+  for (const p of polygons) {
+    const ring = p.geometry.coordinates[0];
+    const labels = p.properties?.perimeter_edges ?? [];
+    for (let i = 0; i < ring.length - 1; i++) {
+      const t = labels[i];
+      if (!t) continue;
+      const seg = turf.lineString([ring[i], ring[i + 1]]);
+      const lf = turf.length(seg, { units: "kilometers" }) * KM_TO_FT;
+      edges[t] = (edges[t] ?? 0) + lf;
+    }
+  }
+
   const penetrations: Partial<Record<PenetrationType, number>> = {};
   for (const pt of points) {
     const t = pt.properties?.penetration_type as PenetrationType | undefined;
