@@ -19,6 +19,8 @@ export function pitchMultiplier(pitch: string): number {
 export type FeatureProps = {
   pitch?: string;
   edge_type?: EdgeType;
+  user_color?: string;
+  is_perimeter?: boolean;
   penetration_type?: PenetrationType;
   // Per-section metadata (polygons only)
   section_name?: string;
