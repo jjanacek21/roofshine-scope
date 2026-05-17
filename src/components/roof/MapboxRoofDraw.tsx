@@ -426,7 +426,15 @@ export function MapboxRoofDraw({
         drawRef.current?.trash();
       }
     };
+    const onShiftDown = (ev: KeyboardEvent) => {
+      if (ev.key === "Shift") shiftHeldRef.current = true;
+    };
+    const onShiftUp = (ev: KeyboardEvent) => {
+      if (ev.key === "Shift") shiftHeldRef.current = false;
+    };
     window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", onShiftDown);
+    window.addEventListener("keyup", onShiftUp);
 
     return () => {
       
