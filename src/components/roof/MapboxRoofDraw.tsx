@@ -548,6 +548,8 @@ export function MapboxRoofDraw({
     const all = draw.getAll();
     setFeatures(all.features as unknown as AnyFeature[]);
   }, []);
+  const syncFromDrawRef = useRef(syncFromDraw);
+  syncFromDrawRef.current = syncFromDraw;
 
   const promptForFeature = useCallback(
     (feature: Feature, draw: MapboxDraw) => {
