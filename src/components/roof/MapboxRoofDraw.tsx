@@ -4,7 +4,7 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Feature, Polygon, LineString, Point, FeatureCollection } from "geojson";
 import * as turf from "@turf/turf";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
-import { EDGE_COLORS, type EdgeType } from "@/lib/roof-math";
+import { LINE_COLORS, type EdgeType } from "@/lib/roof-math";
 import { MAPBOX_DRAW_STYLES, type PenetrationType } from "@/lib/mapbox-draw-styles";
 import { MeasurementPromptDialog, type PromptKind } from "./MeasurementPromptDialog";
 import { DrawToolbar } from "./DrawToolbar";
@@ -32,7 +32,7 @@ export type MapboxRoofData = {
     pitch: string;
     edges: (EdgeType | null)[];
   }>;
-  lines: Array<{ id: string; coords: number[][]; type: EdgeType }>;
+  lines: Array<{ id: string; coords: number[][]; type: EdgeType | null; is_perimeter?: boolean }>;
   // New richer shape
   features?: AnyFeature[];
   totals?: MeasurementTotals;
@@ -68,8 +68,8 @@ export function MapboxRoofDraw({
   const [internalWaste, setInternalWaste] = useState(15);
   const waste = wastePct ?? internalWaste;
   const setWaste = onWasteChange ?? setInternalWaste;
-  const [snapEnabled, setSnapEnabled] = useState(false);
-  const snapEnabledRef = useRef(false);
+  const [snapEnabled, setSnapEnabled] = useState(true);
+  const snapEnabledRef = useRef(true);
   const shiftHeldRef = useRef(false);
   const inProgressIdRef = useRef<string | null>(null);
   const lastSnappedRef = useRef<[number, number] | null>(null);
@@ -110,12 +110,11 @@ export function MapboxRoofDraw({
       .map((f) => ({
         id: String(f.id),
         coords: f.geometry.coordinates,
-        type: (f.properties?.edge_type ?? "ridge") as EdgeType,
+        type: (f.properties?.edge_type ?? null) as EdgeType | null,
+        is_perimeter: Boolean(f.properties?.is_perimeter),
       }));
     onChangeRef.current({ sections, lines: linesArr, features, totals });
   }, [features, waste]);
-
-  const polygonCount = features.filter((f) => f.geometry.type === "Polygon").length;
 
   // Init map
   useEffect(() => {
@@ -151,49 +150,6 @@ export function MapboxRoofDraw({
         };
         draw.set(fc);
       }
-      // Perimeter overlay: one feature per polygon segment, colored by label.
-      map.addSource("perim-segs", {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-      map.addLayer({
-        id: "perim-segs-hit",
-        type: "line",
-        source: "perim-segs",
-        paint: { "line-color": "#000", "line-opacity": 0, "line-width": 18 },
-      });
-      map.addLayer({
-        id: "perim-segs-line",
-        type: "line",
-        source: "perim-segs",
-        layout: { "line-cap": "round" },
-        paint: {
-          "line-color": ["coalesce", ["get", "color"], "#94a3b8"],
-          "line-width": 5,
-          "line-dasharray": [
-            "case",
-            ["==", ["get", "kind"], "unlabeled"],
-            ["literal", [2, 2]],
-            ["literal", [1, 0]],
-          ],
-          "line-opacity": 0.95,
-        },
-      });
-      map.on("click", "perim-segs-hit", (ev) => {
-        const f = ev.features?.[0];
-        if (!f) return;
-        const polygonId = String(f.properties?.polygonId ?? "");
-        const segIdx = Number(f.properties?.segIdx ?? -1);
-        if (!polygonId || segIdx < 0) return;
-        openPerimeterLabelPromptRef.current?.(polygonId, segIdx);
-      });
-      map.on("mouseenter", "perim-segs-hit", () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
-      map.on("mouseleave", "perim-segs-hit", () => {
-        map.getCanvas().style.cursor = "";
-      });
-
       // Snap guide overlay: a single dashed segment from anchor to snapped cursor.
       map.addSource("snap-guide", {
         type: "geojson",
@@ -216,10 +172,40 @@ export function MapboxRoofDraw({
       const created = e.features[0];
       if (!created) return;
       if (created.geometry.type === "Polygon") {
-        // Polygons still prompt for pitch/name (needed for area math).
-        promptForFeature(created, draw);
+        const sectionIdx = draw.getAll().features.filter((f) => f.geometry.type === "Polygon").length - 1;
+        const sectionName = `Roof ${Math.max(1, sectionIdx + 1)}`;
+        const sectionColor = nextSectionColor(Math.max(0, sectionIdx));
+        const polygonId = String(created.id);
+        draw.setFeatureProperty(polygonId, "pitch", "0/12");
+        draw.setFeatureProperty(polygonId, "section_name", sectionName);
+        draw.setFeatureProperty(polygonId, "section_color", sectionColor);
+        draw.setFeatureProperty(polygonId, "section_waste_pct", waste);
+        const ring = created.geometry.coordinates[0] ?? [];
+        for (let i = 0; i < ring.length - 1; i++) {
+          draw.add({
+            type: "Feature",
+            id: `${polygonId}-perim-${i}`,
+            properties: {
+              edge_type: "eave",
+              user_color: LINE_COLORS.eave,
+              is_perimeter: true,
+              source_polygon_id: polygonId,
+              source_segment_index: i,
+            },
+            geometry: { type: "LineString", coordinates: [ring[i], ring[i + 1]] },
+          } as Feature<LineString, FeatureProps>);
+        }
+        syncFromDraw(draw);
+        setTimeout(() => {
+          if (drawRef.current) drawRef.current.changeMode("draw_line_string");
+        }, 0);
       } else {
         // Lines & points: drop without prompting; user labels later.
+        if (created.geometry.type === "LineString" && created.id != null) {
+          draw.setFeatureProperty(String(created.id), "edge_type", null);
+          draw.setFeatureProperty(String(created.id), "user_color", LINE_COLORS.unlabeled);
+          draw.setFeatureProperty(String(created.id), "is_perimeter", false);
+        }
         syncFromDraw(draw);
         // Re-enter the same draw mode so user can keep adding shapes back-to-back.
         const stayMode: "draw_line_string" | "draw_point" =
@@ -258,10 +244,8 @@ export function MapboxRoofDraw({
       else if (e.mode === "draw_point") setActiveTool("point");
       else if (e.mode === "direct_select") setActiveTool("select");
 
-      // While drawing lines or points, hide existing polygon fills so clicks
-      // pass through to the ground and Mapbox Draw drops vertices correctly.
-      const drawingOverlay = e.mode === "draw_line_string" || e.mode === "draw_point";
-      setPolyFillVisible(!drawingOverlay);
+      // Keep closed roof sections visibly highlighted while drawing detail lines.
+      setPolyFillVisible(true);
 
       // Track which feature is currently in-progress so snap can mutate it.
       if (e.mode === "draw_polygon" || e.mode === "draw_line_string") {
@@ -484,6 +468,7 @@ export function MapboxRoofDraw({
         const lineId = String(selected.id);
         const label = currentLabelRef.current; // null = erase
         draw.setFeatureProperty(lineId, "edge_type", label);
+        draw.setFeatureProperty(lineId, "user_color", label ? LINE_COLORS[label] : LINE_COLORS.unlabeled);
         // Deselect so the next line click registers as a fresh selection.
         setTimeout(() => {
           drawRef.current?.changeMode("simple_select");
@@ -520,6 +505,7 @@ export function MapboxRoofDraw({
       if (ev.key === "Escape" && (mode === "draw_polygon" || mode === "draw_line_string")) {
         ev.preventDefault();
         drawRef.current?.trash();
+        drawRef.current?.changeMode("simple_select");
         return;
       }
       if (ev.key === "Escape" && labelModeRef.current) {
@@ -557,45 +543,7 @@ export function MapboxRoofDraw({
   const syncFromDrawRef = useRef(syncFromDraw);
   syncFromDrawRef.current = syncFromDraw;
 
-  const promptForFeature = useCallback(
-    (feature: Feature, draw: MapboxDraw) => {
-      const cleanup = () => syncFromDraw(draw);
-      const cancel = () => {
-        if (feature.id != null) draw.delete(String(feature.id));
-        setPrompt(null);
-        cleanup();
-      };
-
-      if (feature.geometry.type === "Polygon") {
-        const idx = draw
-          .getAll()
-          .features.filter((f) => f.geometry.type === "Polygon")
-          .findIndex((f) => f.id === feature.id);
-        const sectionIdx = idx >= 0 ? idx : polygonCount;
-        const defaultName = `Roof ${sectionIdx + 1}`;
-        const color = nextSectionColor(sectionIdx);
-        setPrompt({
-          type: "pitch",
-          defaultName,
-          onConfirm: (result) => {
-            if (feature.id != null) {
-              const id = String(feature.id);
-              draw.setFeatureProperty(id, "pitch", result.pitch);
-              draw.setFeatureProperty(id, "section_name", result.name);
-              draw.setFeatureProperty(id, "section_color", color);
-              draw.setFeatureProperty(id, "section_waste_pct", waste);
-            }
-            setPrompt(null);
-            cleanup();
-          },
-          onCancel: cancel,
-        });
-      }
-    },
-    [syncFromDraw, polygonCount, waste],
-  );
-
-  // ---- Click-to-label handlers (lines, points, perimeter segments) ----
+  // ---- Click-to-label handlers (all lines and points) ----
   const openLineLabelPrompt = useCallback(
     (featureId: string) => {
       const draw = drawRef.current;
@@ -609,6 +557,7 @@ export function MapboxRoofDraw({
         allowClear: true,
         onConfirm: (edge) => {
           draw.setFeatureProperty(featureId, "edge_type", edge);
+          draw.setFeatureProperty(featureId, "user_color", edge ? LINE_COLORS[edge] : LINE_COLORS.unlabeled);
           setPrompt(null);
           syncFromDraw(draw);
         },
@@ -638,66 +587,11 @@ export function MapboxRoofDraw({
     [syncFromDraw],
   );
 
-  const openPerimeterLabelPrompt = useCallback(
-    (polygonId: string, segIdx: number) => {
-      const draw = drawRef.current;
-      if (!draw) return;
-      const f = draw.get(polygonId);
-      const ring = (f?.geometry as Polygon | undefined)?.coordinates?.[0] ?? [];
-      const segCount = Math.max(0, ring.length - 1);
-      const current = ((f?.properties?.perimeter_edges ?? []) as (EdgeType | null)[]).slice();
-      while (current.length < segCount) current.push(null);
-      setPrompt({
-        type: "edge",
-        title: "Label edge",
-        initial: current[segIdx] ?? null,
-        restrictTo: ["eave", "rake"],
-        allowClear: true,
-        onConfirm: (edge) => {
-          current[segIdx] = edge;
-          draw.setFeatureProperty(polygonId, "perimeter_edges", current);
-          setPrompt(null);
-          syncFromDraw(draw);
-        },
-        onCancel: () => setPrompt(null),
-      });
-    },
-    [syncFromDraw],
-  );
-
   // Refs let the map's selectionchange handler reach these without recreating the map effect.
   const openLineLabelPromptRef = useRef(openLineLabelPrompt);
   const openPointLabelPromptRef = useRef(openPointLabelPrompt);
-  const openPerimeterLabelPromptRef = useRef(openPerimeterLabelPrompt);
   openLineLabelPromptRef.current = openLineLabelPrompt;
   openPointLabelPromptRef.current = openPointLabelPrompt;
-  openPerimeterLabelPromptRef.current = openPerimeterLabelPrompt;
-
-  // Keep the perimeter overlay source in sync with current polygon features.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const src = map.getSource("perim-segs") as mapboxgl.GeoJSONSource | undefined;
-    if (!src) return;
-    const segFeatures: Feature[] = [];
-    for (const f of features) {
-      if (f.geometry.type !== "Polygon") continue;
-      const polygonId = String(f.id ?? "");
-      if (!polygonId) continue;
-      const ring = f.geometry.coordinates[0];
-      const labels = (f.properties?.perimeter_edges ?? []) as (EdgeType | null)[];
-      for (let i = 0; i < ring.length - 1; i++) {
-        const label = labels[i] ?? null;
-        const color = label ? EDGE_COLORS[label] : "#94a3b8";
-        segFeatures.push({
-          type: "Feature",
-          geometry: { type: "LineString", coordinates: [ring[i], ring[i + 1]] },
-          properties: { polygonId, segIdx: i, kind: label ?? "unlabeled", color },
-        });
-      }
-    }
-    src.setData({ type: "FeatureCollection", features: segFeatures });
-  }, [features]);
 
   const chooseTool = (t: Tool) => {
     const draw = drawRef.current;
@@ -767,25 +661,8 @@ export function MapboxRoofDraw({
 
   const totals = computeTotals(features, waste);
 
-  // Build per-section perimeter segment lists + collect unlabeled lines.
+  // Collect unlabeled detail/perimeter lines.
   const KM_TO_FT = 3280.84;
-  const perimeterBySection: Record<
-    string,
-    Array<{ idx: number; lf: number; label: EdgeType | null }>
-  > = {};
-  for (const f of features) {
-    if (f.geometry.type !== "Polygon" || f.id == null) continue;
-    const id = String(f.id);
-    const ring = f.geometry.coordinates[0];
-    const labels = (f.properties?.perimeter_edges ?? []) as (EdgeType | null)[];
-    const segs: Array<{ idx: number; lf: number; label: EdgeType | null }> = [];
-    for (let i = 0; i < ring.length - 1; i++) {
-      const lf =
-        turf.length(turf.lineString([ring[i], ring[i + 1]]), { units: "kilometers" }) * KM_TO_FT;
-      segs.push({ idx: i, lf, label: labels[i] ?? null });
-    }
-    perimeterBySection[id] = segs;
-  }
   const unlabeledLines = features.flatMap((f) => {
     if (f.geometry.type !== "LineString" || f.id == null) return [];
     if (f.properties?.edge_type) return [];
@@ -849,8 +726,6 @@ export function MapboxRoofDraw({
         onSectionWasteChange={handleSectionWasteChange}
         onSectionDelete={handleSectionDelete}
         onSectionRename={handleSectionRename}
-        perimeterBySection={perimeterBySection}
-        onPerimeterEdgeClick={(sectionId, segIdx) => openPerimeterLabelPrompt(sectionId, segIdx)}
         unlabeledLines={unlabeledLines}
         onUnlabeledLineClick={(lineId) => openLineLabelPrompt(lineId)}
       />

@@ -109,8 +109,12 @@ export function lineStringLengthFeet(coords: number[][]): number {
 export const EDGE_TYPES = [
   "eave", "rake", "hip", "ridge", "valley",
   "gutter", "wall_flashing", "step_flashing", "transition",
+  "parapet_wall", "drip_edge",
 ] as const;
 export type EdgeType = typeof EDGE_TYPES[number];
+
+export const LINE_TYPES = ["unlabeled", ...EDGE_TYPES] as const;
+export type LineType = typeof LINE_TYPES[number];
 
 export const EDGE_LABELS: Record<EdgeType, string> = {
   eave: "Eave",
@@ -122,16 +126,30 @@ export const EDGE_LABELS: Record<EdgeType, string> = {
   wall_flashing: "Wall Flashing",
   step_flashing: "Step Flashing",
   transition: "Transition",
+  parapet_wall: "Parapet Wall",
+  drip_edge: "Drip Edge",
+};
+
+export const LINE_LABELS: Record<LineType, string> = {
+  unlabeled: "Unlabeled",
+  ...EDGE_LABELS,
 };
 
 export const EDGE_COLORS: Record<EdgeType, string> = {
   eave: "#3b82f6",        // blue
   rake: "#8b5cf6",        // violet
-  hip: "#f59e0b",         // amber
-  ridge: "#ef4444",       // red
+  hip: "#ef4444",         // red
+  ridge: "#f59e0b",       // amber
   valley: "#10b981",      // emerald
-  gutter: "#06b6d4",      // cyan
+  gutter: "#14b8a6",      // teal
   wall_flashing: "#ec4899", // pink
   step_flashing: "#f97316", // orange
-  transition: "#a3a3a3",  // gray
+  transition: "#06b6d4",  // cyan
+  parapet_wall: "#6366f1", // indigo
+  drip_edge: "#84cc16",   // lime
+};
+
+export const LINE_COLORS: Record<LineType, string> = {
+  unlabeled: "#ffffff",
+  ...EDGE_COLORS,
 };

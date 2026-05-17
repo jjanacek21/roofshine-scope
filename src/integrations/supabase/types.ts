@@ -2630,6 +2630,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_perimeter: boolean
           length_lf: number
           line_geojson: Json
           line_type: Database["public"]["Enums"]["roof_edge_type"]
@@ -2638,6 +2639,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_perimeter?: boolean
           length_lf?: number
           line_geojson: Json
           line_type: Database["public"]["Enums"]["roof_edge_type"]
@@ -2646,6 +2648,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_perimeter?: boolean
           length_lf?: number
           line_geojson?: Json
           line_type?: Database["public"]["Enums"]["roof_edge_type"]
@@ -2667,11 +2670,13 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
+          drip_edge_lf: number
           eaves_lf: number
           gutters_lf: number
           hips_lf: number
           id: string
           notes: string | null
+          parapet_wall_lf: number
           predominant_pitch: string | null
           property_id: string
           rakes_lf: number
@@ -2694,11 +2699,13 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by?: string | null
+          drip_edge_lf?: number
           eaves_lf?: number
           gutters_lf?: number
           hips_lf?: number
           id?: string
           notes?: string | null
+          parapet_wall_lf?: number
           predominant_pitch?: string | null
           property_id: string
           rakes_lf?: number
@@ -2721,11 +2728,13 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          drip_edge_lf?: number
           eaves_lf?: number
           gutters_lf?: number
           hips_lf?: number
           id?: string
           notes?: string | null
+          parapet_wall_lf?: number
           predominant_pitch?: string | null
           property_id?: string
           rakes_lf?: number
@@ -3411,6 +3420,9 @@ export type Database = {
         | "wall_flashing"
         | "step_flashing"
         | "transition"
+        | "unlabeled"
+        | "parapet_wall"
+        | "drip_edge"
       roof_measurement_source:
         | "manual"
         | "mapbox_draw"
@@ -3625,6 +3637,9 @@ export const Constants = {
         "wall_flashing",
         "step_flashing",
         "transition",
+        "unlabeled",
+        "parapet_wall",
+        "drip_edge",
       ],
       roof_measurement_source: [
         "manual",
