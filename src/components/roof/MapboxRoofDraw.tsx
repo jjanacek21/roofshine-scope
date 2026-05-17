@@ -264,12 +264,12 @@ export function MapboxRoofDraw({
 
       // Track which feature is currently in-progress so snap can mutate it.
       if (e.mode === "draw_polygon" || e.mode === "draw_line_string") {
-        setTimeout(() => {
-          const all = draw.getAll();
-          // The newest feature is the one most recently added (top of stack).
-          const candidate = all.features[all.features.length - 1];
-          inProgressIdRef.current = candidate?.id ? String(candidate.id) : null;
-        }, 0);
+        // Snapshot existing feature ids so captureInProgress can spot the new one.
+        preExistingIds.clear();
+        for (const f of draw.getAll().features) {
+          if (f.id != null) preExistingIds.add(String(f.id));
+        }
+        inProgressIdRef.current = null;
       } else {
         inProgressIdRef.current = null;
         lastSnappedRef.current = null;
@@ -302,25 +302,53 @@ export function MapboxRoofDraw({
       const ll = map.unproject([sx, sy]);
       return [ll.lng, ll.lat];
     };
+    // Identify the in-progress feature by diffing feature ids around mode entry.
+    const preExistingIds = new Set<string>();
+    const captureInProgress = () => {
+      if (inProgressIdRef.current) return;
+      const mode = draw.getMode();
+      if (mode !== "draw_polygon" && mode !== "draw_line_string") return;
+      for (const f of draw.getAll().features) {
+        const id = f.id != null ? String(f.id) : null;
+        if (id && !preExistingIds.has(id)) {
+          inProgressIdRef.current = id;
+          return;
+        }
+      }
+    };
+    map.on("draw.render", captureInProgress);
+
+    const getCoordsOf = (f: Feature): number[][] | null => {
+      if (f.geometry.type === "Polygon") return f.geometry.coordinates[0] ?? null;
+      if (f.geometry.type === "LineString") return f.geometry.coordinates ?? null;
+      return null;
+    };
+    const setCoordsOn = (f: Feature, coords: number[][]): Feature => {
+      if (f.geometry.type === "Polygon") {
+        return { ...f, geometry: { ...f.geometry, coordinates: [coords] } } as Feature;
+      }
+      return { ...f, geometry: { ...f.geometry, coordinates: coords } } as Feature;
+    };
+
     const getAnchor = (): [number, number] | null => {
       const id = inProgressIdRef.current;
       if (!id) return null;
       const f = draw.get(id);
       if (!f) return null;
-      if (f.geometry.type === "Polygon") {
-        const ring = f.geometry.coordinates[0] ?? [];
-        // ring: [p1, ...committed, hover, p1]. Newest committed = ring[len-3].
-        if (ring.length >= 3) return ring[ring.length - 3] as [number, number];
-        return null;
-      }
-      if (f.geometry.type === "LineString") {
-        const coords = f.geometry.coordinates ?? [];
-        // coords: [committed..., hover]. Newest committed = coords[len-2].
-        if (coords.length >= 2) return coords[coords.length - 2] as [number, number];
-        return null;
-      }
-      return null;
+      const coords = getCoordsOf(f);
+      if (!coords || coords.length < 2) return null;
+      // Last entry is the cursor-following hover slot; anchor is the prior one.
+      // For a closed ring (first==last) the hover is at index length-2 and anchor at length-3.
+      const last = coords[coords.length - 1];
+      const first = coords[0];
+      const closed =
+        last && first && last[0] === first[0] && last[1] === first[1] && coords.length >= 3;
+      const anchorIdx = closed ? coords.length - 3 : coords.length - 2;
+      if (anchorIdx < 0) return null;
+      const a = coords[anchorIdx];
+      return [a[0], a[1]];
     };
+
     map.on("mousemove", (e: mapboxgl.MapMouseEvent) => {
       const mode = draw.getMode();
       if (mode !== "draw_polygon" && mode !== "draw_line_string") {
@@ -351,43 +379,58 @@ export function MapboxRoofDraw({
         ],
       });
     });
-    // Snap the just-clicked vertex by mutating the in-progress feature.
+
+    // Snap the just-clicked vertex. Capture pre-click coord length on mousedown,
+    // then after the click is processed, replace whichever index is new.
+    let preClickLength = 0;
+    const onCanvasMouseDown = () => {
+      preClickLength = 0;
+      const id = inProgressIdRef.current;
+      if (!id) return;
+      const f = draw.get(id);
+      if (!f) return;
+      const coords = getCoordsOf(f);
+      preClickLength = coords?.length ?? 0;
+    };
+    map.getCanvas().addEventListener("mousedown", onCanvasMouseDown, true);
+
     map.on("click", () => {
       if (!effectiveSnap()) return;
       const mode = draw.getMode();
       if (mode !== "draw_polygon" && mode !== "draw_line_string") return;
       const snapped = lastSnappedRef.current;
-      const id = inProgressIdRef.current;
-      if (!snapped || !id) return;
+      const preLen = preClickLength;
       // Defer so Draw finishes processing the click first.
       setTimeout(() => {
+        const id = inProgressIdRef.current;
+        if (!id || !snapped) return;
         const f = draw.get(id);
         if (!f) return;
-        if (f.geometry.type === "Polygon") {
-          const ring = (f.geometry.coordinates[0] ?? []).slice();
-          // After click, the freshly-committed point is at ring[len-3] (new hover at -2, closure at -1).
-          if (ring.length >= 3) {
-            ring[ring.length - 3] = snapped;
-            // Also fix the closing vertex if this was the first commit (rare edge case).
-            const next = {
-              ...f,
-              geometry: { ...f.geometry, coordinates: [ring] },
-            } as Feature;
-            draw.add(next);
-          }
-        } else if (f.geometry.type === "LineString") {
-          const coords = (f.geometry.coordinates ?? []).slice();
-          if (coords.length >= 2) {
-            coords[coords.length - 2] = snapped;
-            const next = {
-              ...f,
-              geometry: { ...f.geometry, coordinates: coords },
-            } as Feature;
-            draw.add(next);
-          }
+        const coords = getCoordsOf(f);
+        if (!coords) return;
+        // The newly-committed point is whichever slot Draw filled in with click coords.
+        // Most commonly: pre [..., hover] (len N) → post [..., committed, hover] (len N+1),
+        // and the new committed sits at index N-1 (replacing the prior hover slot).
+        // Fallbacks handle the first-click case and closed-ring case.
+        let targetIdx = preLen > 0 ? preLen - 1 : coords.length - 2;
+        if (targetIdx < 0 || targetIdx >= coords.length) targetIdx = coords.length - 2;
+        if (targetIdx < 0) return;
+        const next = coords.slice();
+        next[targetIdx] = snapped;
+        // If the ring is closed (first==last), keep the closure in sync when we move index 0.
+        if (
+          f.geometry.type === "Polygon" &&
+          targetIdx === 0 &&
+          next.length >= 2 &&
+          next[next.length - 1]?.[0] === coords[0]?.[0] &&
+          next[next.length - 1]?.[1] === coords[0]?.[1]
+        ) {
+          next[next.length - 1] = snapped;
         }
+        draw.add(setCoordsOn(f, next));
       }, 0);
     });
+
 
     // ---- Selection: polygons → direct_select; lines/points → open label prompt ----
     map.on("draw.selectionchange", (e: { features: Feature[] }) => {
@@ -441,6 +484,7 @@ export function MapboxRoofDraw({
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keydown", onShiftDown);
       window.removeEventListener("keyup", onShiftUp);
+      map.getCanvas().removeEventListener("mousedown", onCanvasMouseDown, true);
       map.remove();
       mapRef.current = null;
       drawRef.current = null;
@@ -545,7 +589,7 @@ export function MapboxRoofDraw({
       while (current.length < segCount) current.push(null);
       setPrompt({
         type: "edge",
-        title: `Perimeter edge #${segIdx + 1}`,
+        title: "Label edge",
         initial: current[segIdx] ?? null,
         restrictTo: ["eave", "rake"],
         allowClear: true,
