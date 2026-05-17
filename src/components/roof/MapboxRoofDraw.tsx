@@ -439,6 +439,8 @@ export function MapboxRoofDraw({
     return () => {
       
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onShiftDown);
+      window.removeEventListener("keyup", onShiftUp);
       map.remove();
       mapRef.current = null;
       drawRef.current = null;
