@@ -155,9 +155,10 @@ export function MapboxRoofDraw({
         // Lines & points: drop without prompting; user labels later.
         syncFromDraw(draw);
         // Re-enter the same draw mode so user can keep adding shapes back-to-back.
-        const stayMode = created.geometry.type === "LineString" ? "draw_line_string" : "draw_point";
+        const stayMode: "draw_line_string" | "draw_point" =
+          created.geometry.type === "LineString" ? "draw_line_string" : "draw_point";
         setTimeout(() => {
-          if (drawRef.current) drawRef.current.changeMode(stayMode);
+          if (drawRef.current) drawRef.current.changeMode(stayMode as never);
         }, 0);
       }
     };
