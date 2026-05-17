@@ -67,17 +67,18 @@ export const MAPBOX_DRAW_STYLES = [
     filter: ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"], ["!=", "mode", "static"]],
     paint: { "circle-radius": 7, "circle-color": "#1e90ff" },
   },
-  // ---------- Midpoints (drag to add a new vertex) ----------
+  // ---------- Midpoints ----------
+  // Hidden: midpoint pins between vertices were being mistaken for corner
+  // vertices. Users only want pins at corners they explicitly clicked.
+  // (To add a new corner, click the polygon edge in direct_select mode and
+  // drag — the midpoint is still functionally there, just not rendered.)
   {
     id: "gl-draw-polygon-midpoint",
     type: "circle",
     filter: ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]],
     paint: {
-      "circle-radius": 5,
-      "circle-color": "#ffffff",
-      "circle-stroke-color": "#1e90ff",
-      "circle-stroke-width": 2,
-      "circle-opacity": 0.85,
+      "circle-radius": 0,
+      "circle-opacity": 0,
     },
   },
 
