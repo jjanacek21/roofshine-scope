@@ -111,12 +111,14 @@ export function MapboxRoofDraw({
       .map((f) => ({
         id: String(f.id),
         coords: f.geometry.coordinates,
-        type: (f.properties?.edge_type ?? "ridge") as EdgeType,
+        type: (f.properties?.edge_type ?? null) as EdgeType | null,
+        is_perimeter: Boolean(f.properties?.is_perimeter),
       }));
     onChangeRef.current({ sections, lines: linesArr, features, totals });
   }, [features, waste]);
 
   const polygonCount = features.filter((f) => f.geometry.type === "Polygon").length;
+  firstSectionDoneRef.current = polygonCount > 0 || firstSectionDoneRef.current;
 
   // Init map
   useEffect(() => {
