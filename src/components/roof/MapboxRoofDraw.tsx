@@ -192,6 +192,23 @@ export function MapboxRoofDraw({
       map.on("mouseleave", "perim-segs-hit", () => {
         map.getCanvas().style.cursor = "";
       });
+
+      // Snap guide overlay: a single dashed segment from anchor to snapped cursor.
+      map.addSource("snap-guide", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "snap-guide-line",
+        type: "line",
+        source: "snap-guide",
+        paint: {
+          "line-color": "#22d3ee",
+          "line-width": 1.5,
+          "line-dasharray": [2, 2],
+          "line-opacity": 0.9,
+        },
+      });
     });
 
     const handleCreate = (e: { features: Feature[] }) => {
