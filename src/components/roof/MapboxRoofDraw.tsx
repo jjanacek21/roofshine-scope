@@ -77,6 +77,13 @@ export function MapboxRoofDraw({
   const [internalWaste, setInternalWaste] = useState(15);
   const waste = wastePct ?? internalWaste;
   const setWaste = onWasteChange ?? setInternalWaste;
+  const [snapEnabled, setSnapEnabled] = useState(false);
+  const snapEnabledRef = useRef(false);
+  const shiftHeldRef = useRef(false);
+  const inProgressIdRef = useRef<string | null>(null);
+  const lastSnappedRef = useRef<[number, number] | null>(null);
+  snapEnabledRef.current = snapEnabled;
+  const effectiveSnap = () => snapEnabledRef.current !== shiftHeldRef.current;
 
   // Push state up
   const onChangeRef = useRef(onChange);
