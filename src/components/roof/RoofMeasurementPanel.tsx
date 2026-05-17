@@ -220,7 +220,6 @@ export function RoofMeasurementPanel({
 
         if (lines.length) {
           const lineRows = lines
-            .filter((l) => l.properties?.edge_type)
             .map((l) => {
               const lengths = polygonEdgeLengths([
                 ...l.geometry.coordinates,
@@ -229,7 +228,7 @@ export function RoofMeasurementPanel({
               return {
                 measurement_id: m.id,
                 line_geojson: { type: "LineString", coordinates: l.geometry.coordinates },
-                line_type: l.properties!.edge_type as EdgeType,
+                line_type: (l.properties?.edge_type ?? "unlabeled") as EdgeType | "unlabeled",
                 is_perimeter: Boolean(l.properties?.is_perimeter),
                 length_lf: lengths.reduce((s, n) => s + n, 0),
               };
