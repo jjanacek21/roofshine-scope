@@ -155,6 +155,12 @@ export function MeasurementTotalsPanel({
                       {adjusted.toFixed(2)} SQ
                     </span>
                   </div>
+                  {perimeterBySection?.[sec.id]?.length ? (
+                    <PerimeterEdgesList
+                      segments={perimeterBySection[sec.id]}
+                      onClick={(idx) => onPerimeterEdgeClick?.(sec.id, idx)}
+                    />
+                  ) : null}
                 </div>
               );
             })}
