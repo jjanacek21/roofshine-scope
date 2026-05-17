@@ -18,6 +18,7 @@ import {
   squares, polygonEdgeLengths,
   EDGE_COLORS,
   type EdgeType,
+  type LineType,
 } from "@/lib/roof-math";
 import type { FeatureProps } from "@/lib/measurement-utils";
 
@@ -87,13 +88,15 @@ export function RoofMeasurementPanel({
     for (const l of savedShapes.lines) {
       const geo = l.line_geojson as { type: string; coordinates: number[][] } | null;
       if (!geo?.coordinates) continue;
+      const lineType = l.line_type as LineType;
+      const edgeType = lineType === "unlabeled" ? undefined : (lineType as EdgeType);
       feats.push({
         type: "Feature",
         id: `line-${l.id}`,
         geometry: { type: "LineString", coordinates: geo.coordinates } as LineString,
         properties: {
-          edge_type: l.line_type as EdgeType,
-          user_color: EDGE_COLORS[l.line_type as EdgeType] ?? "#ffffff",
+          edge_type: edgeType,
+          user_color: edgeType ? EDGE_COLORS[edgeType] : "#ffffff",
           is_perimeter: Boolean((l as { is_perimeter?: boolean }).is_perimeter),
         } as FeatureProps,
       } as Feature<LineString, FeatureProps>);
