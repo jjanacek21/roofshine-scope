@@ -249,10 +249,8 @@ export function MapboxRoofDraw({
       else if (e.mode === "draw_point") setActiveTool("point");
       else if (e.mode === "direct_select") setActiveTool("select");
 
-      // While drawing lines or points, hide existing polygon fills so clicks
-      // pass through to the ground and Mapbox Draw drops vertices correctly.
-      const drawingOverlay = e.mode === "draw_line_string" || e.mode === "draw_point";
-      setPolyFillVisible(!drawingOverlay);
+      // Keep closed roof sections visibly highlighted while drawing detail lines.
+      setPolyFillVisible(true);
 
       // Track which feature is currently in-progress so snap can mutate it.
       if (e.mode === "draw_polygon" || e.mode === "draw_line_string") {
@@ -668,25 +666,8 @@ export function MapboxRoofDraw({
 
   const totals = computeTotals(features, waste);
 
-  // Build per-section perimeter segment lists + collect unlabeled lines.
+  // Collect unlabeled detail/perimeter lines.
   const KM_TO_FT = 3280.84;
-  const perimeterBySection: Record<
-    string,
-    Array<{ idx: number; lf: number; label: EdgeType | null }>
-  > = {};
-  for (const f of features) {
-    if (f.geometry.type !== "Polygon" || f.id == null) continue;
-    const id = String(f.id);
-    const ring = f.geometry.coordinates[0];
-    const labels = (f.properties?.perimeter_edges ?? []) as (EdgeType | null)[];
-    const segs: Array<{ idx: number; lf: number; label: EdgeType | null }> = [];
-    for (let i = 0; i < ring.length - 1; i++) {
-      const lf =
-        turf.length(turf.lineString([ring[i], ring[i + 1]]), { units: "kilometers" }) * KM_TO_FT;
-      segs.push({ idx: i, lf, label: labels[i] ?? null });
-    }
-    perimeterBySection[id] = segs;
-  }
   const unlabeledLines = features.flatMap((f) => {
     if (f.geometry.type !== "LineString" || f.id == null) return [];
     if (f.properties?.edge_type) return [];
@@ -750,8 +731,6 @@ export function MapboxRoofDraw({
         onSectionWasteChange={handleSectionWasteChange}
         onSectionDelete={handleSectionDelete}
         onSectionRename={handleSectionRename}
-        perimeterBySection={perimeterBySection}
-        onPerimeterEdgeClick={undefined}
         unlabeledLines={unlabeledLines}
         onUnlabeledLineClick={(lineId) => openLineLabelPrompt(lineId)}
       />
