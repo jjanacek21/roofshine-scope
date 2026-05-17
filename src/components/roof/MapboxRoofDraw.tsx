@@ -404,8 +404,10 @@ export function MapboxRoofDraw({
   // Refs let the map's selectionchange handler reach these without recreating the map effect.
   const openLineLabelPromptRef = useRef(openLineLabelPrompt);
   const openPointLabelPromptRef = useRef(openPointLabelPrompt);
+  const openPerimeterLabelPromptRef = useRef(openPerimeterLabelPrompt);
   openLineLabelPromptRef.current = openLineLabelPrompt;
   openPointLabelPromptRef.current = openPointLabelPrompt;
+  openPerimeterLabelPromptRef.current = openPerimeterLabelPrompt;
 
   const chooseTool = (t: Tool) => {
     const draw = drawRef.current;
