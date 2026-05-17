@@ -1,26 +1,42 @@
-## Add angle-snap toggle to roof polygon drawing
+## New roof measurement workflow
 
-Add an optional "Snap" mode that constrains the next polygon vertex to a horizontal, vertical, or 45° line relative to the previous vertex while drawing. Toggleable on/off from the draw toolbar and via the `Shift` key as a temporary hold.
+Replace the current polygon-first / per-segment-prompt flow with a two-phase workflow:
 
-### UX
-- New **Snap** button in `DrawToolbar` (next to Undo/Clear). Shows active state when on.
-- When Snap is ON and the user is in `draw_polygon` (or `draw_line_string`) mode with at least one vertex placed, the cursor's projected position snaps to the nearest axis (0°, 45°, 90°, 135°) from the last committed vertex.
-- Holding `Shift` temporarily inverts the current state (snap-on if off, snap-off if on) — matches Figma/Illustrator muscle memory.
-- A thin guide line renders from the previous vertex to the snapped cursor position so the user can see the constraint.
+**Phase 1 — Draw edges.** You draw every roof edge as line segments (perimeter, hips, ridges, valleys, flashing, etc.), dropping pins at each corner. New endpoints snap to nearby existing pins so shared corners stay connected. No labeling prompts during drawing.
 
-### Technical approach (in `src/components/roof/MapboxRoofDraw.tsx`)
-1. Add `snapEnabled` state + ref. Pass setter into `DrawToolbar` as a new optional prop.
-2. On `map.on("mousemove")` while in `draw_polygon`/`draw_line_string`:
-   - Read the in-progress feature via `draw.get(currentFeatureId)`.
-   - Get the last committed vertex; compute angle from it to cursor lng/lat (projected to screen pixels for accurate angle, then unprojected back).
-   - Snap angle to nearest multiple of 45°; recompute the snapped lng/lat at the same distance.
-   - Call `draw.setCoordinates(...)` on the trailing (hover) vertex to move it to the snapped point. Mapbox Draw exposes the trailing point as the last coord of the in-progress line/ring — update via `setFeatureProperty` is not enough, so we use a small internal patch: replace `feature.geometry.coordinates[...]` and call `draw.add(feature)` to refresh, OR use `MapboxDraw.modes.draw_polygon` override (simpler: re-`add` the feature, Draw keeps the in-progress state correctly for hover vertex updates in v1.4+).
-3. Render the guide via a dedicated `snap-guide` GeoJSON source + line layer (dashed, accent color), updated on each mousemove. Cleared when snap is off or mode leaves draw.
-4. Track Shift via `keydown`/`keyup` listeners; combine with `snapEnabled` to produce `effectiveSnap`.
+**Phase 2 — Label edges.** Click a "Label edges" button to enter labeling mode. Pick a label from a palette (Eave, Rake, Ridge, Hip, Valley, Flashing, Transition, etc. — pulled from existing `EDGE_LABELS`). The cursor "carries" that label, and every line you click gets tagged with it. Switch label, click more lines. Exit when done.
 
-### Files to edit
-- `src/components/roof/MapboxRoofDraw.tsx` — snap state, mousemove handler, guide layer, Shift listener.
-- `src/components/roof/DrawToolbar.tsx` — add Snap toggle button + prop.
+**Sqft auto-calculation.** When you finish drawing, the app detects which lines form the closed outer ring (via shared snapped endpoints) and auto-closes them into a polygon to compute plan area and sloped area. Interior lines (hips, ridges, valleys) don't affect area, only edge length totals.
 
-### Out of scope
-- Snapping to other features' edges/vertices (true geometric snap). This plan only does axis-angle snap from the previous vertex, which is what the user asked for (vertical/horizontal straight lines).
+## UX details
+
+- Toolbar gains a primary "Draw edge" tool (line) and a "Label edges" toggle button.
+- While drawing: clicking within ~12px of an existing pin snaps to it (visual highlight on the target pin). Double-click or Enter finishes the current line.
+- While labeling: a label palette appears (chips with the same colors as `EDGE_COLORS`). Selected label is highlighted. Clicking any line applies it. Right-click or Shift-click clears the label.
+- Labeled lines render in their `EDGE_COLORS` color; unlabeled lines render in a neutral "needs label" color so you can see what's left.
+- Totals panel splits "Unlabeled edges" out so you know to finish labeling.
+- Snap toggle and angle-snap (Shift) behavior from the existing code are preserved for drawing straight runs.
+
+## Technical approach
+
+Files to edit:
+- `src/components/roof/MapboxRoofDraw.tsx` — replace per-segment perimeter label prompt with two modes: `draw` and `label`. Add endpoint-snap logic in the `draw_line_string` mousedown (query rendered pin features within pixel radius; substitute coords). Add `labelingEdgeType` state. In `simple_select` while `mode === "label"`, intercept clicks on line features and write `edge_type` directly instead of opening the dialog.
+- `src/components/roof/DrawToolbar.tsx` — add "Label edges" toggle and the label palette (renders only when in label mode). Keep Draw / Select / Undo / Clear / Snap.
+- `src/lib/measurement-utils.ts` — add `closeRingFromLines(lines)` that builds an adjacency graph of snapped endpoints and extracts the outer cycle, then returns plan/sloped sqft. Update `computeTotals` so polygons are derived from the line set rather than required as input.
+- `src/lib/mapbox-draw-styles.ts` — add a style branch for unlabeled lines (dashed neutral) vs labeled lines (solid in `EDGE_COLORS`).
+- `src/components/roof/MeasurementPromptDialog.tsx` — the per-segment perimeter prompt path becomes unused; leave the dialog component intact (still used for pitch + penetration), just stop opening it from the perimeter click intercept.
+
+Removed behavior:
+- The polygon-perimeter midpoint click → label dialog flow (the source of the "extra pin / split segment" bug) is gone. Labels live on standalone line features, so clicking a line never mutates its geometry.
+- The canvas `mousedown` intercept on `perim-segs-hit` is removed.
+
+Data model:
+- One feature per drawn edge: `LineString` with `properties.edge_type: EdgeType | null`.
+- Pins are derived from line endpoints; no separate point features needed for corners (penetration points stay as their own `Point` features).
+- Auto-closed polygon is computed on the fly for totals; not stored as a separate feature.
+
+## Out of scope
+
+- Changing how penetrations work.
+- Multi-section roofs (multiple closed polygons in one job). If only one closed ring is found, that's the section. Multi-ring support can be added later if needed.
+- Migrating any saved jobs that already used the polygon model — existing data continues to render via the existing polygon code path; new draws use the line model.
