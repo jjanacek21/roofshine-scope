@@ -429,15 +429,19 @@ export function MapboxRoofDraw({
     map.getCanvas().addEventListener("mousedown", onCanvasMouseDown, true);
 
     map.on("click", () => {
-      if (!effectiveSnap()) return;
       const mode = draw.getMode();
       if (mode !== "draw_polygon" && mode !== "draw_line_string") return;
-      const snapped = lastSnappedRef.current;
+      // Pin snap takes precedence over axis snap.
+      const snapped = snapPinRef.current ?? (effectiveSnap() ? lastSnappedRef.current : null);
       const preLen = preClickLength;
+      const pinSnap = snapPinRef.current;
+      // Consume so the same pin doesn't accidentally apply to the next click.
+      snapPinRef.current = null;
+      if (!snapped) return;
       // Defer so Draw finishes processing the click first.
       setTimeout(() => {
         const id = inProgressIdRef.current;
-        if (!id || !snapped) return;
+        if (!id) return;
         const f = draw.get(id);
         if (!f) return;
         const coords = getCoordsOf(f);
@@ -445,7 +449,6 @@ export function MapboxRoofDraw({
         // The newly-committed point is whichever slot Draw filled in with click coords.
         // Most commonly: pre [..., hover] (len N) → post [..., committed, hover] (len N+1),
         // and the new committed sits at index N-1 (replacing the prior hover slot).
-        // Fallbacks handle the first-click case and closed-ring case.
         let targetIdx = preLen > 0 ? preLen - 1 : coords.length - 2;
         if (targetIdx < 0 || targetIdx >= coords.length) targetIdx = coords.length - 2;
         if (targetIdx < 0) return;
@@ -462,15 +465,32 @@ export function MapboxRoofDraw({
           next[next.length - 1] = snapped;
         }
         draw.add(setCoordsOn(f, next));
+        // If we snapped to an existing pin, also finish the in-progress line so
+        // the user can immediately start the next edge from a fresh click.
+        if (pinSnap && f.geometry.type === "LineString" && next.length >= 2) {
+          drawRef.current?.changeMode("draw_line_string");
+        }
       }, 0);
     });
 
-    // ---- Selection: polygons → direct_select; lines/points → open label prompt ----
+    // ---- Selection: polygons → direct_select; lines → label (or open prompt) ----
     map.on("draw.selectionchange", (e: { features: Feature[] }) => {
       const mode = draw.getMode();
       if (mode !== "simple_select") return;
       const selected = e.features?.[0];
       if (!selected?.id) return;
+      // Label-edges mode: apply current label to the clicked line directly.
+      if (labelModeRef.current && selected.geometry?.type === "LineString") {
+        const lineId = String(selected.id);
+        const label = currentLabelRef.current; // null = erase
+        draw.setFeatureProperty(lineId, "edge_type", label);
+        // Deselect so the next line click registers as a fresh selection.
+        setTimeout(() => {
+          drawRef.current?.changeMode("simple_select");
+          syncFromDrawRef.current?.(drawRef.current!);
+        }, 0);
+        return;
+      }
       if (selected.geometry?.type === "Polygon") {
         setTimeout(() => {
           if (drawRef.current?.getMode() === "simple_select") {
