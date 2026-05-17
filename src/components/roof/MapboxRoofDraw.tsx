@@ -837,6 +837,7 @@ export function MapboxRoofDraw({
             style={{ boxShadow: "inset 0 0 0 2px var(--brand)" }}
           />
         )}
+      </div>
 
       <MeasurementTotalsPanel
         totals={totals}
