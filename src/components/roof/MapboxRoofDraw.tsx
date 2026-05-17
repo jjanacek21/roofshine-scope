@@ -638,32 +638,6 @@ export function MapboxRoofDraw({
   openLineLabelPromptRef.current = openLineLabelPrompt;
   openPointLabelPromptRef.current = openPointLabelPrompt;
 
-  // Keep the perimeter overlay source in sync with current polygon features.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const src = map.getSource("perim-segs") as mapboxgl.GeoJSONSource | undefined;
-    if (!src) return;
-    const segFeatures: Feature[] = [];
-    for (const f of features) {
-      if (f.geometry.type !== "Polygon") continue;
-      const polygonId = String(f.id ?? "");
-      if (!polygonId) continue;
-      const ring = f.geometry.coordinates[0];
-      const labels = (f.properties?.perimeter_edges ?? []) as (EdgeType | null)[];
-      for (let i = 0; i < ring.length - 1; i++) {
-        const label = labels[i] ?? null;
-        const color = label ? EDGE_COLORS[label] : "#94a3b8";
-        segFeatures.push({
-          type: "Feature",
-          geometry: { type: "LineString", coordinates: [ring[i], ring[i + 1]] },
-          properties: { polygonId, segIdx: i, kind: label ?? "unlabeled", color },
-        });
-      }
-    }
-    src.setData({ type: "FeatureCollection", features: segFeatures });
-  }, [features]);
-
   const chooseTool = (t: Tool) => {
     const draw = drawRef.current;
     if (!draw) return;
