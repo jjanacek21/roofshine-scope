@@ -284,34 +284,86 @@ export function MapboxRoofDraw({
           },
           onCancel: cancel,
         });
-      } else if (feature.geometry.type === "LineString") {
-        setPrompt({
-          type: "edge",
-          onConfirm: (edge) => {
-            if (feature.id != null) {
-              draw.setFeatureProperty(String(feature.id), "edge_type", edge);
-            }
-            setPrompt(null);
-            cleanup();
-          },
-          onCancel: cancel,
-        });
-      } else if (feature.geometry.type === "Point") {
-        setPrompt({
-          type: "penetration",
-          onConfirm: (penetration: PenetrationType) => {
-            if (feature.id != null) {
-              draw.setFeatureProperty(String(feature.id), "penetration_type", penetration);
-            }
-            setPrompt(null);
-            cleanup();
-          },
-          onCancel: cancel,
-        });
       }
     },
     [syncFromDraw, polygonCount, waste],
   );
+
+  // ---- Click-to-label handlers (lines, points, perimeter segments) ----
+  const openLineLabelPrompt = useCallback(
+    (featureId: string) => {
+      const draw = drawRef.current;
+      if (!draw) return;
+      const f = draw.get(featureId);
+      const initial = (f?.properties?.edge_type ?? null) as EdgeType | null;
+      setPrompt({
+        type: "edge",
+        title: "Label this line",
+        initial,
+        allowClear: true,
+        onConfirm: (edge) => {
+          draw.setFeatureProperty(featureId, "edge_type", edge);
+          setPrompt(null);
+          syncFromDraw(draw);
+        },
+        onCancel: () => setPrompt(null),
+      });
+    },
+    [syncFromDraw],
+  );
+
+  const openPointLabelPrompt = useCallback(
+    (featureId: string) => {
+      const draw = drawRef.current;
+      if (!draw) return;
+      const f = draw.get(featureId);
+      const initial = (f?.properties?.penetration_type ?? null) as PenetrationType | null;
+      setPrompt({
+        type: "penetration",
+        initial,
+        onConfirm: (penetration) => {
+          draw.setFeatureProperty(featureId, "penetration_type", penetration);
+          setPrompt(null);
+          syncFromDraw(draw);
+        },
+        onCancel: () => setPrompt(null),
+      });
+    },
+    [syncFromDraw],
+  );
+
+  const openPerimeterLabelPrompt = useCallback(
+    (polygonId: string, segIdx: number) => {
+      const draw = drawRef.current;
+      if (!draw) return;
+      const f = draw.get(polygonId);
+      const ring = (f?.geometry as Polygon | undefined)?.coordinates?.[0] ?? [];
+      const segCount = Math.max(0, ring.length - 1);
+      const current = ((f?.properties?.perimeter_edges ?? []) as (EdgeType | null)[]).slice();
+      while (current.length < segCount) current.push(null);
+      setPrompt({
+        type: "edge",
+        title: `Perimeter edge #${segIdx + 1}`,
+        initial: current[segIdx] ?? null,
+        restrictTo: ["eave", "rake"],
+        allowClear: true,
+        onConfirm: (edge) => {
+          current[segIdx] = edge;
+          draw.setFeatureProperty(polygonId, "perimeter_edges", current);
+          setPrompt(null);
+          syncFromDraw(draw);
+        },
+        onCancel: () => setPrompt(null),
+      });
+    },
+    [syncFromDraw],
+  );
+
+  // Refs let the map's selectionchange handler reach these without recreating the map effect.
+  const openLineLabelPromptRef = useRef(openLineLabelPrompt);
+  const openPointLabelPromptRef = useRef(openPointLabelPrompt);
+  openLineLabelPromptRef.current = openLineLabelPrompt;
+  openPointLabelPromptRef.current = openPointLabelPrompt;
 
   const chooseTool = (t: Tool) => {
     const draw = drawRef.current;
