@@ -475,6 +475,7 @@ export function MapboxRoofDraw({
         const lineId = String(selected.id);
         const label = currentLabelRef.current; // null = erase
         draw.setFeatureProperty(lineId, "edge_type", label);
+        draw.setFeatureProperty(lineId, "user_color", label ? LINE_COLORS[label] : LINE_COLORS.unlabeled);
         // Deselect so the next line click registers as a fresh selection.
         setTimeout(() => {
           drawRef.current?.changeMode("simple_select");
@@ -511,6 +512,7 @@ export function MapboxRoofDraw({
       if (ev.key === "Escape" && (mode === "draw_polygon" || mode === "draw_line_string")) {
         ev.preventDefault();
         drawRef.current?.trash();
+        drawRef.current?.changeMode("simple_select");
         return;
       }
       if (ev.key === "Escape" && labelModeRef.current) {
