@@ -19,8 +19,6 @@ export function pitchMultiplier(pitch: string): number {
 export type FeatureProps = {
   pitch?: string;
   edge_type?: EdgeType;
-  user_color?: string;
-  is_perimeter?: boolean;
   penetration_type?: PenetrationType;
   // Per-section metadata (polygons only)
   section_name?: string;
@@ -67,34 +65,7 @@ export function computeTotals(features: AnyFeature[], defaultWastePct = 15): Mea
 
   const sections: SectionTotal[] = [];
 
-  // Auto-close: if the user only drew lines (no polygons), try to derive the
-  // outer perimeter polygon(s) from connected line endpoints via turf.polygonize.
-  // These are added as synthetic sections so area math still works.
-  const derivedPolygons: Feature<Polygon, FeatureProps>[] = [];
-  if (polygons.length === 0 && lines.length >= 3) {
-    try {
-      const fc = {
-        type: "FeatureCollection" as const,
-        features: lines.map((l) => ({
-          ...l,
-          properties: l.properties ?? {},
-        })),
-      };
-      // turf.polygonize finds all closed cycles formed by the line set.
-      const polyFc = turf.polygonize(fc as never) as { features: Feature<Polygon>[] };
-      for (const p of polyFc.features) {
-        derivedPolygons.push({
-          ...p,
-          properties: { pitch: "6/12", section_name: "Roof", section_color: "#1e90ff" },
-        } as Feature<Polygon, FeatureProps>);
-      }
-    } catch {
-      // polygonize throws if the lines don't form closed rings — that's fine.
-    }
-  }
-  const allPolygons = polygons.length ? polygons : derivedPolygons;
-
-  allPolygons.forEach((p, i) => {
+  polygons.forEach((p, i) => {
     const flatM = turf.area(p);
     const flatFt = flatM * SQM_TO_SQFT;
     const pitch = p.properties?.pitch ?? "6/12";

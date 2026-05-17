@@ -1,8 +1,6 @@
 // Custom Mapbox GL Draw styles. Polygons get a brand-blue translucent fill,
 // lines are colored by feature.properties.edge_type, points are brand-blue dots.
 
-import { LINE_COLORS } from "@/lib/roof-math";
-
 export const MAPBOX_DRAW_STYLES = [
   // ---------- Polygon fill ----------
   // Inactive polygons: very dim while drawing a new one so clicks pass through
@@ -36,14 +34,21 @@ export const MAPBOX_DRAW_STYLES = [
     filter: ["all", ["==", "$type", "LineString"], ["!=", "mode", "static"]],
     layout: { "line-cap": "round", "line-join": "round" },
     paint: {
-      "line-color": ["coalesce", ["get", "user_color"], "#ffffff"],
-      "line-width": 3,
-      "line-dasharray": [
-        "case",
-        ["==", ["get", "active"], "true"],
-        ["literal", [0.4, 2]],
-        ["literal", [1, 0]],
+      "line-color": [
+        "match",
+        ["get", "user_edge_type"],
+        "eave", "#22c55e",
+        "rake", "#a855f7",
+        "ridge", "#eab308",
+        "hip", "#d4a574",
+        "valley", "#ef4444",
+        "gutter", "#06b6d4",
+        "wall_flashing", "#a855f7",
+        "step_flashing", "#ec4899",
+        "transition", "#94a3b8",
+        "#ffffff",
       ],
+      "line-width": 3,
     },
   },
 
@@ -60,20 +65,19 @@ export const MAPBOX_DRAW_STYLES = [
     id: "gl-draw-polygon-and-line-vertex-active",
     type: "circle",
     filter: ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"], ["!=", "mode", "static"]],
-    paint: { "circle-radius": 7, "circle-color": LINE_COLORS.unlabeled },
+    paint: { "circle-radius": 7, "circle-color": "#1e90ff" },
   },
-  // ---------- Midpoints ----------
-  // Hidden: midpoint pins between vertices were being mistaken for corner
-  // vertices. Users only want pins at corners they explicitly clicked.
-  // (To add a new corner, click the polygon edge in direct_select mode and
-  // drag — the midpoint is still functionally there, just not rendered.)
+  // ---------- Midpoints (drag to add a new vertex) ----------
   {
     id: "gl-draw-polygon-midpoint",
     type: "circle",
     filter: ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]],
     paint: {
-      "circle-radius": 0,
-      "circle-opacity": 0,
+      "circle-radius": 5,
+      "circle-color": "#ffffff",
+      "circle-stroke-color": "#1e90ff",
+      "circle-stroke-width": 2,
+      "circle-opacity": 0.85,
     },
   },
 

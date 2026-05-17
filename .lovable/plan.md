@@ -1,42 +1,42 @@
-## New roof measurement workflow
+# Defer-label workflow for Mapbox measurements
 
-Replace the current polygon-first / per-segment-prompt flow with a two-phase workflow:
+Today every shape you draw immediately opens a modal: polygon → pitch, line → edge type, point → penetration. You asked to keep drawing fluid and label things afterward, plus add per-edge labels on the polygon perimeter so eaves/rakes drive starter, drip edge, and gutter totals.
 
-**Phase 1 — Draw edges.** You draw every roof edge as line segments (perimeter, hips, ridges, valleys, flashing, etc.), dropping pins at each corner. New endpoints snap to nearby existing pins so shared corners stay connected. No labeling prompts during drawing.
+## Target workflow
 
-**Phase 2 — Label edges.** Click a "Label edges" button to enter labeling mode. Pick a label from a palette (Eave, Rake, Ridge, Hip, Valley, Flashing, Transition, etc. — pulled from existing `EDGE_LABELS`). The cursor "carries" that label, and every line you click gets tagged with it. Switch label, click more lines. Exit when done.
+1. **Draw a roof polygon.** A small popover asks only for pitch + name (kept — needed for area math). No per-edge prompt.
+2. **Label perimeter edges.** Each polygon segment between two vertices becomes a selectable mini-edge. Click any segment on the map (or in the side panel list) → choose **Eave** or **Rake**. Unlabeled segments render dashed/gray. Eave length auto-feeds gutter total.
+3. **Draw all interior lines** (ridge, hip, valley, flashing, transition, step flash, etc.) back-to-back with no prompts. Drawing tool stays active until you press Esc / switch tools.
+4. **Label interior lines.** Click a line on the map → inline popover with the edge-type chips. Or use the new "Unlabeled lines (N)" list in the side panel to step through them.
+5. Points (penetrations) behave the same: drop freely, label later.
 
-**Sqft auto-calculation.** When you finish drawing, the app detects which lines form the closed outer ring (via shared snapped endpoints) and auto-closes them into a polygon to compute plan area and sloped area. Interior lines (hips, ridges, valleys) don't affect area, only edge length totals.
+## Side panel changes
 
-## UX details
+New section **"Perimeter edges"** per roof section:
+- One row per polygon segment, numbered, with length in LF and an Eave/Rake/— selector
+- Subtotals: Eaves (= gutters / starter), Rakes (= drip edge rake), Total perimeter
 
-- Toolbar gains a primary "Draw edge" tool (line) and a "Label edges" toggle button.
-- While drawing: clicking within ~12px of an existing pin snaps to it (visual highlight on the target pin). Double-click or Enter finishes the current line.
-- While labeling: a label palette appears (chips with the same colors as `EDGE_COLORS`). Selected label is highlighted. Clicking any line applies it. Right-click or Shift-click clears the label.
-- Labeled lines render in their `EDGE_COLORS` color; unlabeled lines render in a neutral "needs label" color so you can see what's left.
-- Totals panel splits "Unlabeled edges" out so you know to finish labeling.
-- Snap toggle and angle-snap (Shift) behavior from the existing code are preserved for drawing straight runs.
+New section **"Unlabeled lines (N)"** at top of Edges block — clicking a row selects the line on the map and opens the label popover. Hidden when N = 0.
 
-## Technical approach
+Totals get two new derived rows:
+- **Gutters** = eave LF (perimeter, from polygons)
+- **Starter / drip edge eave** = eave LF; **Drip edge rake** = rake LF
 
-Files to edit:
-- `src/components/roof/MapboxRoofDraw.tsx` — replace per-segment perimeter label prompt with two modes: `draw` and `label`. Add endpoint-snap logic in the `draw_line_string` mousedown (query rendered pin features within pixel radius; substitute coords). Add `labelingEdgeType` state. In `simple_select` while `mode === "label"`, intercept clicks on line features and write `edge_type` directly instead of opening the dialog.
-- `src/components/roof/DrawToolbar.tsx` — add "Label edges" toggle and the label palette (renders only when in label mode). Keep Draw / Select / Undo / Clear / Snap.
-- `src/lib/measurement-utils.ts` — add `closeRingFromLines(lines)` that builds an adjacency graph of snapped endpoints and extracts the outer cycle, then returns plan/sloped sqft. Update `computeTotals` so polygons are derived from the line set rather than required as input.
-- `src/lib/mapbox-draw-styles.ts` — add a style branch for unlabeled lines (dashed neutral) vs labeled lines (solid in `EDGE_COLORS`).
-- `src/components/roof/MeasurementPromptDialog.tsx` — the per-segment perimeter prompt path becomes unused; leave the dialog component intact (still used for pitch + penetration), just stop opening it from the perimeter click intercept.
+## Technical notes
 
-Removed behavior:
-- The polygon-perimeter midpoint click → label dialog flow (the source of the "extra pin / split segment" bug) is gone. Labels live on standalone line features, so clicking a line never mutates its geometry.
-- The canvas `mousedown` intercept on `perim-segs-hit` is removed.
-
-Data model:
-- One feature per drawn edge: `LineString` with `properties.edge_type: EdgeType | null`.
-- Pins are derived from line endpoints; no separate point features needed for corners (penetration points stay as their own `Point` features).
-- Auto-closed polygon is computed on the fly for totals; not stored as a separate feature.
+Files to touch:
+- `src/lib/measurement-utils.ts` — add `perimeter_edges` to `FeatureProps` on polygons: `string[]` indexed by segment, values `"eave" | "rake" | null`. Extend `computeTotals` to sum polygon perimeter LF by label and merge eave/rake into the existing `edges` totals.
+- `src/components/roof/MapboxRoofDraw.tsx`
+  - Remove the auto-prompt for `LineString` and `Point` features in `promptForFeature`. Keep the pitch prompt for polygons.
+  - After finishing draw, stay in the active draw mode so you can keep adding shapes (already true for polygon — extend to line/point by re-entering the mode in the `draw.create` handler instead of falling back to simple_select).
+  - Add a "selected feature" popover: on `draw.selectionchange` for a LineString or Point in `simple_select`, anchor a Mapbox `Popup` at the feature centroid with the chip grid (reuse `EDGE_LABELS` / `PENETRATION_LABELS`). Selecting writes the property via `draw.setFeatureProperty` and `syncFromDraw`.
+  - Render a thin overlay layer for polygon perimeter segments colored by their label (eave/rake/unlabeled). Implement as a derived GeoJSON source rebuilt from `features` on every change; click handler sets the active segment and opens the same popover.
+- `src/components/roof/MeasurementTotalsPanel.tsx` — new `PerimeterEdgesList` per section and `UnlabeledLines` callout. Wire callbacks up through `MapboxRoofDraw` props.
+- `src/components/roof/MeasurementPromptDialog.tsx` — keep the pitch prompt; the edge + penetration variants are no longer triggered on create but are still used by the click-to-label popover (we move that UI inline instead, so the `edge` and `penetration` variants can be removed once the popover lands).
+- Persistence: polygon `perimeter_edges` is just another property on the GeoJSON feature, so existing save/load already round-trips it. No DB migration needed.
 
 ## Out of scope
 
-- Changing how penetrations work.
-- Multi-section roofs (multiple closed polygons in one job). If only one closed ring is found, that's the section. Multi-ring support can be added later if needed.
-- Migrating any saved jobs that already used the polygon model — existing data continues to render via the existing polygon code path; new draws use the line model.
+- Auto-detecting which sides are eaves vs rakes from pitch direction (could come later).
+- Changing the underlying `edges` schema or how `RoofMeasurementPanel` saves to Supabase.
+- Touching the AI measurement or manual entry tabs.

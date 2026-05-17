@@ -16,9 +16,7 @@ import { SolarRoofTab } from "./SolarRoofTab";
 import { ConditionAITab } from "./ConditionAITab";
 import {
   squares, polygonEdgeLengths,
-  EDGE_COLORS,
   type EdgeType,
-  type LineType,
 } from "@/lib/roof-math";
 import type { FeatureProps } from "@/lib/measurement-utils";
 
@@ -88,17 +86,11 @@ export function RoofMeasurementPanel({
     for (const l of savedShapes.lines) {
       const geo = l.line_geojson as { type: string; coordinates: number[][] } | null;
       if (!geo?.coordinates) continue;
-      const lineType = l.line_type as LineType;
-      const edgeType = lineType === "unlabeled" ? undefined : (lineType as EdgeType);
       feats.push({
         type: "Feature",
         id: `line-${l.id}`,
         geometry: { type: "LineString", coordinates: geo.coordinates } as LineString,
-        properties: {
-          edge_type: edgeType,
-          user_color: edgeType ? EDGE_COLORS[edgeType] : "#ffffff",
-          is_perimeter: Boolean((l as { is_perimeter?: boolean }).is_perimeter),
-        } as FeatureProps,
+        properties: { edge_type: l.line_type as EdgeType } as FeatureProps,
       } as Feature<LineString, FeatureProps>);
     }
     return feats;
@@ -149,8 +141,6 @@ export function RoofMeasurementPanel({
             wall_flashing_lf: manual.wall_flashing_lf,
             step_flashing_lf: manual.step_flashing_lf,
             transition_lf: manual.transition_lf,
-            parapet_wall_lf: 0,
-            drip_edge_lf: 0,
           };
 
       const payload = {
@@ -170,8 +160,6 @@ export function RoofMeasurementPanel({
         wall_flashing_lf: totals.wall_flashing_lf,
         step_flashing_lf: totals.step_flashing_lf,
         transition_lf: totals.transition_lf,
-        parapet_wall_lf: totals.parapet_wall_lf,
-        drip_edge_lf: totals.drip_edge_lf,
         created_by: profile.id,
       };
 
@@ -223,6 +211,7 @@ export function RoofMeasurementPanel({
 
         if (lines.length) {
           const lineRows = lines
+            .filter((l) => l.properties?.edge_type)
             .map((l) => {
               const lengths = polygonEdgeLengths([
                 ...l.geometry.coordinates,
@@ -231,8 +220,7 @@ export function RoofMeasurementPanel({
               return {
                 measurement_id: m.id,
                 line_geojson: { type: "LineString", coordinates: l.geometry.coordinates },
-                line_type: (l.properties?.edge_type ?? "unlabeled") as EdgeType | "unlabeled",
-                is_perimeter: Boolean(l.properties?.is_perimeter),
+                line_type: l.properties!.edge_type as EdgeType,
                 length_lf: lengths.reduce((s, n) => s + n, 0),
               };
             });
@@ -392,8 +380,7 @@ export function RoofMeasurementPanel({
 
 type EdgeKey =
   | "eaves_lf" | "rakes_lf" | "ridges_lf" | "hips_lf" | "valleys_lf"
-  | "gutters_lf" | "wall_flashing_lf" | "step_flashing_lf" | "transition_lf"
-  | "parapet_wall_lf" | "drip_edge_lf";
+  | "gutters_lf" | "wall_flashing_lf" | "step_flashing_lf" | "transition_lf";
 
 const EDGE_KEY_MAP: Record<EdgeType, EdgeKey> = {
   eave: "eaves_lf",
@@ -405,15 +392,12 @@ const EDGE_KEY_MAP: Record<EdgeType, EdgeKey> = {
   wall_flashing: "wall_flashing_lf",
   step_flashing: "step_flashing_lf",
   transition: "transition_lf",
-  parapet_wall: "parapet_wall_lf",
-  drip_edge: "drip_edge_lf",
 };
 
 function mapboxTotalsFromFeatures(features: AnyFeature[]) {
   const totals: Record<EdgeKey, number> = {
     eaves_lf: 0, rakes_lf: 0, ridges_lf: 0, hips_lf: 0, valleys_lf: 0,
     gutters_lf: 0, wall_flashing_lf: 0, step_flashing_lf: 0, transition_lf: 0,
-    parapet_wall_lf: 0, drip_edge_lf: 0,
   };
   let total_area_sqft = 0;
   for (const f of features) {
