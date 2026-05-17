@@ -405,6 +405,16 @@ function mapboxTotalsFromFeatures(features: AnyFeature[]) {
       const ring = (f as Feature<Polygon, FeatureProps>).geometry.coordinates[0];
       const pitch = (f as Feature<Polygon, FeatureProps>).properties?.pitch ?? "6/12";
       total_area_sqft += polygonAreaFromRing(ring) * pitchMult(pitch);
+      // Per-segment perimeter labels feed eaves/rakes (and gutters via eave).
+      const labels = ((f as Feature<Polygon, FeatureProps>).properties?.perimeter_edges ?? []) as (EdgeType | null)[];
+      for (let i = 0; i < ring.length - 1; i++) {
+        const t = labels[i];
+        if (!t) continue;
+        const lens = polygonEdgeLengths([ring[i], ring[i + 1], ring[i]]);
+        const lf = lens[0] ?? 0;
+        totals[EDGE_KEY_MAP[t]] += lf;
+        if (t === "eave") totals.gutters_lf += lf;
+      }
     } else if (f.geometry.type === "LineString") {
       const t = (f as Feature<LineString, FeatureProps>).properties?.edge_type as EdgeType | undefined;
       if (!t) continue;
