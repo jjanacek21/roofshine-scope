@@ -503,6 +503,28 @@ export function MapboxRoofDraw({
 
   const totals = computeTotals(features, waste);
 
+  // Build per-section perimeter segment lists + collect unlabeled lines.
+  const KM_TO_FT = 3280.84;
+  const perimeterBySection: Record<string, Array<{ idx: number; lf: number; label: EdgeType | null }>> = {};
+  for (const f of features) {
+    if (f.geometry.type !== "Polygon" || f.id == null) continue;
+    const id = String(f.id);
+    const ring = f.geometry.coordinates[0];
+    const labels = (f.properties?.perimeter_edges ?? []) as (EdgeType | null)[];
+    const segs: Array<{ idx: number; lf: number; label: EdgeType | null }> = [];
+    for (let i = 0; i < ring.length - 1; i++) {
+      const lf = turf.length(turf.lineString([ring[i], ring[i + 1]]), { units: "kilometers" }) * KM_TO_FT;
+      segs.push({ idx: i, lf, label: labels[i] ?? null });
+    }
+    perimeterBySection[id] = segs;
+  }
+  const unlabeledLines = features.flatMap((f) => {
+    if (f.geometry.type !== "LineString" || f.id == null) return [];
+    if (f.properties?.edge_type) return [];
+    const lf = turf.length(f, { units: "kilometers" }) * KM_TO_FT;
+    return [{ id: String(f.id), lf }];
+  });
+
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
       <div className="relative">
@@ -529,6 +551,10 @@ export function MapboxRoofDraw({
         onSectionWasteChange={handleSectionWasteChange}
         onSectionDelete={handleSectionDelete}
         onSectionRename={handleSectionRename}
+        perimeterBySection={perimeterBySection}
+        onPerimeterEdgeClick={(sectionId, segIdx) => openPerimeterLabelPrompt(sectionId, segIdx)}
+        unlabeledLines={unlabeledLines}
+        onUnlabeledLineClick={(lineId) => openLineLabelPrompt(lineId)}
       />
 
       <MeasurementPromptDialog prompt={prompt} />
