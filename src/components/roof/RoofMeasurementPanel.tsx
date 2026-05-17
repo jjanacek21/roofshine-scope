@@ -16,6 +16,7 @@ import { SolarRoofTab } from "./SolarRoofTab";
 import { ConditionAITab } from "./ConditionAITab";
 import {
   squares, polygonEdgeLengths,
+  EDGE_COLORS,
   type EdgeType,
 } from "@/lib/roof-math";
 import type { FeatureProps } from "@/lib/measurement-utils";
@@ -90,7 +91,11 @@ export function RoofMeasurementPanel({
         type: "Feature",
         id: `line-${l.id}`,
         geometry: { type: "LineString", coordinates: geo.coordinates } as LineString,
-        properties: { edge_type: l.line_type as EdgeType } as FeatureProps,
+        properties: {
+          edge_type: l.line_type as EdgeType,
+          user_color: EDGE_COLORS[l.line_type as EdgeType] ?? "#ffffff",
+          is_perimeter: Boolean((l as { is_perimeter?: boolean }).is_perimeter),
+        } as FeatureProps,
       } as Feature<LineString, FeatureProps>);
     }
     return feats;
