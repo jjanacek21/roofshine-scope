@@ -803,13 +803,40 @@ export function MapboxRoofDraw({
         />
         <DrawToolbar
           active={activeTool}
-          onChoose={chooseTool}
+          onChoose={(t) => {
+            // Choosing a draw tool exits label mode.
+            if (labelModeActive) {
+              setLabelModeActive(false);
+              setCurrentLabel(null);
+            }
+            chooseTool(t);
+          }}
           onUndo={handleUndo}
           onClearAll={handleClearAll}
           snapEnabled={snapEnabled}
           onToggleSnap={() => setSnapEnabled((v) => !v)}
+          labelMode={labelModeActive}
+          currentLabel={currentLabel}
+          onToggleLabelMode={() => {
+            const next = !labelModeActive;
+            setLabelModeActive(next);
+            if (next) {
+              // Enter label mode: stay in simple_select so line clicks register.
+              setCurrentLabel((cur) => cur ?? "eave");
+              drawRef.current?.changeMode("simple_select");
+              setActiveTool("select");
+            } else {
+              setCurrentLabel(null);
+            }
+          }}
+          onSelectLabel={(e) => setCurrentLabel(e)}
         />
-      </div>
+        {labelModeActive && (
+          <div
+            className="pointer-events-none absolute inset-0 rounded-xl ring-2"
+            style={{ boxShadow: "inset 0 0 0 2px var(--brand)" }}
+          />
+        )}
 
       <MeasurementTotalsPanel
         totals={totals}
