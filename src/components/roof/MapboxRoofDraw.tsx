@@ -69,8 +69,8 @@ export function MapboxRoofDraw({
   const [internalWaste, setInternalWaste] = useState(15);
   const waste = wastePct ?? internalWaste;
   const setWaste = onWasteChange ?? setInternalWaste;
-  const [snapEnabled, setSnapEnabled] = useState(false);
-  const snapEnabledRef = useRef(false);
+  const [snapEnabled, setSnapEnabled] = useState(true);
+  const snapEnabledRef = useRef(true);
   const shiftHeldRef = useRef(false);
   const inProgressIdRef = useRef<string | null>(null);
   const lastSnappedRef = useRef<[number, number] | null>(null);
@@ -789,7 +789,7 @@ export function MapboxRoofDraw({
         onSectionDelete={handleSectionDelete}
         onSectionRename={handleSectionRename}
         perimeterBySection={perimeterBySection}
-        onPerimeterEdgeClick={(sectionId, segIdx) => openPerimeterLabelPrompt(sectionId, segIdx)}
+        onPerimeterEdgeClick={undefined}
         unlabeledLines={unlabeledLines}
         onUnlabeledLineClick={(lineId) => openLineLabelPrompt(lineId)}
       />
