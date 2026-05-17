@@ -698,6 +698,8 @@ export function MapboxRoofDraw({
           onChoose={chooseTool}
           onUndo={handleUndo}
           onClearAll={handleClearAll}
+          snapEnabled={snapEnabled}
+          onToggleSnap={() => setSnapEnabled((v) => !v)}
         />
       </div>
 
