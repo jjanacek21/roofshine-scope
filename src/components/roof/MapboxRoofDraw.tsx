@@ -77,6 +77,13 @@ export function MapboxRoofDraw({
   const [internalWaste, setInternalWaste] = useState(15);
   const waste = wastePct ?? internalWaste;
   const setWaste = onWasteChange ?? setInternalWaste;
+  const [snapEnabled, setSnapEnabled] = useState(false);
+  const snapEnabledRef = useRef(false);
+  const shiftHeldRef = useRef(false);
+  const inProgressIdRef = useRef<string | null>(null);
+  const lastSnappedRef = useRef<[number, number] | null>(null);
+  snapEnabledRef.current = snapEnabled;
+  const effectiveSnap = () => snapEnabledRef.current !== shiftHeldRef.current;
 
   // Push state up
   const onChangeRef = useRef(onChange);
@@ -185,6 +192,23 @@ export function MapboxRoofDraw({
       map.on("mouseleave", "perim-segs-hit", () => {
         map.getCanvas().style.cursor = "";
       });
+
+      // Snap guide overlay: a single dashed segment from anchor to snapped cursor.
+      map.addSource("snap-guide", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "snap-guide-line",
+        type: "line",
+        source: "snap-guide",
+        paint: {
+          "line-color": "#22d3ee",
+          "line-width": 1.5,
+          "line-dasharray": [2, 2],
+          "line-opacity": 0.9,
+        },
+      });
     });
 
     const handleCreate = (e: { features: Feature[] }) => {
@@ -237,6 +261,132 @@ export function MapboxRoofDraw({
       // pass through to the ground and Mapbox Draw drops vertices correctly.
       const drawingOverlay = e.mode === "draw_line_string" || e.mode === "draw_point";
       setPolyFillVisible(!drawingOverlay);
+
+      // Track which feature is currently in-progress so snap can mutate it.
+      if (e.mode === "draw_polygon" || e.mode === "draw_line_string") {
+        setTimeout(() => {
+          const all = draw.getAll();
+          // The newest feature is the one most recently added (top of stack).
+          const candidate = all.features[all.features.length - 1];
+          inProgressIdRef.current = candidate?.id ? String(candidate.id) : null;
+        }, 0);
+      } else {
+        inProgressIdRef.current = null;
+        lastSnappedRef.current = null;
+        const src = map.getSource("snap-guide") as mapboxgl.GeoJSONSource | undefined;
+        src?.setData({ type: "FeatureCollection", features: [] });
+      }
+    });
+
+    // ---- Snap-to-axis: compute snapped lngLat from anchor and update guide ----
+    const clearSnapGuide = () => {
+      const src = map.getSource("snap-guide") as mapboxgl.GeoJSONSource | undefined;
+      src?.setData({ type: "FeatureCollection", features: [] });
+      lastSnappedRef.current = null;
+    };
+    const computeSnap = (
+      anchor: [number, number],
+      cursor: [number, number],
+    ): [number, number] => {
+      const a = map.project(anchor);
+      const c = map.project(cursor);
+      const dx = c.x - a.x;
+      const dy = c.y - a.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 1) return cursor;
+      const ang = Math.atan2(dy, dx);
+      const step = Math.PI / 4; // 45°
+      const snappedAng = Math.round(ang / step) * step;
+      const sx = a.x + Math.cos(snappedAng) * dist;
+      const sy = a.y + Math.sin(snappedAng) * dist;
+      const ll = map.unproject([sx, sy]);
+      return [ll.lng, ll.lat];
+    };
+    const getAnchor = (): [number, number] | null => {
+      const id = inProgressIdRef.current;
+      if (!id) return null;
+      const f = draw.get(id);
+      if (!f) return null;
+      if (f.geometry.type === "Polygon") {
+        const ring = f.geometry.coordinates[0] ?? [];
+        // ring: [p1, ...committed, hover, p1]. Newest committed = ring[len-3].
+        if (ring.length >= 3) return ring[ring.length - 3] as [number, number];
+        return null;
+      }
+      if (f.geometry.type === "LineString") {
+        const coords = f.geometry.coordinates ?? [];
+        // coords: [committed..., hover]. Newest committed = coords[len-2].
+        if (coords.length >= 2) return coords[coords.length - 2] as [number, number];
+        return null;
+      }
+      return null;
+    };
+    map.on("mousemove", (e: mapboxgl.MapMouseEvent) => {
+      const mode = draw.getMode();
+      if (mode !== "draw_polygon" && mode !== "draw_line_string") {
+        if (lastSnappedRef.current) clearSnapGuide();
+        return;
+      }
+      if (!effectiveSnap()) {
+        if (lastSnappedRef.current) clearSnapGuide();
+        return;
+      }
+      const anchor = getAnchor();
+      if (!anchor) {
+        if (lastSnappedRef.current) clearSnapGuide();
+        return;
+      }
+      const cursor: [number, number] = [e.lngLat.lng, e.lngLat.lat];
+      const snapped = computeSnap(anchor, cursor);
+      lastSnappedRef.current = snapped;
+      const src = map.getSource("snap-guide") as mapboxgl.GeoJSONSource | undefined;
+      src?.setData({
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties: {},
+            geometry: { type: "LineString", coordinates: [anchor, snapped] },
+          },
+        ],
+      });
+    });
+    // Snap the just-clicked vertex by mutating the in-progress feature.
+    map.on("click", () => {
+      if (!effectiveSnap()) return;
+      const mode = draw.getMode();
+      if (mode !== "draw_polygon" && mode !== "draw_line_string") return;
+      const snapped = lastSnappedRef.current;
+      const id = inProgressIdRef.current;
+      if (!snapped || !id) return;
+      // Defer so Draw finishes processing the click first.
+      setTimeout(() => {
+        const f = draw.get(id);
+        if (!f) return;
+        if (f.geometry.type === "Polygon") {
+          const ring = (f.geometry.coordinates[0] ?? []).slice();
+          // After click, the freshly-committed point is at ring[len-3] (new hover at -2, closure at -1).
+          if (ring.length >= 3) {
+            ring[ring.length - 3] = snapped;
+            // Also fix the closing vertex if this was the first commit (rare edge case).
+            const next = {
+              ...f,
+              geometry: { ...f.geometry, coordinates: [ring] },
+            } as Feature;
+            draw.add(next);
+          }
+        } else if (f.geometry.type === "LineString") {
+          const coords = (f.geometry.coordinates ?? []).slice();
+          if (coords.length >= 2) {
+            coords[coords.length - 2] = snapped;
+            const next = {
+              ...f,
+              geometry: { ...f.geometry, coordinates: coords },
+            } as Feature;
+            draw.add(next);
+          }
+        }
+      }, 0);
     });
 
     // ---- Selection: polygons → direct_select; lines/points → open label prompt ----
@@ -276,11 +426,21 @@ export function MapboxRoofDraw({
         drawRef.current?.trash();
       }
     };
+    const onShiftDown = (ev: KeyboardEvent) => {
+      if (ev.key === "Shift") shiftHeldRef.current = true;
+    };
+    const onShiftUp = (ev: KeyboardEvent) => {
+      if (ev.key === "Shift") shiftHeldRef.current = false;
+    };
     window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", onShiftDown);
+    window.addEventListener("keyup", onShiftUp);
 
     return () => {
       
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onShiftDown);
+      window.removeEventListener("keyup", onShiftUp);
       map.remove();
       mapRef.current = null;
       drawRef.current = null;
@@ -538,6 +698,8 @@ export function MapboxRoofDraw({
           onChoose={chooseTool}
           onUndo={handleUndo}
           onClearAll={handleClearAll}
+          snapEnabled={snapEnabled}
+          onToggleSnap={() => setSnapEnabled((v) => !v)}
         />
       </div>
 
