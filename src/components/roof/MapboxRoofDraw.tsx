@@ -264,12 +264,12 @@ export function MapboxRoofDraw({
 
       // Track which feature is currently in-progress so snap can mutate it.
       if (e.mode === "draw_polygon" || e.mode === "draw_line_string") {
-        setTimeout(() => {
-          const all = draw.getAll();
-          // The newest feature is the one most recently added (top of stack).
-          const candidate = all.features[all.features.length - 1];
-          inProgressIdRef.current = candidate?.id ? String(candidate.id) : null;
-        }, 0);
+        // Snapshot existing feature ids so captureInProgress can spot the new one.
+        preExistingIds.clear();
+        for (const f of draw.getAll().features) {
+          if (f.id != null) preExistingIds.add(String(f.id));
+        }
+        inProgressIdRef.current = null;
       } else {
         inProgressIdRef.current = null;
         lastSnappedRef.current = null;
