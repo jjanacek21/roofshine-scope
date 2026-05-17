@@ -602,6 +602,7 @@ export function MapboxRoofDraw({
         allowClear: true,
         onConfirm: (edge) => {
           draw.setFeatureProperty(featureId, "edge_type", edge);
+          draw.setFeatureProperty(featureId, "user_color", edge ? LINE_COLORS[edge] : LINE_COLORS.unlabeled);
           setPrompt(null);
           syncFromDraw(draw);
         },
@@ -631,40 +632,11 @@ export function MapboxRoofDraw({
     [syncFromDraw],
   );
 
-  const openPerimeterLabelPrompt = useCallback(
-    (polygonId: string, segIdx: number) => {
-      const draw = drawRef.current;
-      if (!draw) return;
-      const f = draw.get(polygonId);
-      const ring = (f?.geometry as Polygon | undefined)?.coordinates?.[0] ?? [];
-      const segCount = Math.max(0, ring.length - 1);
-      const current = ((f?.properties?.perimeter_edges ?? []) as (EdgeType | null)[]).slice();
-      while (current.length < segCount) current.push(null);
-      setPrompt({
-        type: "edge",
-        title: "Label edge",
-        initial: current[segIdx] ?? null,
-        restrictTo: ["eave", "rake"],
-        allowClear: true,
-        onConfirm: (edge) => {
-          current[segIdx] = edge;
-          draw.setFeatureProperty(polygonId, "perimeter_edges", current);
-          setPrompt(null);
-          syncFromDraw(draw);
-        },
-        onCancel: () => setPrompt(null),
-      });
-    },
-    [syncFromDraw],
-  );
-
   // Refs let the map's selectionchange handler reach these without recreating the map effect.
   const openLineLabelPromptRef = useRef(openLineLabelPrompt);
   const openPointLabelPromptRef = useRef(openPointLabelPrompt);
-  const openPerimeterLabelPromptRef = useRef(openPerimeterLabelPrompt);
   openLineLabelPromptRef.current = openLineLabelPrompt;
   openPointLabelPromptRef.current = openPointLabelPrompt;
-  openPerimeterLabelPromptRef.current = openPerimeterLabelPrompt;
 
   // Keep the perimeter overlay source in sync with current polygon features.
   useEffect(() => {
