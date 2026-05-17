@@ -2,8 +2,9 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Feature, Polygon, LineString, Point, FeatureCollection } from "geojson";
+import * as turf from "@turf/turf";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
-import { type EdgeType } from "@/lib/roof-math";
+import { EDGE_COLORS, type EdgeType } from "@/lib/roof-math";
 import {
   MAPBOX_DRAW_STYLES,
   type PenetrationType,
@@ -142,12 +143,66 @@ export function MapboxRoofDraw({
         };
         draw.set(fc);
       }
+      // Perimeter overlay: one feature per polygon segment, colored by label.
+      map.addSource("perim-segs", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "perim-segs-hit",
+        type: "line",
+        source: "perim-segs",
+        paint: { "line-color": "#000", "line-opacity": 0, "line-width": 18 },
+      });
+      map.addLayer({
+        id: "perim-segs-line",
+        type: "line",
+        source: "perim-segs",
+        layout: { "line-cap": "round" },
+        paint: {
+          "line-color": ["coalesce", ["get", "color"], "#94a3b8"],
+          "line-width": 5,
+          "line-dasharray": [
+            "case",
+            ["==", ["get", "kind"], "unlabeled"],
+            ["literal", [2, 2]],
+            ["literal", [1, 0]],
+          ],
+          "line-opacity": 0.95,
+        },
+      });
+      map.on("click", "perim-segs-hit", (ev) => {
+        const f = ev.features?.[0];
+        if (!f) return;
+        const polygonId = String(f.properties?.polygonId ?? "");
+        const segIdx = Number(f.properties?.segIdx ?? -1);
+        if (!polygonId || segIdx < 0) return;
+        openPerimeterLabelPromptRef.current?.(polygonId, segIdx);
+      });
+      map.on("mouseenter", "perim-segs-hit", () => {
+        map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "perim-segs-hit", () => {
+        map.getCanvas().style.cursor = "";
+      });
     });
 
     const handleCreate = (e: { features: Feature[] }) => {
       const created = e.features[0];
       if (!created) return;
-      promptForFeature(created, draw);
+      if (created.geometry.type === "Polygon") {
+        // Polygons still prompt for pitch/name (needed for area math).
+        promptForFeature(created, draw);
+      } else {
+        // Lines & points: drop without prompting; user labels later.
+        syncFromDraw(draw);
+        // Re-enter the same draw mode so user can keep adding shapes back-to-back.
+        const stayMode: "draw_line_string" | "draw_point" =
+          created.geometry.type === "LineString" ? "draw_line_string" : "draw_point";
+        setTimeout(() => {
+          if (drawRef.current) drawRef.current.changeMode(stayMode as never);
+        }, 0);
+      }
     };
     const handleUpdate = () => syncFromDraw(draw);
     const handleDelete = () => syncFromDraw(draw);
@@ -184,22 +239,22 @@ export function MapboxRoofDraw({
       setPolyFillVisible(!drawingOverlay);
     });
 
-    // ---- Single-click → direct_select (drag-vertex) when in select mode ----
-    // Mapbox Draw normally requires click-to-select then click-again-to-edit.
-    // Collapse that to one click so corner pins are immediately draggable.
+    // ---- Selection: polygons → direct_select; lines/points → open label prompt ----
     map.on("draw.selectionchange", (e: { features: Feature[] }) => {
       const mode = draw.getMode();
       if (mode !== "simple_select") return;
       const selected = e.features?.[0];
-      if (selected?.id != null && selected.geometry?.type === "Polygon") {
-        // Defer so Mapbox Draw finishes its own click handling first.
+      if (!selected?.id) return;
+      if (selected.geometry?.type === "Polygon") {
         setTimeout(() => {
           if (drawRef.current?.getMode() === "simple_select") {
-            drawRef.current.changeMode("direct_select", {
-              featureId: String(selected.id),
-            });
+            drawRef.current.changeMode("direct_select", { featureId: String(selected.id) });
           }
         }, 0);
+      } else if (selected.geometry?.type === "LineString") {
+        openLineLabelPromptRef.current?.(String(selected.id));
+      } else if (selected.geometry?.type === "Point") {
+        openPointLabelPromptRef.current?.(String(selected.id));
       }
     });
 
@@ -271,34 +326,114 @@ export function MapboxRoofDraw({
           },
           onCancel: cancel,
         });
-      } else if (feature.geometry.type === "LineString") {
-        setPrompt({
-          type: "edge",
-          onConfirm: (edge) => {
-            if (feature.id != null) {
-              draw.setFeatureProperty(String(feature.id), "edge_type", edge);
-            }
-            setPrompt(null);
-            cleanup();
-          },
-          onCancel: cancel,
-        });
-      } else if (feature.geometry.type === "Point") {
-        setPrompt({
-          type: "penetration",
-          onConfirm: (penetration: PenetrationType) => {
-            if (feature.id != null) {
-              draw.setFeatureProperty(String(feature.id), "penetration_type", penetration);
-            }
-            setPrompt(null);
-            cleanup();
-          },
-          onCancel: cancel,
-        });
       }
     },
     [syncFromDraw, polygonCount, waste],
   );
+
+  // ---- Click-to-label handlers (lines, points, perimeter segments) ----
+  const openLineLabelPrompt = useCallback(
+    (featureId: string) => {
+      const draw = drawRef.current;
+      if (!draw) return;
+      const f = draw.get(featureId);
+      const initial = (f?.properties?.edge_type ?? null) as EdgeType | null;
+      setPrompt({
+        type: "edge",
+        title: "Label this line",
+        initial,
+        allowClear: true,
+        onConfirm: (edge) => {
+          draw.setFeatureProperty(featureId, "edge_type", edge);
+          setPrompt(null);
+          syncFromDraw(draw);
+        },
+        onCancel: () => setPrompt(null),
+      });
+    },
+    [syncFromDraw],
+  );
+
+  const openPointLabelPrompt = useCallback(
+    (featureId: string) => {
+      const draw = drawRef.current;
+      if (!draw) return;
+      const f = draw.get(featureId);
+      const initial = (f?.properties?.penetration_type ?? null) as PenetrationType | null;
+      setPrompt({
+        type: "penetration",
+        initial,
+        onConfirm: (penetration) => {
+          draw.setFeatureProperty(featureId, "penetration_type", penetration);
+          setPrompt(null);
+          syncFromDraw(draw);
+        },
+        onCancel: () => setPrompt(null),
+      });
+    },
+    [syncFromDraw],
+  );
+
+  const openPerimeterLabelPrompt = useCallback(
+    (polygonId: string, segIdx: number) => {
+      const draw = drawRef.current;
+      if (!draw) return;
+      const f = draw.get(polygonId);
+      const ring = (f?.geometry as Polygon | undefined)?.coordinates?.[0] ?? [];
+      const segCount = Math.max(0, ring.length - 1);
+      const current = ((f?.properties?.perimeter_edges ?? []) as (EdgeType | null)[]).slice();
+      while (current.length < segCount) current.push(null);
+      setPrompt({
+        type: "edge",
+        title: `Perimeter edge #${segIdx + 1}`,
+        initial: current[segIdx] ?? null,
+        restrictTo: ["eave", "rake"],
+        allowClear: true,
+        onConfirm: (edge) => {
+          current[segIdx] = edge;
+          draw.setFeatureProperty(polygonId, "perimeter_edges", current);
+          setPrompt(null);
+          syncFromDraw(draw);
+        },
+        onCancel: () => setPrompt(null),
+      });
+    },
+    [syncFromDraw],
+  );
+
+  // Refs let the map's selectionchange handler reach these without recreating the map effect.
+  const openLineLabelPromptRef = useRef(openLineLabelPrompt);
+  const openPointLabelPromptRef = useRef(openPointLabelPrompt);
+  const openPerimeterLabelPromptRef = useRef(openPerimeterLabelPrompt);
+  openLineLabelPromptRef.current = openLineLabelPrompt;
+  openPointLabelPromptRef.current = openPointLabelPrompt;
+  openPerimeterLabelPromptRef.current = openPerimeterLabelPrompt;
+
+  // Keep the perimeter overlay source in sync with current polygon features.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const src = map.getSource("perim-segs") as mapboxgl.GeoJSONSource | undefined;
+    if (!src) return;
+    const segFeatures: Feature[] = [];
+    for (const f of features) {
+      if (f.geometry.type !== "Polygon") continue;
+      const polygonId = String(f.id ?? "");
+      if (!polygonId) continue;
+      const ring = f.geometry.coordinates[0];
+      const labels = (f.properties?.perimeter_edges ?? []) as (EdgeType | null)[];
+      for (let i = 0; i < ring.length - 1; i++) {
+        const label = labels[i] ?? null;
+        const color = label ? EDGE_COLORS[label] : "#94a3b8";
+        segFeatures.push({
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: [ring[i], ring[i + 1]] },
+          properties: { polygonId, segIdx: i, kind: label ?? "unlabeled", color },
+        });
+      }
+    }
+    src.setData({ type: "FeatureCollection", features: segFeatures });
+  }, [features]);
 
   const chooseTool = (t: Tool) => {
     const draw = drawRef.current;
@@ -368,6 +503,28 @@ export function MapboxRoofDraw({
 
   const totals = computeTotals(features, waste);
 
+  // Build per-section perimeter segment lists + collect unlabeled lines.
+  const KM_TO_FT = 3280.84;
+  const perimeterBySection: Record<string, Array<{ idx: number; lf: number; label: EdgeType | null }>> = {};
+  for (const f of features) {
+    if (f.geometry.type !== "Polygon" || f.id == null) continue;
+    const id = String(f.id);
+    const ring = f.geometry.coordinates[0];
+    const labels = (f.properties?.perimeter_edges ?? []) as (EdgeType | null)[];
+    const segs: Array<{ idx: number; lf: number; label: EdgeType | null }> = [];
+    for (let i = 0; i < ring.length - 1; i++) {
+      const lf = turf.length(turf.lineString([ring[i], ring[i + 1]]), { units: "kilometers" }) * KM_TO_FT;
+      segs.push({ idx: i, lf, label: labels[i] ?? null });
+    }
+    perimeterBySection[id] = segs;
+  }
+  const unlabeledLines = features.flatMap((f) => {
+    if (f.geometry.type !== "LineString" || f.id == null) return [];
+    if (f.properties?.edge_type) return [];
+    const lf = turf.length(f, { units: "kilometers" }) * KM_TO_FT;
+    return [{ id: String(f.id), lf }];
+  });
+
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
       <div className="relative">
@@ -394,6 +551,10 @@ export function MapboxRoofDraw({
         onSectionWasteChange={handleSectionWasteChange}
         onSectionDelete={handleSectionDelete}
         onSectionRename={handleSectionRename}
+        perimeterBySection={perimeterBySection}
+        onPerimeterEdgeClick={(sectionId, segIdx) => openPerimeterLabelPrompt(sectionId, segIdx)}
+        unlabeledLines={unlabeledLines}
+        onUnlabeledLineClick={(lineId) => openLineLabelPrompt(lineId)}
       />
 
       <MeasurementPromptDialog prompt={prompt} />

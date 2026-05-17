@@ -24,6 +24,10 @@ export type FeatureProps = {
   section_name?: string;
   section_color?: string;
   section_waste_pct?: number;
+  // Per-segment perimeter labels (polygons only). Indexed by segment 0..N-1
+  // where N = ring.length - 1 (closed-ring last vertex is the same as first).
+  // null means "unlabeled". Stored as an array of strings for GeoJSON safety.
+  perimeter_edges?: (EdgeType | null)[];
 };
 
 export type AnyFeature = Feature<Polygon | LineString | Point, FeatureProps>;
@@ -91,6 +95,19 @@ export function computeTotals(features: AnyFeature[], defaultWastePct = 15): Mea
     const lengthFt = turf.length(l, { units: "kilometers" }) * KM_TO_FT;
     const t = l.properties?.edge_type as EdgeType | undefined;
     if (t) edges[t] = (edges[t] ?? 0) + lengthFt;
+  }
+
+  // Add perimeter segment labels from polygons (eave / rake / etc.)
+  for (const p of polygons) {
+    const ring = p.geometry.coordinates[0];
+    const labels = p.properties?.perimeter_edges ?? [];
+    for (let i = 0; i < ring.length - 1; i++) {
+      const t = labels[i];
+      if (!t) continue;
+      const seg = turf.lineString([ring[i], ring[i + 1]]);
+      const lf = turf.length(seg, { units: "kilometers" }) * KM_TO_FT;
+      edges[t] = (edges[t] ?? 0) + lf;
+    }
   }
 
   const penetrations: Partial<Record<PenetrationType, number>> = {};

@@ -18,8 +18,21 @@ export type PromptKind =
       onConfirm: (result: PitchResult) => void;
       onCancel: () => void;
     }
-  | { type: "edge"; onConfirm: (edge: EdgeType) => void; onCancel: () => void }
-  | { type: "penetration"; onConfirm: (p: PenetrationType) => void; onCancel: () => void };
+  | {
+      type: "edge";
+      initial?: EdgeType | null;
+      restrictTo?: EdgeType[];
+      title?: string;
+      allowClear?: boolean;
+      onConfirm: (edge: EdgeType | null) => void;
+      onCancel: () => void;
+    }
+  | {
+      type: "penetration";
+      initial?: PenetrationType | null;
+      onConfirm: (p: PenetrationType) => void;
+      onCancel: () => void;
+    };
 
 export function MeasurementPromptDialog({ prompt }: { prompt: PromptKind | null }) {
   const [pitch, setPitch] = useState("6/12");
@@ -33,8 +46,8 @@ export function MeasurementPromptDialog({ prompt }: { prompt: PromptKind | null 
       setPitch("6/12");
       setName(prompt.defaultName ?? "");
     }
-    if (prompt?.type === "edge") setEdge("eave");
-    if (prompt?.type === "penetration") setPenetration("pipe_boot");
+    if (prompt?.type === "edge") setEdge((prompt.initial ?? prompt.restrictTo?.[0] ?? "eave") as EdgeType);
+    if (prompt?.type === "penetration") setPenetration((prompt.initial ?? "pipe_boot") as PenetrationType);
     setCustomRise("");
   }, [prompt]);
 
@@ -126,10 +139,10 @@ export function MeasurementPromptDialog({ prompt }: { prompt: PromptKind | null 
         {prompt.type === "edge" && (
           <>
             <DialogHeader>
-              <DialogTitle>What type of edge is this?</DialogTitle>
+              <DialogTitle>{prompt.title ?? "What type of edge is this?"}</DialogTitle>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-2 py-2">
-              {(Object.keys(EDGE_LABELS) as EdgeType[]).map((t) => (
+              {((prompt.restrictTo ?? (Object.keys(EDGE_LABELS) as EdgeType[]))).map((t) => (
                 <button
                   key={t}
                   onClick={() => setEdge(t)}
@@ -145,7 +158,16 @@ export function MeasurementPromptDialog({ prompt }: { prompt: PromptKind | null 
                 </button>
               ))}
             </div>
-            <DialogFooter>
+            <DialogFooter className="gap-2">
+              {prompt.allowClear && (
+                <button
+                  onClick={() => prompt.onConfirm(null)}
+                  className="h-9 rounded-md border px-4 text-sm text-muted-foreground hover:bg-[var(--surface-hover)]"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  Clear label
+                </button>
+              )}
               <button
                 onClick={prompt.onCancel}
                 className="h-9 rounded-md border px-4 text-sm text-muted-foreground hover:bg-[var(--surface-hover)]"
@@ -157,7 +179,7 @@ export function MeasurementPromptDialog({ prompt }: { prompt: PromptKind | null 
                 onClick={() => prompt.onConfirm(edge)}
                 className="btn-brand h-9 rounded-md px-4 text-sm font-semibold"
               >
-                Save edge
+                Save
               </button>
             </DialogFooter>
           </>
