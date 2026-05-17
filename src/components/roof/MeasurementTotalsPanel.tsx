@@ -306,3 +306,52 @@ function RowMini({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+function PerimeterEdgesList({
+  segments,
+  onClick,
+}: {
+  segments: PerimeterSegment[];
+  onClick: (idx: number) => void;
+}) {
+  const eaveLf = segments.filter((s) => s.label === "eave").reduce((a, s) => a + s.lf, 0);
+  const rakeLf = segments.filter((s) => s.label === "rake").reduce((a, s) => a + s.lf, 0);
+  const unlabeled = segments.filter((s) => !s.label).length;
+  return (
+    <div className="mt-2 space-y-1 border-t pt-2" style={{ borderColor: "var(--border)" }}>
+      <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+        <span>Perimeter</span>
+        {unlabeled > 0 && <span className="text-amber-400">{unlabeled} unlabeled</span>}
+      </div>
+      <div className="grid grid-cols-1 gap-1">
+        {segments.map((s) => {
+          const color = s.label ? EDGE_COLORS[s.label] : "#94a3b8";
+          const label = s.label ? EDGE_LABELS[s.label] : "—";
+          return (
+            <button
+              key={s.idx}
+              onClick={() => onClick(s.idx)}
+              className="flex items-center justify-between rounded border px-1.5 py-1 text-[11px] transition hover:bg-[var(--surface-hover)]"
+              style={{ borderColor: s.label ? color : "var(--border)" }}
+            >
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                <span className="font-mono-num text-muted-foreground">#{s.idx + 1}</span>
+                <span className="text-foreground/80">{label}</span>
+              </span>
+              <span className="font-mono-num text-foreground">{s.lf.toFixed(0)} LF</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex justify-between text-[11px] pt-1">
+        <span className="text-muted-foreground">Eaves / Gutters</span>
+        <span className="font-mono-num font-semibold text-foreground">{eaveLf.toFixed(0)} LF</span>
+      </div>
+      <div className="flex justify-between text-[11px]">
+        <span className="text-muted-foreground">Rakes</span>
+        <span className="font-mono-num font-semibold text-foreground">{rakeLf.toFixed(0)} LF</span>
+      </div>
+    </div>
+  );
+}
