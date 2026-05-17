@@ -196,6 +196,25 @@ export function MeasurementTotalsPanel({
         </Section>
       )}
 
+      {unlabeledLines && unlabeledLines.length > 0 && (
+        <Section label={`Unlabeled lines (${unlabeledLines.length})`}>
+          <div className="space-y-1">
+            {unlabeledLines.map((ul, i) => (
+              <button
+                key={ul.id}
+                onClick={() => onUnlabeledLineClick?.(ul.id)}
+                className="flex w-full items-center justify-between rounded-md border border-dashed px-2 py-1.5 text-xs text-foreground transition hover:bg-[var(--surface-hover)]"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <span className="font-mono-num text-muted-foreground">#{i + 1}</span>
+                <span className="font-mono-num">{ul.lf.toFixed(0)} LF</span>
+                <span className="text-[10px] uppercase tracking-wider text-[var(--brand)]">Label</span>
+              </button>
+            ))}
+          </div>
+        </Section>
+      )}
+
       <Section label="Edges">
         {edgeEntries.length === 0 ? (
           <p className="text-xs text-muted-foreground/70">No labeled edges yet.</p>
