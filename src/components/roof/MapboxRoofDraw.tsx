@@ -5,14 +5,8 @@ import type { Feature, Polygon, LineString, Point, FeatureCollection } from "geo
 import * as turf from "@turf/turf";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { EDGE_COLORS, type EdgeType } from "@/lib/roof-math";
-import {
-  MAPBOX_DRAW_STYLES,
-  type PenetrationType,
-} from "@/lib/mapbox-draw-styles";
-import {
-  MeasurementPromptDialog,
-  type PromptKind,
-} from "./MeasurementPromptDialog";
+import { MAPBOX_DRAW_STYLES, type PenetrationType } from "@/lib/mapbox-draw-styles";
+import { MeasurementPromptDialog, type PromptKind } from "./MeasurementPromptDialog";
 import { DrawToolbar } from "./DrawToolbar";
 import {
   computeTotals,
@@ -20,10 +14,7 @@ import {
   type AnyFeature,
   type FeatureProps,
 } from "@/lib/measurement-utils";
-import {
-  MeasurementTotalsPanel,
-  type MeasurementTotals,
-} from "./MeasurementTotalsPanel";
+import { MeasurementTotalsPanel, type MeasurementTotals } from "./MeasurementTotalsPanel";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 
@@ -284,10 +275,7 @@ export function MapboxRoofDraw({
       src?.setData({ type: "FeatureCollection", features: [] });
       lastSnappedRef.current = null;
     };
-    const computeSnap = (
-      anchor: [number, number],
-      cursor: [number, number],
-    ): [number, number] => {
+    const computeSnap = (anchor: [number, number], cursor: [number, number]): [number, number] => {
       const a = map.project(anchor);
       const c = map.project(cursor);
       const dx = c.x - a.x;
@@ -383,7 +371,28 @@ export function MapboxRoofDraw({
     // Snap the just-clicked vertex. Capture pre-click coord length on mousedown,
     // then after the click is processed, replace whichever index is new.
     let preClickLength = 0;
-    const onCanvasMouseDown = () => {
+    const onCanvasMouseDown = (ev: MouseEvent) => {
+      const mode = draw.getMode();
+      if (
+        (mode === "simple_select" || mode === "direct_select") &&
+        map.getLayer("perim-segs-hit")
+      ) {
+        const hits = map.queryRenderedFeatures([ev.offsetX, ev.offsetY], {
+          layers: ["perim-segs-hit"],
+        });
+        const hit = hits[0];
+        if (hit) {
+          ev.preventDefault();
+          ev.stopImmediatePropagation();
+          const polygonId = String(hit.properties?.polygonId ?? "");
+          const segIdx = Number(hit.properties?.segIdx ?? -1);
+          if (polygonId && segIdx >= 0) {
+            openPerimeterLabelPromptRef.current?.(polygonId, segIdx);
+          }
+          return;
+        }
+      }
+
       preClickLength = 0;
       const id = inProgressIdRef.current;
       if (!id) return;
@@ -430,7 +439,6 @@ export function MapboxRoofDraw({
         draw.add(setCoordsOn(f, next));
       }, 0);
     });
-
 
     // ---- Selection: polygons → direct_select; lines/points → open label prompt ----
     map.on("draw.selectionchange", (e: { features: Feature[] }) => {
@@ -480,7 +488,6 @@ export function MapboxRoofDraw({
     window.addEventListener("keyup", onShiftUp);
 
     return () => {
-      
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keydown", onShiftDown);
       window.removeEventListener("keyup", onShiftUp);
@@ -709,7 +716,10 @@ export function MapboxRoofDraw({
 
   // Build per-section perimeter segment lists + collect unlabeled lines.
   const KM_TO_FT = 3280.84;
-  const perimeterBySection: Record<string, Array<{ idx: number; lf: number; label: EdgeType | null }>> = {};
+  const perimeterBySection: Record<
+    string,
+    Array<{ idx: number; lf: number; label: EdgeType | null }>
+  > = {};
   for (const f of features) {
     if (f.geometry.type !== "Polygon" || f.id == null) continue;
     const id = String(f.id);
@@ -717,7 +727,8 @@ export function MapboxRoofDraw({
     const labels = (f.properties?.perimeter_edges ?? []) as (EdgeType | null)[];
     const segs: Array<{ idx: number; lf: number; label: EdgeType | null }> = [];
     for (let i = 0; i < ring.length - 1; i++) {
-      const lf = turf.length(turf.lineString([ring[i], ring[i + 1]]), { units: "kilometers" }) * KM_TO_FT;
+      const lf =
+        turf.length(turf.lineString([ring[i], ring[i + 1]]), { units: "kilometers" }) * KM_TO_FT;
       segs.push({ idx: i, lf, label: labels[i] ?? null });
     }
     perimeterBySection[id] = segs;
