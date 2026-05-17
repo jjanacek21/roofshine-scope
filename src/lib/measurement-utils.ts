@@ -24,6 +24,10 @@ export type FeatureProps = {
   section_name?: string;
   section_color?: string;
   section_waste_pct?: number;
+  // Per-segment perimeter labels (polygons only). Indexed by segment 0..N-1
+  // where N = ring.length - 1 (closed-ring last vertex is the same as first).
+  // null means "unlabeled". Stored as an array of strings for GeoJSON safety.
+  perimeter_edges?: (EdgeType | null)[];
 };
 
 export type AnyFeature = Feature<Polygon | LineString | Point, FeatureProps>;
