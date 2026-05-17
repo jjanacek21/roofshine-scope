@@ -4,7 +4,7 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Feature, Polygon, LineString, Point, FeatureCollection } from "geojson";
 import * as turf from "@turf/turf";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
-import { EDGE_COLORS, LINE_COLORS, type EdgeType } from "@/lib/roof-math";
+import { LINE_COLORS, type EdgeType } from "@/lib/roof-math";
 import { MAPBOX_DRAW_STYLES, type PenetrationType } from "@/lib/mapbox-draw-styles";
 import { MeasurementPromptDialog, type PromptKind } from "./MeasurementPromptDialog";
 import { DrawToolbar } from "./DrawToolbar";
@@ -550,45 +550,7 @@ export function MapboxRoofDraw({
   const syncFromDrawRef = useRef(syncFromDraw);
   syncFromDrawRef.current = syncFromDraw;
 
-  const promptForFeature = useCallback(
-    (feature: Feature, draw: MapboxDraw) => {
-      const cleanup = () => syncFromDraw(draw);
-      const cancel = () => {
-        if (feature.id != null) draw.delete(String(feature.id));
-        setPrompt(null);
-        cleanup();
-      };
-
-      if (feature.geometry.type === "Polygon") {
-        const idx = draw
-          .getAll()
-          .features.filter((f) => f.geometry.type === "Polygon")
-          .findIndex((f) => f.id === feature.id);
-        const sectionIdx = idx >= 0 ? idx : polygonCount;
-        const defaultName = `Roof ${sectionIdx + 1}`;
-        const color = nextSectionColor(sectionIdx);
-        setPrompt({
-          type: "pitch",
-          defaultName,
-          onConfirm: (result) => {
-            if (feature.id != null) {
-              const id = String(feature.id);
-              draw.setFeatureProperty(id, "pitch", result.pitch);
-              draw.setFeatureProperty(id, "section_name", result.name);
-              draw.setFeatureProperty(id, "section_color", color);
-              draw.setFeatureProperty(id, "section_waste_pct", waste);
-            }
-            setPrompt(null);
-            cleanup();
-          },
-          onCancel: cancel,
-        });
-      }
-    },
-    [syncFromDraw, polygonCount, waste],
-  );
-
-  // ---- Click-to-label handlers (lines, points, perimeter segments) ----
+  // ---- Click-to-label handlers (all lines and points) ----
   const openLineLabelPrompt = useCallback(
     (featureId: string) => {
       const draw = drawRef.current;
