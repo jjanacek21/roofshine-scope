@@ -73,8 +73,18 @@ export function MapboxRoofDraw({
   const shiftHeldRef = useRef(false);
   const inProgressIdRef = useRef<string | null>(null);
   const lastSnappedRef = useRef<[number, number] | null>(null);
+  const snapPinRef = useRef<[number, number] | null>(null);
   snapEnabledRef.current = snapEnabled;
   const effectiveSnap = () => snapEnabledRef.current !== shiftHeldRef.current;
+
+  // Label-edges mode: when active, clicking any line in simple_select applies
+  // currentLabel to that line (or clears it when currentLabel is null = Erase).
+  const [labelModeActive, setLabelModeActive] = useState(false);
+  const [currentLabel, setCurrentLabel] = useState<EdgeType | null>(null);
+  const labelModeRef = useRef(false);
+  const currentLabelRef = useRef<EdgeType | null>(null);
+  labelModeRef.current = labelModeActive;
+  currentLabelRef.current = currentLabel;
 
   // Push state up
   const onChangeRef = useRef(onChange);
@@ -371,26 +381,41 @@ export function MapboxRoofDraw({
     // Snap the just-clicked vertex. Capture pre-click coord length on mousedown,
     // then after the click is processed, replace whichever index is new.
     let preClickLength = 0;
+
+    // Find the nearest existing line/polygon vertex to a screen pixel position,
+    // ignoring the currently in-progress feature. Used so endpoints of new
+    // lines snap onto pins of already-drawn edges → shared corners stay
+    // connected, which lets turf.polygonize close the perimeter into a ring.
+    const findSnapPin = (px: number, py: number, tolPx = 14): [number, number] | null => {
+      let best: [number, number] | null = null;
+      let bestD = tolPx;
+      const inProgId = inProgressIdRef.current;
+      for (const f of draw.getAll().features) {
+        if (inProgId && String(f.id) === inProgId) continue;
+        let coords: number[][] = [];
+        if (f.geometry.type === "LineString") coords = f.geometry.coordinates;
+        else if (f.geometry.type === "Polygon") coords = f.geometry.coordinates[0] ?? [];
+        else continue;
+        for (const c of coords) {
+          const p = map.project([c[0], c[1]] as [number, number]);
+          const d = Math.hypot(p.x - px, p.y - py);
+          if (d < bestD) {
+            bestD = d;
+            best = [c[0], c[1]];
+          }
+        }
+      }
+      return best;
+    };
+
     const onCanvasMouseDown = (ev: MouseEvent) => {
       const mode = draw.getMode();
-      if (
-        (mode === "simple_select" || mode === "direct_select") &&
-        map.getLayer("perim-segs-hit")
-      ) {
-        const hits = map.queryRenderedFeatures([ev.offsetX, ev.offsetY], {
-          layers: ["perim-segs-hit"],
-        });
-        const hit = hits[0];
-        if (hit) {
-          ev.preventDefault();
-          ev.stopImmediatePropagation();
-          const polygonId = String(hit.properties?.polygonId ?? "");
-          const segIdx = Number(hit.properties?.segIdx ?? -1);
-          if (polygonId && segIdx >= 0) {
-            openPerimeterLabelPromptRef.current?.(polygonId, segIdx);
-          }
-          return;
-        }
+
+      // While drawing lines/polygons, check for a pin to snap to under the cursor.
+      if (mode === "draw_line_string" || mode === "draw_polygon") {
+        snapPinRef.current = findSnapPin(ev.offsetX, ev.offsetY);
+      } else {
+        snapPinRef.current = null;
       }
 
       preClickLength = 0;
@@ -404,15 +429,19 @@ export function MapboxRoofDraw({
     map.getCanvas().addEventListener("mousedown", onCanvasMouseDown, true);
 
     map.on("click", () => {
-      if (!effectiveSnap()) return;
       const mode = draw.getMode();
       if (mode !== "draw_polygon" && mode !== "draw_line_string") return;
-      const snapped = lastSnappedRef.current;
+      // Pin snap takes precedence over axis snap.
+      const snapped = snapPinRef.current ?? (effectiveSnap() ? lastSnappedRef.current : null);
       const preLen = preClickLength;
+      const pinSnap = snapPinRef.current;
+      // Consume so the same pin doesn't accidentally apply to the next click.
+      snapPinRef.current = null;
+      if (!snapped) return;
       // Defer so Draw finishes processing the click first.
       setTimeout(() => {
         const id = inProgressIdRef.current;
-        if (!id || !snapped) return;
+        if (!id) return;
         const f = draw.get(id);
         if (!f) return;
         const coords = getCoordsOf(f);
@@ -420,7 +449,6 @@ export function MapboxRoofDraw({
         // The newly-committed point is whichever slot Draw filled in with click coords.
         // Most commonly: pre [..., hover] (len N) → post [..., committed, hover] (len N+1),
         // and the new committed sits at index N-1 (replacing the prior hover slot).
-        // Fallbacks handle the first-click case and closed-ring case.
         let targetIdx = preLen > 0 ? preLen - 1 : coords.length - 2;
         if (targetIdx < 0 || targetIdx >= coords.length) targetIdx = coords.length - 2;
         if (targetIdx < 0) return;
@@ -437,15 +465,32 @@ export function MapboxRoofDraw({
           next[next.length - 1] = snapped;
         }
         draw.add(setCoordsOn(f, next));
+        // If we snapped to an existing pin, also finish the in-progress line so
+        // the user can immediately start the next edge from a fresh click.
+        if (pinSnap && f.geometry.type === "LineString" && next.length >= 2) {
+          drawRef.current?.changeMode("draw_line_string");
+        }
       }, 0);
     });
 
-    // ---- Selection: polygons → direct_select; lines/points → open label prompt ----
+    // ---- Selection: polygons → direct_select; lines → label (or open prompt) ----
     map.on("draw.selectionchange", (e: { features: Feature[] }) => {
       const mode = draw.getMode();
       if (mode !== "simple_select") return;
       const selected = e.features?.[0];
       if (!selected?.id) return;
+      // Label-edges mode: apply current label to the clicked line directly.
+      if (labelModeRef.current && selected.geometry?.type === "LineString") {
+        const lineId = String(selected.id);
+        const label = currentLabelRef.current; // null = erase
+        draw.setFeatureProperty(lineId, "edge_type", label);
+        // Deselect so the next line click registers as a fresh selection.
+        setTimeout(() => {
+          drawRef.current?.changeMode("simple_select");
+          syncFromDrawRef.current?.(drawRef.current!);
+        }, 0);
+        return;
+      }
       if (selected.geometry?.type === "Polygon") {
         setTimeout(() => {
           if (drawRef.current?.getMode() === "simple_select") {
@@ -475,6 +520,12 @@ export function MapboxRoofDraw({
       if (ev.key === "Escape" && (mode === "draw_polygon" || mode === "draw_line_string")) {
         ev.preventDefault();
         drawRef.current?.trash();
+        return;
+      }
+      if (ev.key === "Escape" && labelModeRef.current) {
+        ev.preventDefault();
+        setLabelModeActive(false);
+        setCurrentLabel(null);
       }
     };
     const onShiftDown = (ev: KeyboardEvent) => {
@@ -503,6 +554,8 @@ export function MapboxRoofDraw({
     const all = draw.getAll();
     setFeatures(all.features as unknown as AnyFeature[]);
   }, []);
+  const syncFromDrawRef = useRef(syncFromDraw);
+  syncFromDrawRef.current = syncFromDraw;
 
   const promptForFeature = useCallback(
     (feature: Feature, draw: MapboxDraw) => {
@@ -750,12 +803,40 @@ export function MapboxRoofDraw({
         />
         <DrawToolbar
           active={activeTool}
-          onChoose={chooseTool}
+          onChoose={(t) => {
+            // Choosing a draw tool exits label mode.
+            if (labelModeActive) {
+              setLabelModeActive(false);
+              setCurrentLabel(null);
+            }
+            chooseTool(t);
+          }}
           onUndo={handleUndo}
           onClearAll={handleClearAll}
           snapEnabled={snapEnabled}
           onToggleSnap={() => setSnapEnabled((v) => !v)}
+          labelMode={labelModeActive}
+          currentLabel={currentLabel}
+          onToggleLabelMode={() => {
+            const next = !labelModeActive;
+            setLabelModeActive(next);
+            if (next) {
+              // Enter label mode: stay in simple_select so line clicks register.
+              setCurrentLabel((cur) => cur ?? "eave");
+              drawRef.current?.changeMode("simple_select");
+              setActiveTool("select");
+            } else {
+              setCurrentLabel(null);
+            }
+          }}
+          onSelectLabel={(e) => setCurrentLabel(e)}
         />
+        {labelModeActive && (
+          <div
+            className="pointer-events-none absolute inset-0 rounded-xl ring-2"
+            style={{ boxShadow: "inset 0 0 0 2px var(--brand)" }}
+          />
+        )}
       </div>
 
       <MeasurementTotalsPanel
