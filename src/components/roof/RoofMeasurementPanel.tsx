@@ -141,6 +141,8 @@ export function RoofMeasurementPanel({
             wall_flashing_lf: manual.wall_flashing_lf,
             step_flashing_lf: manual.step_flashing_lf,
             transition_lf: manual.transition_lf,
+            parapet_wall_lf: 0,
+            drip_edge_lf: 0,
           };
 
       const payload = {
@@ -160,6 +162,8 @@ export function RoofMeasurementPanel({
         wall_flashing_lf: totals.wall_flashing_lf,
         step_flashing_lf: totals.step_flashing_lf,
         transition_lf: totals.transition_lf,
+        parapet_wall_lf: totals.parapet_wall_lf,
+        drip_edge_lf: totals.drip_edge_lf,
         created_by: profile.id,
       };
 
@@ -221,6 +225,7 @@ export function RoofMeasurementPanel({
                 measurement_id: m.id,
                 line_geojson: { type: "LineString", coordinates: l.geometry.coordinates },
                 line_type: l.properties!.edge_type as EdgeType,
+                is_perimeter: Boolean(l.properties?.is_perimeter),
                 length_lf: lengths.reduce((s, n) => s + n, 0),
               };
             });
