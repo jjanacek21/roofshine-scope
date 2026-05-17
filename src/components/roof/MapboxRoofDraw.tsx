@@ -73,8 +73,18 @@ export function MapboxRoofDraw({
   const shiftHeldRef = useRef(false);
   const inProgressIdRef = useRef<string | null>(null);
   const lastSnappedRef = useRef<[number, number] | null>(null);
+  const snapPinRef = useRef<[number, number] | null>(null);
   snapEnabledRef.current = snapEnabled;
   const effectiveSnap = () => snapEnabledRef.current !== shiftHeldRef.current;
+
+  // Label-edges mode: when active, clicking any line in simple_select applies
+  // currentLabel to that line (or clears it when currentLabel is null = Erase).
+  const [labelModeActive, setLabelModeActive] = useState(false);
+  const [currentLabel, setCurrentLabel] = useState<EdgeType | null>(null);
+  const labelModeRef = useRef(false);
+  const currentLabelRef = useRef<EdgeType | null>(null);
+  labelModeRef.current = labelModeActive;
+  currentLabelRef.current = currentLabel;
 
   // Push state up
   const onChangeRef = useRef(onChange);
