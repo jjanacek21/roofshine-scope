@@ -477,11 +477,10 @@ export function MapboxRoofDraw({
         return;
       }
       if (selected.geometry?.type === "Polygon") {
-        setTimeout(() => {
-          if (drawRef.current?.getMode() === "simple_select") {
-            drawRef.current.changeMode("direct_select", { featureId: String(selected.id) });
-          }
-        }, 0);
+        // Stay in simple_select — entering direct_select on a polygon causes
+        // clicks on its edges to insert midpoint vertices ("drops a pin and
+        // cuts the line in half"). Polygons are read-only after drawing.
+        return;
       } else if (selected.geometry?.type === "LineString") {
         openLineLabelPromptRef.current?.(String(selected.id));
       } else if (selected.geometry?.type === "Point") {
