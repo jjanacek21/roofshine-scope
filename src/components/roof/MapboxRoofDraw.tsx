@@ -219,10 +219,41 @@ export function MapboxRoofDraw({
       const created = e.features[0];
       if (!created) return;
       if (created.geometry.type === "Polygon") {
-        // Polygons still prompt for pitch/name (needed for area math).
-        promptForFeature(created, draw);
+        const sectionIdx = draw.getAll().features.filter((f) => f.geometry.type === "Polygon").length - 1;
+        const sectionName = `Roof ${Math.max(1, sectionIdx + 1)}`;
+        const sectionColor = nextSectionColor(Math.max(0, sectionIdx));
+        const polygonId = String(created.id);
+        draw.setFeatureProperty(polygonId, "pitch", "0/12");
+        draw.setFeatureProperty(polygonId, "section_name", sectionName);
+        draw.setFeatureProperty(polygonId, "section_color", sectionColor);
+        draw.setFeatureProperty(polygonId, "section_waste_pct", waste);
+        const ring = created.geometry.coordinates[0] ?? [];
+        for (let i = 0; i < ring.length - 1; i++) {
+          draw.add({
+            type: "Feature",
+            id: `${polygonId}-perim-${i}`,
+            properties: {
+              edge_type: "eave",
+              user_color: LINE_COLORS.eave,
+              is_perimeter: true,
+              source_polygon_id: polygonId,
+              source_segment_index: i,
+            },
+            geometry: { type: "LineString", coordinates: [ring[i], ring[i + 1]] },
+          } as Feature<LineString, FeatureProps>);
+        }
+        firstSectionDoneRef.current = true;
+        syncFromDraw(draw);
+        setTimeout(() => {
+          if (drawRef.current) drawRef.current.changeMode("draw_line_string");
+        }, 0);
       } else {
         // Lines & points: drop without prompting; user labels later.
+        if (created.geometry.type === "LineString" && created.id != null) {
+          draw.setFeatureProperty(String(created.id), "edge_type", null);
+          draw.setFeatureProperty(String(created.id), "user_color", LINE_COLORS.unlabeled);
+          draw.setFeatureProperty(String(created.id), "is_perimeter", false);
+        }
         syncFromDraw(draw);
         // Re-enter the same draw mode so user can keep adding shapes back-to-back.
         const stayMode: "draw_line_string" | "draw_point" =
