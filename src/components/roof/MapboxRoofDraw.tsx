@@ -383,7 +383,23 @@ export function MapboxRoofDraw({
     // Snap the just-clicked vertex. Capture pre-click coord length on mousedown,
     // then after the click is processed, replace whichever index is new.
     let preClickLength = 0;
-    const onCanvasMouseDown = () => {
+    const onCanvasMouseDown = (ev: MouseEvent) => {
+      const mode = draw.getMode();
+      if ((mode === "simple_select" || mode === "direct_select") && map.getLayer("perim-segs-hit")) {
+        const hits = map.queryRenderedFeatures([ev.offsetX, ev.offsetY], { layers: ["perim-segs-hit"] });
+        const hit = hits[0];
+        if (hit) {
+          ev.preventDefault();
+          ev.stopImmediatePropagation();
+          const polygonId = String(hit.properties?.polygonId ?? "");
+          const segIdx = Number(hit.properties?.segIdx ?? -1);
+          if (polygonId && segIdx >= 0) {
+            openPerimeterLabelPromptRef.current?.(polygonId, segIdx);
+          }
+          return;
+        }
+      }
+
       preClickLength = 0;
       const id = inProgressIdRef.current;
       if (!id) return;
