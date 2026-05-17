@@ -197,22 +197,22 @@ export function MapboxRoofDraw({
       setPolyFillVisible(!drawingOverlay);
     });
 
-    // ---- Single-click → direct_select (drag-vertex) when in select mode ----
-    // Mapbox Draw normally requires click-to-select then click-again-to-edit.
-    // Collapse that to one click so corner pins are immediately draggable.
+    // ---- Selection: polygons → direct_select; lines/points → open label prompt ----
     map.on("draw.selectionchange", (e: { features: Feature[] }) => {
       const mode = draw.getMode();
       if (mode !== "simple_select") return;
       const selected = e.features?.[0];
-      if (selected?.id != null && selected.geometry?.type === "Polygon") {
-        // Defer so Mapbox Draw finishes its own click handling first.
+      if (!selected?.id) return;
+      if (selected.geometry?.type === "Polygon") {
         setTimeout(() => {
           if (drawRef.current?.getMode() === "simple_select") {
-            drawRef.current.changeMode("direct_select", {
-              featureId: String(selected.id),
-            });
+            drawRef.current.changeMode("direct_select", { featureId: String(selected.id) });
           }
         }, 0);
+      } else if (selected.geometry?.type === "LineString") {
+        openLineLabelPromptRef.current?.(String(selected.id));
+      } else if (selected.geometry?.type === "Point") {
+        openPointLabelPromptRef.current?.(String(selected.id));
       }
     });
 
