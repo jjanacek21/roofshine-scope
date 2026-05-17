@@ -148,7 +148,18 @@ export function MapboxRoofDraw({
     const handleCreate = (e: { features: Feature[] }) => {
       const created = e.features[0];
       if (!created) return;
-      promptForFeature(created, draw);
+      if (created.geometry.type === "Polygon") {
+        // Polygons still prompt for pitch/name (needed for area math).
+        promptForFeature(created, draw);
+      } else {
+        // Lines & points: drop without prompting; user labels later.
+        syncFromDraw(draw);
+        // Re-enter the same draw mode so user can keep adding shapes back-to-back.
+        const stayMode = created.geometry.type === "LineString" ? "draw_line_string" : "draw_point";
+        setTimeout(() => {
+          if (drawRef.current) drawRef.current.changeMode(stayMode);
+        }, 0);
+      }
     };
     const handleUpdate = () => syncFromDraw(draw);
     const handleDelete = () => syncFromDraw(draw);
