@@ -58,7 +58,6 @@ export function MapboxRoofDraw({
   wastePct?: number;
   onWasteChange?: (n: number) => void;
 }) {
-  const firstSectionDoneRef = useRef(false);
   const { data: token, isLoading } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -118,7 +117,6 @@ export function MapboxRoofDraw({
   }, [features, waste]);
 
   const polygonCount = features.filter((f) => f.geometry.type === "Polygon").length;
-  firstSectionDoneRef.current = polygonCount > 0 || firstSectionDoneRef.current;
 
   // Init map
   useEffect(() => {
@@ -199,7 +197,6 @@ export function MapboxRoofDraw({
             geometry: { type: "LineString", coordinates: [ring[i], ring[i + 1]] },
           } as Feature<LineString, FeatureProps>);
         }
-        firstSectionDoneRef.current = true;
         syncFromDraw(draw);
         setTimeout(() => {
           if (drawRef.current) drawRef.current.changeMode("draw_line_string");
