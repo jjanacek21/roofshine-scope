@@ -2,8 +2,9 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Feature, Polygon, LineString, Point, FeatureCollection } from "geojson";
+import * as turf from "@turf/turf";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
-import { type EdgeType } from "@/lib/roof-math";
+import { EDGE_COLORS, type EdgeType } from "@/lib/roof-math";
 import {
   MAPBOX_DRAW_STYLES,
   type PenetrationType,
