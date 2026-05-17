@@ -18,8 +18,21 @@ export type PromptKind =
       onConfirm: (result: PitchResult) => void;
       onCancel: () => void;
     }
-  | { type: "edge"; onConfirm: (edge: EdgeType) => void; onCancel: () => void }
-  | { type: "penetration"; onConfirm: (p: PenetrationType) => void; onCancel: () => void };
+  | {
+      type: "edge";
+      initial?: EdgeType | null;
+      restrictTo?: EdgeType[];
+      title?: string;
+      allowClear?: boolean;
+      onConfirm: (edge: EdgeType | null) => void;
+      onCancel: () => void;
+    }
+  | {
+      type: "penetration";
+      initial?: PenetrationType | null;
+      onConfirm: (p: PenetrationType) => void;
+      onCancel: () => void;
+    };
 
 export function MeasurementPromptDialog({ prompt }: { prompt: PromptKind | null }) {
   const [pitch, setPitch] = useState("6/12");
@@ -33,8 +46,8 @@ export function MeasurementPromptDialog({ prompt }: { prompt: PromptKind | null 
       setPitch("6/12");
       setName(prompt.defaultName ?? "");
     }
-    if (prompt?.type === "edge") setEdge("eave");
-    if (prompt?.type === "penetration") setPenetration("pipe_boot");
+    if (prompt?.type === "edge") setEdge((prompt.initial ?? prompt.restrictTo?.[0] ?? "eave") as EdgeType);
+    if (prompt?.type === "penetration") setPenetration((prompt.initial ?? "pipe_boot") as PenetrationType);
     setCustomRise("");
   }, [prompt]);
 
