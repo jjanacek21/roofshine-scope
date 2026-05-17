@@ -520,6 +520,12 @@ export function MapboxRoofDraw({
       if (ev.key === "Escape" && (mode === "draw_polygon" || mode === "draw_line_string")) {
         ev.preventDefault();
         drawRef.current?.trash();
+        return;
+      }
+      if (ev.key === "Escape" && labelModeRef.current) {
+        ev.preventDefault();
+        setLabelModeActive(false);
+        setCurrentLabel(null);
       }
     };
     const onShiftDown = (ev: KeyboardEvent) => {
