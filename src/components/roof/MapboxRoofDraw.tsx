@@ -116,8 +116,6 @@ export function MapboxRoofDraw({
     onChangeRef.current({ sections, lines: linesArr, features, totals });
   }, [features, waste]);
 
-  const polygonCount = features.filter((f) => f.geometry.type === "Polygon").length;
-
   // Init map
   useEffect(() => {
     if (!token || !containerRef.current || mapRef.current) return;
