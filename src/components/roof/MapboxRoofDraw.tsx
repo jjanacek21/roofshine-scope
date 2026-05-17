@@ -143,6 +143,48 @@ export function MapboxRoofDraw({
         };
         draw.set(fc);
       }
+      // Perimeter overlay: one feature per polygon segment, colored by label.
+      map.addSource("perim-segs", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "perim-segs-hit",
+        type: "line",
+        source: "perim-segs",
+        paint: { "line-color": "#000", "line-opacity": 0, "line-width": 18 },
+      });
+      map.addLayer({
+        id: "perim-segs-line",
+        type: "line",
+        source: "perim-segs",
+        layout: { "line-cap": "round" },
+        paint: {
+          "line-color": ["coalesce", ["get", "color"], "#94a3b8"],
+          "line-width": 5,
+          "line-dasharray": [
+            "case",
+            ["==", ["get", "kind"], "unlabeled"],
+            ["literal", [2, 2]],
+            ["literal", [1, 0]],
+          ],
+          "line-opacity": 0.95,
+        },
+      });
+      map.on("click", "perim-segs-hit", (ev) => {
+        const f = ev.features?.[0];
+        if (!f) return;
+        const polygonId = String(f.properties?.polygonId ?? "");
+        const segIdx = Number(f.properties?.segIdx ?? -1);
+        if (!polygonId || segIdx < 0) return;
+        openPerimeterLabelPromptRef.current?.(polygonId, segIdx);
+      });
+      map.on("mouseenter", "perim-segs-hit", () => {
+        map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "perim-segs-hit", () => {
+        map.getCanvas().style.cursor = "";
+      });
     });
 
     const handleCreate = (e: { features: Feature[] }) => {
