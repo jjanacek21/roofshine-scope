@@ -164,13 +164,14 @@ export function MapboxRoofDraw({
         id: "perim-segs-hit",
         type: "line",
         source: "perim-segs",
+        layout: { visibility: "none" },
         paint: { "line-color": "#000", "line-opacity": 0, "line-width": 18 },
       });
       map.addLayer({
         id: "perim-segs-line",
         type: "line",
         source: "perim-segs",
-        layout: { "line-cap": "round" },
+        layout: { "line-cap": "round", visibility: "none" },
         paint: {
           "line-color": ["coalesce", ["get", "color"], "#94a3b8"],
           "line-width": 5,
@@ -330,12 +331,7 @@ export function MapboxRoofDraw({
     map.on("draw.delete", handleDelete);
     // Layer IDs whose hit-testing blocks vertex placement on top of an
     // existing polygon's blue fill while drawing lines or points.
-    const POLY_FILL_LAYERS = [
-      "gl-draw-polygon-fill-inactive.cold",
-      "gl-draw-polygon-fill-inactive.hot",
-      "gl-draw-polygon-fill-static.cold",
-      "gl-draw-polygon-fill-static.hot",
-    ];
+    const POLY_FILL_LAYERS = ["gl-draw-polygon-fill.cold", "gl-draw-polygon-fill.hot"];
     const setPolyFillVisible = (visible: boolean) => {
       for (const id of POLY_FILL_LAYERS) {
         if (map.getLayer(id)) {
