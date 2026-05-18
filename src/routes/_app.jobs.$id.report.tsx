@@ -117,8 +117,8 @@ function JobReport() {
             job_id: jobId,
             company_id: job.company_id,
             rep_user_id: job.assigned_to ?? job.created_by ?? null,
-            sections: defaultSections() as unknown as object,
-          })
+            sections: defaultSections() as any,
+          } as any)
           .select("id")
           .single();
         if (ins) setReportRowId(ins.id);
