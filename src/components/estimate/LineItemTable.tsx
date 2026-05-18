@@ -37,11 +37,28 @@ export function LineItemTable({
   items,
   onPatch,
   onDelete,
+  onDeleteMany,
 }: {
   items: LineItem[];
   onPatch: (id: string, patch: Partial<LineItem>) => void;
   onDelete: (id: string) => void;
+  onDeleteMany?: (ids: string[]) => void;
 }) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const toggleAll = (ids: string[], checked: boolean) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => (checked ? next.add(id) : next.delete(id)));
+      return next;
+    });
+  const clearSelection = () => setSelected(new Set());
+
   const groups = useMemo(() => {
     const byTrade = new Map<string, LineItem[]>();
     for (const item of items) {
