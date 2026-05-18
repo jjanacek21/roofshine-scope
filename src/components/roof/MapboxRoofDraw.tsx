@@ -499,8 +499,10 @@ export function MapboxRoofDraw({
           }
         }, 0);
       } else if (selected.geometry?.type === "LineString") {
+        // Labeling lines is segment-based; the line-segs overlay handles clicks.
+        // Deselect immediately so direct_select doesn't kick in and show midpoints.
         if (activeToolRef.current === "label") {
-          openLineLabelPromptRef.current?.(String(selected.id));
+          setTimeout(() => drawRef.current?.changeMode("simple_select"), 0);
         }
       } else if (selected.geometry?.type === "Point") {
         if (activeToolRef.current === "label") {
