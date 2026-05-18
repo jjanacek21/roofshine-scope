@@ -893,13 +893,17 @@ export function MapboxRoofDraw({
     });
   }, [features]);
 
-  // Toggle perimeter segment overlay: only active (clickable) in Label mode.
+  // Segment overlays: paint layers always visible (so labeled colors persist),
+  // hit layers only active in Label mode.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const vis = activeTool === "label" ? "visible" : "none";
-    for (const id of ["perim-segs-hit", "perim-segs-line"]) {
-      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", vis);
+    const hitVis = activeTool === "label" ? "visible" : "none";
+    for (const id of ["perim-segs-hit", "line-segs-hit"]) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", hitVis);
+    }
+    for (const id of ["perim-segs-line", "line-segs-line"]) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "visible");
     }
   }, [activeTool]);
 
