@@ -46,9 +46,14 @@ export const MAPBOX_DRAW_STYLES = [
         "wall_flashing", "#a855f7",
         "step_flashing", "#ec4899",
         "transition", "#94a3b8",
+        // Unlabeled lines are white so labeled-vs-unlabeled is obvious.
         "#ffffff",
       ],
-      "line-width": 3,
+      "line-width": [
+        "case",
+        ["==", ["coalesce", ["get", "user_edge_type"], ""], ""], 2,
+        4,
+      ],
     },
   },
 

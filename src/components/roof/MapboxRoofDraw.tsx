@@ -79,6 +79,9 @@ export function MapboxRoofDraw({
   }, [activeTool]);
   const perimVerticesRef = useRef<[number, number][]>([]);
   const snapTargetRef = useRef<[number, number] | null>(null);
+  // Snapshot of each polygon's ring after the last accepted update — used to
+  // detect & undo accidental midpoint-insertion splits.
+  const prevPolyRingsRef = useRef<Map<string, [number, number][]>>(new Map());
   const [prompt, setPrompt] = useState<PromptKind | null>(null);
   const [internalWaste, setInternalWaste] = useState(15);
   const waste = wastePct ?? internalWaste;
@@ -262,7 +265,58 @@ export function MapboxRoofDraw({
         }, 0);
       }
     };
-    const handleUpdate = () => syncFromDraw(draw);
+    // Defensive cleanup: Mapbox Draw's direct_select mode lets users drag
+    // a midpoint to insert a new vertex. We hide midpoints in the style, but
+    // the underlying handles can still receive accidental clicks. If a
+    // polygon update inserts a single new vertex that is (nearly) colinear
+    // with its two neighbors, strip it back out so the perimeter line stays
+    // un-split.
+    const isColinear = (
+      a: [number, number],
+      b: [number, number],
+      c: [number, number],
+      tolDeg = 1e-7,
+    ) => {
+      // Cross product magnitude in degree space; tiny tol catches midpoint inserts.
+      const cross = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+      // Also require b to lie roughly between a and c (not outside the segment).
+      const dot = (b[0] - a[0]) * (c[0] - a[0]) + (b[1] - a[1]) * (c[1] - a[1]);
+      const segLen2 = (c[0] - a[0]) ** 2 + (c[1] - a[1]) ** 2;
+      return Math.abs(cross) < tolDeg && dot >= 0 && dot <= segLen2;
+    };
+    const handleUpdate = (e: { features: Feature[]; action?: string }) => {
+      for (const f of e.features ?? []) {
+        if (f.geometry?.type !== "Polygon" || f.id == null) continue;
+        const ring = (f.geometry as Polygon).coordinates[0] as [number, number][];
+        if (ring.length < 5) continue; // need at least triangle (4 incl. close) + 1 extra
+        const prev = prevPolyRingsRef.current.get(String(f.id));
+        // Only act when ring grew by exactly 1 vertex (midpoint insertion).
+        if (!prev || ring.length !== prev.length + 1) continue;
+        // Find the inserted index by walking until a divergence.
+        let insertedAt = -1;
+        for (let i = 0; i < ring.length - 1; i++) {
+          const pi = Math.min(i, prev.length - 1);
+          if (ring[i][0] !== prev[pi][0] || ring[i][1] !== prev[pi][1]) {
+            insertedAt = i;
+            break;
+          }
+        }
+        if (insertedAt <= 0 || insertedAt >= ring.length - 1) continue;
+        const a = ring[insertedAt - 1];
+        const b = ring[insertedAt];
+        const c = ring[insertedAt + 1];
+        if (!isColinear(a, b, c)) continue;
+        // Splice the inserted vertex back out.
+        const fixed = ring.slice();
+        fixed.splice(insertedAt, 1);
+        const updated: Feature = {
+          ...f,
+          geometry: { ...f.geometry, coordinates: [fixed] } as Polygon,
+        };
+        draw.add(updated);
+      }
+      syncFromDraw(draw);
+    };
     const handleDelete = () => syncFromDraw(draw);
 
     map.on("draw.create", handleCreate);
@@ -304,6 +358,10 @@ export function MapboxRoofDraw({
       const selected = e.features?.[0];
       if (!selected?.id) return;
       if (selected.geometry?.type === "Polygon") {
+        // In Label mode, never enter direct_select on a polygon — that's
+        // where midpoint handles live and where accidental edge splits
+        // happen. Labeling is handled by clicking the perim-segs overlay.
+        if (activeToolRef.current === "label") return;
         setTimeout(() => {
           if (drawRef.current?.getMode() === "simple_select") {
             drawRef.current.changeMode("direct_select", { featureId: String(selected.id) });
@@ -555,14 +613,18 @@ export function MapboxRoofDraw({
     src.setData({ type: "FeatureCollection", features: segFeatures });
 
     // Update perim-vertices + line-vertices sources and the combined snap ref.
+    // Snapshot polygon rings so the midpoint-insert cleanup can compare.
+    const nextRings = new Map<string, [number, number][]>();
     const perimVerts: [number, number][] = [];
     for (const f of features) {
       if (f.geometry.type !== "Polygon") continue;
-      const ring = f.geometry.coordinates[0];
+      const ring = f.geometry.coordinates[0] as [number, number][];
+      if (f.id != null) nextRings.set(String(f.id), ring.map((p) => [p[0], p[1]]));
       for (let i = 0; i < ring.length - 1; i++) {
         perimVerts.push([ring[i][0], ring[i][1]]);
       }
     }
+    prevPolyRingsRef.current = nextRings;
     const lineVerts: [number, number][] = [];
     for (const f of features) {
       if (f.geometry.type !== "LineString") continue;
@@ -570,12 +632,30 @@ export function MapboxRoofDraw({
         lineVerts.push([c[0], c[1]]);
       }
     }
-    // Snap targets = every user-placed dot (perimeter + interior line vertices).
-    perimVerticesRef.current = [...perimVerts, ...lineVerts];
+    // Dedupe (perim ∪ line) so overlapping endpoints render as a single dot
+    // and don't look like "double pins" on connected lines.
+    const seen = new Set<string>();
+    const keyOf = (v: [number, number]) => `${v[0].toFixed(8)},${v[1].toFixed(8)}`;
+    const uniquePerim: [number, number][] = [];
+    for (const v of perimVerts) {
+      const k = keyOf(v);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      uniquePerim.push(v);
+    }
+    const uniqueLine: [number, number][] = [];
+    for (const v of lineVerts) {
+      const k = keyOf(v);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      uniqueLine.push(v);
+    }
+    // Snap targets = every unique user-placed dot.
+    perimVerticesRef.current = [...uniquePerim, ...uniqueLine];
     const vsrc = map.getSource("perim-vertices") as mapboxgl.GeoJSONSource | undefined;
     vsrc?.setData({
       type: "FeatureCollection",
-      features: perimVerts.map((v) => ({
+      features: uniquePerim.map((v) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: v },
         properties: {},
@@ -584,7 +664,7 @@ export function MapboxRoofDraw({
     const lvsrc = map.getSource("line-vertices") as mapboxgl.GeoJSONSource | undefined;
     lvsrc?.setData({
       type: "FeatureCollection",
-      features: lineVerts.map((v) => ({
+      features: uniqueLine.map((v) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: v },
         properties: {},
