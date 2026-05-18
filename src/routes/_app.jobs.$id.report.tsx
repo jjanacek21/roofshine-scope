@@ -252,7 +252,10 @@ function JobReport() {
   const profit = (subtotal * Number(primaryEstimate?.profit_pct ?? 0)) / 100;
   const beforeTax = subtotal + markup + overhead + profit;
   const tax = (beforeTax * Number(primaryEstimate?.tax_pct ?? 0)) / 100;
-  const grandTotal = beforeTax + tax;
+  const calcTotal = beforeTax + tax;
+  const useManualTotal = Boolean((primaryEstimate as any)?.use_manual_total);
+  const manualTotal = Number((primaryEstimate as any)?.manual_total ?? 0);
+  const grandTotal = useManualTotal ? manualTotal : calcTotal;
 
   const itemsByTrade = useMemo(() => {
     const map = new Map<string, typeof lineItems>();
