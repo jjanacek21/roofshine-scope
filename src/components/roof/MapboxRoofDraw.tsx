@@ -135,6 +135,9 @@ export function MapboxRoofDraw({
     const draw = new MapboxDraw({
       displayControlsDefault: false,
       defaultMode: "simple_select",
+      // Required by Mapbox Draw for feature.properties.edge_type to be
+      // exposed to style expressions as user_edge_type.
+      userProperties: true,
       styles: MAPBOX_DRAW_STYLES,
       // Bigger hit targets so vertex pins are easier to grab.
       clickBuffer: 6,
@@ -171,13 +174,16 @@ export function MapboxRoofDraw({
         paint: {
           "line-color": ["coalesce", ["get", "color"], "#94a3b8"],
           "line-width": 5,
-          "line-dasharray": [
+          "line-dasharray": ["literal", [1, 0]],
+          // No gray dashed perimeter guides. Only already-labeled perimeter
+          // segments get a visible solid color; the invisible hit layer above
+          // still lets Label mode click any segment.
+          "line-opacity": [
             "case",
             ["==", ["get", "kind"], "unlabeled"],
-            ["literal", [2, 2]],
-            ["literal", [1, 0]],
+            0,
+            0.95,
           ],
-          "line-opacity": 0.95,
         },
       });
       map.on("click", "perim-segs-hit", (ev) => {
