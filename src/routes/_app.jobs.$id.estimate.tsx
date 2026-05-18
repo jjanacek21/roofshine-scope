@@ -262,6 +262,20 @@ function JobEstimate() {
     onError: () => toast.error("Could not delete item"),
   });
 
+  const deleteItems = useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (ids.length === 0) return;
+      const { error } = await supabase.from("estimate_line_items").delete().in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
+      toast.success(`${count ?? 0} items removed`);
+    },
+    onError: () => toast.error("Could not delete items"),
+  });
+
   // Companion rule check
   const checkCompanion = async (category: string | null) => {
     if (!category || !job?.company_id) return;
@@ -567,6 +581,7 @@ function JobEstimate() {
           items={localItems}
           onPatch={patchItem}
           onDelete={(id) => deleteItem.mutate(id)}
+          onDeleteMany={(ids) => deleteItems.mutate(ids)}
         />
 
         <div className="space-y-2">

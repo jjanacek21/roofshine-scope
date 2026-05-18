@@ -122,14 +122,15 @@ function OrderFormPage() {
 
   const laborRows = useMemo(() => {
     if (!lines?.labor) return [] as Array<{
-      line_id: string; task: string; uom: string; qty: number; rate: number; line_total: number;
+      line_id: string; task: string; uom: string; qty: number; rate: number; line_total: number; excluded: boolean;
     }>;
     return lines.labor.map((ln) => {
-      const ov = labOverrides.find((o) => o.line_id === ln.id);
+      const ov = labOverrides.find((o) => o.line_id === ln.id) as any;
       const autoQty = calcQty(ln.formula, inputs);
       const qty = ov?.qty != null ? Number(ov.qty) : autoQty;
       const rate = ov?.rate != null ? Number(ov.rate) : Number(ln.rate);
-      return { line_id: ln.id, task: ln.task, uom: ln.uom, qty, rate, line_total: qty * rate };
+      const excluded = !!ov?.excluded;
+      return { line_id: ln.id, task: ln.task, uom: ln.uom, qty, rate, line_total: excluded ? 0 : qty * rate, excluded };
     });
   }, [lines, labOverrides, inputs]);
 
@@ -181,7 +182,7 @@ function OrderFormPage() {
         label: r.label, material_id: r.material?.id ?? null, name: r.material?.name ?? r.label,
         uom: r.uom, qty: r.qty, unit_price: r.unit_price, line_total: r.line_total,
       })),
-      labor: laborRows.map((r) => ({ task: r.task, uom: r.uom, qty: r.qty, rate: r.rate, line_total: r.line_total })),
+      labor: laborRows.filter((r) => !r.excluded).map((r) => ({ task: r.task, uom: r.uom, qty: r.qty, rate: r.rate, line_total: r.line_total })),
       totals,
       dump_cost: dumpCost,
       permit_cost: permitCost,
@@ -267,14 +268,14 @@ function OrderFormPage() {
           <PrecapView
             company={company} job={job} customer={customer}
             template={activeTemplate} inputs={inputs}
-            materialRows={materialRows.filter((r) => !r.excluded)} laborRows={laborRows} totals={totals}
+            materialRows={materialRows.filter((r) => !r.excluded)} laborRows={laborRows.filter((r) => !r.excluded)} totals={totals}
           />
         </PrintDoc>
       )}
 
       {tab === "crew" && (
         <PrintDoc>
-          <CrewView company={company} job={job} customer={customer} template={activeTemplate} materialRows={materialRows.filter((r) => !r.excluded)} laborRows={laborRows} />
+          <CrewView company={company} job={job} customer={customer} template={activeTemplate} materialRows={materialRows.filter((r) => !r.excluded)} laborRows={laborRows.filter((r) => !r.excluded)} />
         </PrintDoc>
       )}
 
@@ -513,6 +514,7 @@ function BuildOrderTab(props: {
                 <th className="px-2 py-2">UOM</th>
                 <th className="px-2 py-2 text-right">Rate</th>
                 <th className="px-2 py-2 text-right">Total</th>
+                <th className="px-2 py-2 w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -521,29 +523,42 @@ function BuildOrderTab(props: {
                 const auto = autoQty(tplLine?.formula);
                 const overridden = r.qty !== auto;
                 return (
-                  <tr key={r.line_id} className="border-t" style={{ borderColor: "var(--border)" }}>
-                    <td className="px-2 py-1.5 text-foreground">{r.task}</td>
+                  <tr key={r.line_id} className={cn("border-t", r.excluded && "opacity-40")} style={{ borderColor: "var(--border)" }}>
+                    <td className="px-2 py-1.5 text-foreground">
+                      {r.task}
+                      {r.excluded && <span className="ml-2 text-[9px] uppercase text-muted-foreground">excluded</span>}
+                    </td>
                     <td className="px-2 py-1.5 text-right">
-                      <input type="number" min={0} step="any" value={r.qty}
+                      <input type="number" min={0} step="any" value={r.qty} disabled={r.excluded}
                         onChange={(e) => setLabOverride(r.line_id, { qty: e.target.value === "" ? null : Number(e.target.value) })}
                         className="w-20 rounded border bg-transparent px-1.5 py-1 text-right font-mono text-[12px]"
                         style={{ borderColor: "var(--border)" }} />
-                      {overridden && <div className="text-[9px] text-muted-foreground">auto: {auto}</div>}
+                      {overridden && !r.excluded && <div className="text-[9px] text-muted-foreground">auto: {auto}</div>}
                     </td>
                     <td className="px-2 py-1.5 font-mono text-muted-foreground">{r.uom}</td>
                     <td className="px-2 py-1.5 text-right">
-                      <input type="number" min={0} step="0.01" value={r.rate}
+                      <input type="number" min={0} step="0.01" value={r.rate} disabled={r.excluded}
                         onChange={(e) => setLabOverride(r.line_id, { rate: e.target.value === "" ? null : Number(e.target.value) })}
                         className="w-24 rounded border bg-transparent px-1.5 py-1 text-right font-mono text-[12px]"
                         style={{ borderColor: "var(--border)" }} />
                     </td>
                     <td className="px-2 py-1.5 text-right font-mono font-semibold">{fmtMoney(r.line_total)}</td>
+                    <td className="px-2 py-1.5 text-right">
+                      <button
+                        type="button"
+                        title={r.excluded ? "Add back to job" : "Remove from this job"}
+                        onClick={() => setLabOverride(r.line_id, { excluded: !r.excluded })}
+                        className="rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-[var(--bg-hover)] hover:text-foreground"
+                      >
+                        {r.excluded ? "+" : "×"}
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
             <tfoot className="border-t-2" style={{ borderColor: "var(--border)" }}>
-              <tr><td colSpan={4} className="px-2 py-1.5 text-right uppercase text-[10px] font-bold tracking-wider text-foreground">Labor Total</td><td className="px-2 py-1.5 text-right font-mono font-bold text-foreground">{fmtMoney(totals.laborTotal)}</td></tr>
+              <tr><td colSpan={4} className="px-2 py-1.5 text-right uppercase text-[10px] font-bold tracking-wider text-foreground">Labor Total</td><td className="px-2 py-1.5 text-right font-mono font-bold text-foreground">{fmtMoney(totals.laborTotal)}</td><td></td></tr>
             </tfoot>
           </table>
         </div>
