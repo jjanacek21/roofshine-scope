@@ -362,7 +362,36 @@ export function MapboxRoofDraw({
         // Polygons still prompt for pitch/name (needed for area math).
         promptForFeature(created, draw);
       } else {
-        // Lines & points: drop without prompting; user labels later.
+        // Normalize line endpoints/vertices to nearby existing pins so
+        // connected lines reuse the same dot (no stacked duplicate pins).
+        if (created.geometry.type === "LineString" && created.id != null) {
+          const coords = (created.geometry as LineString).coordinates as [number, number][];
+          const verts = perimVerticesRef.current;
+          if (verts.length && coords.length) {
+            let changed = false;
+            const snapped = coords.map((c) => {
+              const p = map.project(c as mapboxgl.LngLatLike);
+              let best: { v: [number, number]; d: number } | null = null;
+              for (const v of verts) {
+                if (v[0] === c[0] && v[1] === c[1]) continue;
+                const pv = map.project(v as mapboxgl.LngLatLike);
+                const d = Math.hypot(pv.x - p.x, pv.y - p.y);
+                if (d < 14 && (!best || d < best.d)) best = { v, d };
+              }
+              if (best) {
+                changed = true;
+                return [best.v[0], best.v[1]] as [number, number];
+              }
+              return c;
+            });
+            if (changed) {
+              draw.add({
+                ...created,
+                geometry: { ...created.geometry, coordinates: snapped },
+              } as Feature);
+            }
+          }
+        }
         syncFromDraw(draw);
         // Re-enter the same draw mode so user can keep adding shapes back-to-back.
         const stayMode: "draw_line_string" | "draw_point" =
