@@ -182,7 +182,7 @@ function OrderFormPage() {
         label: r.label, material_id: r.material?.id ?? null, name: r.material?.name ?? r.label,
         uom: r.uom, qty: r.qty, unit_price: r.unit_price, line_total: r.line_total,
       })),
-      labor: laborRows.map((r) => ({ task: r.task, uom: r.uom, qty: r.qty, rate: r.rate, line_total: r.line_total })),
+      labor: laborRows.filter((r) => !r.excluded).map((r) => ({ task: r.task, uom: r.uom, qty: r.qty, rate: r.rate, line_total: r.line_total })),
       totals,
       dump_cost: dumpCost,
       permit_cost: permitCost,
