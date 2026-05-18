@@ -268,14 +268,14 @@ function OrderFormPage() {
           <PrecapView
             company={company} job={job} customer={customer}
             template={activeTemplate} inputs={inputs}
-            materialRows={materialRows.filter((r) => !r.excluded)} laborRows={laborRows} totals={totals}
+            materialRows={materialRows.filter((r) => !r.excluded)} laborRows={laborRows.filter((r) => !r.excluded)} totals={totals}
           />
         </PrintDoc>
       )}
 
       {tab === "crew" && (
         <PrintDoc>
-          <CrewView company={company} job={job} customer={customer} template={activeTemplate} materialRows={materialRows.filter((r) => !r.excluded)} laborRows={laborRows} />
+          <CrewView company={company} job={job} customer={customer} template={activeTemplate} materialRows={materialRows.filter((r) => !r.excluded)} laborRows={laborRows.filter((r) => !r.excluded)} />
         </PrintDoc>
       )}
 
