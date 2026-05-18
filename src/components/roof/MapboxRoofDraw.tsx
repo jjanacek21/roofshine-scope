@@ -218,7 +218,7 @@ export function MapboxRoofDraw({
         id: "perim-segs-line",
         type: "line",
         source: "perim-segs",
-        layout: { "line-cap": "round", visibility: "none" },
+        layout: { "line-cap": "round" },
         paint: {
           "line-color": ["coalesce", ["get", "color"], "#94a3b8"],
           "line-width": 5,
