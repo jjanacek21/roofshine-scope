@@ -84,9 +84,42 @@ export function LineItemTable({
     );
   }
 
+  const selectedCount = selected.size;
+
   return (
     <div className="space-y-5">
-      {groups.map(([trade, tradeItems]) => (
+      {selectedCount > 0 && onDeleteMany && (
+        <div
+          className="sticky top-2 z-10 flex items-center justify-between rounded-xl border px-4 py-2 shadow-sm"
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
+        >
+          <div className="flex items-center gap-2 text-[12px]">
+            <span className="font-bold text-foreground">{selectedCount}</span>
+            <span className="text-muted-foreground">item{selectedCount === 1 ? "" : "s"} selected</span>
+            <button
+              onClick={clearSelection}
+              className="flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-[var(--bg-hover)]"
+            >
+              <X className="h-3 w-3" /> Clear
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              onDeleteMany(Array.from(selected));
+              clearSelection();
+            }}
+            className="flex items-center gap-1 rounded-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider"
+            style={{ backgroundColor: "rgba(239,68,68,0.15)", color: "#ef4444" }}
+          >
+            <Trash2 className="h-3 w-3" /> Delete selected
+          </button>
+        </div>
+      )}
+      {groups.map(([trade, tradeItems]) => {
+        const tradeIds = tradeItems.map((t) => t.id);
+        const allSelected = tradeIds.every((id) => selected.has(id));
+        const someSelected = !allSelected && tradeIds.some((id) => selected.has(id));
+        return (
         <div key={trade} className="space-y-2">
           <div className="flex items-center gap-2">
             <TradeBadge trade={trade} size="md" />
@@ -103,7 +136,18 @@ export function LineItemTable({
                   className="text-[10px] uppercase tracking-wider text-muted-foreground"
                   style={{ borderBottom: "1px solid var(--border)" }}
                 >
-                  <th className="w-8 px-3 py-2 text-left"></th>
+                  <th className="w-8 px-3 py-2 text-left">
+                    {onDeleteMany && (
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                        onChange={(e) => toggleAll(tradeIds, e.target.checked)}
+                        className="h-3.5 w-3.5 cursor-pointer"
+                      />
+                    )}
+                  </th>
+                  <th className="w-8 px-2 py-2 text-left"></th>
                   <th className="w-20 px-2 py-2 text-left">Code</th>
                   <th className="px-2 py-2 text-left">Description</th>
                   <th className="w-20 px-2 py-2 text-right">Qty</th>
@@ -117,13 +161,24 @@ export function LineItemTable({
                 {tradeItems.map((item) => {
                   const source = inferSource(item);
                   const Icon = SOURCE_META[source].icon;
+                  const isSelected = selected.has(item.id);
                   return (
                     <tr
                       key={item.id}
                       className="hover:bg-[var(--bg-hover)]"
-                      style={{ borderTop: "1px solid var(--border)" }}
+                      style={{ borderTop: "1px solid var(--border)", backgroundColor: isSelected ? "var(--bg-hover)" : undefined }}
                     >
                       <td className="px-3 py-2">
+                        {onDeleteMany && (
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggle(item.id)}
+                            className="h-3.5 w-3.5 cursor-pointer"
+                          />
+                        )}
+                      </td>
+                      <td className="px-2 py-2">
                         <Icon
                           className="h-3.5 w-3.5"
                           style={{ color: SOURCE_META[source].color }}
@@ -176,7 +231,8 @@ export function LineItemTable({
             </table>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
