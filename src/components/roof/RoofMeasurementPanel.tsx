@@ -416,13 +416,23 @@ function mapboxTotalsFromFeatures(features: AnyFeature[]) {
         if (t === "eave") totals.gutters_lf += lf;
       }
     } else if (f.geometry.type === "LineString") {
-      const t = (f as Feature<LineString, FeatureProps>).properties?.edge_type as EdgeType | undefined;
-      if (!t) continue;
-      const coords = (f as Feature<LineString, FeatureProps>).geometry.coordinates;
-      const lens = polygonEdgeLengths([...coords, coords[0]]);
-      // Subtract the closing leg which polygonEdgeLengths added
-      const len = lens.slice(0, -1).reduce((s, n) => s + n, 0);
-      totals[EDGE_KEY_MAP[t]] += len;
+      const lf = f as Feature<LineString, FeatureProps>;
+      const coords = lf.geometry.coordinates;
+      const segLabels = (lf.properties?.segment_edges ?? []) as (EdgeType | null)[];
+      const fallback = lf.properties?.edge_type as EdgeType | undefined;
+      // Per-segment lengths (polygonEdgeLengths appends a closing leg; drop it)
+      const lens = polygonEdgeLengths([...coords, coords[0]]).slice(0, -1);
+      let anySeg = false;
+      for (let i = 0; i < coords.length - 1; i++) {
+        const t = segLabels[i] ?? null;
+        if (!t) continue;
+        anySeg = true;
+        totals[EDGE_KEY_MAP[t]] += lens[i] ?? 0;
+      }
+      if (!anySeg && fallback) {
+        const len = lens.reduce((s, n) => s + n, 0);
+        totals[EDGE_KEY_MAP[fallback]] += len;
+      }
     } else if (f.geometry.type === "Point") {
       // Penetrations don't contribute to LF totals.
       void (f as Feature<Point, FeatureProps>);
