@@ -178,6 +178,7 @@ export function MapboxRoofDraw({
         },
       });
       map.on("click", "perim-segs-hit", (ev) => {
+        if (activeToolRef.current !== "label") return;
         const f = ev.features?.[0];
         if (!f) return;
         const polygonId = String(f.properties?.polygonId ?? "");
@@ -186,10 +187,44 @@ export function MapboxRoofDraw({
         openPerimeterLabelPromptRef.current?.(polygonId, segIdx);
       });
       map.on("mouseenter", "perim-segs-hit", () => {
-        map.getCanvas().style.cursor = "pointer";
+        if (activeToolRef.current === "label") map.getCanvas().style.cursor = "pointer";
       });
       map.on("mouseleave", "perim-segs-hit", () => {
         map.getCanvas().style.cursor = "";
+      });
+
+      // Perimeter vertex dots: visible always; the only valid snap targets while drawing lines.
+      map.addSource("perim-vertices", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "perim-vertices-layer",
+        type: "circle",
+        source: "perim-vertices",
+        paint: {
+          "circle-radius": 5,
+          "circle-color": "#ffffff",
+          "circle-stroke-color": "#0ea5e9",
+          "circle-stroke-width": 2,
+        },
+      });
+
+      // Snap preview halo (shown when cursor is near a perim vertex during line draw).
+      map.addSource("snap-preview", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "snap-preview-layer",
+        type: "circle",
+        source: "snap-preview",
+        paint: {
+          "circle-radius": 10,
+          "circle-color": "rgba(14,165,233,0.25)",
+          "circle-stroke-color": "#0ea5e9",
+          "circle-stroke-width": 2,
+        },
       });
     });
 
