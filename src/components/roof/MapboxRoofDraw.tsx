@@ -73,10 +73,15 @@ export function MapboxRoofDraw({
   const drawRef = useRef<MapboxDraw | null>(null);
   const [features, setFeatures] = useState<AnyFeature[]>(initialFeatures ?? []);
   const [activeTool, setActiveTool] = useState<Tool | null>("select");
+  const [activeEdge, setActiveEdge] = useState<EdgeType | "clear" | null>(null);
   const activeToolRef = useRef<Tool | null>(activeTool);
+  const activeEdgeRef = useRef<EdgeType | "clear" | null>(activeEdge);
   useEffect(() => {
     activeToolRef.current = activeTool;
   }, [activeTool]);
+  useEffect(() => {
+    activeEdgeRef.current = activeEdge;
+  }, [activeEdge]);
   const perimVerticesRef = useRef<[number, number][]>([]);
   const snapTargetRef = useRef<[number, number] | null>(null);
   // Snapshot of each polygon's ring after the last accepted update — used to
