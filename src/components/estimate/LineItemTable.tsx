@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Trash2, BookOpen, Sparkles, Zap } from "lucide-react";
+import { Trash2, BookOpen, Sparkles, Zap, X } from "lucide-react";
 import { TradeBadge } from "@/components/brand/TradeBadge";
 import { getTradeLabel } from "@/lib/trades";
 
