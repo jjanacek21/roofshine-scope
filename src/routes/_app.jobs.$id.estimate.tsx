@@ -579,12 +579,7 @@ function JobEstimate() {
           />
         )}
 
-        <AISuggestionsPanel
-          jobId={jobId}
-          onApprove={async (items) => {
-            await addCodes(items, "ai_photo");
-          }}
-        />
+        <AISuggestionsPanel jobId={jobId} activeEstimateId={activeId} />
 
         <LineItemTable
           items={localItems}
