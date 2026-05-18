@@ -1424,6 +1424,42 @@ export type Database = {
           },
         ]
       }
+      job_reports: {
+        Row: {
+          company_id: string
+          cover_settings: Json
+          created_at: string
+          id: string
+          job_id: string
+          rep_user_id: string | null
+          sections: Json
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          cover_settings?: Json
+          created_at?: string
+          id?: string
+          job_id: string
+          rep_user_id?: string | null
+          sections?: Json
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          cover_settings?: Json
+          created_at?: string
+          id?: string
+          job_id?: string
+          rep_user_id?: string | null
+          sections?: Json
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
           assigned_to: string | null
@@ -2602,6 +2638,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      report_assets: {
+        Row: {
+          bucket: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          file_size: number | null
+          id: string
+          job_id: string | null
+          kind: string
+          meta: Json
+          mime_type: string | null
+          storage_path: string
+        }
+        Insert: {
+          bucket?: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          file_size?: number | null
+          id?: string
+          job_id?: string | null
+          kind: string
+          meta?: Json
+          mime_type?: string | null
+          storage_path: string
+        }
+        Update: {
+          bucket?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_size?: number | null
+          id?: string
+          job_id?: string | null
+          kind?: string
+          meta?: Json
+          mime_type?: string | null
+          storage_path?: string
+        }
+        Relationships: []
+      }
+      report_templates: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_default: boolean
+          name: string
+          sections: Json
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          sections?: Json
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          sections?: Json
+          updated_at?: string
+        }
+        Relationships: []
       }
       roof_edges: {
         Row: {
