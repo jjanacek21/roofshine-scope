@@ -581,6 +581,7 @@ function JobEstimate() {
           items={localItems}
           onPatch={patchItem}
           onDelete={(id) => deleteItem.mutate(id)}
+          onDeleteMany={(ids) => deleteItems.mutate(ids)}
         />
 
         <div className="space-y-2">
