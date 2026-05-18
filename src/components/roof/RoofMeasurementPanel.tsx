@@ -143,14 +143,32 @@ export function RoofMeasurementPanel({
             transition_lf: manual.transition_lf,
           };
 
+      // For mapbox draws, derive predominant pitch from the largest non-flat polygon section
+      let derivedPitch = manual.predominant_pitch;
+      if (isMapbox) {
+        const polys = (mapboxData.features ?? []).filter(
+          (f): f is Feature<Polygon, FeatureProps> => f.geometry.type === "Polygon",
+        );
+        let best = { area: 0, pitch: "" };
+        for (const p of polys) {
+          const pitch = p.properties?.pitch ?? "";
+          if (!pitch || pitch === "0/12") continue;
+          const area = polygonAreaFromRing(p.geometry.coordinates[0]);
+          if (area > best.area) best = { area, pitch };
+        }
+        if (best.pitch) derivedPitch = best.pitch;
+      }
+      const effectiveWaste = isMapbox ? wastePct : manual.waste_pct;
+      const wasteMult = 1 + Number(effectiveWaste || 0) / 100;
+
       const payload = {
         property_id: propertyId,
         company_id: profile.company_id,
         source: source as "manual" | "mapbox_draw",
-        predominant_pitch: manual.predominant_pitch,
-        waste_pct: isMapbox ? wastePct : manual.waste_pct,
+        predominant_pitch: derivedPitch,
+        waste_pct: effectiveWaste,
         total_area_sqft: totals.total_area_sqft,
-        squares: totals.squares,
+        squares: totals.squares * wasteMult,
         eaves_lf: totals.eaves_lf,
         rakes_lf: totals.rakes_lf,
         ridges_lf: totals.ridges_lf,
@@ -210,20 +228,38 @@ export function RoofMeasurementPanel({
         }
 
         if (lines.length) {
-          const lineRows = lines
-            .filter((l) => l.properties?.edge_type)
-            .map((l) => {
-              const lengths = polygonEdgeLengths([
-                ...l.geometry.coordinates,
-                l.geometry.coordinates[0],
-              ]);
-              return {
+          const lineRows: Array<{
+            measurement_id: string;
+            line_geojson: { type: "LineString"; coordinates: number[][] };
+            line_type: EdgeType;
+            length_lf: number;
+          }> = [];
+          for (const l of lines) {
+            const coords = l.geometry.coordinates;
+            const segLabels = (l.properties?.segment_edges ?? []) as (EdgeType | null)[];
+            const fallback = l.properties?.edge_type as EdgeType | undefined;
+            const lens = polygonEdgeLengths([...coords, coords[0]]).slice(0, -1);
+            let anySeg = false;
+            for (let i = 0; i < coords.length - 1; i++) {
+              const t = segLabels[i] ?? null;
+              if (!t) continue;
+              anySeg = true;
+              lineRows.push({
                 measurement_id: m.id,
-                line_geojson: { type: "LineString", coordinates: l.geometry.coordinates },
-                line_type: l.properties!.edge_type as EdgeType,
-                length_lf: lengths.reduce((s, n) => s + n, 0),
-              };
-            });
+                line_geojson: { type: "LineString", coordinates: [coords[i], coords[i + 1]] },
+                line_type: t,
+                length_lf: lens[i] ?? 0,
+              });
+            }
+            if (!anySeg && fallback) {
+              lineRows.push({
+                measurement_id: m.id,
+                line_geojson: { type: "LineString", coordinates: coords },
+                line_type: fallback,
+                length_lf: lens.reduce((s, n) => s + n, 0),
+              });
+            }
+          }
           if (lineRows.length) {
             const { error: lErr } = await supabase.from("roof_lines").insert(lineRows);
             if (lErr) throw lErr;
@@ -416,13 +452,23 @@ function mapboxTotalsFromFeatures(features: AnyFeature[]) {
         if (t === "eave") totals.gutters_lf += lf;
       }
     } else if (f.geometry.type === "LineString") {
-      const t = (f as Feature<LineString, FeatureProps>).properties?.edge_type as EdgeType | undefined;
-      if (!t) continue;
-      const coords = (f as Feature<LineString, FeatureProps>).geometry.coordinates;
-      const lens = polygonEdgeLengths([...coords, coords[0]]);
-      // Subtract the closing leg which polygonEdgeLengths added
-      const len = lens.slice(0, -1).reduce((s, n) => s + n, 0);
-      totals[EDGE_KEY_MAP[t]] += len;
+      const lf = f as Feature<LineString, FeatureProps>;
+      const coords = lf.geometry.coordinates;
+      const segLabels = (lf.properties?.segment_edges ?? []) as (EdgeType | null)[];
+      const fallback = lf.properties?.edge_type as EdgeType | undefined;
+      // Per-segment lengths (polygonEdgeLengths appends a closing leg; drop it)
+      const lens = polygonEdgeLengths([...coords, coords[0]]).slice(0, -1);
+      let anySeg = false;
+      for (let i = 0; i < coords.length - 1; i++) {
+        const t = segLabels[i] ?? null;
+        if (!t) continue;
+        anySeg = true;
+        totals[EDGE_KEY_MAP[t]] += lens[i] ?? 0;
+      }
+      if (!anySeg && fallback) {
+        const len = lens.reduce((s, n) => s + n, 0);
+        totals[EDGE_KEY_MAP[fallback]] += len;
+      }
     } else if (f.geometry.type === "Point") {
       // Penetrations don't contribute to LF totals.
       void (f as Feature<Point, FeatureProps>);
