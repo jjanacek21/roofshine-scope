@@ -686,9 +686,15 @@ export function MapboxRoofDraw({
         onSectionDelete={handleSectionDelete}
         onSectionRename={handleSectionRename}
         perimeterBySection={perimeterBySection}
-        onPerimeterEdgeClick={(sectionId, segIdx) => openPerimeterLabelPrompt(sectionId, segIdx)}
+        onPerimeterEdgeClick={(sectionId, segIdx) => {
+          setActiveTool("label");
+          openPerimeterLabelPrompt(sectionId, segIdx);
+        }}
         unlabeledLines={unlabeledLines}
-        onUnlabeledLineClick={(lineId) => openLineLabelPrompt(lineId)}
+        onUnlabeledLineClick={(lineId) => {
+          setActiveTool("label");
+          openLineLabelPrompt(lineId);
+        }}
       />
 
       <MeasurementPromptDialog prompt={prompt} />
