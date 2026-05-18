@@ -1,6 +1,6 @@
-import { Pentagon, Slash, MapPin, MousePointer2, Undo2, Trash2 } from "lucide-react";
+import { Pentagon, Slash, MapPin, MousePointer2, Undo2, Trash2, Tag } from "lucide-react";
 
-type Tool = "polygon" | "line" | "point" | "select";
+type Tool = "polygon" | "line" | "point" | "select" | "label";
 
 export function DrawToolbar({
   active,
@@ -18,6 +18,7 @@ export function DrawToolbar({
     { key: "line", label: "Line", Icon: Slash },
     { key: "point", label: "Point", Icon: MapPin },
     { key: "select", label: "Select", Icon: MousePointer2 },
+    { key: "label", label: "Label", Icon: Tag },
   ];
 
   const hint =
@@ -26,10 +27,12 @@ export function DrawToolbar({
       : active === "polygon"
         ? "Click to add corners · double-click or press Enter to finish · Esc to cancel"
         : active === "line"
-          ? "Click to add points · double-click or Enter to finish"
+          ? "Click to add points · snap to perimeter dots · double-click or Enter to finish"
           : active === "point"
             ? "Click to drop a penetration"
-            : null;
+            : active === "label"
+              ? "Click any edge, line, or pin to label it"
+              : null;
 
   return (
     <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">
