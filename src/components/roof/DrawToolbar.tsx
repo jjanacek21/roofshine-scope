@@ -1,4 +1,5 @@
-import { Pentagon, Slash, MapPin, MousePointer2, Undo2, Trash2, Tag } from "lucide-react";
+import { Pentagon, Slash, MapPin, MousePointer2, Undo2, Trash2, Tag, X } from "lucide-react";
+import { EDGE_LABELS, EDGE_COLORS, type EdgeType, EDGE_TYPES } from "@/lib/roof-math";
 
 type Tool = "polygon" | "line" | "point" | "select" | "label";
 
@@ -7,11 +8,15 @@ export function DrawToolbar({
   onChoose,
   onUndo,
   onClearAll,
+  activeEdge,
+  onChooseEdge,
 }: {
   active: Tool | null;
   onChoose: (t: Tool) => void;
   onUndo: () => void;
   onClearAll: () => void;
+  activeEdge?: EdgeType | "clear" | null;
+  onChooseEdge?: (e: EdgeType | "clear" | null) => void;
 }) {
   const tools: Array<{ key: Tool; label: string; Icon: typeof Pentagon }> = [
     { key: "polygon", label: "Polygon", Icon: Pentagon },
@@ -31,7 +36,11 @@ export function DrawToolbar({
           : active === "point"
             ? "Click to drop a penetration"
             : active === "label"
-              ? "Click any edge, line, or pin to label it — labeled lines change color"
+              ? activeEdge && activeEdge !== "clear"
+                ? `Painting ${EDGE_LABELS[activeEdge]} — click any segment to label it. Switch type anytime.`
+                : activeEdge === "clear"
+                  ? "Eraser active — click any labeled segment to clear it."
+                  : "Pick a type below, then click segments to paint that label."
               : null;
 
   return (
@@ -76,9 +85,55 @@ export function DrawToolbar({
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
+
+      {active === "label" && onChooseEdge ? (
+        <div
+          className="flex max-w-[520px] flex-wrap items-center gap-1 rounded-xl border p-1.5 shadow-lg backdrop-blur"
+          style={{
+            backgroundColor: "rgba(10,10,11,0.85)",
+            borderColor: "var(--border-bright, var(--border))",
+          }}
+        >
+          {EDGE_TYPES.map((t) => {
+            const isActive = activeEdge === t;
+            return (
+              <button
+                key={t}
+                onClick={() => onChooseEdge(isActive ? null : t)}
+                title={EDGE_LABELS[t]}
+                className={`flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11px] transition ${
+                  isActive
+                    ? "border-white/40 bg-white/10 text-foreground"
+                    : "border-transparent text-foreground/80 hover:bg-white/10"
+                }`}
+              >
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: EDGE_COLORS[t] }}
+                />
+                {EDGE_LABELS[t]}
+              </button>
+            );
+          })}
+          <div className="mx-1 h-5 w-px bg-white/15" />
+          <button
+            onClick={() => onChooseEdge(activeEdge === "clear" ? null : "clear")}
+            title="Eraser"
+            className={`flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11px] transition ${
+              activeEdge === "clear"
+                ? "border-red-400/60 bg-red-500/20 text-red-200"
+                : "border-transparent text-foreground/80 hover:bg-red-500/20 hover:text-red-300"
+            }`}
+          >
+            <X className="h-3 w-3" />
+            Eraser
+          </button>
+        </div>
+      ) : null}
+
       {hint ? (
         <div
-          className="max-w-[420px] rounded-md border px-2.5 py-1 text-[11px] leading-snug text-foreground/90 shadow"
+          className="max-w-[520px] rounded-md border px-2.5 py-1 text-[11px] leading-snug text-foreground/90 shadow"
           style={{
             backgroundColor: "rgba(10,10,11,0.85)",
             borderColor: "var(--border-bright, var(--border))",
