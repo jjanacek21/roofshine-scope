@@ -812,6 +812,27 @@ export function MapboxRoofDraw({
     }
     src.setData({ type: "FeatureCollection", features: segFeatures });
 
+    // Per-segment overlay for interior LineString features.
+    const lineSegFeatures: Feature[] = [];
+    for (const f of features) {
+      if (f.geometry.type !== "LineString") continue;
+      const lineId = String(f.id ?? "");
+      if (!lineId) continue;
+      const coords = f.geometry.coordinates;
+      const labels = (f.properties?.segment_edges ?? []) as (EdgeType | null)[];
+      for (let i = 0; i < coords.length - 1; i++) {
+        const label = labels[i] ?? null;
+        const color = label ? EDGE_COLORS[label] : "#94a3b8";
+        lineSegFeatures.push({
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: [coords[i], coords[i + 1]] },
+          properties: { lineId, segIdx: i, kind: label ?? "unlabeled", color },
+        });
+      }
+    }
+    const lsrc = map.getSource("line-segs") as mapboxgl.GeoJSONSource | undefined;
+    lsrc?.setData({ type: "FeatureCollection", features: lineSegFeatures });
+
     // Update perim-vertices + line-vertices sources and the combined snap ref.
     // Snapshot polygon rings so the midpoint-insert cleanup can compare.
     const nextRings = new Map<string, [number, number][]>();
