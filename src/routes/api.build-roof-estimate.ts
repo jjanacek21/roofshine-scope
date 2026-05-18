@@ -217,7 +217,7 @@ export const Route = createFileRoute("/api/build-roof-estimate")({
         const push = (code: string, qty: number, unit: string, source: PreviewItem["source"], fallbackName?: string) => {
           const cat = catByCode.get(code);
           const id = cat?.id ?? null;
-          const price = (id && priceMap[id]) ?? Number(cat?.default_price ?? 0);
+          const price = id && priceMap[id] != null ? priceMap[id] : Number(cat?.default_price ?? 0);
           preview.push({
             code,
             name: cat?.name ?? fallbackName ?? code,
