@@ -23,6 +23,7 @@ import { Route as PayTokenRouteImport } from './routes/pay.$token'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
+import { Route as ApiReportAiRouteImport } from './routes/api.report-ai'
 import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xactimate-pdf'
 import { Route as ApiMapboxTokenRouteImport } from './routes/api.mapbox-token'
 import { Route as ApiImportAssemblyPdfRouteImport } from './routes/api.import-assembly-pdf'
@@ -157,6 +158,11 @@ const ApiTrainFromPdfRoute = ApiTrainFromPdfRouteImport.update({
 const ApiSolarRoofExtractRoute = ApiSolarRoofExtractRouteImport.update({
   id: '/api/solar-roof-extract',
   path: '/api/solar-roof-extract',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiReportAiRoute = ApiReportAiRouteImport.update({
+  id: '/api/report-ai',
+  path: '/api/report-ai',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiParseXactimatePdfRoute = ApiParseXactimatePdfRouteImport.update({
@@ -533,6 +539,7 @@ export interface FileRoutesByFullPath {
   '/api/import-assembly-pdf': typeof ApiImportAssemblyPdfRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
+  '/api/report-ai': typeof ApiReportAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
@@ -610,6 +617,7 @@ export interface FileRoutesByTo {
   '/api/import-assembly-pdf': typeof ApiImportAssemblyPdfRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
+  '/api/report-ai': typeof ApiReportAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
@@ -692,6 +700,7 @@ export interface FileRoutesById {
   '/api/import-assembly-pdf': typeof ApiImportAssemblyPdfRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
+  '/api/report-ai': typeof ApiReportAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
@@ -776,6 +785,7 @@ export interface FileRouteTypes {
     | '/api/import-assembly-pdf'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
+    | '/api/report-ai'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
@@ -853,6 +863,7 @@ export interface FileRouteTypes {
     | '/api/import-assembly-pdf'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
+    | '/api/report-ai'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
@@ -934,6 +945,7 @@ export interface FileRouteTypes {
     | '/api/import-assembly-pdf'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
+    | '/api/report-ai'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
@@ -995,6 +1007,7 @@ export interface RootRouteChildren {
   ApiImportAssemblyPdfRoute: typeof ApiImportAssemblyPdfRoute
   ApiMapboxTokenRoute: typeof ApiMapboxTokenRoute
   ApiParseXactimatePdfRoute: typeof ApiParseXactimatePdfRoute
+  ApiReportAiRoute: typeof ApiReportAiRoute
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
   CSlugRoute: typeof CSlugRoute
@@ -1101,6 +1114,13 @@ declare module '@tanstack/react-router' {
       path: '/api/solar-roof-extract'
       fullPath: '/api/solar-roof-extract'
       preLoaderRoute: typeof ApiSolarRoofExtractRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/report-ai': {
+      id: '/api/report-ai'
+      path: '/api/report-ai'
+      fullPath: '/api/report-ai'
+      preLoaderRoute: typeof ApiReportAiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/parse-xactimate-pdf': {
@@ -1784,6 +1804,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiImportAssemblyPdfRoute: ApiImportAssemblyPdfRoute,
   ApiMapboxTokenRoute: ApiMapboxTokenRoute,
   ApiParseXactimatePdfRoute: ApiParseXactimatePdfRoute,
+  ApiReportAiRoute: ApiReportAiRoute,
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
   CSlugRoute: CSlugRoute,
