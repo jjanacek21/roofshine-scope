@@ -1,55 +1,99 @@
 
-# Invoice payments: your Stripe + Zelle + confirmation emails
+## Goal
 
-You already have invoice checkout working through Lovable's built-in Stripe. This plan moves it to **your own Stripe account**, adds a **Zelle option** on the public pay page, and sends a **confirmation email** with the Stripe payment ID after every successful payment. Membership/SaaS billing is explicitly **out of scope** for this round — we'll do that separately later.
+When AI photo analysis turns into estimate line items, stop emitting the same item once per photo. Instead, produce a single deduplicated, roof-system-aware list per job that always includes the standard roof components and Florida code items.
 
-## Step 1 — Set up your sender email domain
+## Current behavior (problem)
 
-A confirmation email needs a verified domain (e.g. `notify.globalcontractor.app`) so emails come from your brand and land in inboxes. You'll click through a short setup dialog, paste the DNS records into your domain registrar, and we proceed while DNS verifies in the background.
+- `api/analyze-job-photos` runs per photo and writes `matched_line_items` to that photo row.
+- `api/auto-add-photo-suggestions` walks every analyzed photo and inserts one row per `suggested_code` per photo — only deduped by "code already exists on estimate". Two photos of the same flashing both push a flashing line.
+- Nothing inspects the roof as a *system*: no guarantee of starter, hip & ridge, field, vents, pipe flashing, drip edge, gutters.
+- No Florida code package (double 30# felt + seam tape, butyl perimeter seal, re-nail decking, permit, taxes).
 
-## Step 2 — Connect your own Stripe account (BYOK)
+## Plan
 
-Replace the built-in Stripe connection with your own keys. You'll provide:
-- Your Stripe **secret key** (`sk_live_…` and/or `sk_test_…`)
-- Your Stripe **publishable key** (`pk_live_…` / `pk_test_…`)
-- A Stripe **webhook signing secret** (`whsec_…`) — we'll give you the webhook URL to register in your Stripe dashboard
+### 1. Per-photo prompt — narrower scope, no estimate-builder behavior
 
-We rewire the existing checkout (`createPublicInvoiceCheckout`, `PublicStripeCheckout`, the `pay.$token` page, and the `/api/public/payments/webhook` handler) to use your account directly instead of routing through Lovable's connector gateway.
+Update `src/routes/api.analyze-job-photos.ts` prompt:
+- Tell the model "report only what is visible in THIS photo. Do NOT add standard roof components (starter, drip edge, ridge, vents, underlayment, permit) — those are handled at the job level."
+- Add explicit `roof_system` enum on the schema when trade=roofing: `laminated_shingle | 3tab_shingle | concrete_tile | clay_tile | metal_standing_seam | metal_screw_down | modified_bitumen | tpo | epdm | spf | coating`.
+- Keep `observed_items` for *damage-specific* items only (e.g. "replace 2 SQ shingles", "reset bent ridge vent"), not boilerplate.
+- Persist `roof_system` onto `job_photos.ai_analysis` (already a jsonb blob — no schema change needed).
 
-## Step 3 — Add a Zelle option on the pay page
+### 2. New job-level roll-up endpoint
 
-On `/pay/$token`, add a second payment method tab next to "Credit card":
+New file: `src/routes/api.build-roof-estimate.ts` (POST, auth required, takes `{ job_id }`).
 
-- **Zelle** — shows the number **214-998-2879** with a copy button, the invoice amount, and an **"I sent it"** button.
-- Clicking "I sent it" records a payment intent in a new `status = 'zelle_pending'` state on the invoice, with a generated confirmation number. The invoice shows as "Pending Zelle verification" until you manually mark it received from the in-app invoice page (new "Confirm Zelle payment" button for staff).
+Pipeline:
+1. Load all `job_photos` for the job where `status='analyzed'`, plus the job's catalog (company + master, filtered to roofing).
+2. **Decide roof system** = majority `roof_system` across photos, tie-break by highest condition_score weight; persist on `jobs.roof_system` (new column).
+3. **Decide measurements**:
+   - Squares (field): prefer `roof_measurements` table if present; else estimate from photos sum.
+   - Linear footage of eaves / rakes / ridge / hip / valley / drip-edge: pull from `roof_measurements` if present, else ask the model in a second small text-only call ("from these tagged photos and any measurements provided, estimate LF of eave/rake/ridge/hip/valley"). Fall back to typical ratios of SQ when missing.
+4. **Compose system line items** based on roof_system using a new `ROOF_SYSTEM_TEMPLATES` map (see Technical section). Each template lists required codes with qty formulas: field = SQ, starter = LF eaves+rakes, hip & ridge = LF hip+ridge, drip edge = LF eaves+rakes, pipe flashing = count from photos (default 2), gutters = LF eaves (only when photos show gutters / job has gutters flag).
+5. **Merge damage items** from photos: dedupe by code, take MAX qty across photos (current behavior already does this for codes — keep, but only after the system items are in place).
+6. **Append Florida code package** (always on for `state=FL` companies; toggle off-able per-estimate):
+   - `FL-FELT-30-DBL` Double 30# felt underlayment w/ seam tape — qty = SQ
+   - `FL-PERIM-BUTYL` Butyl rubber perimeter seal — qty = LF eaves+rakes
+   - `FL-RENAIL` Re-nail roof decking to current FBC — qty = SQ
+   - `FL-PERMIT` Building permit & inspection — qty = 1 LS
+   - `FL-TAX` Sales tax on materials — computed at totals time, not as line
+7. Return preview JSON: `{ system, items: [{code,name,qty,unit,unit_price,source}] }`. Caller (UI or auto-add) inserts via existing estimate insert path.
 
-## Step 4 — Send confirmation email after every payment
+### 3. Wire it into the existing UX
 
-Set up one transactional template, **`payment-received`**, that says:
-- "We received your payment of $X toward invoice #1234"
-- Confirmation number: the **Stripe session/payment ID** (e.g. `cs_live_abc123…`) for card payments, or the generated Zelle reference for Zelle
-- "Processing — we'll follow up if anything's needed"
-- Your company name and a contact line
+- Replace `api/auto-add-photo-suggestions` call inside `analyze-job-photos.ts` with a debounced trigger to `api/build-roof-estimate` (only when company toggle is on).
+- `AISuggestionsPanel.tsx`: fetch from the new endpoint (`useQuery(['ai-roof-estimate', jobId])`) instead of walking `matched_line_items`. Show one row per code with where it came from (System / Damage / FL Code).
+- Add an "Recompute" button so the user can re-run after uploading more photos.
 
-Triggered automatically from:
-- The **Stripe webhook handler** when `checkout.session.completed` fires (card payments)
-- The **"I sent it"** Zelle action (with "pending verification" wording)
-- The staff **"Confirm Zelle payment"** action (with "verified" wording)
+### 4. Schema
 
-## Out of scope (separate future task)
+Migration `add_roof_system_and_fl_code_items`:
+- `jobs.roof_system text null`
+- `companies.include_fl_code_package boolean default true`
+- Seed `line_item_master` (company_id NULL = master) with the 5 `FL-*` codes above and the standard roof component codes used by the templates that don't already exist (idempotent insert by code).
 
-- Membership / per-user monthly billing for selling the app to other companies — we'll plan and build that as its own project once invoice payments are stable.
+### 5. Out of scope
 
-## Technical notes
+- Tax math itself (already handled by `EstimateTotalsPanel`).
+- Non-roofing trades — they keep current per-photo behavior. Only roofing gets the system roll-up in this pass.
 
-- **BYOK Stripe**: Replaces `createStripeClient` in `src/lib/stripe.server.ts` with a direct `new Stripe(process.env.STRIPE_SECRET_KEY)` (no gateway proxy). Removes dependency on `LOVABLE_API_KEY` / `STRIPE_SANDBOX_API_KEY`. Webhook secret becomes `STRIPE_WEBHOOK_SECRET` (single env, no sandbox/live split). Publishable key moves into `VITE_STRIPE_PUBLISHABLE_KEY`. The existing `environment` column on `invoice_payment_intents` stays but defaults to whatever the key implies.
-- **Schema changes**:
-  - `invoices.status` gets a new value `'zelle_pending'`
-  - New `invoice_payments` rows for Zelle with `method = 'zelle'`, `status = 'pending'` until staff confirms (then `'succeeded'`)
-  - New `confirmation_number` column on `invoice_payments` (text, nullable)
-- **Email**: Lovable Email infrastructure (pgmq queue + cron dispatcher) gets set up. One template `payment-received.tsx` in `src/lib/email-templates/`. Sent via the standard `send-transactional-email` route from the webhook handler and Zelle action handlers.
-- **Files touched**: `stripe.server.ts`, `payments.functions.ts`, `StripeCheckout.tsx`, `pay.$token.tsx`, `api/public/payments/webhook.ts`, `_app.invoices.$id.tsx` (add "Confirm Zelle payment" button), one new server fn for the Zelle "I sent it" action, the new email template + registry entry.
+## Technical details
 
-<presentation-actions>
-<presentation-open-email-setup>Set up email domain</presentation-open-email-setup>
-</presentation-actions>
+`ROOF_SYSTEM_TEMPLATES` lives in new `src/lib/roof-system-templates.ts`:
+
+```text
+laminated_shingle:
+  field        RFG-LAM-COMP   qty=SQ           unit=SQ
+  starter      RFG-STARTER    qty=LF_eave+rake unit=LF
+  hip_ridge    RFG-HIPRIDGE   qty=LF_hip+ridge unit=LF
+  drip_edge    RFG-DRIPEDGE   qty=LF_eave+rake unit=LF
+  ridge_vent   RFG-RIDGEVENT  qty=LF_ridge     unit=LF (only if exhaust vent type=ridge)
+  off_ridge    RFG-OFFRIDGE   qty=count        unit=EA (only if box vents seen)
+  pipe_flash   RFG-PIPEBOOT   qty=count        unit=EA
+  valley_metal RFG-VALLEY     qty=LF_valley    unit=LF
+  gutters      EXT-GUTTER-6   qty=LF_eave      unit=LF (only if has_gutters)
+
+concrete_tile / clay_tile: same shape, codes RFG-TILE-*, plus eave closure + tile starter + battens.
+
+metal_standing_seam / metal_screw_down: RFG-METAL-* + closure strips + clips.
+
+modified_bitumen: RFG-MODBIT-* + base sheet + cap sheet + edge metal + walk pads.
+```
+
+Photo dedupe rule used by the roll-up:
+
+```text
+For each unique suggested_code across all photos:
+  qty = max(qty_in_photo_i)   // not sum
+  source = 'ai_photo'
+Items already covered by system template are skipped (system wins).
+```
+
+Files to touch:
+- new `src/routes/api.build-roof-estimate.ts`
+- new `src/lib/roof-system-templates.ts`
+- new migration
+- edit `src/routes/api.analyze-job-photos.ts` (prompt + schema + remove direct auto-add call)
+- edit `src/components/estimate/AISuggestionsPanel.tsx` (consume new endpoint)
+- edit `src/routes/_app.jobs.$id.estimate.tsx` (Recompute button)
