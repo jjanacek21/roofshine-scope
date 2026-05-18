@@ -537,7 +537,37 @@ export function MapboxRoofDraw({
       }
     }
     src.setData({ type: "FeatureCollection", features: segFeatures });
+
+    // Update perim-vertices source + ref (used for snapping).
+    const verts: [number, number][] = [];
+    for (const f of features) {
+      if (f.geometry.type !== "Polygon") continue;
+      const ring = f.geometry.coordinates[0];
+      for (let i = 0; i < ring.length - 1; i++) {
+        verts.push([ring[i][0], ring[i][1]]);
+      }
+    }
+    perimVerticesRef.current = verts;
+    const vsrc = map.getSource("perim-vertices") as mapboxgl.GeoJSONSource | undefined;
+    vsrc?.setData({
+      type: "FeatureCollection",
+      features: verts.map((v) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: v },
+        properties: {},
+      })),
+    });
   }, [features]);
+
+  // Toggle perimeter segment overlay: only active (clickable) in Label mode.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const vis = activeTool === "label" ? "visible" : "none";
+    for (const id of ["perim-segs-hit", "perim-segs-line"]) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", vis);
+    }
+  }, [activeTool]);
 
   const chooseTool = (t: Tool) => {
     const draw = drawRef.current;
