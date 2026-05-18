@@ -17,6 +17,10 @@ export function EstimateTotalsPanel({
   onPctChange,
   hidePricing,
   onTogglePricing,
+  useManualTotal,
+  onToggleManualTotal,
+  manualTotal,
+  onManualTotalChange,
   savedAt,
 }: {
   jobId: string;
@@ -26,6 +30,10 @@ export function EstimateTotalsPanel({
   onPctChange: (patch: Partial<EstimatePctEdits>) => void;
   hidePricing: boolean;
   onTogglePricing: () => void;
+  useManualTotal: boolean;
+  onToggleManualTotal: () => void;
+  manualTotal: number;
+  onManualTotalChange: (v: number) => void;
   savedAt: number | null;
 }) {
   const markup = (subtotal * pcts.markup_pct) / 100;
@@ -33,7 +41,8 @@ export function EstimateTotalsPanel({
   const profit = (subtotal * pcts.profit_pct) / 100;
   const beforeTax = subtotal + markup + overhead + profit;
   const tax = (beforeTax * pcts.tax_pct) / 100;
-  const grandTotal = beforeTax + tax;
+  const calcTotal = beforeTax + tax;
+  const grandTotal = useManualTotal ? manualTotal : calcTotal;
 
   const savedLabel = savedAt ? relativeTime(savedAt) : null;
 
@@ -54,32 +63,43 @@ export function EstimateTotalsPanel({
         )}
       </div>
 
-      <Row label="Subtotal" value={subtotal} bold />
+      {!useManualTotal && (
+        <>
+          <Row label="Subtotal" value={subtotal} bold />
+          <PctRow label="Markup" pct={pcts.markup_pct} amount={markup}
+            onChange={(v) => onPctChange({ markup_pct: v })} />
+          <PctRow label="Overhead" pct={pcts.overhead_pct} amount={overhead}
+            onChange={(v) => onPctChange({ overhead_pct: v })} />
+          <PctRow label="Profit" pct={pcts.profit_pct} amount={profit}
+            onChange={(v) => onPctChange({ profit_pct: v })} />
+          <PctRow label="Tax" pct={pcts.tax_pct} amount={tax}
+            onChange={(v) => onPctChange({ tax_pct: v })} />
+        </>
+      )}
 
-      <PctRow
-        label="Markup"
-        pct={pcts.markup_pct}
-        amount={markup}
-        onChange={(v) => onPctChange({ markup_pct: v })}
-      />
-      <PctRow
-        label="Overhead"
-        pct={pcts.overhead_pct}
-        amount={overhead}
-        onChange={(v) => onPctChange({ overhead_pct: v })}
-      />
-      <PctRow
-        label="Profit"
-        pct={pcts.profit_pct}
-        amount={profit}
-        onChange={(v) => onPctChange({ profit_pct: v })}
-      />
-      <PctRow
-        label="Tax"
-        pct={pcts.tax_pct}
-        amount={tax}
-        onChange={(v) => onPctChange({ tax_pct: v })}
-      />
+      {useManualTotal && (
+        <div className="space-y-2 rounded-lg border border-dashed p-3" style={{ borderColor: "var(--border)" }}>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Customer total
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono-num text-[16px] text-muted-foreground">$</span>
+            <input
+              type="number"
+              step="0.01"
+              min={0}
+              value={manualTotal || ""}
+              onChange={(e) => onManualTotalChange(Number(e.target.value) || 0)}
+              placeholder="0.00"
+              className="font-mono-num w-full rounded border bg-[var(--bg-elevated)] px-2 py-1.5 text-right text-[16px] font-bold text-foreground outline-none focus:border-[var(--brand)]"
+              style={{ borderColor: "var(--border)" }}
+            />
+          </div>
+          <div className="text-[10px] text-muted-foreground">
+            Auto calc: ${calcTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (hidden from customer)
+          </div>
+        </div>
+      )}
 
       <div
         className="-mx-5 mt-3 border-t px-5 pt-3"
@@ -87,7 +107,7 @@ export function EstimateTotalsPanel({
       >
         <div className="flex items-baseline justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Grand Total
+            Grand Total{useManualTotal && <span className="ml-1 text-[9px] normal-case text-[var(--brand)]">(manual)</span>}
           </span>
           <span
             className="font-mono-num font-extrabold text-[var(--brand)]"
@@ -120,7 +140,17 @@ export function EstimateTotalsPanel({
           style={{ borderColor: "var(--border)" }}
         >
           {hidePricing ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-          {hidePricing ? "Show pricing" : "Hide pricing in PDF"}
+          {hidePricing ? "Show qty & pricing on PDF" : "Hide qty & pricing on PDF"}
+        </button>
+        <button
+          onClick={onToggleManualTotal}
+          className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border text-[12px] font-semibold"
+          style={{
+            borderColor: useManualTotal ? "var(--brand)" : "var(--border)",
+            color: useManualTotal ? "var(--brand)" : "var(--text-dim)",
+          }}
+        >
+          {useManualTotal ? "Using manual total" : "Use manual total"}
         </button>
       </div>
     </div>
