@@ -210,6 +210,23 @@ export function MapboxRoofDraw({
         },
       });
 
+      // Interior line vertex dots: shown so additional lines can connect dot-to-dot.
+      map.addSource("line-vertices", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "line-vertices-layer",
+        type: "circle",
+        source: "line-vertices",
+        paint: {
+          "circle-radius": 4,
+          "circle-color": "#ffffff",
+          "circle-stroke-color": "#f59e0b",
+          "circle-stroke-width": 2,
+        },
+      });
+
       // Snap preview halo (shown when cursor is near a perim vertex during line draw).
       map.addSource("snap-preview", {
         type: "geojson",
