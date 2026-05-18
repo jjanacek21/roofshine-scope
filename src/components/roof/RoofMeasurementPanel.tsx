@@ -228,20 +228,38 @@ export function RoofMeasurementPanel({
         }
 
         if (lines.length) {
-          const lineRows = lines
-            .filter((l) => l.properties?.edge_type)
-            .map((l) => {
-              const lengths = polygonEdgeLengths([
-                ...l.geometry.coordinates,
-                l.geometry.coordinates[0],
-              ]);
-              return {
+          const lineRows: Array<{
+            measurement_id: string;
+            line_geojson: { type: "LineString"; coordinates: number[][] };
+            line_type: EdgeType;
+            length_lf: number;
+          }> = [];
+          for (const l of lines) {
+            const coords = l.geometry.coordinates;
+            const segLabels = (l.properties?.segment_edges ?? []) as (EdgeType | null)[];
+            const fallback = l.properties?.edge_type as EdgeType | undefined;
+            const lens = polygonEdgeLengths([...coords, coords[0]]).slice(0, -1);
+            let anySeg = false;
+            for (let i = 0; i < coords.length - 1; i++) {
+              const t = segLabels[i] ?? null;
+              if (!t) continue;
+              anySeg = true;
+              lineRows.push({
                 measurement_id: m.id,
-                line_geojson: { type: "LineString", coordinates: l.geometry.coordinates },
-                line_type: l.properties!.edge_type as EdgeType,
-                length_lf: lengths.reduce((s, n) => s + n, 0),
-              };
-            });
+                line_geojson: { type: "LineString", coordinates: [coords[i], coords[i + 1]] },
+                line_type: t,
+                length_lf: lens[i] ?? 0,
+              });
+            }
+            if (!anySeg && fallback) {
+              lineRows.push({
+                measurement_id: m.id,
+                line_geojson: { type: "LineString", coordinates: coords },
+                line_type: fallback,
+                length_lf: lens.reduce((s, n) => s + n, 0),
+              });
+            }
+          }
           if (lineRows.length) {
             const { error: lErr } = await supabase.from("roof_lines").insert(lineRows);
             if (lErr) throw lErr;
