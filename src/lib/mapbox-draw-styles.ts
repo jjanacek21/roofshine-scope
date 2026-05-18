@@ -67,18 +67,15 @@ export const MAPBOX_DRAW_STYLES = [
     filter: ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"], ["!=", "mode", "static"]],
     paint: { "circle-radius": 7, "circle-color": "#1e90ff" },
   },
-  // ---------- Midpoints (drag to add a new vertex) ----------
+  // ---------- Midpoints disabled ----------
+  // We intentionally hide midpoint handles so users can't accidentally split
+  // a perimeter or line by dragging a midpoint. New vertices must come from
+  // the polygon/line draw tools only.
   {
     id: "gl-draw-polygon-midpoint",
     type: "circle",
     filter: ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]],
-    paint: {
-      "circle-radius": 5,
-      "circle-color": "#ffffff",
-      "circle-stroke-color": "#1e90ff",
-      "circle-stroke-width": 2,
-      "circle-opacity": 0.85,
-    },
+    paint: { "circle-radius": 0, "circle-opacity": 0 },
   },
 
   // ---------- Standalone points (penetrations) ----------

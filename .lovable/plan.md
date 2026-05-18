@@ -1,46 +1,56 @@
+## Goal
+Make the roof measurement tool behave like a true draw-first sketch tool:
 
-# Draw everything first, label everything later
+1. Draw the perimeter and get SQFT.
+2. Keep only the perimeter pins the user actually placed.
+3. Draw ridges, hips, valleys, transitions, flashings, etc. without being forced to label anything.
+4. Keep dots/vertices visible on all drawn lines so later lines can connect dot-to-dot.
+5. Label perimeter segments and interior lines only when intentionally using the Label tool.
 
-Right now drawing a hip that touches the perimeter is broken: the perimeter-segment overlay grabs the click and reopens the Eave/Rake prompt instead of letting Mapbox Draw drop a vertex. You also still get a label prompt the moment you select any line. Goal: the perimeter and all interior lines/points get drawn with zero labeling interruptions, and labeling only happens when you explicitly enter a "Label" mode.
+## What I’ll change
 
-## Target workflow
+### 1. Stop perimeter segment clicks from interfering while drawing
+- Disable the hidden perimeter segment hit layer except in explicit Label mode.
+- When drawing interior lines, clicking a perimeter edge will no longer open the eave/rake prompt.
+- Only actual perimeter pins/vertices will be valid connection targets on the perimeter.
 
-1. **Draw perimeter** → only pitch + name prompt (unchanged). Polygon closes, area shows.
-2. **Stay in line/point draw mode** and add every hip, ridge, valley, flashing, transition, parapet line, plus penetration pins. No prompts. Lines can start/end exactly on a perimeter vertex (snap), and the perimeter is non-interactive while drawing.
-3. **Switch to Label mode** (new toolbar button) → now clicking a perimeter segment, an interior line, or a point opens the inline label popover. Outside Label mode, clicking a feature just selects it for move/delete — never opens a prompt.
-4. **Vertex-only snapping on perimeter**: when drawing a new line in `draw_line_string`, the first/last click on or near a perimeter vertex snaps to that vertex. Clicks on the middle of a perimeter segment drop a normal new vertex on the ground (they do NOT attach to the segment).
+### 2. Remove midpoint/split behavior from normal selection
+- Hide/disable Mapbox Draw midpoint handles for existing polygon/line features during the normal workflow.
+- This prevents accidental new points from being added to perimeter edges and splitting the line.
+- Existing pins remain draggable/editable, but the app won’t invite accidental midpoint insertion.
 
-## Behavior changes
+### 3. Expand labeling options for perimeter segments
+- Perimeter labels will no longer be restricted to only Eave/Rake.
+- Perimeter segments can be labeled as eave, rake, transition, wall flashing, step flashing, gutter, ridge, hip, valley, etc., matching the same label set used for other lines.
+- This supports perimeter edges that are parapet walls, transitions, flashing, or other roof conditions.
 
-- Remove the auto-open label prompt on `draw.selectionchange` for LineString/Point — selection alone never prompts.
-- Perimeter overlay (`perim-segs-line` / `perim-segs-hit`) becomes click-through except when `mode === "label"`. While drawing or in normal select, set its layers' `visibility: none` (and disable the hit layer) so Mapbox Draw receives the click and can drop a vertex on top of a perimeter line.
-- Render small vertex dots for each polygon vertex on a new always-on `perim-vertices` source. While in `draw_line_string`, snap the cursor to the nearest vertex within ~12 px and commit that exact coordinate on click. Implemented in the `mousemove` / `click` handlers using `turf.distance` against the perimeter vertex list. No snapping to mid-segment points.
-- New **Label** tool in `DrawToolbar` (alongside polygon/line/point/select). Sets a local `mode === "label"`. In this mode:
-  - `simple_select` is active so features are clickable
-  - perimeter overlay re-enables and clicking a segment opens the Eave/Rake popover
-  - clicking an interior line opens the edge-type popover
-  - clicking a point opens the penetration popover
-- Outside Label mode, all `open*LabelPrompt` calls are gated off.
-- Side-panel "Unlabeled lines (N)" and "Perimeter edges" lists keep working — clicking a row switches the tool to Label mode automatically, then opens that feature's popover.
+### 4. Keep vertices/dots visible for interior lines
+- Add a line-vertices overlay source/layer similar to the perimeter-vertices overlay.
+- Show dots at every vertex on every drawn line, not just the perimeter.
+- Use these dots as connection/snap targets when drawing additional lines.
 
-## Files to touch
+### 5. Snap only to real dropped pins/dots
+- Replace the current perimeter-only snap list with a combined snap list of:
+  - perimeter vertices the user placed
+  - vertices on existing ridges/hips/valleys/flashings/transitions
+- Do not snap to midpoint handles or arbitrary points along a segment.
+- This means new lines can connect cleanly between existing dots without creating extra perimeter points.
 
+### 6. Keep draw-first labeling behavior
+- Lines and points will still be created unlabeled.
+- The tool will stay in line/point drawing mode after each line/point, so the user can draw all geometry first.
+- Label prompts will only open from Label mode or sidebar label actions.
+
+## Files to update
 - `src/components/roof/MapboxRoofDraw.tsx`
-  - Add `tool` state value `"label"`; thread through `DrawToolbar`.
-  - Gate `openLineLabelPromptRef` / `openPointLabelPromptRef` / `openPerimeterLabelPromptRef` and the `draw.selectionchange` auto-prompt on `activeTool === "label"`.
-  - Toggle `perim-segs-line` + `perim-segs-hit` visibility based on `activeTool` (visible only in `label`; hidden during draw + plain select so they don't intercept).
-  - Add `perim-vertices` GeoJSON source/layer rebuilt from `features` (one Point per polygon vertex, deduped).
-  - Add vertex snapping for `draw_line_string`: on `mousemove`, if pointer within snap radius of a perimeter vertex, set a ghost marker; on `click`, if snapped, call `draw.changeMode("draw_line_string")` trick — easier: intercept the click in capture phase, then call `map.fire("click", { lngLat: snappedLngLat, point: map.project(snappedLngLat) })` so MapboxDraw drops the vertex at the exact coord. (Standard MapboxDraw snap pattern.)
-  - Keep "stay in draw mode after create" behavior so user can chain lines/points.
-- `src/components/roof/DrawToolbar.tsx`
-  - Add a `Label` button (Tag icon). Active state styling like the other tools.
-- `src/components/roof/MeasurementTotalsPanel.tsx`
-  - When user clicks a perimeter segment row or unlabeled-line row, fire a new `onRequestLabelMode()` callback before opening the popover.
-- `src/lib/measurement-utils.ts` — no schema change. `perimeter_edges` already round-trips.
+- `src/lib/mapbox-draw-styles.ts`
+- possibly `src/components/roof/DrawToolbar.tsx` for clearer tool hints only if needed
 
-## Out of scope
-
-- Auto-classifying eave vs rake from pitch direction.
-- Snapping interior line endpoints to other interior lines (only perimeter vertices snap for now).
-- Changing how data persists to Supabase.
-
+## Validation
+After implementation, I’ll verify the behavior in the preview:
+- draw a perimeter
+- draw a line ending on a perimeter pin
+- confirm clicking perimeter edges while drawing does not label or split them
+- confirm line vertices remain visible
+- confirm a new line can snap/connect to a previous line’s dot
+- confirm perimeter labels offer the full roof-line label set
