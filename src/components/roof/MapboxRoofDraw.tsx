@@ -73,6 +73,12 @@ export function MapboxRoofDraw({
   const drawRef = useRef<MapboxDraw | null>(null);
   const [features, setFeatures] = useState<AnyFeature[]>(initialFeatures ?? []);
   const [activeTool, setActiveTool] = useState<Tool | null>("select");
+  const activeToolRef = useRef<Tool | null>(activeTool);
+  useEffect(() => {
+    activeToolRef.current = activeTool;
+  }, [activeTool]);
+  const perimVerticesRef = useRef<[number, number][]>([]);
+  const snapTargetRef = useRef<[number, number] | null>(null);
   const [prompt, setPrompt] = useState<PromptKind | null>(null);
   const [internalWaste, setInternalWaste] = useState(15);
   const waste = wastePct ?? internalWaste;
