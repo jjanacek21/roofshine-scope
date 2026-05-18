@@ -1,42 +1,46 @@
-# Defer-label workflow for Mapbox measurements
 
-Today every shape you draw immediately opens a modal: polygon → pitch, line → edge type, point → penetration. You asked to keep drawing fluid and label things afterward, plus add per-edge labels on the polygon perimeter so eaves/rakes drive starter, drip edge, and gutter totals.
+# Draw everything first, label everything later
+
+Right now drawing a hip that touches the perimeter is broken: the perimeter-segment overlay grabs the click and reopens the Eave/Rake prompt instead of letting Mapbox Draw drop a vertex. You also still get a label prompt the moment you select any line. Goal: the perimeter and all interior lines/points get drawn with zero labeling interruptions, and labeling only happens when you explicitly enter a "Label" mode.
 
 ## Target workflow
 
-1. **Draw a roof polygon.** A small popover asks only for pitch + name (kept — needed for area math). No per-edge prompt.
-2. **Label perimeter edges.** Each polygon segment between two vertices becomes a selectable mini-edge. Click any segment on the map (or in the side panel list) → choose **Eave** or **Rake**. Unlabeled segments render dashed/gray. Eave length auto-feeds gutter total.
-3. **Draw all interior lines** (ridge, hip, valley, flashing, transition, step flash, etc.) back-to-back with no prompts. Drawing tool stays active until you press Esc / switch tools.
-4. **Label interior lines.** Click a line on the map → inline popover with the edge-type chips. Or use the new "Unlabeled lines (N)" list in the side panel to step through them.
-5. Points (penetrations) behave the same: drop freely, label later.
+1. **Draw perimeter** → only pitch + name prompt (unchanged). Polygon closes, area shows.
+2. **Stay in line/point draw mode** and add every hip, ridge, valley, flashing, transition, parapet line, plus penetration pins. No prompts. Lines can start/end exactly on a perimeter vertex (snap), and the perimeter is non-interactive while drawing.
+3. **Switch to Label mode** (new toolbar button) → now clicking a perimeter segment, an interior line, or a point opens the inline label popover. Outside Label mode, clicking a feature just selects it for move/delete — never opens a prompt.
+4. **Vertex-only snapping on perimeter**: when drawing a new line in `draw_line_string`, the first/last click on or near a perimeter vertex snaps to that vertex. Clicks on the middle of a perimeter segment drop a normal new vertex on the ground (they do NOT attach to the segment).
 
-## Side panel changes
+## Behavior changes
 
-New section **"Perimeter edges"** per roof section:
-- One row per polygon segment, numbered, with length in LF and an Eave/Rake/— selector
-- Subtotals: Eaves (= gutters / starter), Rakes (= drip edge rake), Total perimeter
+- Remove the auto-open label prompt on `draw.selectionchange` for LineString/Point — selection alone never prompts.
+- Perimeter overlay (`perim-segs-line` / `perim-segs-hit`) becomes click-through except when `mode === "label"`. While drawing or in normal select, set its layers' `visibility: none` (and disable the hit layer) so Mapbox Draw receives the click and can drop a vertex on top of a perimeter line.
+- Render small vertex dots for each polygon vertex on a new always-on `perim-vertices` source. While in `draw_line_string`, snap the cursor to the nearest vertex within ~12 px and commit that exact coordinate on click. Implemented in the `mousemove` / `click` handlers using `turf.distance` against the perimeter vertex list. No snapping to mid-segment points.
+- New **Label** tool in `DrawToolbar` (alongside polygon/line/point/select). Sets a local `mode === "label"`. In this mode:
+  - `simple_select` is active so features are clickable
+  - perimeter overlay re-enables and clicking a segment opens the Eave/Rake popover
+  - clicking an interior line opens the edge-type popover
+  - clicking a point opens the penetration popover
+- Outside Label mode, all `open*LabelPrompt` calls are gated off.
+- Side-panel "Unlabeled lines (N)" and "Perimeter edges" lists keep working — clicking a row switches the tool to Label mode automatically, then opens that feature's popover.
 
-New section **"Unlabeled lines (N)"** at top of Edges block — clicking a row selects the line on the map and opens the label popover. Hidden when N = 0.
+## Files to touch
 
-Totals get two new derived rows:
-- **Gutters** = eave LF (perimeter, from polygons)
-- **Starter / drip edge eave** = eave LF; **Drip edge rake** = rake LF
-
-## Technical notes
-
-Files to touch:
-- `src/lib/measurement-utils.ts` — add `perimeter_edges` to `FeatureProps` on polygons: `string[]` indexed by segment, values `"eave" | "rake" | null`. Extend `computeTotals` to sum polygon perimeter LF by label and merge eave/rake into the existing `edges` totals.
 - `src/components/roof/MapboxRoofDraw.tsx`
-  - Remove the auto-prompt for `LineString` and `Point` features in `promptForFeature`. Keep the pitch prompt for polygons.
-  - After finishing draw, stay in the active draw mode so you can keep adding shapes (already true for polygon — extend to line/point by re-entering the mode in the `draw.create` handler instead of falling back to simple_select).
-  - Add a "selected feature" popover: on `draw.selectionchange` for a LineString or Point in `simple_select`, anchor a Mapbox `Popup` at the feature centroid with the chip grid (reuse `EDGE_LABELS` / `PENETRATION_LABELS`). Selecting writes the property via `draw.setFeatureProperty` and `syncFromDraw`.
-  - Render a thin overlay layer for polygon perimeter segments colored by their label (eave/rake/unlabeled). Implement as a derived GeoJSON source rebuilt from `features` on every change; click handler sets the active segment and opens the same popover.
-- `src/components/roof/MeasurementTotalsPanel.tsx` — new `PerimeterEdgesList` per section and `UnlabeledLines` callout. Wire callbacks up through `MapboxRoofDraw` props.
-- `src/components/roof/MeasurementPromptDialog.tsx` — keep the pitch prompt; the edge + penetration variants are no longer triggered on create but are still used by the click-to-label popover (we move that UI inline instead, so the `edge` and `penetration` variants can be removed once the popover lands).
-- Persistence: polygon `perimeter_edges` is just another property on the GeoJSON feature, so existing save/load already round-trips it. No DB migration needed.
+  - Add `tool` state value `"label"`; thread through `DrawToolbar`.
+  - Gate `openLineLabelPromptRef` / `openPointLabelPromptRef` / `openPerimeterLabelPromptRef` and the `draw.selectionchange` auto-prompt on `activeTool === "label"`.
+  - Toggle `perim-segs-line` + `perim-segs-hit` visibility based on `activeTool` (visible only in `label`; hidden during draw + plain select so they don't intercept).
+  - Add `perim-vertices` GeoJSON source/layer rebuilt from `features` (one Point per polygon vertex, deduped).
+  - Add vertex snapping for `draw_line_string`: on `mousemove`, if pointer within snap radius of a perimeter vertex, set a ghost marker; on `click`, if snapped, call `draw.changeMode("draw_line_string")` trick — easier: intercept the click in capture phase, then call `map.fire("click", { lngLat: snappedLngLat, point: map.project(snappedLngLat) })` so MapboxDraw drops the vertex at the exact coord. (Standard MapboxDraw snap pattern.)
+  - Keep "stay in draw mode after create" behavior so user can chain lines/points.
+- `src/components/roof/DrawToolbar.tsx`
+  - Add a `Label` button (Tag icon). Active state styling like the other tools.
+- `src/components/roof/MeasurementTotalsPanel.tsx`
+  - When user clicks a perimeter segment row or unlabeled-line row, fire a new `onRequestLabelMode()` callback before opening the popover.
+- `src/lib/measurement-utils.ts` — no schema change. `perimeter_edges` already round-trips.
 
 ## Out of scope
 
-- Auto-detecting which sides are eaves vs rakes from pitch direction (could come later).
-- Changing the underlying `edges` schema or how `RoofMeasurementPanel` saves to Supabase.
-- Touching the AI measurement or manual entry tabs.
+- Auto-classifying eave vs rake from pitch direction.
+- Snapping interior line endpoints to other interior lines (only perimeter vertices snap for now).
+- Changing how data persists to Supabase.
+

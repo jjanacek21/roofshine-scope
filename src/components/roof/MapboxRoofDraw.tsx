@@ -47,7 +47,7 @@ export type MapboxRoofData = {
   totals?: MeasurementTotals;
 };
 
-type Tool = "polygon" | "line" | "point" | "select";
+type Tool = "polygon" | "line" | "point" | "select" | "label";
 
 export function MapboxRoofDraw({
   center,
@@ -73,6 +73,12 @@ export function MapboxRoofDraw({
   const drawRef = useRef<MapboxDraw | null>(null);
   const [features, setFeatures] = useState<AnyFeature[]>(initialFeatures ?? []);
   const [activeTool, setActiveTool] = useState<Tool | null>("select");
+  const activeToolRef = useRef<Tool | null>(activeTool);
+  useEffect(() => {
+    activeToolRef.current = activeTool;
+  }, [activeTool]);
+  const perimVerticesRef = useRef<[number, number][]>([]);
+  const snapTargetRef = useRef<[number, number] | null>(null);
   const [prompt, setPrompt] = useState<PromptKind | null>(null);
   const [internalWaste, setInternalWaste] = useState(15);
   const waste = wastePct ?? internalWaste;
@@ -172,6 +178,7 @@ export function MapboxRoofDraw({
         },
       });
       map.on("click", "perim-segs-hit", (ev) => {
+        if (activeToolRef.current !== "label") return;
         const f = ev.features?.[0];
         if (!f) return;
         const polygonId = String(f.properties?.polygonId ?? "");
@@ -180,10 +187,44 @@ export function MapboxRoofDraw({
         openPerimeterLabelPromptRef.current?.(polygonId, segIdx);
       });
       map.on("mouseenter", "perim-segs-hit", () => {
-        map.getCanvas().style.cursor = "pointer";
+        if (activeToolRef.current === "label") map.getCanvas().style.cursor = "pointer";
       });
       map.on("mouseleave", "perim-segs-hit", () => {
         map.getCanvas().style.cursor = "";
+      });
+
+      // Perimeter vertex dots: visible always; the only valid snap targets while drawing lines.
+      map.addSource("perim-vertices", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "perim-vertices-layer",
+        type: "circle",
+        source: "perim-vertices",
+        paint: {
+          "circle-radius": 5,
+          "circle-color": "#ffffff",
+          "circle-stroke-color": "#0ea5e9",
+          "circle-stroke-width": 2,
+        },
+      });
+
+      // Snap preview halo (shown when cursor is near a perim vertex during line draw).
+      map.addSource("snap-preview", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "snap-preview-layer",
+        type: "circle",
+        source: "snap-preview",
+        paint: {
+          "circle-radius": 10,
+          "circle-color": "rgba(14,165,233,0.25)",
+          "circle-stroke-color": "#0ea5e9",
+          "circle-stroke-width": 2,
+        },
       });
     });
 
@@ -252,10 +293,73 @@ export function MapboxRoofDraw({
           }
         }, 0);
       } else if (selected.geometry?.type === "LineString") {
-        openLineLabelPromptRef.current?.(String(selected.id));
+        if (activeToolRef.current === "label") {
+          openLineLabelPromptRef.current?.(String(selected.id));
+        }
       } else if (selected.geometry?.type === "Point") {
-        openPointLabelPromptRef.current?.(String(selected.id));
+        if (activeToolRef.current === "label") {
+          openPointLabelPromptRef.current?.(String(selected.id));
+        }
       }
+    });
+
+    // ---- Vertex-only snapping while drawing interior lines ----
+    map.on("mousemove", (e) => {
+      if (drawRef.current?.getMode() !== "draw_line_string") {
+        if (snapTargetRef.current) {
+          snapTargetRef.current = null;
+          const src = map.getSource("snap-preview") as mapboxgl.GeoJSONSource | undefined;
+          src?.setData({ type: "FeatureCollection", features: [] });
+        }
+        return;
+      }
+      const verts = perimVerticesRef.current;
+      if (!verts.length) return;
+      const pt = e.point;
+      let best: { v: [number, number]; d: number } | null = null;
+      for (const v of verts) {
+        const p = map.project(v as mapboxgl.LngLatLike);
+        const d = Math.hypot(p.x - pt.x, p.y - pt.y);
+        if (d < 14 && (!best || d < best.d)) best = { v, d };
+      }
+      snapTargetRef.current = best?.v ?? null;
+      const src = map.getSource("snap-preview") as mapboxgl.GeoJSONSource | undefined;
+      src?.setData({
+        type: "FeatureCollection",
+        features: best
+          ? [{ type: "Feature", geometry: { type: "Point", coordinates: best.v }, properties: {} }]
+          : [],
+      });
+    });
+
+    map.on("click", () => {
+      if (drawRef.current?.getMode() !== "draw_line_string") return;
+      const snap = snapTargetRef.current;
+      if (!snap) return;
+      // After MapboxDraw drops its vertex, replace the most-recent vertex
+      // with the exact snap coordinate.
+      setTimeout(() => {
+        const draw = drawRef.current;
+        if (!draw) return;
+        const selectedIds = (draw as unknown as { getSelectedIds: () => string[] })
+          .getSelectedIds?.() ?? [];
+        let lineId: string | undefined = selectedIds[0];
+        if (!lineId) {
+          const lines = draw.getAll().features.filter((f) => f.geometry.type === "LineString");
+          lineId = lines[lines.length - 1]?.id as string | undefined;
+        }
+        if (!lineId) return;
+        const f = draw.get(lineId);
+        if (!f || f.geometry.type !== "LineString") return;
+        const coords = (f.geometry as LineString).coordinates.slice();
+        if (coords.length === 0) return;
+        coords[coords.length - 1] = [snap[0], snap[1]];
+        const updated: Feature = {
+          ...f,
+          geometry: { ...f.geometry, coordinates: coords },
+        };
+        draw.add(updated);
+      }, 0);
     });
 
     // (Removed: mousedown click-intercept hack. We now hide existing polygon
@@ -433,7 +537,37 @@ export function MapboxRoofDraw({
       }
     }
     src.setData({ type: "FeatureCollection", features: segFeatures });
+
+    // Update perim-vertices source + ref (used for snapping).
+    const verts: [number, number][] = [];
+    for (const f of features) {
+      if (f.geometry.type !== "Polygon") continue;
+      const ring = f.geometry.coordinates[0];
+      for (let i = 0; i < ring.length - 1; i++) {
+        verts.push([ring[i][0], ring[i][1]]);
+      }
+    }
+    perimVerticesRef.current = verts;
+    const vsrc = map.getSource("perim-vertices") as mapboxgl.GeoJSONSource | undefined;
+    vsrc?.setData({
+      type: "FeatureCollection",
+      features: verts.map((v) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: v },
+        properties: {},
+      })),
+    });
   }, [features]);
+
+  // Toggle perimeter segment overlay: only active (clickable) in Label mode.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const vis = activeTool === "label" ? "visible" : "none";
+    for (const id of ["perim-segs-hit", "perim-segs-line"]) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", vis);
+    }
+  }, [activeTool]);
 
   const chooseTool = (t: Tool) => {
     const draw = drawRef.current;
@@ -552,9 +686,15 @@ export function MapboxRoofDraw({
         onSectionDelete={handleSectionDelete}
         onSectionRename={handleSectionRename}
         perimeterBySection={perimeterBySection}
-        onPerimeterEdgeClick={(sectionId, segIdx) => openPerimeterLabelPrompt(sectionId, segIdx)}
+        onPerimeterEdgeClick={(sectionId, segIdx) => {
+          setActiveTool("label");
+          openPerimeterLabelPrompt(sectionId, segIdx);
+        }}
         unlabeledLines={unlabeledLines}
-        onUnlabeledLineClick={(lineId) => openLineLabelPrompt(lineId)}
+        onUnlabeledLineClick={(lineId) => {
+          setActiveTool("label");
+          openLineLabelPrompt(lineId);
+        }}
       />
 
       <MeasurementPromptDialog prompt={prompt} />
