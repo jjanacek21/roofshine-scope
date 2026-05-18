@@ -712,13 +712,80 @@ export function MapboxRoofDraw({
     [syncFromDraw],
   );
 
+  // Apply a perimeter segment label directly (no dialog) — used by the
+  // persistent label-mode painter.
+  const applyPerimLabel = useCallback(
+    (polygonId: string, segIdx: number, edge: EdgeType | null) => {
+      const draw = drawRef.current;
+      if (!draw) return;
+      const f = draw.get(polygonId);
+      const ring = (f?.geometry as Polygon | undefined)?.coordinates?.[0] ?? [];
+      const segCount = Math.max(0, ring.length - 1);
+      const current = ((f?.properties?.perimeter_edges ?? []) as (EdgeType | null)[]).slice();
+      while (current.length < segCount) current.push(null);
+      current[segIdx] = edge;
+      draw.setFeatureProperty(polygonId, "perimeter_edges", current);
+      syncFromDraw(draw);
+    },
+    [syncFromDraw],
+  );
+
+  // Per-segment label dialog (when no active edge type is selected).
+  const openLineSegLabelPrompt = useCallback(
+    (lineId: string, segIdx: number) => {
+      const draw = drawRef.current;
+      if (!draw) return;
+      const f = draw.get(lineId);
+      const coords = (f?.geometry as LineString | undefined)?.coordinates ?? [];
+      const segCount = Math.max(0, coords.length - 1);
+      const current = ((f?.properties?.segment_edges ?? []) as (EdgeType | null)[]).slice();
+      while (current.length < segCount) current.push(null);
+      setPrompt({
+        type: "edge",
+        title: `Line segment #${segIdx + 1}`,
+        initial: current[segIdx] ?? null,
+        allowClear: true,
+        onConfirm: (edge) => {
+          current[segIdx] = edge;
+          draw.setFeatureProperty(lineId, "segment_edges", current);
+          setPrompt(null);
+          syncFromDraw(draw);
+        },
+        onCancel: () => setPrompt(null),
+      });
+    },
+    [syncFromDraw],
+  );
+
+  const applyLineSegLabel = useCallback(
+    (lineId: string, segIdx: number, edge: EdgeType | null) => {
+      const draw = drawRef.current;
+      if (!draw) return;
+      const f = draw.get(lineId);
+      const coords = (f?.geometry as LineString | undefined)?.coordinates ?? [];
+      const segCount = Math.max(0, coords.length - 1);
+      const current = ((f?.properties?.segment_edges ?? []) as (EdgeType | null)[]).slice();
+      while (current.length < segCount) current.push(null);
+      current[segIdx] = edge;
+      draw.setFeatureProperty(lineId, "segment_edges", current);
+      syncFromDraw(draw);
+    },
+    [syncFromDraw],
+  );
+
   // Refs let the map's selectionchange handler reach these without recreating the map effect.
   const openLineLabelPromptRef = useRef(openLineLabelPrompt);
   const openPointLabelPromptRef = useRef(openPointLabelPrompt);
   const openPerimeterLabelPromptRef = useRef(openPerimeterLabelPrompt);
+  const applyPerimLabelRef = useRef(applyPerimLabel);
+  const openLineSegLabelPromptRef = useRef(openLineSegLabelPrompt);
+  const applyLineSegLabelRef = useRef(applyLineSegLabel);
   openLineLabelPromptRef.current = openLineLabelPrompt;
   openPointLabelPromptRef.current = openPointLabelPrompt;
   openPerimeterLabelPromptRef.current = openPerimeterLabelPrompt;
+  applyPerimLabelRef.current = applyPerimLabel;
+  openLineSegLabelPromptRef.current = openLineSegLabelPrompt;
+  applyLineSegLabelRef.current = applyLineSegLabel;
 
   // Keep the perimeter overlay source in sync with current polygon features.
   useEffect(() => {
