@@ -45,6 +45,8 @@ type EstimateRowFull = EstimateRow & {
   profit_pct: number;
   tax_pct: number;
   hide_pricing: boolean;
+  use_manual_total: boolean;
+  manual_total: number | null;
   notes: string | null;
 };
 
@@ -167,6 +169,8 @@ function JobEstimate() {
     tax_pct: 0,
   });
   const [hidePricing, setHidePricing] = useState(false);
+  const [useManualTotal, setUseManualTotal] = useState(false);
+  const [manualTotal, setManualTotal] = useState<number>(0);
   useEffect(() => {
     if (activeEstimate) {
       setPcts({
@@ -176,6 +180,8 @@ function JobEstimate() {
         tax_pct: Number(activeEstimate.tax_pct ?? 0),
       });
       setHidePricing(Boolean(activeEstimate.hide_pricing));
+      setUseManualTotal(Boolean(activeEstimate.use_manual_total));
+      setManualTotal(Number(activeEstimate.manual_total ?? 0));
     }
   }, [activeEstimate]);
 
@@ -190,7 +196,8 @@ function JobEstimate() {
       const profit = (subtotal * pcts.profit_pct) / 100;
       const beforeTax = subtotal + markup + overhead + profit;
       const tax = (beforeTax * pcts.tax_pct) / 100;
-      const total = beforeTax + tax;
+      const calcTotal = beforeTax + tax;
+      const effectiveTotal = useManualTotal ? Number(manualTotal) || 0 : calcTotal;
       await supabase
         .from("estimates")
         .update({
@@ -199,13 +206,15 @@ function JobEstimate() {
           profit_pct: pcts.profit_pct,
           tax_pct: pcts.tax_pct,
           hide_pricing: hidePricing,
+          use_manual_total: useManualTotal,
+          manual_total: useManualTotal ? Number(manualTotal) || 0 : null,
           subtotal,
           tax,
-          total,
-        })
+          total: effectiveTotal,
+        } as any)
         .eq("id", activeEstimate.id);
       // bump job total as the active tier price (simple)
-      await supabase.from("jobs").update({ total_estimate: total }).eq("id", jobId);
+      await supabase.from("jobs").update({ total_estimate: effectiveTotal }).eq("id", jobId);
       setSavedAt(Date.now());
       qc.invalidateQueries({ queryKey: ["estimates", jobId] });
       qc.invalidateQueries({ queryKey: ["job", jobId] });
@@ -213,7 +222,7 @@ function JobEstimate() {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [pcts, hidePricing, subtotal, activeEstimate, jobId, qc]);
+  }, [pcts, hidePricing, useManualTotal, manualTotal, subtotal, activeEstimate, jobId, qc]);
 
   // Item patch (debounced per-item)
   const itemTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -631,6 +640,10 @@ function JobEstimate() {
           onPctChange={(patch) => setPcts((p) => ({ ...p, ...patch }))}
           hidePricing={hidePricing}
           onTogglePricing={() => setHidePricing((h) => !h)}
+          useManualTotal={useManualTotal}
+          onToggleManualTotal={() => setUseManualTotal((v) => !v)}
+          manualTotal={manualTotal}
+          onManualTotalChange={(v) => setManualTotal(v)}
           savedAt={savedAt}
         />
       )}

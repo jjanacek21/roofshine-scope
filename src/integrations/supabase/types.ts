@@ -635,6 +635,7 @@ export type Database = {
           hide_pricing: boolean
           id: string
           job_id: string
+          manual_total: number | null
           markup_pct: number
           name: string
           notes: string | null
@@ -647,6 +648,7 @@ export type Database = {
           tier: string
           total: number
           updated_at: string
+          use_manual_total: boolean
         }
         Insert: {
           company_id: string
@@ -654,6 +656,7 @@ export type Database = {
           hide_pricing?: boolean
           id?: string
           job_id: string
+          manual_total?: number | null
           markup_pct?: number
           name: string
           notes?: string | null
@@ -666,6 +669,7 @@ export type Database = {
           tier?: string
           total?: number
           updated_at?: string
+          use_manual_total?: boolean
         }
         Update: {
           company_id?: string
@@ -673,6 +677,7 @@ export type Database = {
           hide_pricing?: boolean
           id?: string
           job_id?: string
+          manual_total?: number | null
           markup_pct?: number
           name?: string
           notes?: string | null
@@ -685,6 +690,7 @@ export type Database = {
           tier?: string
           total?: number
           updated_at?: string
+          use_manual_total?: boolean
         }
         Relationships: [
           {

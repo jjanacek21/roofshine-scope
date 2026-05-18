@@ -252,7 +252,10 @@ function JobReport() {
   const profit = (subtotal * Number(primaryEstimate?.profit_pct ?? 0)) / 100;
   const beforeTax = subtotal + markup + overhead + profit;
   const tax = (beforeTax * Number(primaryEstimate?.tax_pct ?? 0)) / 100;
-  const grandTotal = beforeTax + tax;
+  const calcTotal = beforeTax + tax;
+  const useManualTotal = Boolean((primaryEstimate as any)?.use_manual_total);
+  const manualTotal = Number((primaryEstimate as any)?.manual_total ?? 0);
+  const grandTotal = useManualTotal ? manualTotal : calcTotal;
 
   const itemsByTrade = useMemo(() => {
     const map = new Map<string, typeof lineItems>();
@@ -643,10 +646,10 @@ function JobReport() {
                     <thead>
                       <tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
                         <th className="border-b border-neutral-200 py-1.5">Item</th>
-                        <th className="border-b border-neutral-200 py-1.5 text-right">Qty</th>
-                        <th className="border-b border-neutral-200 py-1.5">Unit</th>
                         {!hidePricing && (
                           <>
+                            <th className="border-b border-neutral-200 py-1.5 text-right">Qty</th>
+                            <th className="border-b border-neutral-200 py-1.5">Unit</th>
                             <th className="border-b border-neutral-200 py-1.5 text-right">Price</th>
                             <th className="border-b border-neutral-200 py-1.5 text-right">Total</th>
                           </>
@@ -657,12 +660,12 @@ function JobReport() {
                       {items.map((it) => (
                         <tr key={it.id} className="border-b border-neutral-100">
                           <td className="py-1.5 text-neutral-800">{it.name}</td>
-                          <td className="py-1.5 text-right font-mono-num text-neutral-700">
-                            {Number(it.qty).toFixed(2)}
-                          </td>
-                          <td className="py-1.5 text-neutral-600">{it.unit}</td>
                           {!hidePricing && (
                             <>
+                              <td className="py-1.5 text-right font-mono-num text-neutral-700">
+                                {Number(it.qty).toFixed(2)}
+                              </td>
+                              <td className="py-1.5 text-neutral-600">{it.unit}</td>
                               <td className="py-1.5 text-right font-mono-num text-neutral-700">
                                 ${Number(it.unit_price).toFixed(2)}
                               </td>
@@ -677,7 +680,7 @@ function JobReport() {
                   </table>
                 </div>
               ))}
-              {!hidePricing && (
+              {!hidePricing && !useManualTotal && (
                 <div className="mt-4 space-y-1 border-t border-neutral-300 pt-3 text-[12px]">
                   <Row label="Subtotal" value={subtotal} />
                   <Row label={`Markup (${primaryEstimate?.markup_pct ?? 0}%)`} value={markup} />
@@ -687,6 +690,21 @@ function JobReport() {
                   <div className="mt-3 flex items-baseline justify-between border-t border-neutral-300 pt-3">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-700">
                       Grand Total
+                    </span>
+                    <span
+                      className="font-mono-num font-extrabold text-neutral-900"
+                      style={{ fontSize: 28 }}
+                    >
+                      ${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {useManualTotal && (
+                <div className="mt-4 border-t border-neutral-300 pt-3">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-700">
+                      Total
                     </span>
                     <span
                       className="font-mono-num font-extrabold text-neutral-900"
