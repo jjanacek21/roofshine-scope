@@ -73,10 +73,15 @@ export function MapboxRoofDraw({
   const drawRef = useRef<MapboxDraw | null>(null);
   const [features, setFeatures] = useState<AnyFeature[]>(initialFeatures ?? []);
   const [activeTool, setActiveTool] = useState<Tool | null>("select");
+  const [activeEdge, setActiveEdge] = useState<EdgeType | "clear" | null>(null);
   const activeToolRef = useRef<Tool | null>(activeTool);
+  const activeEdgeRef = useRef<EdgeType | "clear" | null>(activeEdge);
   useEffect(() => {
     activeToolRef.current = activeTool;
   }, [activeTool]);
+  useEffect(() => {
+    activeEdgeRef.current = activeEdge;
+  }, [activeEdge]);
   const perimVerticesRef = useRef<[number, number][]>([]);
   const snapTargetRef = useRef<[number, number] | null>(null);
   // Snapshot of each polygon's ring after the last accepted update — used to
@@ -213,7 +218,7 @@ export function MapboxRoofDraw({
         id: "perim-segs-line",
         type: "line",
         source: "perim-segs",
-        layout: { "line-cap": "round", visibility: "none" },
+        layout: { "line-cap": "round" },
         paint: {
           "line-color": ["coalesce", ["get", "color"], "#94a3b8"],
           "line-width": 5,
@@ -236,12 +241,65 @@ export function MapboxRoofDraw({
         const polygonId = String(f.properties?.polygonId ?? "");
         const segIdx = Number(f.properties?.segIdx ?? -1);
         if (!polygonId || segIdx < 0) return;
-        openPerimeterLabelPromptRef.current?.(polygonId, segIdx);
+        const ae = activeEdgeRef.current;
+        if (ae !== null && ae !== undefined) {
+          applyPerimLabelRef.current?.(polygonId, segIdx, ae === "clear" ? null : ae);
+        } else {
+          openPerimeterLabelPromptRef.current?.(polygonId, segIdx);
+        }
       });
       map.on("mouseenter", "perim-segs-hit", () => {
         if (activeToolRef.current === "label") map.getCanvas().style.cursor = "pointer";
       });
       map.on("mouseleave", "perim-segs-hit", () => {
+        map.getCanvas().style.cursor = "";
+      });
+
+      // Per-segment overlay for interior LineString features.
+      map.addSource("line-segs", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "line-segs-hit",
+        type: "line",
+        source: "line-segs",
+        layout: { visibility: "none" },
+        paint: { "line-color": "#000", "line-opacity": 0, "line-width": 18 },
+      });
+      map.addLayer({
+        id: "line-segs-line",
+        type: "line",
+        source: "line-segs",
+        layout: { "line-cap": "round" },
+        paint: {
+          "line-color": ["coalesce", ["get", "color"], "#94a3b8"],
+          "line-width": 4,
+          "line-opacity": [
+            "case",
+            ["==", ["get", "kind"], "unlabeled"], 0,
+            0.95,
+          ],
+        },
+      });
+      map.on("click", "line-segs-hit", (ev) => {
+        if (activeToolRef.current !== "label") return;
+        const f = ev.features?.[0];
+        if (!f) return;
+        const lineId = String(f.properties?.lineId ?? "");
+        const segIdx = Number(f.properties?.segIdx ?? -1);
+        if (!lineId || segIdx < 0) return;
+        const ae = activeEdgeRef.current;
+        if (ae !== null && ae !== undefined) {
+          applyLineSegLabelRef.current?.(lineId, segIdx, ae === "clear" ? null : ae);
+        } else {
+          openLineSegLabelPromptRef.current?.(lineId, segIdx);
+        }
+      });
+      map.on("mouseenter", "line-segs-hit", () => {
+        if (activeToolRef.current === "label") map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "line-segs-hit", () => {
         map.getCanvas().style.cursor = "";
       });
 
@@ -304,7 +362,36 @@ export function MapboxRoofDraw({
         // Polygons still prompt for pitch/name (needed for area math).
         promptForFeature(created, draw);
       } else {
-        // Lines & points: drop without prompting; user labels later.
+        // Normalize line endpoints/vertices to nearby existing pins so
+        // connected lines reuse the same dot (no stacked duplicate pins).
+        if (created.geometry.type === "LineString" && created.id != null) {
+          const coords = (created.geometry as LineString).coordinates as [number, number][];
+          const verts = perimVerticesRef.current;
+          if (verts.length && coords.length) {
+            let changed = false;
+            const snapped = coords.map((c) => {
+              const p = map.project(c as mapboxgl.LngLatLike);
+              let best: { v: [number, number]; d: number } | null = null;
+              for (const v of verts) {
+                if (v[0] === c[0] && v[1] === c[1]) continue;
+                const pv = map.project(v as mapboxgl.LngLatLike);
+                const d = Math.hypot(pv.x - p.x, pv.y - p.y);
+                if (d < 14 && (!best || d < best.d)) best = { v, d };
+              }
+              if (best) {
+                changed = true;
+                return [best.v[0], best.v[1]] as [number, number];
+              }
+              return c;
+            });
+            if (changed) {
+              draw.add({
+                ...created,
+                geometry: { ...created.geometry, coordinates: snapped },
+              } as Feature);
+            }
+          }
+        }
         syncFromDraw(draw);
         // Re-enter the same draw mode so user can keep adding shapes back-to-back.
         const stayMode: "draw_line_string" | "draw_point" =
@@ -412,8 +499,10 @@ export function MapboxRoofDraw({
           }
         }, 0);
       } else if (selected.geometry?.type === "LineString") {
+        // Labeling lines is segment-based; the line-segs overlay handles clicks.
+        // Deselect immediately so direct_select doesn't kick in and show midpoints.
         if (activeToolRef.current === "label") {
-          openLineLabelPromptRef.current?.(String(selected.id));
+          setTimeout(() => drawRef.current?.changeMode("simple_select"), 0);
         }
       } else if (selected.geometry?.type === "Point") {
         if (activeToolRef.current === "label") {
@@ -623,13 +712,80 @@ export function MapboxRoofDraw({
     [syncFromDraw],
   );
 
+  // Apply a perimeter segment label directly (no dialog) — used by the
+  // persistent label-mode painter.
+  const applyPerimLabel = useCallback(
+    (polygonId: string, segIdx: number, edge: EdgeType | null) => {
+      const draw = drawRef.current;
+      if (!draw) return;
+      const f = draw.get(polygonId);
+      const ring = (f?.geometry as Polygon | undefined)?.coordinates?.[0] ?? [];
+      const segCount = Math.max(0, ring.length - 1);
+      const current = ((f?.properties?.perimeter_edges ?? []) as (EdgeType | null)[]).slice();
+      while (current.length < segCount) current.push(null);
+      current[segIdx] = edge;
+      draw.setFeatureProperty(polygonId, "perimeter_edges", current);
+      syncFromDraw(draw);
+    },
+    [syncFromDraw],
+  );
+
+  // Per-segment label dialog (when no active edge type is selected).
+  const openLineSegLabelPrompt = useCallback(
+    (lineId: string, segIdx: number) => {
+      const draw = drawRef.current;
+      if (!draw) return;
+      const f = draw.get(lineId);
+      const coords = (f?.geometry as LineString | undefined)?.coordinates ?? [];
+      const segCount = Math.max(0, coords.length - 1);
+      const current = ((f?.properties?.segment_edges ?? []) as (EdgeType | null)[]).slice();
+      while (current.length < segCount) current.push(null);
+      setPrompt({
+        type: "edge",
+        title: `Line segment #${segIdx + 1}`,
+        initial: current[segIdx] ?? null,
+        allowClear: true,
+        onConfirm: (edge) => {
+          current[segIdx] = edge;
+          draw.setFeatureProperty(lineId, "segment_edges", current);
+          setPrompt(null);
+          syncFromDraw(draw);
+        },
+        onCancel: () => setPrompt(null),
+      });
+    },
+    [syncFromDraw],
+  );
+
+  const applyLineSegLabel = useCallback(
+    (lineId: string, segIdx: number, edge: EdgeType | null) => {
+      const draw = drawRef.current;
+      if (!draw) return;
+      const f = draw.get(lineId);
+      const coords = (f?.geometry as LineString | undefined)?.coordinates ?? [];
+      const segCount = Math.max(0, coords.length - 1);
+      const current = ((f?.properties?.segment_edges ?? []) as (EdgeType | null)[]).slice();
+      while (current.length < segCount) current.push(null);
+      current[segIdx] = edge;
+      draw.setFeatureProperty(lineId, "segment_edges", current);
+      syncFromDraw(draw);
+    },
+    [syncFromDraw],
+  );
+
   // Refs let the map's selectionchange handler reach these without recreating the map effect.
   const openLineLabelPromptRef = useRef(openLineLabelPrompt);
   const openPointLabelPromptRef = useRef(openPointLabelPrompt);
   const openPerimeterLabelPromptRef = useRef(openPerimeterLabelPrompt);
+  const applyPerimLabelRef = useRef(applyPerimLabel);
+  const openLineSegLabelPromptRef = useRef(openLineSegLabelPrompt);
+  const applyLineSegLabelRef = useRef(applyLineSegLabel);
   openLineLabelPromptRef.current = openLineLabelPrompt;
   openPointLabelPromptRef.current = openPointLabelPrompt;
   openPerimeterLabelPromptRef.current = openPerimeterLabelPrompt;
+  applyPerimLabelRef.current = applyPerimLabel;
+  openLineSegLabelPromptRef.current = openLineSegLabelPrompt;
+  applyLineSegLabelRef.current = applyLineSegLabel;
 
   // Keep the perimeter overlay source in sync with current polygon features.
   useEffect(() => {
@@ -655,6 +811,27 @@ export function MapboxRoofDraw({
       }
     }
     src.setData({ type: "FeatureCollection", features: segFeatures });
+
+    // Per-segment overlay for interior LineString features.
+    const lineSegFeatures: Feature[] = [];
+    for (const f of features) {
+      if (f.geometry.type !== "LineString") continue;
+      const lineId = String(f.id ?? "");
+      if (!lineId) continue;
+      const coords = f.geometry.coordinates;
+      const labels = (f.properties?.segment_edges ?? []) as (EdgeType | null)[];
+      for (let i = 0; i < coords.length - 1; i++) {
+        const label = labels[i] ?? null;
+        const color = label ? EDGE_COLORS[label] : "#94a3b8";
+        lineSegFeatures.push({
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: [coords[i], coords[i + 1]] },
+          properties: { lineId, segIdx: i, kind: label ?? "unlabeled", color },
+        });
+      }
+    }
+    const lsrc = map.getSource("line-segs") as mapboxgl.GeoJSONSource | undefined;
+    lsrc?.setData({ type: "FeatureCollection", features: lineSegFeatures });
 
     // Update perim-vertices + line-vertices sources and the combined snap ref.
     // Snapshot polygon rings so the midpoint-insert cleanup can compare.
@@ -716,13 +893,17 @@ export function MapboxRoofDraw({
     });
   }, [features]);
 
-  // Toggle perimeter segment overlay: only active (clickable) in Label mode.
+  // Segment overlays: paint layers always visible (so labeled colors persist),
+  // hit layers only active in Label mode.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const vis = activeTool === "label" ? "visible" : "none";
-    for (const id of ["perim-segs-hit", "perim-segs-line"]) {
-      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", vis);
+    const hitVis = activeTool === "label" ? "visible" : "none";
+    for (const id of ["perim-segs-hit", "line-segs-hit"]) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", hitVis);
+    }
+    for (const id of ["perim-segs-line", "line-segs-line"]) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "visible");
     }
   }, [activeTool]);
 
@@ -829,6 +1010,8 @@ export function MapboxRoofDraw({
           onChoose={chooseTool}
           onUndo={handleUndo}
           onClearAll={handleClearAll}
+          activeEdge={activeEdge}
+          onChooseEdge={setActiveEdge}
         />
       </div>
 

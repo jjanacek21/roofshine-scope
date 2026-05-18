@@ -28,6 +28,8 @@ export type FeatureProps = {
   // where N = ring.length - 1 (closed-ring last vertex is the same as first).
   // null means "unlabeled". Stored as an array of strings for GeoJSON safety.
   perimeter_edges?: (EdgeType | null)[];
+  // Per-segment labels for interior LineString features. Indexed 0..coords.length-2.
+  segment_edges?: (EdgeType | null)[];
 };
 
 export type AnyFeature = Feature<Polygon | LineString | Point, FeatureProps>;
@@ -92,9 +94,23 @@ export function computeTotals(features: AnyFeature[], defaultWastePct = 15): Mea
 
   const edges: Partial<Record<EdgeType, number>> = {};
   for (const l of lines) {
-    const lengthFt = turf.length(l, { units: "kilometers" }) * KM_TO_FT;
-    const t = l.properties?.edge_type as EdgeType | undefined;
-    if (t) edges[t] = (edges[t] ?? 0) + lengthFt;
+    const coords = l.geometry.coordinates;
+    const segLabels = (l.properties?.segment_edges ?? []) as (EdgeType | null)[];
+    const fallback = l.properties?.edge_type as EdgeType | undefined;
+    let anySegmentLabel = false;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const t = segLabels[i] ?? null;
+      if (!t) continue;
+      anySegmentLabel = true;
+      const lf = turf.length(turf.lineString([coords[i], coords[i + 1]]), { units: "kilometers" }) * KM_TO_FT;
+      edges[t] = (edges[t] ?? 0) + lf;
+    }
+    // Backwards-compat: if no per-segment labels but a whole-line edge_type exists,
+    // attribute the entire line length to that edge type.
+    if (!anySegmentLabel && fallback) {
+      const lengthFt = turf.length(l, { units: "kilometers" }) * KM_TO_FT;
+      edges[fallback] = (edges[fallback] ?? 0) + lengthFt;
+    }
   }
 
   // Add perimeter segment labels from polygons (eave / rake / etc.)
