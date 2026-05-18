@@ -293,10 +293,73 @@ export function MapboxRoofDraw({
           }
         }, 0);
       } else if (selected.geometry?.type === "LineString") {
-        openLineLabelPromptRef.current?.(String(selected.id));
+        if (activeToolRef.current === "label") {
+          openLineLabelPromptRef.current?.(String(selected.id));
+        }
       } else if (selected.geometry?.type === "Point") {
-        openPointLabelPromptRef.current?.(String(selected.id));
+        if (activeToolRef.current === "label") {
+          openPointLabelPromptRef.current?.(String(selected.id));
+        }
       }
+    });
+
+    // ---- Vertex-only snapping while drawing interior lines ----
+    map.on("mousemove", (e) => {
+      if (drawRef.current?.getMode() !== "draw_line_string") {
+        if (snapTargetRef.current) {
+          snapTargetRef.current = null;
+          const src = map.getSource("snap-preview") as mapboxgl.GeoJSONSource | undefined;
+          src?.setData({ type: "FeatureCollection", features: [] });
+        }
+        return;
+      }
+      const verts = perimVerticesRef.current;
+      if (!verts.length) return;
+      const pt = e.point;
+      let best: { v: [number, number]; d: number } | null = null;
+      for (const v of verts) {
+        const p = map.project(v as mapboxgl.LngLatLike);
+        const d = Math.hypot(p.x - pt.x, p.y - pt.y);
+        if (d < 14 && (!best || d < best.d)) best = { v, d };
+      }
+      snapTargetRef.current = best?.v ?? null;
+      const src = map.getSource("snap-preview") as mapboxgl.GeoJSONSource | undefined;
+      src?.setData({
+        type: "FeatureCollection",
+        features: best
+          ? [{ type: "Feature", geometry: { type: "Point", coordinates: best.v }, properties: {} }]
+          : [],
+      });
+    });
+
+    map.on("click", () => {
+      if (drawRef.current?.getMode() !== "draw_line_string") return;
+      const snap = snapTargetRef.current;
+      if (!snap) return;
+      // After MapboxDraw drops its vertex, replace the most-recent vertex
+      // with the exact snap coordinate.
+      setTimeout(() => {
+        const draw = drawRef.current;
+        if (!draw) return;
+        const selectedIds = (draw as unknown as { getSelectedIds: () => string[] })
+          .getSelectedIds?.() ?? [];
+        let lineId: string | undefined = selectedIds[0];
+        if (!lineId) {
+          const lines = draw.getAll().features.filter((f) => f.geometry.type === "LineString");
+          lineId = lines[lines.length - 1]?.id as string | undefined;
+        }
+        if (!lineId) return;
+        const f = draw.get(lineId);
+        if (!f || f.geometry.type !== "LineString") return;
+        const coords = (f.geometry as LineString).coordinates.slice();
+        if (coords.length === 0) return;
+        coords[coords.length - 1] = [snap[0], snap[1]];
+        const updated: Feature = {
+          ...f,
+          geometry: { ...f.geometry, coordinates: coords },
+        };
+        draw.add(updated);
+      }, 0);
     });
 
     // (Removed: mousedown click-intercept hack. We now hide existing polygon
