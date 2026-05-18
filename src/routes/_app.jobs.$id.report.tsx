@@ -132,7 +132,7 @@ function JobReport() {
     const t = setTimeout(async () => {
       await supabase
         .from("job_reports")
-        .update({ sections: sections as unknown as object })
+        .update({ sections: sections as any })
         .eq("id", reportRowId);
     }, 800);
     return () => clearTimeout(t);
