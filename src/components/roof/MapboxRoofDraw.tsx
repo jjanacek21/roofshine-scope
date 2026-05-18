@@ -160,7 +160,6 @@ export function MapboxRoofDraw({
             push(geojson);
             MapboxDraw.lib
               .createSupplementaryPoints(geojson, {
-                map: this.map,
                 midpoints: false,
                 selectedPaths: state.selectedCoordPaths,
               })
