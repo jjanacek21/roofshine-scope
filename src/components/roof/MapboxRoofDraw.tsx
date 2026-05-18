@@ -489,9 +489,8 @@ export function MapboxRoofDraw({
       while (current.length < segCount) current.push(null);
       setPrompt({
         type: "edge",
-        title: `Perimeter edge #${segIdx + 1}`,
+      title: `Perimeter edge #${segIdx + 1}`,
         initial: current[segIdx] ?? null,
-        restrictTo: ["eave", "rake"],
         allowClear: true,
         onConfirm: (edge) => {
           current[segIdx] = edge;
