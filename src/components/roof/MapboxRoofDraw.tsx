@@ -132,12 +132,55 @@ export function MapboxRoofDraw({
     });
     mapRef.current = map;
 
+    const baseModes = MapboxDraw.modes as Record<string, any>;
+    const drawConstants = MapboxDraw.constants as any;
+    const customModes = {
+      ...baseModes,
+      draw_line_string: {
+        ...baseModes.draw_line_string,
+        clickOnVertex(this: any, state: any, e: any) {
+          // Clicking an existing pin should place/connect the next line vertex,
+          // not finish the line and create a near-duplicate endpoint.
+          return this.clickAnywhere(state, e);
+        },
+      },
+      direct_select: {
+        ...baseModes.direct_select,
+        onMouseDown(this: any, state: any, e: any) {
+          if (e.featureTarget?.properties?.meta === drawConstants.meta.MIDPOINT) return;
+          return baseModes.direct_select.onMouseDown.call(this, state, e);
+        },
+        onTouchStart(this: any, state: any, e: any) {
+          if (e.featureTarget?.properties?.meta === drawConstants.meta.MIDPOINT) return;
+          return baseModes.direct_select.onTouchStart.call(this, state, e);
+        },
+        toDisplayFeatures(this: any, state: any, geojson: any, push: (f: any) => void) {
+          if (state.featureId === geojson.properties.id) {
+            geojson.properties.active = drawConstants.activeStates.ACTIVE;
+            push(geojson);
+            MapboxDraw.lib
+              .createSupplementaryPoints(geojson, {
+                map: this.map,
+                midpoints: false,
+                selectedPaths: state.selectedCoordPaths,
+              })
+              .forEach(push);
+          } else {
+            geojson.properties.active = drawConstants.activeStates.INACTIVE;
+            push(geojson);
+          }
+          this.fireActionable(state);
+        },
+      },
+    };
+
     const draw = new MapboxDraw({
       displayControlsDefault: false,
       defaultMode: "simple_select",
       // Required by Mapbox Draw for feature.properties.edge_type to be
       // exposed to style expressions as user_edge_type.
       userProperties: true,
+      modes: customModes,
       styles: MAPBOX_DRAW_STYLES,
       // Bigger hit targets so vertex pins are easier to grab.
       clickBuffer: 6,
