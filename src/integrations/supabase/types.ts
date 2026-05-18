@@ -266,6 +266,7 @@ export type Database = {
           email: string | null
           financing_blurb: string | null
           id: string
+          include_fl_code_package: boolean
           license_numbers: string[]
           logo_url: string | null
           name: string
@@ -288,6 +289,7 @@ export type Database = {
           email?: string | null
           financing_blurb?: string | null
           id?: string
+          include_fl_code_package?: boolean
           license_numbers?: string[]
           logo_url?: string | null
           name: string
@@ -310,6 +312,7 @@ export type Database = {
           email?: string | null
           financing_blurb?: string | null
           id?: string
+          include_fl_code_package?: boolean
           license_numbers?: string[]
           logo_url?: string | null
           name?: string
@@ -1440,6 +1443,7 @@ export type Database = {
           primary_trade: Database["public"]["Enums"]["trade_type"] | null
           property_address: string | null
           property_id: string | null
+          roof_system: string | null
           status: Database["public"]["Enums"]["job_status"]
           total_estimate: number
           updated_at: string
@@ -1462,6 +1466,7 @@ export type Database = {
           primary_trade?: Database["public"]["Enums"]["trade_type"] | null
           property_address?: string | null
           property_id?: string | null
+          roof_system?: string | null
           status?: Database["public"]["Enums"]["job_status"]
           total_estimate?: number
           updated_at?: string
@@ -1484,6 +1489,7 @@ export type Database = {
           primary_trade?: Database["public"]["Enums"]["trade_type"] | null
           property_address?: string | null
           property_id?: string | null
+          roof_system?: string | null
           status?: Database["public"]["Enums"]["job_status"]
           total_estimate?: number
           updated_at?: string
