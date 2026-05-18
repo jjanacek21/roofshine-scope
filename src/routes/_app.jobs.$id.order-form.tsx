@@ -122,14 +122,15 @@ function OrderFormPage() {
 
   const laborRows = useMemo(() => {
     if (!lines?.labor) return [] as Array<{
-      line_id: string; task: string; uom: string; qty: number; rate: number; line_total: number;
+      line_id: string; task: string; uom: string; qty: number; rate: number; line_total: number; excluded: boolean;
     }>;
     return lines.labor.map((ln) => {
-      const ov = labOverrides.find((o) => o.line_id === ln.id);
+      const ov = labOverrides.find((o) => o.line_id === ln.id) as any;
       const autoQty = calcQty(ln.formula, inputs);
       const qty = ov?.qty != null ? Number(ov.qty) : autoQty;
       const rate = ov?.rate != null ? Number(ov.rate) : Number(ln.rate);
-      return { line_id: ln.id, task: ln.task, uom: ln.uom, qty, rate, line_total: qty * rate };
+      const excluded = !!ov?.excluded;
+      return { line_id: ln.id, task: ln.task, uom: ln.uom, qty, rate, line_total: excluded ? 0 : qty * rate, excluded };
     });
   }, [lines, labOverrides, inputs]);
 
