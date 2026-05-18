@@ -45,6 +45,8 @@ type EstimateRowFull = EstimateRow & {
   profit_pct: number;
   tax_pct: number;
   hide_pricing: boolean;
+  use_manual_total: boolean;
+  manual_total: number | null;
   notes: string | null;
 };
 
