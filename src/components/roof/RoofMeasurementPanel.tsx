@@ -143,14 +143,32 @@ export function RoofMeasurementPanel({
             transition_lf: manual.transition_lf,
           };
 
+      // For mapbox draws, derive predominant pitch from the largest non-flat polygon section
+      let derivedPitch = manual.predominant_pitch;
+      if (isMapbox) {
+        const polys = (mapboxData.features ?? []).filter(
+          (f): f is Feature<Polygon, FeatureProps> => f.geometry.type === "Polygon",
+        );
+        let best = { area: 0, pitch: "" };
+        for (const p of polys) {
+          const pitch = p.properties?.pitch ?? "";
+          if (!pitch || pitch === "0/12") continue;
+          const area = polygonAreaFromRing(p.geometry.coordinates[0]);
+          if (area > best.area) best = { area, pitch };
+        }
+        if (best.pitch) derivedPitch = best.pitch;
+      }
+      const effectiveWaste = isMapbox ? wastePct : manual.waste_pct;
+      const wasteMult = 1 + Number(effectiveWaste || 0) / 100;
+
       const payload = {
         property_id: propertyId,
         company_id: profile.company_id,
         source: source as "manual" | "mapbox_draw",
-        predominant_pitch: manual.predominant_pitch,
-        waste_pct: isMapbox ? wastePct : manual.waste_pct,
+        predominant_pitch: derivedPitch,
+        waste_pct: effectiveWaste,
         total_area_sqft: totals.total_area_sqft,
-        squares: totals.squares,
+        squares: totals.squares * wasteMult,
         eaves_lf: totals.eaves_lf,
         rakes_lf: totals.rakes_lf,
         ridges_lf: totals.ridges_lf,
