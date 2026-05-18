@@ -28,6 +28,8 @@ export type FeatureProps = {
   // where N = ring.length - 1 (closed-ring last vertex is the same as first).
   // null means "unlabeled". Stored as an array of strings for GeoJSON safety.
   perimeter_edges?: (EdgeType | null)[];
+  // Per-segment labels for interior LineString features. Indexed 0..coords.length-2.
+  segment_edges?: (EdgeType | null)[];
 };
 
 export type AnyFeature = Feature<Polygon | LineString | Point, FeatureProps>;
