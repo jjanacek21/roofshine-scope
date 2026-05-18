@@ -640,6 +640,10 @@ function JobEstimate() {
           onPctChange={(patch) => setPcts((p) => ({ ...p, ...patch }))}
           hidePricing={hidePricing}
           onTogglePricing={() => setHidePricing((h) => !h)}
+          useManualTotal={useManualTotal}
+          onToggleManualTotal={() => setUseManualTotal((v) => !v)}
+          manualTotal={manualTotal}
+          onManualTotalChange={(v) => setManualTotal(v)}
           savedAt={savedAt}
         />
       )}
