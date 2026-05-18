@@ -241,12 +241,65 @@ export function MapboxRoofDraw({
         const polygonId = String(f.properties?.polygonId ?? "");
         const segIdx = Number(f.properties?.segIdx ?? -1);
         if (!polygonId || segIdx < 0) return;
-        openPerimeterLabelPromptRef.current?.(polygonId, segIdx);
+        const ae = activeEdgeRef.current;
+        if (ae !== null && ae !== undefined) {
+          applyPerimLabelRef.current?.(polygonId, segIdx, ae === "clear" ? null : ae);
+        } else {
+          openPerimeterLabelPromptRef.current?.(polygonId, segIdx);
+        }
       });
       map.on("mouseenter", "perim-segs-hit", () => {
         if (activeToolRef.current === "label") map.getCanvas().style.cursor = "pointer";
       });
       map.on("mouseleave", "perim-segs-hit", () => {
+        map.getCanvas().style.cursor = "";
+      });
+
+      // Per-segment overlay for interior LineString features.
+      map.addSource("line-segs", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "line-segs-hit",
+        type: "line",
+        source: "line-segs",
+        layout: { visibility: "none" },
+        paint: { "line-color": "#000", "line-opacity": 0, "line-width": 18 },
+      });
+      map.addLayer({
+        id: "line-segs-line",
+        type: "line",
+        source: "line-segs",
+        layout: { "line-cap": "round" },
+        paint: {
+          "line-color": ["coalesce", ["get", "color"], "#94a3b8"],
+          "line-width": 4,
+          "line-opacity": [
+            "case",
+            ["==", ["get", "kind"], "unlabeled"], 0,
+            0.95,
+          ],
+        },
+      });
+      map.on("click", "line-segs-hit", (ev) => {
+        if (activeToolRef.current !== "label") return;
+        const f = ev.features?.[0];
+        if (!f) return;
+        const lineId = String(f.properties?.lineId ?? "");
+        const segIdx = Number(f.properties?.segIdx ?? -1);
+        if (!lineId || segIdx < 0) return;
+        const ae = activeEdgeRef.current;
+        if (ae !== null && ae !== undefined) {
+          applyLineSegLabelRef.current?.(lineId, segIdx, ae === "clear" ? null : ae);
+        } else {
+          openLineSegLabelPromptRef.current?.(lineId, segIdx);
+        }
+      });
+      map.on("mouseenter", "line-segs-hit", () => {
+        if (activeToolRef.current === "label") map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "line-segs-hit", () => {
         map.getCanvas().style.cursor = "";
       });
 
