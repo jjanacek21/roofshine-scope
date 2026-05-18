@@ -132,9 +132,54 @@ export function MapboxRoofDraw({
     });
     mapRef.current = map;
 
+    const baseModes = MapboxDraw.modes as Record<string, any>;
+    const drawConstants = MapboxDraw.constants as any;
+    const customModes = {
+      ...baseModes,
+      draw_line_string: {
+        ...baseModes.draw_line_string,
+        clickOnVertex(this: any, state: any, e: any) {
+          // Clicking an existing pin should place/connect the next line vertex,
+          // not finish the line and create a near-duplicate endpoint.
+          return this.clickAnywhere(state, e);
+        },
+      },
+      direct_select: {
+        ...baseModes.direct_select,
+        onMouseDown(this: any, state: any, e: any) {
+          if (e.featureTarget?.properties?.meta === drawConstants.meta.MIDPOINT) return;
+          return baseModes.direct_select.onMouseDown.call(this, state, e);
+        },
+        onTouchStart(this: any, state: any, e: any) {
+          if (e.featureTarget?.properties?.meta === drawConstants.meta.MIDPOINT) return;
+          return baseModes.direct_select.onTouchStart.call(this, state, e);
+        },
+        toDisplayFeatures(this: any, state: any, geojson: any, push: (f: any) => void) {
+          if (state.featureId === geojson.properties.id) {
+            geojson.properties.active = drawConstants.activeStates.ACTIVE;
+            push(geojson);
+            MapboxDraw.lib
+              .createSupplementaryPoints(geojson, {
+                midpoints: false,
+                selectedPaths: state.selectedCoordPaths,
+              })
+              .forEach(push);
+          } else {
+            geojson.properties.active = drawConstants.activeStates.INACTIVE;
+            push(geojson);
+          }
+          this.fireActionable(state);
+        },
+      },
+    };
+
     const draw = new MapboxDraw({
       displayControlsDefault: false,
       defaultMode: "simple_select",
+      // Required by Mapbox Draw for feature.properties.edge_type to be
+      // exposed to style expressions as user_edge_type.
+      userProperties: true,
+      modes: customModes,
       styles: MAPBOX_DRAW_STYLES,
       // Bigger hit targets so vertex pins are easier to grab.
       clickBuffer: 6,
@@ -161,23 +206,27 @@ export function MapboxRoofDraw({
         id: "perim-segs-hit",
         type: "line",
         source: "perim-segs",
+        layout: { visibility: "none" },
         paint: { "line-color": "#000", "line-opacity": 0, "line-width": 18 },
       });
       map.addLayer({
         id: "perim-segs-line",
         type: "line",
         source: "perim-segs",
-        layout: { "line-cap": "round" },
+        layout: { "line-cap": "round", visibility: "none" },
         paint: {
           "line-color": ["coalesce", ["get", "color"], "#94a3b8"],
           "line-width": 5,
-          "line-dasharray": [
+          "line-dasharray": ["literal", [1, 0]],
+          // No gray dashed perimeter guides. Only already-labeled perimeter
+          // segments get a visible solid color; the invisible hit layer above
+          // still lets Label mode click any segment.
+          "line-opacity": [
             "case",
             ["==", ["get", "kind"], "unlabeled"],
-            ["literal", [2, 2]],
-            ["literal", [1, 0]],
+            0,
+            0.95,
           ],
-          "line-opacity": 0.95,
         },
       });
       map.on("click", "perim-segs-hit", (ev) => {
@@ -324,12 +373,7 @@ export function MapboxRoofDraw({
     map.on("draw.delete", handleDelete);
     // Layer IDs whose hit-testing blocks vertex placement on top of an
     // existing polygon's blue fill while drawing lines or points.
-    const POLY_FILL_LAYERS = [
-      "gl-draw-polygon-fill-inactive.cold",
-      "gl-draw-polygon-fill-inactive.hot",
-      "gl-draw-polygon-fill-static.cold",
-      "gl-draw-polygon-fill-static.hot",
-    ];
+    const POLY_FILL_LAYERS = ["gl-draw-polygon-fill.cold", "gl-draw-polygon-fill.hot"];
     const setPolyFillVisible = (visible: boolean) => {
       for (const id of POLY_FILL_LAYERS) {
         if (map.getLayer(id)) {
