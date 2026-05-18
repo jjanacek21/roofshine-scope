@@ -84,6 +84,15 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
                   },
                   asset_type: { type: "string", description: "e.g. asphalt shingle roof, vinyl siding, double-hung window, drywall ceiling" },
                   material: { type: "string" },
+                  roof_system: {
+                    type: "string",
+                    enum: [
+                      "laminated_shingle","3tab_shingle","concrete_tile","clay_tile",
+                      "metal_standing_seam","metal_screw_down","modified_bitumen",
+                      "tpo","epdm","spf","coating","unknown",
+                    ],
+                    description: "REQUIRED for roofing photos. Identify the roof covering type.",
+                  },
                   condition_score: { type: "integer", minimum: 0, maximum: 100, description: "0=destroyed, 100=new" },
                   estimated_age_range: { type: "string" },
                   observed_defects: {
@@ -97,7 +106,7 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
                   safety_concerns: { type: "array", items: { type: "string" } },
                   observed_items: {
                     type: "array",
-                    description: "Suggested line items keyed to the catalog. ALWAYS include suggested_qty (estimate from photo if unsure, mark confidence=low).",
+                    description: "ONLY damage-specific or photo-unique items (e.g. 'replace 2 SQ shingles in southeast slope', 'reset bent ridge vent', 'damaged pipe boot'). DO NOT include standard roof components like starter, drip edge, field shingles, ridge cap, underlayment, permit, taxes — those are added once at the job level. DO NOT repeat the same item across multiple photos.",
                     items: {
                       type: "object",
                       properties: {
@@ -123,19 +132,18 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
 
 GUIDANCE:
 - Identify the trade (roofing, exterior siding/stucco, windows, interior drywall/flooring, HVAC, plumbing, electrical, water mitigation).
+- For ROOF photos: ALWAYS set roof_system (laminated_shingle, 3tab_shingle, concrete_tile, clay_tile, metal_standing_seam, metal_screw_down, modified_bitumen, tpo, epdm, spf, coating).
 - Score condition 0-100. Be conservative when image is unclear.
-- For ROOF photos: estimate squares of damage when visible (1 SQ = 100 SF), call out missing/lifted shingles, hail bruises, exposed underlayment, flashing failures.
-- For SIDING/STUCCO photos: estimate sqft of affected wall sections; flag impact damage, cracks, water staining.
-- For INTERIOR photos: estimate sqft of water-damaged drywall/ceiling, affected flooring, and call out mold patterns.
-- For WINDOWS: count units and identify glass type if visible.
-- ALWAYS suggest at least 2-3 line items per photo when damage is present, picking codes from the catalog when possible.
-- ALWAYS include suggested_qty — estimate from what you see (square footage, linear footage, or count). Mark confidence=low when guessing.
+- DAMAGE-ONLY observed_items: Report only what is uniquely visible in THIS photo (specific damaged shingles, a bent vent, a cracked tile, a torn pipe boot). DO NOT list field shingles, starter, drip edge, hip & ridge, underlayment, permit, taxes — those are added once at the job level.
+- DO NOT repeat the same line item that would obviously appear in many photos (e.g. "drip edge" on every eave shot). One photo, unique findings only.
+- Always include suggested_qty when reporting damage. Mark confidence=low when guessing.
 - Florida-specific: hurricane uplift patterns, HVHZ requirements, stucco hairline cracking, flat-roof ponding, humidity-driven mold.
 
 CATALOG (use these codes when matching):
 ${catalogText || "(no items)"}
 
 Return your analysis via the analyze_photo tool.`;
+
 
         const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
