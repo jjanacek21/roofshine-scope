@@ -200,10 +200,16 @@ Return your analysis via the analyze_photo tool.`;
           .maybeSingle();
         if (companyRow?.auto_add_photo_suggestions) {
           const origin = new URL(request.url).origin;
-          fetch(`${origin}/api/auto-add-photo-suggestions`, {
+          const jobIdForBuild = (photo as unknown as { job_id: string }).job_id;
+          const isRoofing = ((parsed.trade_detected as string) ?? photo.trade_hint ?? job.primary_trade) === "roofing";
+          const endpoint = isRoofing ? "/api/build-roof-estimate" : "/api/auto-add-photo-suggestions";
+          const body = isRoofing
+            ? JSON.stringify({ job_id: jobIdForBuild, insert: true })
+            : JSON.stringify({ job_id: jobIdForBuild });
+          fetch(`${origin}${endpoint}`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ job_id: (photo as unknown as { job_id: string }).job_id }),
+            body,
           }).catch((err) => console.warn("auto-add suggestions failed", err));
         }
 
