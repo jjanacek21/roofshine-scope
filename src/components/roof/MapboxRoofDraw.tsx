@@ -554,20 +554,37 @@ export function MapboxRoofDraw({
     }
     src.setData({ type: "FeatureCollection", features: segFeatures });
 
-    // Update perim-vertices source + ref (used for snapping).
-    const verts: [number, number][] = [];
+    // Update perim-vertices + line-vertices sources and the combined snap ref.
+    const perimVerts: [number, number][] = [];
     for (const f of features) {
       if (f.geometry.type !== "Polygon") continue;
       const ring = f.geometry.coordinates[0];
       for (let i = 0; i < ring.length - 1; i++) {
-        verts.push([ring[i][0], ring[i][1]]);
+        perimVerts.push([ring[i][0], ring[i][1]]);
       }
     }
-    perimVerticesRef.current = verts;
+    const lineVerts: [number, number][] = [];
+    for (const f of features) {
+      if (f.geometry.type !== "LineString") continue;
+      for (const c of f.geometry.coordinates) {
+        lineVerts.push([c[0], c[1]]);
+      }
+    }
+    // Snap targets = every user-placed dot (perimeter + interior line vertices).
+    perimVerticesRef.current = [...perimVerts, ...lineVerts];
     const vsrc = map.getSource("perim-vertices") as mapboxgl.GeoJSONSource | undefined;
     vsrc?.setData({
       type: "FeatureCollection",
-      features: verts.map((v) => ({
+      features: perimVerts.map((v) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: v },
+        properties: {},
+      })),
+    });
+    const lvsrc = map.getSource("line-vertices") as mapboxgl.GeoJSONSource | undefined;
+    lvsrc?.setData({
+      type: "FeatureCollection",
+      features: lineVerts.map((v) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: v },
         properties: {},
