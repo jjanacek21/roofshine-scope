@@ -613,14 +613,18 @@ export function MapboxRoofDraw({
     src.setData({ type: "FeatureCollection", features: segFeatures });
 
     // Update perim-vertices + line-vertices sources and the combined snap ref.
+    // Snapshot polygon rings so the midpoint-insert cleanup can compare.
+    const nextRings = new Map<string, [number, number][]>();
     const perimVerts: [number, number][] = [];
     for (const f of features) {
       if (f.geometry.type !== "Polygon") continue;
-      const ring = f.geometry.coordinates[0];
+      const ring = f.geometry.coordinates[0] as [number, number][];
+      if (f.id != null) nextRings.set(String(f.id), ring.map((p) => [p[0], p[1]]));
       for (let i = 0; i < ring.length - 1; i++) {
         perimVerts.push([ring[i][0], ring[i][1]]);
       }
     }
+    prevPolyRingsRef.current = nextRings;
     const lineVerts: [number, number][] = [];
     for (const f of features) {
       if (f.geometry.type !== "LineString") continue;
@@ -628,12 +632,30 @@ export function MapboxRoofDraw({
         lineVerts.push([c[0], c[1]]);
       }
     }
-    // Snap targets = every user-placed dot (perimeter + interior line vertices).
-    perimVerticesRef.current = [...perimVerts, ...lineVerts];
+    // Dedupe (perim ∪ line) so overlapping endpoints render as a single dot
+    // and don't look like "double pins" on connected lines.
+    const seen = new Set<string>();
+    const keyOf = (v: [number, number]) => `${v[0].toFixed(8)},${v[1].toFixed(8)}`;
+    const uniquePerim: [number, number][] = [];
+    for (const v of perimVerts) {
+      const k = keyOf(v);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      uniquePerim.push(v);
+    }
+    const uniqueLine: [number, number][] = [];
+    for (const v of lineVerts) {
+      const k = keyOf(v);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      uniqueLine.push(v);
+    }
+    // Snap targets = every unique user-placed dot.
+    perimVerticesRef.current = [...uniquePerim, ...uniqueLine];
     const vsrc = map.getSource("perim-vertices") as mapboxgl.GeoJSONSource | undefined;
     vsrc?.setData({
       type: "FeatureCollection",
-      features: perimVerts.map((v) => ({
+      features: uniquePerim.map((v) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: v },
         properties: {},
@@ -642,7 +664,7 @@ export function MapboxRoofDraw({
     const lvsrc = map.getSource("line-vertices") as mapboxgl.GeoJSONSource | undefined;
     lvsrc?.setData({
       type: "FeatureCollection",
-      features: lineVerts.map((v) => ({
+      features: uniqueLine.map((v) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: v },
         properties: {},

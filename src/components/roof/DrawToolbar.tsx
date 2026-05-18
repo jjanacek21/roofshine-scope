@@ -23,15 +23,15 @@ export function DrawToolbar({
 
   const hint =
     active === "select"
-      ? "Click a roof to edit · drag pins to move corners · drag midpoints to add a corner"
+      ? "Click a roof to edit · drag corner pins to move them"
       : active === "polygon"
         ? "Click to add corners · double-click or press Enter to finish · Esc to cancel"
         : active === "line"
-          ? "Click to add points · snap to perimeter dots · double-click or Enter to finish"
+          ? "Click to add points · clicks near an existing dot snap to it · double-click or Enter to finish"
           : active === "point"
             ? "Click to drop a penetration"
             : active === "label"
-              ? "Click any edge, line, or pin to label it"
+              ? "Click any edge, line, or pin to label it — labeled lines change color"
               : null;
 
   return (
