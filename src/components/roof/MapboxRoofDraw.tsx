@@ -47,7 +47,7 @@ export type MapboxRoofData = {
   totals?: MeasurementTotals;
 };
 
-type Tool = "polygon" | "line" | "point" | "select";
+type Tool = "polygon" | "line" | "point" | "select" | "label";
 
 export function MapboxRoofDraw({
   center,
