@@ -1,51 +1,47 @@
 ## Goal
 
-When a new admin onboards and creates a company on `/onboarding`, let them pick which **market price list** (e.g. South Florida) the company should use by default. Today they get nothing until a super admin assigns one.
-
-## Background
-
-- Markets = rows in `price_books` where `company_id IS NULL AND is_default = true` (`listMarkets` in `src/lib/markets.functions.ts`).
-- `resolvePriceBook` already falls back to master/default books when a company has no matching book — but it picks by ZIP/jurisdiction, not by the company's stated preference. We need an explicit "this is my company's market" pointer.
-- The `companies` table has no column for this today.
+When a company admin clicks **Pricing**, they should see ONE selected market (price book) with its 808 line items — not a list of all master books. They can switch markets if needed, but estimates always pull from the single selected market.
 
 ## Changes
 
-### 1. Database (migration)
-- Add column `companies.default_market_id uuid NULL` referencing `price_books(id)` `ON DELETE SET NULL`.
-- No RLS changes needed (existing company policies cover it).
+### 1. `src/routes/_app.price-books.tsx` — rebuild the Insurance tab
 
-### 2. Server function — public market list for onboarding
-Add `listMarketsPublic` in `src/lib/markets.functions.ts`:
-- Uses `requireSupabaseAuth` (any authenticated user), no super-admin check.
-- Returns `{ id, name, region_name, jurisdiction, item_count }` for every `price_books` row with `company_id IS NULL AND is_default = true AND is_active = true`, ordered by `region_name`.
-- (`listMarkets` stays super-admin-only for the admin UI.)
+Replace the "list every master + company book" table with a **single-market view**:
 
-### 3. Onboarding UI — `src/routes/onboarding.tsx`
-In the "Create company" form:
-- Fetch markets via `useServerFn(listMarketsPublic)` + `useQuery` on mount.
-- Add a "Price list / Market" `<select>` (or styled radio cards) above the markup row.
-  - Placeholder option: "Choose a market…"; required.
-  - Each option shows `region_name` (or `name`) + small "(N items)" hint.
-  - If only one market exists, preselect it.
-  - If zero markets exist, show a muted note ("No master price lists available yet — your admin can add one later") and allow finishing without one.
-- On submit, include `default_market_id` in the `companies` insert.
+- Read `companies.default_market_id` for the current company via `useCompany()` (or a small `useQuery` on the companies row).
+- If set → show one header card: market name, jurisdiction, ZIP count, items count, effective month, "Active" status, and a **"Change market"** button.
+- If unset → show an empty-state card with a **"Choose a market"** picker (same dropdown shape as onboarding's `listMarketsPublic`).
+- Below the header, render the **line items** for the selected market (paginated/searchable table from `line_item_prices` joined with `line_item_master`, similar to `MasterCatalogBrowser` but read-only for non-admins). Group by trade → subgroup, matching the master catalog grouping the user already approved.
+- Remove the "Active Books / Last Reprice / Total Items Priced" 3-card strip and the all-books table — replace with a single "Selected Market" summary.
+- Keep the **Retail Pricing** tab unchanged.
+- Hide the "Upload Xactimate Book" button for non-super-admins (it currently shows for everyone). Super admins still manage uploads in `/admin/price-books`.
 
-### 4. Wire it into price-book resolution — `src/lib/resolve-price-book.ts`
-In `resolvePriceBook`, when no company-specific book wins:
-- If the company has a `default_market_id`, prefer that master book over generic ZIP/jurisdiction matches on other master books (score bump, reason: `"Company's chosen market (<name>)"`).
-- Load the company row once at the top to read `default_market_id` (single extra `select` keyed by `companyId`).
+### 2. Change-market action
 
-### 5. Admin can change it later
-- On `src/routes/admin.companies.$id.tsx` (existing company detail page), add a "Default market" dropdown bound to the same `listMarkets` data so super admins can switch it post-onboarding. Small addition, same select component.
+- Clicking "Change market" opens a small dialog/select listing all active master price books (via existing `listMarketsPublic`) with item counts.
+- On confirm: update `companies.default_market_id` (admins/owners only — RLS already restricts company updates). Invalidate the price-books query.
+- Non-admin team members see the market read-only (no "Change market" button).
 
-## Out of scope
-- Bulk-copying market prices into a brand-new company-specific book (resolution already falls through to the master book, so this is unnecessary for pricing to work).
-- Changing the Markets admin page UI.
-- Per-user market overrides.
+### 3. No DB changes required
+
+The `companies.default_market_id` column already exists from the prior migration. `resolvePriceBook` already prefers it. No new tables or columns.
+
+### 4. Out of scope
+
+- No changes to `/admin/price-books` (super-admin master catalog view stays as-is).
+- No change to estimate-time resolution — `resolvePriceBook` already prefers `default_market_id`.
+- Retail tab unchanged.
+- No bulk-copy of market prices into a company-specific book.
 
 ## Files touched
-- migration (new): add `companies.default_market_id`
-- `src/lib/markets.functions.ts` — add `listMarketsPublic`
-- `src/routes/onboarding.tsx` — market picker + insert payload
-- `src/lib/resolve-price-book.ts` — prefer company's chosen market
-- `src/routes/admin.companies.$id.tsx` — admin-side editor for the field
+
+- `src/routes/_app.price-books.tsx` — Insurance tab rewrite + change-market dialog
+- (Possibly) a small new `src/components/pricing/SelectedMarketView.tsx` for the items table, to keep the route file readable
+
+## Open question
+
+When a company has no `default_market_id` set yet (existing companies from before the onboarding picker), should I:
+**(a)** auto-pick the first active master market and save it, or
+**(b)** force the admin to choose on first visit (empty state + picker)?
+
+I'd recommend **(b)** — explicit choice avoids surprising defaults.
