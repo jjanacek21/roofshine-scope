@@ -70,6 +70,7 @@ function CatalogManager() {
   const qc = useQueryClient();
   const [activeCatId, setActiveCatId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [csvOpen, setCsvOpen] = useState(false);
 
   const visibleCats = useMemo(() => {
     // Show global + my company categories. Dedupe by slug, prefer company.
