@@ -2405,6 +2405,7 @@ export type Database = {
           notes: string | null
           pricing_type: Database["public"]["Enums"]["price_book_pricing_type"]
           region: string | null
+          region_name: string | null
           source: string | null
           source_file_url: string | null
           status: Database["public"]["Enums"]["price_book_status"]
@@ -2425,6 +2426,7 @@ export type Database = {
           notes?: string | null
           pricing_type?: Database["public"]["Enums"]["price_book_pricing_type"]
           region?: string | null
+          region_name?: string | null
           source?: string | null
           source_file_url?: string | null
           status?: Database["public"]["Enums"]["price_book_status"]
@@ -2445,6 +2447,7 @@ export type Database = {
           notes?: string | null
           pricing_type?: Database["public"]["Enums"]["price_book_pricing_type"]
           region?: string | null
+          region_name?: string | null
           source?: string | null
           source_file_url?: string | null
           status?: Database["public"]["Enums"]["price_book_status"]
