@@ -11,8 +11,9 @@ import { Plus, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MaterialsTemplatesTab } from "@/components/settings/MaterialsTemplatesTab";
+import { LaborRatesTab } from "@/components/settings/LaborRatesTab";
 
-const TABS = ["Company", "Branding", "Defaults", "Trades", "Rules", "Materials", "Users", "Integrations"] as const;
+const TABS = ["Company", "Branding", "Defaults", "Trades", "Rules", "Materials", "Labor", "Users", "Integrations"] as const;
 type Tab = (typeof TABS)[number];
 const RULE_TYPES = ["required", "recommended", "conditional"] as const;
 type RuleType = (typeof RULE_TYPES)[number];
@@ -60,6 +61,7 @@ function SettingsPage() {
         {tab === "Trades" && <TradesTab />}
         {tab === "Rules" && <RulesTab />}
         {tab === "Materials" && <MaterialsTemplatesTab />}
+        {tab === "Labor" && <LaborRatesTab />}
         {tab === "Users" && <Placeholder name="Users" />}
         {tab === "Integrations" && <Placeholder name="Integrations" />}
       </div>

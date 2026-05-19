@@ -14,8 +14,9 @@ import {
   type TemplateLaborLine,
 } from "@/hooks/useOrderForm";
 import { toast } from "sonner";
-import { Plus, Trash2, Copy, Pencil, Save, X, Package, Layers } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Save, X, Package, Layers, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MaterialCsvUploadDialog } from "./MaterialCsvUploadDialog";
 
 type SubTab = "catalog" | "templates";
 
@@ -69,6 +70,7 @@ function CatalogManager() {
   const qc = useQueryClient();
   const [activeCatId, setActiveCatId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [csvOpen, setCsvOpen] = useState(false);
 
   const visibleCats = useMemo(() => {
     // Show global + my company categories. Dedupe by slug, prefer company.
@@ -186,7 +188,15 @@ function CatalogManager() {
           className="h-9 flex-1 rounded-md border bg-[var(--surface-elevated)] px-3 text-sm text-foreground"
           style={{ borderColor: "var(--border)" }}
         />
+        <button
+          onClick={() => setCsvOpen(true)}
+          className="btn-chrome inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-semibold"
+        >
+          <Upload className="h-3.5 w-3.5" /> Upload CSV
+        </button>
       </div>
+      <MaterialCsvUploadDialog open={csvOpen} onClose={() => setCsvOpen(false)} />
+
 
       {isLoading ? (
         <div className="h-24 animate-pulse rounded bg-[var(--surface-elevated)]" />

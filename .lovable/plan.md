@@ -1,47 +1,53 @@
 ## Goal
+Admins of new companies can (1) bulk-upload their own material price list via CSV and (2) edit a standalone list of per-task / per-square labor rates — instead of being stuck on the Global Contractor Network defaults.
 
-When a company admin clicks **Pricing**, they should see ONE selected market (price book) with its 808 line items — not a list of all master books. They can switch markets if needed, but estimates always pull from the single selected market.
+## 1. Material price-list CSV upload
 
-## Changes
+Location: `Settings → Materials → Material Catalog` tab, new "Upload CSV" button next to the search bar.
 
-### 1. `src/routes/_app.price-books.tsx` — rebuild the Insurance tab
+Flow:
+- Admin clicks **Upload CSV** → dialog opens with a "Download template" link.
+- CSV columns: `category, name, sku, uom, unit_price, coverage_sq, notes` (category = slug like `shingles`, `underlayment`, etc; matches existing `material_categories.slug`).
+- Parse client-side with PapaParse; validate with zod (max 5,000 rows, price ≥ 0, required fields).
+- Preview table: shows row count, # new vs. # updated (matched on `slug` within the same category for the company), # rows skipped with reasons.
+- Confirm → batch inserts/updates into `material_catalog` scoped to `company_id`, auto-creating company-specific `material_categories` rows when the slug exists only as a global.
+- Toast + invalidate `["material_catalog"]`, `["material_categories"]`.
 
-Replace the "list every master + company book" table with a **single-market view**:
+No schema changes — `material_catalog` already supports per-company rows; RLS already restricts to `auth_company_id()`.
 
-- Read `companies.default_market_id` for the current company via `useCompany()` (or a small `useQuery` on the companies row).
-- If set → show one header card: market name, jurisdiction, ZIP count, items count, effective month, "Active" status, and a **"Change market"** button.
-- If unset → show an empty-state card with a **"Choose a market"** picker (same dropdown shape as onboarding's `listMarketsPublic`).
-- Below the header, render the **line items** for the selected market (paginated/searchable table from `line_item_prices` joined with `line_item_master`, similar to `MasterCatalogBrowser` but read-only for non-admins). Group by trade → subgroup, matching the master catalog grouping the user already approved.
-- Remove the "Active Books / Last Reprice / Total Items Priced" 3-card strip and the all-books table — replace with a single "Selected Market" summary.
-- Keep the **Retail Pricing** tab unchanged.
-- Hide the "Upload Xactimate Book" button for non-super-admins (it currently shows for everyone). Super admins still manage uploads in `/admin/price-books`.
+Add `papaparse` dependency.
 
-### 2. Change-market action
+## 2. Standalone Labor Rates tab
 
-- Clicking "Change market" opens a small dialog/select listing all active master price books (via existing `listMarketsPublic`) with item counts.
-- On confirm: update `companies.default_market_id` (admins/owners only — RLS already restricts company updates). Invalidate the price-books query.
-- Non-admin team members see the market read-only (no "Change market" button).
+Add a new top-level tab in `_app.settings.tsx`: **Labor**.
 
-### 3. No DB changes required
+New table `company_labor_rates`:
+- `id uuid pk`, `company_id uuid not null`, `task text not null`, `uom text not null` (sq, hr, ea, lf), `rate numeric(10,2) not null`, `sort_order int default 0`, `notes text`, `active bool default true`, `created_at`, `updated_at`.
+- Unique `(company_id, lower(task), uom)`.
+- RLS: select for company members; insert/update/delete restricted to `is_company_admin()`; super_admin full access.
 
-The `companies.default_market_id` column already exists from the prior migration. `resolvePriceBook` already prefers it. No new tables or columns.
+Seed helper: a "Load starter rates" button (mirrors the Rules tab pattern) that inserts a canonical set (Tear-off /sq, Install shingles /sq, Underlayment /sq, Drip edge /lf, Pipe boot /ea, Step flashing /lf, Ridge cap /lf, Valley /lf, Crew hourly /hr, Foreman hourly /hr).
 
-### 4. Out of scope
+UI (matches existing Materials tab visual language):
+- Editable table: Task | UOM | Rate | Notes | Actions (edit / delete).
+- Inline-add row at the bottom.
+- Non-admins see read-only.
 
-- No changes to `/admin/price-books` (super-admin master catalog view stays as-is).
-- No change to estimate-time resolution — `resolvePriceBook` already prefers `default_market_id`.
-- Retail tab unchanged.
-- No bulk-copy of market prices into a company-specific book.
+Optional follow-up (not in this plan): wire `company_labor_rates` as autocomplete suggestions inside `template_labor_lines` editor and into the order-form labor section. Out of scope here so we don't touch estimate logic.
 
-## Files touched
+## Files
 
-- `src/routes/_app.price-books.tsx` — Insurance tab rewrite + change-market dialog
-- (Possibly) a small new `src/components/pricing/SelectedMarketView.tsx` for the items table, to keep the route file readable
+```text
+NEW  supabase migration            — company_labor_rates table + RLS + updated_at trigger
+NEW  src/lib/labor-rates.ts        — types + starter-rate seed list
+NEW  src/components/settings/LaborRatesTab.tsx
+NEW  src/components/settings/MaterialCsvUploadDialog.tsx
+EDIT src/routes/_app.settings.tsx  — add "Labor" tab, mount LaborRatesTab
+EDIT src/components/settings/MaterialsTemplatesTab.tsx — add "Upload CSV" button + mount dialog
+DEP  bun add papaparse @types/papaparse
+```
 
-## Open question
-
-When a company has no `default_market_id` set yet (existing companies from before the onboarding picker), should I:
-**(a)** auto-pick the first active master market and save it, or
-**(b)** force the admin to choose on first visit (empty state + picker)?
-
-I'd recommend **(b)** — explicit choice avoids surprising defaults.
+## Out of scope
+- Xactimate-style PDF import (existing parser stays admin-only at `/admin/price-books`).
+- Replacing the per-row override flow — CSV is additive.
+- Auto-applying labor rates to existing roof templates / estimates.
