@@ -36,9 +36,13 @@ function OnboardingPage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate({ to: "/login" });
+      if (inviteToken) {
+        navigate({ to: "/signup", search: { invite: inviteToken } });
+      } else {
+        navigate({ to: "/login" });
+      }
     }
-  }, [authLoading, user, navigate]);
+  }, [authLoading, user, navigate, inviteToken]);
 
   if (pending) {
     return (
