@@ -168,6 +168,33 @@ function AdminCompanyDetail() {
         </p>
       </div>
 
+      {/* Default market */}
+      <section className="rounded-xl border border-border bg-card p-5">
+        <h2 className="text-sm font-semibold">Default price list (market)</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Used as the baseline for estimates when no company-specific book matches the job.
+        </p>
+        <div className="mt-3 flex items-center gap-3">
+          <select
+            value={company.default_market_id ?? ""}
+            onChange={(e) => updateMarket(e.target.value)}
+            disabled={savingMarket || marketsQuery.isLoading}
+            className="h-10 min-w-[280px] rounded-md border border-border bg-background px-3 text-sm disabled:opacity-60"
+          >
+            <option value="">— None —</option>
+            {markets.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.region_name || m.name}
+                {typeof m.item_count === "number" ? ` (${m.item_count} items)` : ""}
+              </option>
+            ))}
+          </select>
+          {savingMarket && <span className="text-xs text-muted-foreground">Saving…</span>}
+        </div>
+      </section>
+
+
+
       {/* Reps */}
       <section className="rounded-xl border border-border bg-card">
         <div className="border-b border-border px-5 py-4">
