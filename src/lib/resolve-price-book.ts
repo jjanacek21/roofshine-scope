@@ -30,6 +30,18 @@ export interface ResolveOpts {
 export async function resolvePriceBook(opts: ResolveOpts): Promise<ResolvedBook | null> {
   const { companyId, zip, jurisdiction, pricingType } = opts;
 
+  // Look up the company's chosen default market (if any) so it can win over
+  // generic master-book fallbacks.
+  let chosenMarketId: string | null = null;
+  if (companyId) {
+    const { data: co } = await supabase
+      .from("companies")
+      .select("default_market_id")
+      .eq("id", companyId)
+      .maybeSingle();
+    chosenMarketId = (co?.default_market_id as string | null) ?? null;
+  }
+
   // Pull every relevant book in one query (RLS already restricts what you can see)
   const { data: books } = await supabase
     .from("price_books")
@@ -42,6 +54,7 @@ export async function resolvePriceBook(opts: ResolveOpts): Promise<ResolvedBook 
   const score = (b: typeof books[number]): { score: number; reason: string } | null => {
     const isCompany = companyId && b.company_id === companyId;
     const isMaster = b.is_default && b.company_id === null;
+    const isChosenMarket = chosenMarketId && b.id === chosenMarketId;
     if (!isCompany && !isMaster) return null;
 
     const matchesZip = zip && Array.isArray(b.zip_codes) && b.zip_codes.includes(zip);
@@ -55,7 +68,8 @@ export async function resolvePriceBook(opts: ResolveOpts): Promise<ResolvedBook 
     else if (matchesJur) { s += 200; reason = `Company book matching ${jurisdiction}`; }
     if (matchesType) s += 50;
     if (isMaster && !isCompany) {
-      if (matchesZip) { s += 100; reason = `Master book matching ZIP ${zip}`; }
+      if (isChosenMarket) { s += 400; reason = `Company's chosen market (${b.name})`; }
+      else if (matchesZip) { s += 100; reason = `Master book matching ZIP ${zip}`; }
       else if (matchesJur) { s += 50; reason = `Master book matching ${jurisdiction}`; }
       else { s += 1; reason = `Master default (${b.name})`; }
     } else if (isCompany && !reason) {
@@ -63,6 +77,7 @@ export async function resolvePriceBook(opts: ResolveOpts): Promise<ResolvedBook 
     }
     return { score: s, reason };
   };
+
 
   const ranked = books
     .map((b) => {
