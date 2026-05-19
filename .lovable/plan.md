@@ -1,88 +1,47 @@
-The 3 CSVs you uploaded don't match what the current ingest code expects. They share columns:
+## What's changing
 
-`item_number, description, qty, unit, remove, replace, tax, total, trade, sub_group, price_list, region`
+Switch the Master Catalog browser from grouping by `domain` (all null → "Other") to grouping by `trade` with `subgroup` as the second level, using the canonical trade list and colors from `src/lib/trades.ts`.
 
-867 rows each. `item_number` is consistent across files (row 1 = "Contents - move out then reset" in all 3), so it works as the catalog code. `description` is identical across files. Only `remove` and `replace` prices change per market. Region/price_list IDs are embedded in the file (`FLFL8X`, `TXDF8X`, `ILCC8X`).
+## Why the "0 items" on the South Florida card
 
-The current code expects a single `unit_price` column and a `code` column — neither exists. It would silently fail or fall back to junk data. Plan below fixes it.
+The first upload failed at the duplicate-key step *after* seeding the catalog but *before* writing prices. The dedupe fix already shipped, so the next upload will populate `line_item_prices` and the card count will jump from 0 to ~865. No code change needed there — just re-upload the SF CSV.
 
-## 1. Schema tweak
+## Files touched
 
-Add a column to `line_item_prices` so each market can store both a removal price and a replacement price (right now there's only `unit_price`):
+**`src/components/catalog/MasterCatalogBrowser.tsx`** — only file edited.
 
-```text
-ALTER TABLE line_item_prices ADD COLUMN remove_price numeric DEFAULT 0;
--- existing unit_price column will hold the "replace" price
+1. Change the query `.select` to include `trade` (already in the table; `domain` is null and useless).
+2. Build the tree as `Map<trade, Map<subgroup, Item[]>>`.
+3. Render trade nodes in the order defined by `TRADES` in `src/lib/trades.ts` (roofing, exterior, windows, interior, hvac, plumbing, electrical, mitigation), using `getTradeLabel()` for the display name and a colored dot using `getTradeColor()` next to each trade row.
+4. Sort subgroups alphabetically within each trade. Items with no subgroup fall into an "Uncategorized" bucket at the bottom of that trade.
+5. Update the right-pane "Domain / Subgroup" column header and cell to "Trade / Subgroup" using the trade label + color dot.
+6. Update the header stat from "N domains" to "N trades".
+7. Search continues to match code/name/subgroup/trade-label.
+
+## What it'll look like
+
+```
+ROOFING            333
+  ├ Asphalt Shingles     74
+  ├ Concrete/Clay Tile   41
+  ├ Flashing             28
+  ├ Hardware             12
+  ├ Metal                33
+  ├ Underlayments        19
+  ├ Ventilation          16
+  └ Uncategorized       110
+EXTERIOR            70
+INTERIOR           326
+WINDOWS & DOORS     60
+ELECTRICAL          31
+HVAC                26
+WATER/MOLD MITIG.   19
 ```
 
-`line_item_master` already has `remove_price`, `replace_price`, `subgroup` columns we can populate as defaults from the first market.
+(Subgroup names come straight from whatever the SF CSV's `sub_group` column carried during the first ingest — the trade-side breakdown is the structural change; subgroup labels stay verbatim from the CSV.)
 
-## 2. CSV header mapping (rewrite `MarketUploadDialog.tsx` parser)
+## Not in scope
 
-| CSV column     | Destination                                            |
-|----------------|--------------------------------------------------------|
-| `item_number`  | `line_item_master.code` (zero-padded, e.g. `0001`)     |
-| `description`  | `line_item_master.name` + `description`                |
-| `unit`         | `line_item_master.unit`                                |
-| `trade`        | normalize → `trade_type` enum (Drywall & Insulation → `interior`, Roofing → `roofing`, etc.) |
-| `sub_group`    | `line_item_master.subgroup` + `category`               |
-| `remove`       | `line_item_prices.remove_price`                        |
-| `replace`      | `line_item_prices.unit_price` (the "replace" price)    |
-| `qty`, `tax`, `total`, `price_list`, `region` | ignored (computed at estimate time) |
-
-Add a trade-name normalizer with this map (covers all values seen in the CSVs):
-
-```text
-Contents, Site Protection, Drywall & Insulation, Painting,
-Cabinetry, Flooring, Doors, Windows, Cleaning, Demolition,
-Framing & Rough Carpentry, Finish Carpentry / Trimwork,
-Tile, Stairs → "interior"
-HVAC → "hvac"
-Electrical → "electrical"
-Plumbing → "plumbing"
-Roofing → "roofing"
-Siding, Stucco, Exterior → "exterior"
-Water/Fire/Mold/Mitigation → "mitigation"
-(unknown → "interior")
-```
-
-We'll surface the inferred trade in the preview table so you can spot-check before committing.
-
-## 3. Ingestion logic (`ingestMarketCsv`)
-
-1. Load existing master catalog keyed by `code` (= `item_number`).
-2. For codes not yet present, insert into `line_item_master` with: name, unit, trade, subgroup/category, description, `default_price` = replace, `remove_price`, `replace_price`. This makes the FIRST CSV the seed.
-3. For each row, write/upsert one `line_item_prices` row for this market with `unit_price = replace`, `remove_price = remove`.
-4. Skip rows where both `remove` and `replace` are 0/empty (some are placeholder lines).
-5. Update `price_books.item_count` and `effective_month` (parse `02MAY26` → 2026-05-01).
-
-## 4. Region auto-naming
-
-Pre-fill region metadata from `region` column on first upload:
-
-| Region code | Suggested name        | Jurisdiction |
-|-------------|----------------------|--------------|
-| `FLFL8X`    | Florida              | FL           |
-| `TXDF8X`    | Dallas–Fort Worth    | TX           |
-| `ILCC8X`    | Chicago Cook County  | IL           |
-
-You can edit the names and add ZIPs after upload — the upload dialog will pre-fill region_name when creating a new market.
-
-## 5. UI: where remove vs replace shows up
-
-- **Markets tab → market detail**: table now has columns `Code | Description | Unit | Remove | Replace | Trade`.
-- **Master Catalog tab**: shows item with replace as the headline price; remove shown in a smaller subline.
-- Estimating flow uses `replace` by default (current behavior). A later pass can let line items toggle to "remove only" or "remove + replace" — flagging that as out of scope for this turn.
-
-## 6. Files touched
-
-- `supabase/migrations/…` — add `remove_price` to `line_item_prices`.
-- `src/lib/markets.functions.ts` — rewrite `IngestRowSchema` + `ingestMarketCsv`.
-- `src/components/markets/MarketUploadDialog.tsx` — new header mapper, trade normalizer, preview columns.
-- `src/components/markets/MarketsTab.tsx` — show remove/replace in detail view; auto-fill region name from CSV `region` column.
-
-## What I need confirmed
-
-1. Treat `replace` as the headline "unit price" everywhere outside the market detail view — OK?
-2. Skip rows where both remove and replace are 0 (≈ blank template rows) — OK?
-3. Trade mapping above — anything you want re-routed (e.g. "Contents" → its own enum value)?
+- Renaming/normalizing subgroup labels (e.g. merging "Asphalt Shingle" vs "Asphalt Shingles") — flag once we see them rendered, easy follow-up.
+- Per-trade icons (sticking to a colored dot — keeps the tree compact).
+- Markets card count fix — already handled by the dedupe fix; re-upload SF and it'll show ~865.
