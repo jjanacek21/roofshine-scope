@@ -26,6 +26,7 @@ function OnboardingPage() {
   const [mode, setMode] = useState<Mode>(inviteToken ? "join" : "create");
   const [token, setToken] = useState(inviteToken ?? "");
   const [companyName, setCompanyName] = useState("");
+  const [marketId, setMarketId] = useState<string>("");
   const [markup, setMarkup] = useState("20");
   const [overhead, setOverhead] = useState("10");
   const [profit, setProfit] = useState("10");
@@ -36,6 +37,19 @@ function OnboardingPage() {
     role: string;
     email: string;
   } | null>(null);
+
+  const fetchMarkets = useServerFn(listMarketsPublic);
+  const marketsQuery = useQuery({
+    queryKey: ["markets-public"],
+    queryFn: () => fetchMarkets(),
+    enabled: !!user && mode === "create",
+  });
+  const markets = marketsQuery.data?.markets ?? [];
+
+  // Auto-select if there's only one market available
+  useEffect(() => {
+    if (!marketId && markets.length === 1) setMarketId(markets[0].id);
+  }, [markets, marketId]);
 
   useEffect(() => {
     if (!authLoading && !user) {
