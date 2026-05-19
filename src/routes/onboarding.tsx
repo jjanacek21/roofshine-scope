@@ -124,6 +124,7 @@ function OnboardingPage() {
         name: companyName,
         trades: [],
         default_markup: Number(markup) || 0,
+        default_market_id: marketId || null,
       })
       .select()
       .single();
