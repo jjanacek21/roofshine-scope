@@ -193,7 +193,12 @@ function SignupPage() {
               <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
                 Email
               </label>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="field-input" />
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} readOnly={emailLocked} className="field-input" />
+              {emailLocked && (
+                <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                  Email is locked to match your invite.
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
