@@ -30,7 +30,9 @@ function AppLayout() {
         .eq("id", user.id)
         .maybeSingle();
       if (!data?.company_id) {
-        navigate({ to: "/onboarding", search: { invite: undefined } });
+        const params = new URLSearchParams(window.location.search);
+        const invite = params.get("invite") ?? undefined;
+        navigate({ to: "/onboarding", search: { invite } });
         return;
       }
       if (!data.onboarding_completed_at && data.role !== "super_admin") {
