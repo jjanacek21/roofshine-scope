@@ -1,15 +1,19 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/brand/Logo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    invite: typeof search.invite === "string" ? search.invite : undefined,
+  }),
   component: LoginPage,
 });
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { invite } = useSearch({ from: "/login" });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,7 +28,11 @@ function LoginPage() {
       return;
     }
     toast.success("Welcome back");
-    navigate({ to: "/" });
+    if (invite) {
+      navigate({ to: "/onboarding", search: { invite } });
+    } else {
+      navigate({ to: "/" });
+    }
   }
 
   return (
@@ -58,8 +66,19 @@ function LoginPage() {
           className="mb-7 mt-1.5 text-[13px]"
           style={{ color: "var(--text-muted)" }}
         >
-          Sign in to your workspace to continue
+          {invite
+            ? "Sign in to accept your invite"
+            : "Sign in to your workspace to continue"}
         </p>
+
+        {invite && (
+          <div
+            className="mb-5 rounded-lg p-3 text-xs"
+            style={{ background: "var(--bg-hover)", color: "var(--text-muted)" }}
+          >
+            You have a pending invite. After signing in, we'll take you straight to accept it.
+          </div>
+        )}
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="flex flex-col gap-1.5">
@@ -114,7 +133,11 @@ function LoginPage() {
           style={{ color: "var(--text-muted)" }}
         >
           Don't have an account?{" "}
-          <Link to="/signup" className="font-semibold text-[var(--brand)] hover:underline">
+          <Link
+            to="/signup"
+            search={invite ? { invite } : undefined}
+            className="font-semibold text-[var(--brand)] hover:underline"
+          >
             Create one
           </Link>
         </p>
