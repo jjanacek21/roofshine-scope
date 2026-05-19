@@ -103,23 +103,27 @@ export function CatalogTree({
 
   return (
     <div className="text-sm">
-      {Array.from(tree.entries()).sort().map(([domain, subgroups]) => {
-        const dOpen = isSearching || openDomains.has(domain);
+      {orderedTrades.map((trade) => {
+        const subgroups = tree.get(trade)!;
+        const dOpen = isSearching || openDomains.has(trade);
         const totalInDomain = Array.from(subgroups.values()).reduce((a, b) => a + b.length, 0);
+        const color = getTradeColor(trade);
+        const label = getTradeLabel(trade);
         return (
-          <div key={domain} className="border-b" style={{ borderColor: "var(--border)" }}>
+          <div key={trade} className="border-b" style={{ borderColor: "var(--border)" }}>
             <button
-              onClick={() => toggleDomain(domain)}
+              onClick={() => toggleDomain(trade)}
               className="flex w-full items-center gap-2 px-3 py-2 text-left font-semibold hover:bg-[var(--surface-hover)]"
             >
               <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", dOpen && "rotate-90")} />
-              <span className="flex-1">{domain}</span>
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+              <span className="flex-1">{label}</span>
               <span className="font-mono-num text-[11px] text-muted-foreground">{totalInDomain}</span>
             </button>
             {dOpen && (
               <div>
                 {Array.from(subgroups.entries()).sort().map(([sub, subItems]) => {
-                  const key = `${domain}::${sub}`;
+                  const key = `${trade}::${sub}`;
                   const sOpen = isSearching || openSubgroups.has(key);
                   const allSel = mode === "checkbox" && subItems.every((i) => selectedIds?.has(i.id));
                   return (
