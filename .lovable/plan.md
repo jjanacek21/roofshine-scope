@@ -1,53 +1,56 @@
-## Goal
-Admins of new companies can (1) bulk-upload their own material price list via CSV and (2) edit a standalone list of per-task / per-square labor rates — instead of being stuck on the Global Contractor Network defaults.
+## What's actually wrong
 
-## 1. Material price-list CSV upload
+The pricing catalog has THREE price columns per row: `default_price`, `remove_price`, `replace_price`. For removal-only items (e.g. `0209 Remove Laminated … w/out felt`, `0238 Add. layer comp shingles, remove & disp.`, `0256 Tear off … Laminated`), the real price is stored in `remove_price` ($84.69, $50.93, etc.) but `default_price` is `$0.00`. The picker only reads `default_price`, so every removal/tear-off line shows `$0.00/SQ`. Data is fine; the UI is reading the wrong column.
 
-Location: `Settings → Materials → Material Catalog` tab, new "Upload CSV" button next to the search bar.
+## Fix in two parts
 
-Flow:
-- Admin clicks **Upload CSV** → dialog opens with a "Download template" link.
-- CSV columns: `category, name, sku, uom, unit_price, coverage_sq, notes` (category = slug like `shingles`, `underlayment`, etc; matches existing `material_categories.slug`).
-- Parse client-side with PapaParse; validate with zod (max 5,000 rows, price ≥ 0, required fields).
-- Preview table: shows row count, # new vs. # updated (matched on `slug` within the same category for the company), # rows skipped with reasons.
-- Confirm → batch inserts/updates into `material_catalog` scoped to `company_id`, auto-creating company-specific `material_categories` rows when the slug exists only as a global.
-- Toast + invalidate `["material_catalog"]`, `["material_categories"]`.
+### 1. Show the right price (no DB changes)
 
-No schema changes — `material_catalog` already supports per-company rows; RLS already restricts to `auth_company_id()`.
+Compute `effective_price` on the client when loading the catalog:
+- if `replace_price > 0` → use it (it's the full R&R rate for combined rows)
+- else if `remove_price > 0` → use it (removal-only rows like 0209, 0238, 0256)
+- else → fall back to `default_price`
 
-Add `papaparse` dependency.
+Apply to:
+- `src/components/estimate/AddLineItemCombobox.tsx` — select `remove_price, replace_price` and map to `default_price` via the coalesce above.
+- `src/components/catalog/MasterCatalogBrowser.tsx` — already loads both columns; replace the bare `default_price` display in the "Default" column with the same coalesce so the master view stops showing `$0.00` for removal rows.
+- `src/components/catalog/CatalogTree.tsx` — no change needed; it just renders whatever `default_price` it receives.
 
-## 2. Standalone Labor Rates tab
+### 2. Collapse matching Remove + Replace into one "R&R" row in the picker
 
-Add a new top-level tab in `_app.settings.tsx`: **Labor**.
+Done in-memory in `AddLineItemCombobox` — no DB writes, no schema changes, master catalog stays intact for admins.
 
-New table `company_labor_rates`:
-- `id uuid pk`, `company_id uuid not null`, `task text not null`, `uom text not null` (sq, hr, ea, lf), `rate numeric(10,2) not null`, `sort_order int default 0`, `notes text`, `active bool default true`, `created_at`, `updated_at`.
-- Unique `(company_id, lower(task), uom)`.
-- RLS: select for company members; insert/update/delete restricted to `is_company_admin()`; super_admin full access.
-
-Seed helper: a "Load starter rates" button (mirrors the Rules tab pattern) that inserts a canonical set (Tear-off /sq, Install shingles /sq, Underlayment /sq, Drip edge /lf, Pipe boot /ea, Step flashing /lf, Ridge cap /lf, Valley /lf, Crew hourly /hr, Foreman hourly /hr).
-
-UI (matches existing Materials tab visual language):
-- Editable table: Task | UOM | Rate | Notes | Actions (edit / delete).
-- Inline-add row at the bottom.
-- Non-admins see read-only.
-
-Optional follow-up (not in this plan): wire `company_labor_rates` as autocomplete suggestions inside `template_labor_lines` editor and into the order-form labor section. Out of scope here so we don't touch estimate logic.
-
-## Files
-
+Algorithm:
 ```text
-NEW  supabase migration            — company_labor_rates table + RLS + updated_at trigger
-NEW  src/lib/labor-rates.ts        — types + starter-rate seed list
-NEW  src/components/settings/LaborRatesTab.tsx
-NEW  src/components/settings/MaterialCsvUploadDialog.tsx
-EDIT src/routes/_app.settings.tsx  — add "Labor" tab, mount LaborRatesTab
-EDIT src/components/settings/MaterialsTemplatesTab.tsx — add "Upload CSV" button + mount dialog
-DEP  bun add papaparse @types/papaparse
+group rows by base = stripPrefix(name) + "|" + unit + "|" + trade + "|" + subgroup
+  stripPrefix removes leading "Remove ", "Replace ", "Tear off …",
+              "Add. layer … remove & disp. - " variants
+for each group:
+  if an existing R&R row is present → keep rows as-is (catalog already has it)
+  else if exactly one Remove row + one Replace row exist for that base:
+    emit a synthetic row:
+      id        = `pair:${removeId}:${replaceId}`
+      code      = `${removeCode}+${replaceCode}`
+      name      = `R&R ${base}`
+      unit      = replace.unit
+      unit_price= (remove.remove_price ?? 0) + (replace.replace_price ?? replace.default_price)
+    hide the two source rows
+  else: leave rows untouched
 ```
 
-## Out of scope
-- Xactimate-style PDF import (existing parser stays admin-only at `/admin/price-books`).
-- Replacing the per-row override flow — CSV is additive.
-- Auto-applying labor rates to existing roof templates / estimates.
+When the user picks a synthetic pair row, `handlePick` resolves the `pair:` id and calls `onPick` twice (once for the remove row, once for the replace row) so the estimate keeps two auditable line items with their own prices. The picker just collapses the *choice*, not the billing detail.
+
+### Out of scope (call out, don't build)
+- Mutating `line_item_master` to add real R&R rows — leave the master as the contractor-friendly source of truth.
+- Reflecting the pair-merge in `MasterCatalogBrowser` (admin view should stay row-accurate).
+- Re-pricing existing estimates — only new picks benefit; old line items keep their stored `unit_price`.
+
+## Files touched
+- `src/components/estimate/AddLineItemCombobox.tsx` — load extra columns, coalesce price, build pair-merged list, fan-out on pick.
+- `src/components/catalog/MasterCatalogBrowser.tsx` — coalesce in the "Default" column only.
+
+## Verification
+- Open the picker on an estimate, expand **Asphalt Shingles**: `0209 Remove Laminated…` shows `$84.69/SQ`, `0210 Replace Laminated…` is collapsed into a new `R&R Laminated - comp. shingle rfg. - w/out felt` priced at `$480.57/SQ` (84.69 + 395.88). Picking it adds both 0209 and 0210 to the estimate.
+- `0256 Tear off … Laminated` shows `$84.69/SQ` (stays standalone — no matching Replace row).
+- Existing real R&R rows (`0211 R&R Hip / Ridge cap…`) render unchanged.
+- Master Catalog admin page shows correct Default price for every removal row; Remove/Replace columns unchanged.
