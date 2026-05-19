@@ -173,6 +173,23 @@ function SignupPage() {
             : "Join an existing company, set up a new one, or use an invite"}
         </p>
 
+        {invitePreview && (
+          <div
+            className="mb-5 rounded-lg p-4 text-sm"
+            style={{ background: "var(--bg-hover)", border: "1px solid var(--border)" }}
+          >
+            <p className="text-foreground">
+              You're joining <span className="font-semibold">{invitePreview.company_name}</span> as{" "}
+              <span className="font-semibold">{invitePreview.role}</span>.
+            </p>
+            <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+              Create your account to accept the invite.
+            </p>
+          </div>
+        )}
+
+
+
         {step === 1 ? (
           <form onSubmit={nextStep} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
