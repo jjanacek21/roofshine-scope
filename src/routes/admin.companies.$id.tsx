@@ -20,6 +20,7 @@ type Company = {
   website: string | null;
   logo_url: string | null;
   created_at: string;
+  default_market_id: string | null;
 };
 
 type Rep = {
