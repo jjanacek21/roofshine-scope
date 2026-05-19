@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { listMarkets } from "@/lib/markets.functions";
 import { ArrowLeft, Copy, Send, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
