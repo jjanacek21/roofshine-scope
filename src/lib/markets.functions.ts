@@ -8,13 +8,13 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const TRADE_VALUES = [
   "roofing", "exterior", "windows", "interior", "hvac",
-  "plumbing", "electrical", "mitigation", "solar", "general",
+  "plumbing", "electrical", "mitigation",
 ] as const;
 type Trade = (typeof TRADE_VALUES)[number];
 
 function normalizeTrade(raw: unknown): Trade {
   const t = String(raw ?? "").trim().toLowerCase();
-  return (TRADE_VALUES as readonly string[]).includes(t) ? (t as Trade) : "general";
+  return (TRADE_VALUES as readonly string[]).includes(t) ? (t as Trade) : "exterior";
 }
 
 async function assertSuperAdmin(userId: string) {
