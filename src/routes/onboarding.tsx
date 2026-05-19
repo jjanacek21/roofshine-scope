@@ -241,6 +241,47 @@ function OnboardingPage() {
                 />
               </div>
 
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+                  Price List / Market
+                </label>
+                {marketsQuery.isLoading ? (
+                  <div className="field-input flex items-center text-xs" style={{ color: "var(--text-muted)" }}>
+                    Loading markets…
+                  </div>
+                ) : markets.length === 0 ? (
+                  <div
+                    className="rounded-md p-3 text-xs"
+                    style={{ background: "var(--bg-hover)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+                  >
+                    No master price lists are available yet. Your account admin can assign one later.
+                  </div>
+                ) : (
+                  <>
+                    <select
+                      required
+                      value={marketId}
+                      onChange={(e) => setMarketId(e.target.value)}
+                      className="field-input"
+                    >
+                      <option value="" disabled>
+                        Choose a market…
+                      </option>
+                      {markets.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.region_name || m.name}
+                          {typeof m.item_count === "number" ? ` (${m.item_count} items)` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                      Your estimates will start from this region's pricing. You can override individual items later.
+                    </p>
+                  </>
+                )}
+              </div>
+
+
               <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
