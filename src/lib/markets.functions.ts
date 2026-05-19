@@ -54,6 +54,23 @@ export const listMarkets = createServerFn({ method: "GET" })
     return { markets: books ?? [] };
   });
 
+/* ======================= Public market list (onboarding) ================== */
+// Any authenticated user can read the available master markets so they can
+// pick one when creating a new company.
+export const listMarketsPublic = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { data, error } = await supabaseAdmin
+      .from("price_books")
+      .select("id, name, region_name, jurisdiction, item_count")
+      .is("company_id", null)
+      .eq("is_default", true)
+      .eq("is_active", true)
+      .order("region_name", { ascending: true, nullsFirst: false });
+    if (error) throw error;
+    return { markets: data ?? [] };
+  });
+
 /* ========================= Get one market with prices ===================== */
 
 export const getMarketDetail = createServerFn({ method: "GET" })
