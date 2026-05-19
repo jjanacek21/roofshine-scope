@@ -54,6 +54,28 @@ function AdminCompanyDetail() {
   const [role, setRole] = useState<(typeof ROLES)[number]>("member");
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [savingMarket, setSavingMarket] = useState(false);
+
+  const fetchMarkets = useServerFn(listMarkets);
+  const marketsQuery = useQuery({
+    queryKey: ["admin-markets"],
+    queryFn: () => fetchMarkets(),
+  });
+  const markets = marketsQuery.data?.markets ?? [];
+
+  async function updateMarket(newId: string) {
+    if (!company) return;
+    setSavingMarket(true);
+    const { error } = await supabase
+      .from("companies")
+      .update({ default_market_id: newId || null })
+      .eq("id", company.id);
+    setSavingMarket(false);
+    if (error) return toast.error(error.message);
+    setCompany({ ...company, default_market_id: newId || null });
+    toast.success("Default market updated");
+  }
+
 
   const load = async () => {
     setLoading(true);
