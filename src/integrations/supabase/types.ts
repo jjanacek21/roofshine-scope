@@ -258,6 +258,7 @@ export type Database = {
           auto_add_photo_suggestions: boolean
           bank_instructions: Json | null
           created_at: string
+          default_market_id: string | null
           default_markup: number
           default_markup_pct: number
           default_overhead_pct: number
@@ -281,6 +282,7 @@ export type Database = {
           auto_add_photo_suggestions?: boolean
           bank_instructions?: Json | null
           created_at?: string
+          default_market_id?: string | null
           default_markup?: number
           default_markup_pct?: number
           default_overhead_pct?: number
@@ -304,6 +306,7 @@ export type Database = {
           auto_add_photo_suggestions?: boolean
           bank_instructions?: Json | null
           created_at?: string
+          default_market_id?: string | null
           default_markup?: number
           default_markup_pct?: number
           default_overhead_pct?: number
@@ -322,7 +325,15 @@ export type Database = {
           warranty_blurb?: string | null
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_default_market_id_fkey"
+            columns: ["default_market_id"]
+            isOneToOne: false
+            referencedRelation: "price_books"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       companion_rules: {
         Row: {

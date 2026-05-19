@@ -1,0 +1,1 @@
+ALTER TABLE public.companies ADD COLUMN default_market_id uuid REFERENCES public.price_books(id) ON DELETE SET NULL;

@@ -1,47 +1,51 @@
-## What's changing
+## Goal
 
-Switch the Master Catalog browser from grouping by `domain` (all null → "Other") to grouping by `trade` with `subgroup` as the second level, using the canonical trade list and colors from `src/lib/trades.ts`.
+When a new admin onboards and creates a company on `/onboarding`, let them pick which **market price list** (e.g. South Florida) the company should use by default. Today they get nothing until a super admin assigns one.
 
-## Why the "0 items" on the South Florida card
+## Background
 
-The first upload failed at the duplicate-key step *after* seeding the catalog but *before* writing prices. The dedupe fix already shipped, so the next upload will populate `line_item_prices` and the card count will jump from 0 to ~865. No code change needed there — just re-upload the SF CSV.
+- Markets = rows in `price_books` where `company_id IS NULL AND is_default = true` (`listMarkets` in `src/lib/markets.functions.ts`).
+- `resolvePriceBook` already falls back to master/default books when a company has no matching book — but it picks by ZIP/jurisdiction, not by the company's stated preference. We need an explicit "this is my company's market" pointer.
+- The `companies` table has no column for this today.
+
+## Changes
+
+### 1. Database (migration)
+- Add column `companies.default_market_id uuid NULL` referencing `price_books(id)` `ON DELETE SET NULL`.
+- No RLS changes needed (existing company policies cover it).
+
+### 2. Server function — public market list for onboarding
+Add `listMarketsPublic` in `src/lib/markets.functions.ts`:
+- Uses `requireSupabaseAuth` (any authenticated user), no super-admin check.
+- Returns `{ id, name, region_name, jurisdiction, item_count }` for every `price_books` row with `company_id IS NULL AND is_default = true AND is_active = true`, ordered by `region_name`.
+- (`listMarkets` stays super-admin-only for the admin UI.)
+
+### 3. Onboarding UI — `src/routes/onboarding.tsx`
+In the "Create company" form:
+- Fetch markets via `useServerFn(listMarketsPublic)` + `useQuery` on mount.
+- Add a "Price list / Market" `<select>` (or styled radio cards) above the markup row.
+  - Placeholder option: "Choose a market…"; required.
+  - Each option shows `region_name` (or `name`) + small "(N items)" hint.
+  - If only one market exists, preselect it.
+  - If zero markets exist, show a muted note ("No master price lists available yet — your admin can add one later") and allow finishing without one.
+- On submit, include `default_market_id` in the `companies` insert.
+
+### 4. Wire it into price-book resolution — `src/lib/resolve-price-book.ts`
+In `resolvePriceBook`, when no company-specific book wins:
+- If the company has a `default_market_id`, prefer that master book over generic ZIP/jurisdiction matches on other master books (score bump, reason: `"Company's chosen market (<name>)"`).
+- Load the company row once at the top to read `default_market_id` (single extra `select` keyed by `companyId`).
+
+### 5. Admin can change it later
+- On `src/routes/admin.companies.$id.tsx` (existing company detail page), add a "Default market" dropdown bound to the same `listMarkets` data so super admins can switch it post-onboarding. Small addition, same select component.
+
+## Out of scope
+- Bulk-copying market prices into a brand-new company-specific book (resolution already falls through to the master book, so this is unnecessary for pricing to work).
+- Changing the Markets admin page UI.
+- Per-user market overrides.
 
 ## Files touched
-
-**`src/components/catalog/MasterCatalogBrowser.tsx`** — only file edited.
-
-1. Change the query `.select` to include `trade` (already in the table; `domain` is null and useless).
-2. Build the tree as `Map<trade, Map<subgroup, Item[]>>`.
-3. Render trade nodes in the order defined by `TRADES` in `src/lib/trades.ts` (roofing, exterior, windows, interior, hvac, plumbing, electrical, mitigation), using `getTradeLabel()` for the display name and a colored dot using `getTradeColor()` next to each trade row.
-4. Sort subgroups alphabetically within each trade. Items with no subgroup fall into an "Uncategorized" bucket at the bottom of that trade.
-5. Update the right-pane "Domain / Subgroup" column header and cell to "Trade / Subgroup" using the trade label + color dot.
-6. Update the header stat from "N domains" to "N trades".
-7. Search continues to match code/name/subgroup/trade-label.
-
-## What it'll look like
-
-```
-ROOFING            333
-  ├ Asphalt Shingles     74
-  ├ Concrete/Clay Tile   41
-  ├ Flashing             28
-  ├ Hardware             12
-  ├ Metal                33
-  ├ Underlayments        19
-  ├ Ventilation          16
-  └ Uncategorized       110
-EXTERIOR            70
-INTERIOR           326
-WINDOWS & DOORS     60
-ELECTRICAL          31
-HVAC                26
-WATER/MOLD MITIG.   19
-```
-
-(Subgroup names come straight from whatever the SF CSV's `sub_group` column carried during the first ingest — the trade-side breakdown is the structural change; subgroup labels stay verbatim from the CSV.)
-
-## Not in scope
-
-- Renaming/normalizing subgroup labels (e.g. merging "Asphalt Shingle" vs "Asphalt Shingles") — flag once we see them rendered, easy follow-up.
-- Per-trade icons (sticking to a colored dot — keeps the tree compact).
-- Markets card count fix — already handled by the dedupe fix; re-upload SF and it'll show ~865.
+- migration (new): add `companies.default_market_id`
+- `src/lib/markets.functions.ts` — add `listMarketsPublic`
+- `src/routes/onboarding.tsx` — market picker + insert payload
+- `src/lib/resolve-price-book.ts` — prefer company's chosen market
+- `src/routes/admin.companies.$id.tsx` — admin-side editor for the field

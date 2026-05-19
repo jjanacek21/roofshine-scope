@@ -1,7 +1,10 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, type FormEvent, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { listMarketsPublic } from "@/lib/markets.functions";
 import { ArrowRight, Building2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,6 +26,7 @@ function OnboardingPage() {
   const [mode, setMode] = useState<Mode>(inviteToken ? "join" : "create");
   const [token, setToken] = useState(inviteToken ?? "");
   const [companyName, setCompanyName] = useState("");
+  const [marketId, setMarketId] = useState<string>("");
   const [markup, setMarkup] = useState("20");
   const [overhead, setOverhead] = useState("10");
   const [profit, setProfit] = useState("10");
@@ -33,6 +37,19 @@ function OnboardingPage() {
     role: string;
     email: string;
   } | null>(null);
+
+  const fetchMarkets = useServerFn(listMarketsPublic);
+  const marketsQuery = useQuery({
+    queryKey: ["markets-public"],
+    queryFn: () => fetchMarkets(),
+    enabled: !!user && mode === "create",
+  });
+  const markets = marketsQuery.data?.markets ?? [];
+
+  // Auto-select if there's only one market available
+  useEffect(() => {
+    if (!marketId && markets.length === 1) setMarketId(markets[0].id);
+  }, [markets, marketId]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -107,6 +124,7 @@ function OnboardingPage() {
         name: companyName,
         trades: [],
         default_markup: Number(markup) || 0,
+        default_market_id: marketId || null,
       })
       .select()
       .single();
@@ -222,6 +240,47 @@ function OnboardingPage() {
                   className="field-input"
                 />
               </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+                  Price List / Market
+                </label>
+                {marketsQuery.isLoading ? (
+                  <div className="field-input flex items-center text-xs" style={{ color: "var(--text-muted)" }}>
+                    Loading markets…
+                  </div>
+                ) : markets.length === 0 ? (
+                  <div
+                    className="rounded-md p-3 text-xs"
+                    style={{ background: "var(--bg-hover)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+                  >
+                    No master price lists are available yet. Your account admin can assign one later.
+                  </div>
+                ) : (
+                  <>
+                    <select
+                      required
+                      value={marketId}
+                      onChange={(e) => setMarketId(e.target.value)}
+                      className="field-input"
+                    >
+                      <option value="" disabled>
+                        Choose a market…
+                      </option>
+                      {markets.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.region_name || m.name}
+                          {typeof m.item_count === "number" ? ` (${m.item_count} items)` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                      Your estimates will start from this region's pricing. You can override individual items later.
+                    </p>
+                  </>
+                )}
+              </div>
+
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1.5">

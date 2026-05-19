@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { listMarkets } from "@/lib/markets.functions";
 import { ArrowLeft, Copy, Send, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,6 +20,7 @@ type Company = {
   website: string | null;
   logo_url: string | null;
   created_at: string;
+  default_market_id: string | null;
 };
 
 type Rep = {
@@ -50,6 +54,28 @@ function AdminCompanyDetail() {
   const [role, setRole] = useState<(typeof ROLES)[number]>("member");
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [savingMarket, setSavingMarket] = useState(false);
+
+  const fetchMarkets = useServerFn(listMarkets);
+  const marketsQuery = useQuery({
+    queryKey: ["admin-markets"],
+    queryFn: () => fetchMarkets(),
+  });
+  const markets = marketsQuery.data?.markets ?? [];
+
+  async function updateMarket(newId: string) {
+    if (!company) return;
+    setSavingMarket(true);
+    const { error } = await supabase
+      .from("companies")
+      .update({ default_market_id: newId || null })
+      .eq("id", company.id);
+    setSavingMarket(false);
+    if (error) return toast.error(error.message);
+    setCompany({ ...company, default_market_id: newId || null });
+    toast.success("Default market updated");
+  }
+
 
   const load = async () => {
     setLoading(true);
@@ -141,6 +167,33 @@ function AdminCompanyDetail() {
           {company.email ?? "—"} {company.phone ? ` · ${company.phone}` : ""}
         </p>
       </div>
+
+      {/* Default market */}
+      <section className="rounded-xl border border-border bg-card p-5">
+        <h2 className="text-sm font-semibold">Default price list (market)</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Used as the baseline for estimates when no company-specific book matches the job.
+        </p>
+        <div className="mt-3 flex items-center gap-3">
+          <select
+            value={company.default_market_id ?? ""}
+            onChange={(e) => updateMarket(e.target.value)}
+            disabled={savingMarket || marketsQuery.isLoading}
+            className="h-10 min-w-[280px] rounded-md border border-border bg-background px-3 text-sm disabled:opacity-60"
+          >
+            <option value="">— None —</option>
+            {markets.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.region_name || m.name}
+                {typeof m.item_count === "number" ? ` (${m.item_count} items)` : ""}
+              </option>
+            ))}
+          </select>
+          {savingMarket && <span className="text-xs text-muted-foreground">Saving…</span>}
+        </div>
+      </section>
+
+
 
       {/* Reps */}
       <section className="rounded-xl border border-border bg-card">
