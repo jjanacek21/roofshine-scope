@@ -1,33 +1,32 @@
 // Admin-side browser for the master line item catalog.
-// Two panes: Domain → Subgroup tree on the left, item table on the right.
+// Two panes: Trade → Subgroup tree on the left, item table on the right.
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, Search, Pencil, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { TRADES, getTradeColor, getTradeLabel } from "@/lib/trades";
 
 type Item = {
   id: string;
   code: string;
   name: string;
   unit: string;
-  domain: string | null;
+  trade: string | null;
   subgroup: string | null;
   default_price: number;
   remove_price: number | null;
   replace_price: number | null;
-  hours: number | null;
-  material_cost: number | null;
-  xactimate_prefix: string | null;
-  trade_name: string | null;
 };
+
+const UNCATEGORIZED = "Uncategorized";
 
 export function MasterCatalogBrowser() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const [openDomains, setOpenDomains] = useState<Set<string>>(new Set());
-  const [selected, setSelected] = useState<{ domain: string; sub: string } | null>(null);
+  const [openTrades, setOpenTrades] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<{ trade: string; sub: string } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState<string>("");
 
@@ -36,9 +35,9 @@ export function MasterCatalogBrowser() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("line_item_master")
-        .select("id, code, name, unit, domain, subgroup, default_price, remove_price, replace_price, hours, material_cost, xactimate_prefix, trade_name")
+        .select("id, code, name, unit, trade, subgroup, default_price, remove_price, replace_price")
         .is("company_id", null)
-        .order("domain")
+        .order("trade")
         .order("subgroup")
         .order("code");
       if (error) throw error;
@@ -49,15 +48,24 @@ export function MasterCatalogBrowser() {
   const tree = useMemo(() => {
     const map = new Map<string, Map<string, Item[]>>();
     for (const i of items) {
-      const d = i.domain ?? "Other";
-      const s = i.subgroup ?? "Other";
-      if (!map.has(d)) map.set(d, new Map());
-      const sub = map.get(d)!;
+      const t = i.trade ?? "other";
+      const s = i.subgroup?.trim() || UNCATEGORIZED;
+      if (!map.has(t)) map.set(t, new Map());
+      const sub = map.get(t)!;
       if (!sub.has(s)) sub.set(s, []);
       sub.get(s)!.push(i);
     }
     return map;
   }, [items]);
+
+  // Render trades in canonical order, then any trade values not in the list.
+  const orderedTrades = useMemo(() => {
+    const known = TRADES.map((t) => t.value).filter((v) => tree.has(v));
+    const extras = Array.from(tree.keys())
+      .filter((t) => !TRADES.some((x) => x.value === t))
+      .sort();
+    return [...known, ...extras];
+  }, [tree]);
 
   const visibleItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -67,11 +75,15 @@ export function MasterCatalogBrowser() {
           i.code.toLowerCase().includes(q) ||
           i.name.toLowerCase().includes(q) ||
           (i.subgroup ?? "").toLowerCase().includes(q) ||
-          (i.domain ?? "").toLowerCase().includes(q),
+          getTradeLabel(i.trade ?? "").toLowerCase().includes(q),
       );
     }
     if (selected) {
-      return items.filter((i) => (i.domain ?? "Other") === selected.domain && (i.subgroup ?? "Other") === selected.sub);
+      return items.filter(
+        (i) =>
+          (i.trade ?? "other") === selected.trade &&
+          (i.subgroup?.trim() || UNCATEGORIZED) === selected.sub,
+      );
     }
     return items;
   }, [items, search, selected]);
@@ -92,11 +104,11 @@ export function MasterCatalogBrowser() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  function toggleDomain(d: string) {
-    const next = new Set(openDomains);
-    if (next.has(d)) next.delete(d);
-    else next.add(d);
-    setOpenDomains(next);
+  function toggleTrade(t: string) {
+    const next = new Set(openTrades);
+    if (next.has(t)) next.delete(t);
+    else next.add(t);
+    setOpenTrades(next);
   }
 
   if (isLoading) return <p className="p-6 text-sm text-muted-foreground">Loading catalog…</p>;
@@ -107,7 +119,7 @@ export function MasterCatalogBrowser() {
       <div className="rounded-xl border bg-card" style={{ borderColor: "var(--border)" }}>
         <div className="border-b p-3" style={{ borderColor: "var(--border)" }}>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {items.length} items · {tree.size} domains
+            {items.length} items · {tree.size} trades
           </p>
         </div>
         <div className="max-h-[70vh] overflow-y-auto text-sm">
@@ -121,46 +133,55 @@ export function MasterCatalogBrowser() {
           >
             All items
           </button>
-          {Array.from(tree.entries())
-            .sort()
-            .map(([domain, subgroups]) => {
-              const dOpen = openDomains.has(domain);
-              const total = Array.from(subgroups.values()).reduce((a, b) => a + b.length, 0);
-              return (
-                <div key={domain} className="border-b" style={{ borderColor: "var(--border)" }}>
-                  <button
-                    onClick={() => toggleDomain(domain)}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left font-semibold hover:bg-[var(--surface-hover)]"
-                  >
-                    <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", dOpen && "rotate-90")} />
-                    <span className="flex-1 truncate">{domain}</span>
-                    <span className="font-mono-num text-[11px] text-muted-foreground">{total}</span>
-                  </button>
-                  {dOpen &&
-                    Array.from(subgroups.entries())
-                      .sort()
-                      .map(([sub, subItems]) => {
-                        const isSel = selected?.domain === domain && selected?.sub === sub;
-                        return (
-                          <button
-                            key={sub}
-                            onClick={() => {
-                              setSelected({ domain, sub });
-                              setSearch("");
-                            }}
-                            className={cn(
-                              "flex w-full items-center gap-2 pl-9 pr-3 py-1.5 text-left text-[13px] hover:bg-[var(--surface-hover)]",
-                              isSel && "bg-[var(--brand)]/10 text-[var(--brand)]",
-                            )}
-                          >
-                            <span className="flex-1 truncate text-muted-foreground">{sub}</span>
-                            <span className="font-mono-num text-[10px] text-muted-foreground">{subItems.length}</span>
-                          </button>
-                        );
-                      })}
-                </div>
-              );
-            })}
+          {orderedTrades.map((trade) => {
+            const subgroups = tree.get(trade)!;
+            const tOpen = openTrades.has(trade);
+            const total = Array.from(subgroups.values()).reduce((a, b) => a + b.length, 0);
+            const color = getTradeColor(trade);
+            const label = getTradeLabel(trade);
+            // Subgroups: alpha, but push Uncategorized to the bottom.
+            const subEntries = Array.from(subgroups.entries()).sort(([a], [b]) => {
+              if (a === UNCATEGORIZED) return 1;
+              if (b === UNCATEGORIZED) return -1;
+              return a.localeCompare(b);
+            });
+            return (
+              <div key={trade} className="border-b" style={{ borderColor: "var(--border)" }}>
+                <button
+                  onClick={() => toggleTrade(trade)}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left font-semibold hover:bg-[var(--surface-hover)]"
+                >
+                  <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", tOpen && "rotate-90")} />
+                  <span
+                    className="inline-block h-2 w-2 rounded-full"
+                    style={{ backgroundColor: color }}
+                  />
+                  <span className="flex-1 truncate uppercase tracking-wider text-xs">{label}</span>
+                  <span className="font-mono-num text-[11px] text-muted-foreground">{total}</span>
+                </button>
+                {tOpen &&
+                  subEntries.map(([sub, subItems]) => {
+                    const isSel = selected?.trade === trade && selected?.sub === sub;
+                    return (
+                      <button
+                        key={sub}
+                        onClick={() => {
+                          setSelected({ trade, sub });
+                          setSearch("");
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-2 pl-9 pr-3 py-1.5 text-left text-[13px] hover:bg-[var(--surface-hover)]",
+                          isSel && "bg-[var(--brand)]/10 text-[var(--brand)]",
+                        )}
+                      >
+                        <span className="flex-1 truncate text-muted-foreground">{sub}</span>
+                        <span className="font-mono-num text-[10px] text-muted-foreground">{subItems.length}</span>
+                      </button>
+                    );
+                  })}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -172,7 +193,7 @@ export function MasterCatalogBrowser() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search code, name, subgroup…"
+              placeholder="Search code, name, subgroup, trade…"
               className="h-9 w-full rounded-md border bg-background pl-9 pr-3 text-sm"
               style={{ borderColor: "var(--border)" }}
             />
@@ -186,7 +207,7 @@ export function MasterCatalogBrowser() {
               <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                 <th className="px-4 py-2 font-semibold">Code</th>
                 <th className="px-4 py-2 font-semibold">Name</th>
-                <th className="px-4 py-2 font-semibold">Domain / Subgroup</th>
+                <th className="px-4 py-2 font-semibold">Trade / Subgroup</th>
                 <th className="px-4 py-2 font-semibold">Unit</th>
                 <th className="px-4 py-2 text-right font-semibold">Remove</th>
                 <th className="px-4 py-2 text-right font-semibold">Replace</th>
@@ -197,12 +218,22 @@ export function MasterCatalogBrowser() {
             <tbody>
               {visibleItems.map((it) => {
                 const isEditing = editingId === it.id;
+                const tradeLabel = it.trade ? getTradeLabel(it.trade) : "—";
+                const tradeColor = it.trade ? getTradeColor(it.trade) : "transparent";
                 return (
                   <tr key={it.id} className="border-t" style={{ borderColor: "var(--border)" }}>
                     <td className="px-4 py-2 font-mono-num text-[11px]">{it.code}</td>
                     <td className="px-4 py-2">{it.name}</td>
                     <td className="px-4 py-2 text-[12px] text-muted-foreground">
-                      {it.domain ?? "—"} <span className="opacity-50">›</span> {it.subgroup ?? "—"}
+                      <span className="inline-flex items-center gap-1.5">
+                        <span
+                          className="inline-block h-2 w-2 rounded-full"
+                          style={{ backgroundColor: tradeColor }}
+                        />
+                        {tradeLabel}
+                      </span>
+                      <span className="opacity-50"> › </span>
+                      {it.subgroup?.trim() || UNCATEGORIZED}
                     </td>
                     <td className="px-4 py-2 text-muted-foreground">{it.unit}</td>
                     <td className="px-4 py-2 text-right font-mono-num text-muted-foreground">
