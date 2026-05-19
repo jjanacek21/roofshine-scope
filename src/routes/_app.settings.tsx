@@ -61,6 +61,7 @@ function SettingsPage() {
         {tab === "Trades" && <TradesTab />}
         {tab === "Rules" && <RulesTab />}
         {tab === "Materials" && <MaterialsTemplatesTab />}
+        {tab === "Labor" && <LaborRatesTab />}
         {tab === "Users" && <Placeholder name="Users" />}
         {tab === "Integrations" && <Placeholder name="Integrations" />}
       </div>
