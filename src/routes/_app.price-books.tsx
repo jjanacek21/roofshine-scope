@@ -4,11 +4,10 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { StatusBadge } from "@/components/brand/StatusBadge";
-import { StatCard } from "@/components/brand/StatCard";
-import { Library, Upload, Layers, DollarSign } from "lucide-react";
-import { format } from "date-fns";
+import { Upload, Layers, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { SelectedMarketView } from "@/components/pricing/SelectedMarketView";
 
 export const Route = createFileRoute("/_app/price-books")({
   component: PricingPage,
