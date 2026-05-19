@@ -451,6 +451,45 @@ export type Database = {
         }
         Relationships: []
       }
+      company_labor_rates: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          rate: number
+          sort_order: number
+          task: string
+          uom: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rate?: number
+          sort_order?: number
+          task: string
+          uom: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rate?: number
+          sort_order?: number
+          task?: string
+          uom?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       company_macro_pricing: {
         Row: {
           company_id: string
