@@ -114,14 +114,25 @@ export function MaterialCsvUploadDialog({ open, onClose }: { open: boolean; onCl
         existingKey.set(key, e.id);
       }
 
+      type InsertRow = {
+        company_id: string;
+        category_id: string;
+        name: string;
+        slug: string | null;
+        uom: string;
+        unit_price: number;
+        coverage_sq: number | null;
+        notes: string | null;
+        active: boolean;
+      };
       let inserts = 0;
       let updates = 0;
-      const inserted: Array<Record<string, unknown>> = [];
+      const inserted: InsertRow[] = [];
       for (const r of rows) {
         const slug = r.category.trim().toLowerCase();
         const catId = slugToCompanyCatId.get(slug)!;
         const matchKey = `${catId}::${(r.sku ?? r.name).toLowerCase()}`;
-        const payload: Record<string, unknown> = {
+        const payload: InsertRow = {
           company_id: company.id,
           category_id: catId,
           name: r.name,
