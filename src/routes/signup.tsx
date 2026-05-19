@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, type FormEvent, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/brand/Logo";
@@ -6,6 +6,9 @@ import { toast } from "sonner";
 import { Building2, UserPlus, KeyRound } from "lucide-react";
 
 export const Route = createFileRoute("/signup")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    invite: typeof search.invite === "string" ? search.invite : undefined,
+  }),
   component: SignupPage,
 });
 
@@ -13,6 +16,7 @@ type Affiliation = "join" | "create" | "invite";
 
 function SignupPage() {
   const navigate = useNavigate();
+  const { invite: urlInvite } = useSearch({ from: "/signup" });
   const [step, setStep] = useState<1 | 2>(1);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -20,11 +24,37 @@ function SignupPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [affiliation, setAffiliation] = useState<Affiliation>("join");
+  const [affiliation, setAffiliation] = useState<Affiliation>(urlInvite ? "invite" : "join");
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
-  const [inviteToken, setInviteToken] = useState("");
+  const [inviteToken, setInviteToken] = useState(urlInvite ?? "");
   const [companySearch, setCompanySearch] = useState("");
+  const [invitePreview, setInvitePreview] = useState<{
+    company_name: string;
+    role: string;
+    email: string;
+  } | null>(null);
+  const [emailLocked, setEmailLocked] = useState(false);
+
+  // Look up invite preview when token comes from URL
+  useEffect(() => {
+    if (!urlInvite) return;
+    (async () => {
+      const { data } = await supabase.rpc("get_invite_preview", { _token: urlInvite });
+      const preview = data as { valid: boolean; company_name?: string; role?: string; email?: string } | null;
+      if (preview && preview.valid && preview.email) {
+        setInvitePreview({
+          company_name: preview.company_name!,
+          role: preview.role!,
+          email: preview.email,
+        });
+        setEmail(preview.email);
+        setEmailLocked(true);
+      } else {
+        toast.error("This invite link is invalid or expired");
+      }
+    })();
+  }, [urlInvite]);
 
   useEffect(() => {
     if (step !== 2 || affiliation !== "join" || companies.length > 0) return;
@@ -37,6 +67,7 @@ function SignupPage() {
       setCompanies((data as { id: string; name: string }[]) ?? []);
     })();
   }, [step, affiliation, companies.length]);
+
 
   function nextStep(e: FormEvent) {
     e.preventDefault();
@@ -142,6 +173,23 @@ function SignupPage() {
             : "Join an existing company, set up a new one, or use an invite"}
         </p>
 
+        {invitePreview && (
+          <div
+            className="mb-5 rounded-lg p-4 text-sm"
+            style={{ background: "var(--bg-hover)", border: "1px solid var(--border)" }}
+          >
+            <p className="text-foreground">
+              You're joining <span className="font-semibold">{invitePreview.company_name}</span> as{" "}
+              <span className="font-semibold">{invitePreview.role}</span>.
+            </p>
+            <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+              Create your account to accept the invite.
+            </p>
+          </div>
+        )}
+
+
+
         {step === 1 ? (
           <form onSubmit={nextStep} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -162,7 +210,12 @@ function SignupPage() {
               <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
                 Email
               </label>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="field-input" />
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} readOnly={emailLocked} className="field-input" />
+              {emailLocked && (
+                <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                  Email is locked to match your invite.
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
