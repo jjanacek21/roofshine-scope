@@ -1,7 +1,10 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, type FormEvent, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { listMarketsPublic } from "@/lib/markets.functions";
 import { ArrowRight, Building2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
