@@ -43,23 +43,32 @@ export function CatalogTree({
       (i) =>
         i.code.toLowerCase().includes(q) ||
         i.name.toLowerCase().includes(q) ||
-        (i.subgroup ?? "").toLowerCase().includes(q),
+        (i.subgroup ?? "").toLowerCase().includes(q) ||
+        getTradeLabel(i.trade ?? "").toLowerCase().includes(q),
     );
   }, [items, search]);
 
-  // When searching, auto-expand everything.
+  // Group by trade -> subgroup
   const tree = useMemo(() => {
     const map = new Map<string, Map<string, CatalogItem[]>>();
     for (const i of filtered) {
-      const d = i.domain ?? "Other";
-      const s = i.subgroup ?? "Other";
-      if (!map.has(d)) map.set(d, new Map());
-      const sub = map.get(d)!;
+      const t = i.trade || "other";
+      const s = i.subgroup?.trim() || "Other";
+      if (!map.has(t)) map.set(t, new Map());
+      const sub = map.get(t)!;
       if (!sub.has(s)) sub.set(s, []);
       sub.get(s)!.push(i);
     }
     return map;
   }, [filtered]);
+
+  // Render trades in canonical order, then any extras alphabetically.
+  const orderedTrades = useMemo(() => {
+    const present = Array.from(tree.keys());
+    const canonical = TRADES.map((t) => t.value).filter((v) => present.includes(v));
+    const extras = present.filter((p) => !canonical.includes(p as typeof canonical[number])).sort();
+    return [...canonical, ...extras];
+  }, [tree]);
 
   const isSearching = search.trim().length > 0;
 
