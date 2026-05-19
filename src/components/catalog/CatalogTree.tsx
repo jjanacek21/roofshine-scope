@@ -1,8 +1,9 @@
-// Reusable catalog browser: Domain → Subgroup → Line Items.
+// Reusable catalog browser: Trade → Subgroup → Line Items.
 // Used by both the macro builder (with checkboxes) and the estimate picker.
 import { useMemo, useState } from "react";
 import { ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TRADES, getTradeColor, getTradeLabel } from "@/lib/trades";
 
 export type CatalogItem = {
   id: string;
