@@ -1960,6 +1960,7 @@ export type Database = {
           misc_cost: number | null
           overhead_pct: number | null
           price_book_id: string
+          remove_price: number
           unit_price: number
         }
         Insert: {
@@ -1975,6 +1976,7 @@ export type Database = {
           misc_cost?: number | null
           overhead_pct?: number | null
           price_book_id: string
+          remove_price?: number
           unit_price?: number
         }
         Update: {
@@ -1990,6 +1992,7 @@ export type Database = {
           misc_cost?: number | null
           overhead_pct?: number | null
           price_book_id?: string
+          remove_price?: number
           unit_price?: number
         }
         Relationships: []

@@ -12,9 +12,20 @@ const TRADE_VALUES = [
 ] as const;
 type Trade = (typeof TRADE_VALUES)[number];
 
+// Map free-form CSV "trade" labels onto the trade_type enum.
 function normalizeTrade(raw: unknown): Trade {
   const t = String(raw ?? "").trim().toLowerCase();
-  return (TRADE_VALUES as readonly string[]).includes(t) ? (t as Trade) : "exterior";
+  if (!t) return "interior";
+  if (/(roof)/.test(t)) return "roofing";
+  if (/(window)/.test(t)) return "windows";
+  if (/(hvac|mechanical|air)/.test(t)) return "hvac";
+  if (/(electric)/.test(t)) return "electrical";
+  if (/(plumb)/.test(t)) return "plumbing";
+  if (/(water|fire|mold|mitigat|abatement|asbestos|lead)/.test(t)) return "mitigation";
+  if (/(siding|stucco|exterior|gutter|fence|deck|concrete|masonry|landscap)/.test(t)) return "exterior";
+  // Everything else (Drywall, Painting, Contents, Site Protection, Cabinetry,
+  // Flooring, Doors, Tile, Cleaning, Demolition, Framing, Trim, Stairs, etc.)
+  return "interior";
 }
 
 async function assertSuperAdmin(userId: string) {
@@ -41,6 +52,28 @@ export const listMarkets = createServerFn({ method: "GET" })
       .order("region_name", { ascending: true, nullsFirst: false });
     if (error) throw error;
     return { markets: books ?? [] };
+  });
+
+/* ========================= Get one market with prices ===================== */
+
+export const getMarketDetail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context.userId);
+    const { data: book, error: bookErr } = await supabaseAdmin
+      .from("price_books")
+      .select("id, name, region_name, jurisdiction, zip_codes, item_count, notes")
+      .eq("id", data.id)
+      .single();
+    if (bookErr) throw bookErr;
+    const { data: prices, error: pErr } = await supabaseAdmin
+      .from("line_item_prices")
+      .select("unit_price, remove_price, line_item_master_id, line_item_master:line_item_master_id(code, name, unit, trade, subgroup)")
+      .eq("price_book_id", data.id)
+      .order("line_item_master_id");
+    if (pErr) throw pErr;
+    return { market: book, prices: prices ?? [] };
   });
 
 /* ============================== Upsert market ============================= */
@@ -104,8 +137,6 @@ export const deleteMarket = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context.userId);
-    // line_item_prices has ON DELETE CASCADE via price_book_id (verify in DB);
-    // if not, explicitly delete prices first.
     await supabaseAdmin.from("line_item_prices").delete().eq("price_book_id", data.id);
     const { error } = await supabaseAdmin.from("price_books").delete().eq("id", data.id);
     if (error) throw error;
@@ -118,10 +149,10 @@ const IngestRowSchema = z.object({
   code: z.string().min(1).max(64),
   name: z.string().min(1).max(500),
   unit: z.string().min(1).max(16).default("EA"),
-  unit_price: z.number().nonnegative(),
-  trade: z.string().max(40).optional().nullable(),
-  category: z.string().max(120).optional().nullable(),
-  description: z.string().max(2000).optional().nullable(),
+  replace_price: z.number().nonnegative(),
+  remove_price: z.number().nonnegative().default(0),
+  trade: z.string().max(80).optional().nullable(),
+  subgroup: z.string().max(160).optional().nullable(),
 });
 
 const IngestSchema = z.object({
@@ -143,12 +174,12 @@ export const ingestMarketCsv = createServerFn({ method: "POST" })
       .is("company_id", null);
     if (existErr) throw existErr;
     const idByCode = new Map<string, string>();
-    for (const r of existing ?? []) idByCode.set(r.code.toUpperCase(), r.id as string);
+    for (const r of existing ?? []) idByCode.set(String(r.code).toUpperCase(), r.id as string);
 
-    // 2. Upsert catalog rows for any codes not yet present.
+    // 2. Insert catalog rows for any codes not yet present (the first CSV seeds).
     const toCreate = data.rows.filter((r) => !idByCode.has(r.code.toUpperCase()));
     const createdCount = toCreate.length;
-    const updatedCount = data.rows.length - createdCount;
+    const matchedCount = data.rows.length - createdCount;
 
     const chunkSize = 500;
     for (let i = 0; i < toCreate.length; i += chunkSize) {
@@ -158,9 +189,12 @@ export const ingestMarketCsv = createServerFn({ method: "POST" })
         name: r.name,
         unit: r.unit || "EA",
         trade: normalizeTrade(r.trade),
-        category: r.category ?? null,
-        description: r.description ?? null,
-        default_price: r.unit_price,
+        category: r.subgroup ?? null,
+        subgroup: r.subgroup ?? null,
+        description: r.name,
+        default_price: r.replace_price,
+        replace_price: r.replace_price,
+        remove_price: r.remove_price,
         status: "active" as const,
       }));
       const { data: inserted, error } = await supabaseAdmin
@@ -168,7 +202,7 @@ export const ingestMarketCsv = createServerFn({ method: "POST" })
         .insert(batch)
         .select("id, code");
       if (error) throw error;
-      for (const row of inserted ?? []) idByCode.set(row.code.toUpperCase(), row.id as string);
+      for (const row of inserted ?? []) idByCode.set(String(row.code).toUpperCase(), row.id as string);
     }
 
     // 3. Optionally wipe existing prices for this market, then insert fresh ones.
@@ -183,7 +217,8 @@ export const ingestMarketCsv = createServerFn({ method: "POST" })
         return {
           price_book_id: data.market_id,
           line_item_master_id: id,
-          unit_price: r.unit_price,
+          unit_price: r.replace_price,
+          remove_price: r.remove_price,
         };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null);
@@ -208,7 +243,7 @@ export const ingestMarketCsv = createServerFn({ method: "POST" })
       ok: true,
       total_rows: data.rows.length,
       catalog_items_created: createdCount,
-      catalog_items_matched: updatedCount,
+      catalog_items_matched: matchedCount,
       prices_written: priceRows.length,
     };
   });

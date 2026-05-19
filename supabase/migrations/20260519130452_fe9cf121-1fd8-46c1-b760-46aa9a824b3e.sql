@@ -1,0 +1,1 @@
+ALTER TABLE public.line_item_prices ADD COLUMN IF NOT EXISTS remove_price numeric NOT NULL DEFAULT 0;

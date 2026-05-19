@@ -1,115 +1,88 @@
-## Goal
+The 3 CSVs you uploaded don't match what the current ingest code expects. They share columns:
 
-Replace the current master pricing setup with a clean model:
+`item_number, description, qty, unit, remove, replace, tax, total, trade, sub_group, price_list, region`
 
-- **One master catalog** of ~800 line items (shared rows, no duplication)
-- **Markets** = named regions with ZIPs (e.g. "South Florida" / 33xxx ZIPs)
-- Each market holds only its **unit_price overlay** for every catalog item
-- Admin can upload a CSV per market, delete a market, and organize them by area
+867 rows each. `item_number` is consistent across files (row 1 = "Contents - move out then reset" in all 3), so it works as the catalog code. `description` is identical across files. Only `remove` and `replace` prices change per market. Region/price_list IDs are embedded in the file (`FLFL8X`, `TXDF8X`, `ILCC8X`).
 
-The DB already has the right shape (`line_item_master` + `price_books` + `line_item_prices`). We just wipe the old data, repurpose `price_books` as "markets", and rebuild the admin UI + upload flow.
+The current code expects a single `unit_price` column and a `code` column — neither exists. It would silently fail or fall back to junk data. Plan below fixes it.
 
----
+## 1. Schema tweak
 
-## Step 1 — Wipe existing pricing data (migration)
+Add a column to `line_item_prices` so each market can store both a removal price and a replacement price (right now there's only `unit_price`):
 
 ```text
-DELETE FROM line_item_prices;
-DELETE FROM company_macro_pricing;
-UPDATE estimate_line_items SET line_item_id = NULL;  -- preserves historical estimates
-DELETE FROM price_books;
-DELETE FROM line_item_master;
+ALTER TABLE line_item_prices ADD COLUMN remove_price numeric DEFAULT 0;
+-- existing unit_price column will hold the "replace" price
 ```
 
-Existing jobs/estimates keep their snapshotted line totals; they just lose the FK back to catalog rows (which is what `ON DELETE SET NULL` already expects).
+`line_item_master` already has `remove_price`, `replace_price`, `subgroup` columns we can populate as defaults from the first market.
 
-## Step 2 — Light schema additions
+## 2. CSV header mapping (rewrite `MarketUploadDialog.tsx` parser)
 
-Add to `price_books`:
-- `region_name TEXT` — human label ("South Florida")
-- already has `zip_codes TEXT[]` and `jurisdiction` — reuse
+| CSV column     | Destination                                            |
+|----------------|--------------------------------------------------------|
+| `item_number`  | `line_item_master.code` (zero-padded, e.g. `0001`)     |
+| `description`  | `line_item_master.name` + `description`                |
+| `unit`         | `line_item_master.unit`                                |
+| `trade`        | normalize → `trade_type` enum (Drywall & Insulation → `interior`, Roofing → `roofing`, etc.) |
+| `sub_group`    | `line_item_master.subgroup` + `category`               |
+| `remove`       | `line_item_prices.remove_price`                        |
+| `replace`      | `line_item_prices.unit_price` (the "replace" price)    |
+| `qty`, `tax`, `total`, `price_list`, `region` | ignored (computed at estimate time) |
 
-Add a `master_markets` view convention: a master "market" = `price_books` row where `company_id IS NULL AND is_default = true`.
-
-No new tables needed.
-
-## Step 3 — CSV upload flow (admin)
-
-New page section: **`/admin/price-books` → Markets tab**
-
-Upload UX:
-1. Admin clicks **"Upload Market Price List"**
-2. Picks/creates a market: name + ZIP codes (comma/space separated, e.g. `33101, 33102, 33125`)
-3. Drops a CSV with columns auto-detected: `code, description, unit, unit_price` (+ optional `trade`, `category`)
-4. Preview shows: "X new catalog items will be created · Y existing items will get prices for this market"
-5. Confirm → server function runs:
-   - Upsert catalog rows into `line_item_master` (match by `code`, `company_id IS NULL`)
-   - Insert/update `line_item_prices` rows for this market's `price_book_id`
-
-The first CSV seeds the catalog; the other two only attach prices to existing codes. Any code that appears in a later CSV but not the first is added to the catalog at that point.
-
-Implemented as a `createServerFn` (`ingestMarketCsv`) that uses `supabaseAdmin` and is gated by `is_super_admin()`.
-
-## Step 4 — Admin UI rework on `/admin/price-books`
+Add a trade-name normalizer with this map (covers all values seen in the CSVs):
 
 ```text
-┌─ Master Catalog & Markets ────────────────────────┐
-│  [ Catalog ]  [ Markets ]  [ Macros ]             │
-├───────────────────────────────────────────────────┤
-│ CATALOG TAB                                       │
-│  Search / filter by trade · category              │
-│  Table: code | name | unit | trade | # markets    │
-│         priced | row actions (edit / archive)     │
-│                                                   │
-│ MARKETS TAB                                       │
-│  + Upload Market Price List                       │
-│  ┌───────────────────────────────────────────┐    │
-│  │ South Florida   812 items   Edit  Delete  │    │
-│  │ ZIPs: 33xxx (47)                          │    │
-│  ├───────────────────────────────────────────┤    │
-│  │ Central Florida 812 items   Edit  Delete  │    │
-│  │ Tampa Bay       812 items   Edit  Delete  │    │
-│  └───────────────────────────────────────────┘    │
-└───────────────────────────────────────────────────┘
+Contents, Site Protection, Drywall & Insulation, Painting,
+Cabinetry, Flooring, Doors, Windows, Cleaning, Demolition,
+Framing & Rough Carpentry, Finish Carpentry / Trimwork,
+Tile, Stairs → "interior"
+HVAC → "hvac"
+Electrical → "electrical"
+Plumbing → "plumbing"
+Roofing → "roofing"
+Siding, Stucco, Exterior → "exterior"
+Water/Fire/Mold/Mitigation → "mitigation"
+(unknown → "interior")
 ```
 
-- **Edit market** → rename, change ZIPs, re-upload CSV (replaces all prices for that market)
-- **Delete market** → drops the `price_books` row + cascades `line_item_prices`; catalog stays
-- Each market card links to a detail page listing every catalog item with that market's unit price (inline editable)
+We'll surface the inferred trade in the preview table so you can spot-check before committing.
 
-## Step 5 — Job resolution (already exists)
+## 3. Ingestion logic (`ingestMarketCsv`)
 
-`src/lib/resolve-price-book.ts` already picks the right master book by ZIP / jurisdiction. After the rewrite it just works: a job in 33101 → South Florida prices; 33614 → Tampa Bay prices.
+1. Load existing master catalog keyed by `code` (= `item_number`).
+2. For codes not yet present, insert into `line_item_master` with: name, unit, trade, subgroup/category, description, `default_price` = replace, `remove_price`, `replace_price`. This makes the FIRST CSV the seed.
+3. For each row, write/upsert one `line_item_prices` row for this market with `unit_price = replace`, `remove_price = remove`.
+4. Skip rows where both `remove` and `replace` are 0/empty (some are placeholder lines).
+5. Update `price_books.item_count` and `effective_month` (parse `02MAY26` → 2026-05-01).
 
-## Step 6 — CSV ingestion order
+## 4. Region auto-naming
 
-You'll upload 3 CSVs. I'll need to know the **column header names** in your CSVs. Standard expected:
+Pre-fill region metadata from `region` column on first upload:
 
-```text
-code,description,unit,unit_price
-RFG240,Laminated comp shingles,SQ,285.50
-...
-```
+| Region code | Suggested name        | Jurisdiction |
+|-------------|----------------------|--------------|
+| `FLFL8X`    | Florida              | FL           |
+| `TXDF8X`    | Dallas–Fort Worth    | TX           |
+| `ILCC8X`    | Chicago Cook County  | IL           |
 
-Optional columns honored if present: `trade`, `category`, `waste_pct`. Anything else is ignored. I'll show a preview before insert so we catch mismatches.
+You can edit the names and add ZIPs after upload — the upload dialog will pre-fill region_name when creating a new market.
 
----
+## 5. UI: where remove vs replace shows up
 
-## Technical notes
+- **Markets tab → market detail**: table now has columns `Code | Description | Unit | Remove | Replace | Trade`.
+- **Master Catalog tab**: shows item with replace as the headline price; remove shown in a smaller subline.
+- Estimating flow uses `replace` by default (current behavior). A later pass can let line items toggle to "remove only" or "remove + replace" — flagging that as out of scope for this turn.
 
-- DB migration: schema additions + data wipe (single migration, requires your approval)
-- New file: `src/lib/markets.functions.ts` — `listMarkets`, `upsertMarket`, `deleteMarket`, `ingestMarketCsv`
-- New file: `src/routes/admin.markets.tsx` (or replace the existing Markets tab content in `admin.price-books.tsx`)
-- New component: `src/components/markets/MarketUploadDialog.tsx` (CSV parse with `papaparse`)
-- Reuses existing RLS: super admins manage; company members read-only via `is_default = true` master books
-- Estimate FKs use `ON DELETE SET NULL`, so the wipe is non-destructive to historical jobs
+## 6. Files touched
 
----
+- `supabase/migrations/…` — add `remove_price` to `line_item_prices`.
+- `src/lib/markets.functions.ts` — rewrite `IngestRowSchema` + `ingestMarketCsv`.
+- `src/components/markets/MarketUploadDialog.tsx` — new header mapper, trade normalizer, preview columns.
+- `src/components/markets/MarketsTab.tsx` — show remove/replace in detail view; auto-fill region name from CSV `region` column.
 
-## What I need from you to proceed
+## What I need confirmed
 
-1. Approve this plan
-2. Confirm the 3 market names + ZIP groupings (e.g. South FL / Central FL / Tampa Bay)
-3. Share the 3 CSVs (or just the headers of one) so I can verify the column mapping before I write the parser
-
-Then I run the wipe migration, build the UI + upload flow, and we ingest the 3 CSVs together.
+1. Treat `replace` as the headline "unit price" everywhere outside the market detail view — OK?
+2. Skip rows where both remove and replace are 0 (≈ blank template rows) — OK?
+3. Trade mapping above — anything you want re-routed (e.g. "Contents" → its own enum value)?

@@ -14,24 +14,27 @@ type ParsedRow = {
   code: string;
   name: string;
   unit: string;
-  unit_price: number;
-  trade?: string | null;
-  category?: string | null;
-  description?: string | null;
+  replace_price: number;
+  remove_price: number;
+  trade: string | null;
+  subgroup: string | null;
 };
 
 function pick(obj: Record<string, unknown>, ...keys: string[]): string {
   for (const k of keys) {
     const found = Object.keys(obj).find((c) => c.trim().toLowerCase() === k.toLowerCase());
-    if (found && obj[found] != null && String(obj[found]).trim() !== "") return String(obj[found]).trim();
+    if (found && obj[found] != null && String(obj[found]).trim() !== "") {
+      return String(obj[found]).trim();
+    }
   }
   return "";
 }
 
-function parsePrice(raw: string): number {
+function parseNum(raw: string): number {
+  if (!raw) return 0;
   const cleaned = raw.replace(/[^0-9.\-]/g, "");
   const n = parseFloat(cleaned);
-  return Number.isFinite(n) ? n : NaN;
+  return Number.isFinite(n) ? n : 0;
 }
 
 export function MarketUploadDialog({
@@ -49,11 +52,27 @@ export function MarketUploadDialog({
   const [file, setFile] = useState<File | null>(null);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [skippedBlank, setSkippedBlank] = useState(0);
   const [parsing, setParsing] = useState(false);
 
   const ingest = useServerFn(ingestMarketCsv);
   const ingestMutation = useMutation({
-    mutationFn: () => ingest({ data: { market_id: marketId, replace_existing_prices: true, rows } }),
+    mutationFn: () =>
+      ingest({
+        data: {
+          market_id: marketId,
+          replace_existing_prices: true,
+          rows: rows.map((r) => ({
+            code: r.code,
+            name: r.name,
+            unit: r.unit,
+            replace_price: r.replace_price,
+            remove_price: r.remove_price,
+            trade: r.trade,
+            subgroup: r.subgroup,
+          })),
+        },
+      }),
     onSuccess: (res) => {
       toast.success(
         `Imported ${res.prices_written} prices · ${res.catalog_items_created} new catalog items · ${res.catalog_items_matched} matched`,
@@ -70,46 +89,57 @@ export function MarketUploadDialog({
     setFile(null);
     setRows([]);
     setErrors([]);
+    setSkippedBlank(0);
   }
 
   function handleFile(f: File) {
     setFile(f);
     setParsing(true);
     setErrors([]);
+    setSkippedBlank(0);
     Papa.parse<Record<string, unknown>>(f, {
       header: true,
       skipEmptyLines: true,
       complete: (result) => {
         const errs: string[] = [];
         const parsed: ParsedRow[] = [];
+        let blanks = 0;
         result.data.forEach((raw, idx) => {
-          const code = pick(raw, "code", "item_code", "xact_code", "selector");
-          const name = pick(raw, "name", "description", "activity", "item", "line_item");
+          // Catalog code: prefer "item_number" (the column in the uploaded CSVs).
+          const code = pick(raw, "item_number", "code", "item_code", "xact_code", "selector");
+          const name = pick(raw, "description", "name", "activity", "item", "line_item");
           const unit = pick(raw, "unit", "uom", "u/m", "measure") || "EA";
-          const priceRaw = pick(raw, "unit_price", "price", "rate", "unit price", "cost");
+          const replace_price = parseNum(pick(raw, "replace", "unit_price", "price", "rate", "cost"));
+          const remove_price = parseNum(pick(raw, "remove", "removal", "demo"));
           const trade = pick(raw, "trade", "category_group");
-          const category = pick(raw, "category", "cat", "group");
-          const description = pick(raw, "description", "long_description", "details");
-          const unit_price = parsePrice(priceRaw);
-          if (!code || !name || !Number.isFinite(unit_price)) {
-            if (errs.length < 10) errs.push(`Row ${idx + 2}: missing code/name/price`);
+          const subgroup = pick(raw, "sub_group", "subgroup", "category", "cat", "group");
+
+          if (!code || !name) {
+            if (errs.length < 10) errs.push(`Row ${idx + 2}: missing item_number/description`);
+            return;
+          }
+          if (replace_price <= 0 && remove_price <= 0) {
+            blanks += 1;
             return;
           }
           parsed.push({
-            code,
+            code: code.padStart(4, "0"),
             name,
             unit,
-            unit_price,
+            replace_price,
+            remove_price,
             trade: trade || null,
-            category: category || null,
-            description: description && description !== name ? description : null,
+            subgroup: subgroup || null,
           });
         });
         setRows(parsed);
         setErrors(errs);
+        setSkippedBlank(blanks);
         setParsing(false);
         if (parsed.length === 0) {
-          toast.error("No valid rows found. Check CSV column headers (code, name, unit_price).");
+          toast.error(
+            "No valid rows found. Expected columns: item_number, description, unit, remove, replace, trade, sub_group.",
+          );
         }
       },
       error: (err) => {
@@ -119,11 +149,11 @@ export function MarketUploadDialog({
     });
   }
 
-  const preview = useMemo(() => rows.slice(0, 5), [rows]);
+  const preview = useMemo(() => rows.slice(0, 6), [rows]);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && (reset(), onClose())}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Upload price list — {marketName}</DialogTitle>
         </DialogHeader>
@@ -137,8 +167,9 @@ export function MarketUploadDialog({
             <div>
               <div className="text-sm font-semibold">Drop your CSV here</div>
               <div className="mt-1 text-xs text-muted-foreground">
-                Required columns: <code>code</code>, <code>name</code> (or <code>description</code>),{" "}
-                <code>unit_price</code>. Optional: <code>unit</code>, <code>trade</code>, <code>category</code>.
+                Expected columns: <code>item_number</code>, <code>description</code>,{" "}
+                <code>unit</code>, <code>remove</code>, <code>replace</code>,{" "}
+                <code>trade</code>, <code>sub_group</code>.
               </div>
             </div>
             <input
@@ -155,7 +186,9 @@ export function MarketUploadDialog({
                 <FileText className="h-4 w-4" />
                 <span className="text-sm font-medium">{file.name}</span>
                 <span className="text-xs text-muted-foreground">
-                  {parsing ? "parsing…" : `${rows.length} valid rows`}
+                  {parsing
+                    ? "parsing…"
+                    : `${rows.length} valid rows${skippedBlank ? ` · ${skippedBlank} blank skipped` : ""}`}
                 </span>
               </div>
               <button onClick={reset} className="text-muted-foreground hover:text-foreground">
@@ -180,18 +213,22 @@ export function MarketUploadDialog({
                   <thead className="bg-muted/30">
                     <tr>
                       <th className="px-2 py-1 text-left">Code</th>
-                      <th className="px-2 py-1 text-left">Name</th>
+                      <th className="px-2 py-1 text-left">Description</th>
                       <th className="px-2 py-1 text-left">Unit</th>
-                      <th className="px-2 py-1 text-right">Price</th>
+                      <th className="px-2 py-1 text-right">Remove</th>
+                      <th className="px-2 py-1 text-right">Replace</th>
+                      <th className="px-2 py-1 text-left">Trade</th>
                     </tr>
                   </thead>
                   <tbody>
                     {preview.map((r) => (
                       <tr key={r.code} className="border-t" style={{ borderColor: "var(--border)" }}>
                         <td className="px-2 py-1 font-mono">{r.code}</td>
-                        <td className="px-2 py-1">{r.name}</td>
+                        <td className="px-2 py-1 max-w-[280px] truncate">{r.name}</td>
                         <td className="px-2 py-1">{r.unit}</td>
-                        <td className="px-2 py-1 text-right font-mono">${r.unit_price.toFixed(2)}</td>
+                        <td className="px-2 py-1 text-right font-mono">${r.remove_price.toFixed(2)}</td>
+                        <td className="px-2 py-1 text-right font-mono">${r.replace_price.toFixed(2)}</td>
+                        <td className="px-2 py-1 text-muted-foreground">{r.trade ?? "—"}</td>
                       </tr>
                     ))}
                   </tbody>
