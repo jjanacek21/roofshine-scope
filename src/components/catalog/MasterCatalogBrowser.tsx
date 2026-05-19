@@ -254,7 +254,13 @@ export function MasterCatalogBrowser() {
                           autoFocus
                         />
                       ) : (
-                        `$${Number(it.default_price).toFixed(2)}`
+                        `$${(Number(it.default_price) > 0
+                          ? Number(it.default_price)
+                          : Number(it.replace_price) > 0
+                            ? Number(it.replace_price)
+                            : Number(it.remove_price) > 0
+                              ? Number(it.remove_price)
+                              : 0).toFixed(2)}`
                       )}
                     </td>
                     <td className="px-4 py-2 text-right">
