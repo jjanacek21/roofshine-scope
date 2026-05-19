@@ -14,8 +14,9 @@ import {
   type TemplateLaborLine,
 } from "@/hooks/useOrderForm";
 import { toast } from "sonner";
-import { Plus, Trash2, Copy, Pencil, Save, X, Package, Layers } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Save, X, Package, Layers, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MaterialCsvUploadDialog } from "./MaterialCsvUploadDialog";
 
 type SubTab = "catalog" | "templates";
 
