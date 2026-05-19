@@ -176,10 +176,17 @@ export const ingestMarketCsv = createServerFn({ method: "POST" })
     const idByCode = new Map<string, string>();
     for (const r of existing ?? []) idByCode.set(String(r.code).toUpperCase(), r.id as string);
 
-    // 2. Insert catalog rows for any codes not yet present (the first CSV seeds).
-    const toCreate = data.rows.filter((r) => !idByCode.has(r.code.toUpperCase()));
+    // 2. Dedupe incoming rows by code (last occurrence wins) to avoid violating
+    //    the unique (price_book_id, line_item_master_id) constraint when a CSV
+    //    happens to contain the same item_number twice.
+    const dedupedByCode = new Map<string, typeof data.rows[number]>();
+    for (const r of data.rows) dedupedByCode.set(r.code.toUpperCase(), r);
+    const rows = Array.from(dedupedByCode.values());
+
+    // 3. Insert catalog rows for any codes not yet present (the first CSV seeds).
+    const toCreate = rows.filter((r) => !idByCode.has(r.code.toUpperCase()));
     const createdCount = toCreate.length;
-    const matchedCount = data.rows.length - createdCount;
+    const matchedCount = rows.length - createdCount;
 
     const chunkSize = 500;
     for (let i = 0; i < toCreate.length; i += chunkSize) {
@@ -205,12 +212,12 @@ export const ingestMarketCsv = createServerFn({ method: "POST" })
       for (const row of inserted ?? []) idByCode.set(String(row.code).toUpperCase(), row.id as string);
     }
 
-    // 3. Optionally wipe existing prices for this market, then insert fresh ones.
+    // 4. Optionally wipe existing prices for this market, then insert fresh ones.
     if (data.replace_existing_prices) {
       await supabaseAdmin.from("line_item_prices").delete().eq("price_book_id", data.market_id);
     }
 
-    const priceRows = data.rows
+    const priceRows = rows
       .map((r) => {
         const id = idByCode.get(r.code.toUpperCase());
         if (!id) return null;
@@ -225,11 +232,9 @@ export const ingestMarketCsv = createServerFn({ method: "POST" })
 
     for (let i = 0; i < priceRows.length; i += chunkSize) {
       const batch = priceRows.slice(i, i + chunkSize);
-      const { error } = data.replace_existing_prices
-        ? await supabaseAdmin.from("line_item_prices").insert(batch)
-        : await supabaseAdmin
-            .from("line_item_prices")
-            .upsert(batch, { onConflict: "price_book_id,line_item_master_id" });
+      const { error } = await supabaseAdmin
+        .from("line_item_prices")
+        .upsert(batch, { onConflict: "price_book_id,line_item_master_id" });
       if (error) throw error;
     }
 
