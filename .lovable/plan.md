@@ -1,56 +1,49 @@
-## What's actually wrong
+# Survival Guide + Sidebar Reorder
 
-The pricing catalog has THREE price columns per row: `default_price`, `remove_price`, `replace_price`. For removal-only items (e.g. `0209 Remove Laminated … w/out felt`, `0238 Add. layer comp shingles, remove & disp.`, `0256 Tear off … Laminated`), the real price is stored in `remove_price` ($84.69, $50.93, etc.) but `default_price` is `$0.00`. The picker only reads `default_price`, so every removal/tear-off line shows `$0.00/SQ`. Data is fine; the UI is reading the wrong column.
+Add the **Blue Collar Sales Survival Guide** as a new in-app section, and reorder the main nav.
 
-## Fix in two parts
+## Sidebar order
 
-### 1. Show the right price (no DB changes)
+Workspace nav becomes, top to bottom:
 
-Compute `effective_price` on the client when loading the catalog:
-- if `replace_price > 0` → use it (it's the full R&R rate for combined rows)
-- else if `remove_price > 0` → use it (removal-only rows like 0209, 0238, 0256)
-- else → fall back to `default_price`
+1. Dashboard (`/`)
+2. Clients (`/clients`)
+3. Jobs (`/jobs`)
+4. Prospector (`/leads`)
+5. My Card (`/card`)
 
-Apply to:
-- `src/components/estimate/AddLineItemCombobox.tsx` — select `remove_price, replace_price` and map to `default_price` via the coalesce above.
-- `src/components/catalog/MasterCatalogBrowser.tsx` — already loads both columns; replace the bare `default_price` display in the "Default" column with the same coalesce so the master view stops showing `$0.00` for removal rows.
-- `src/components/catalog/CatalogTree.tsx` — no change needed; it just renders whatever `default_price` it receives.
+Then a visual separator and at the bottom of the workspace list:
 
-### 2. Collapse matching Remove + Replace into one "R&R" row in the picker
+6. **Survival Guide** (`/survival-guide`) — `BookOpenText` icon, subtle accent so it reads as a separate "resources" item, not workspace data.
 
-Done in-memory in `AddLineItemCombobox` — no DB writes, no schema changes, master catalog stays intact for admins.
+Mobile bottom tabs (5 slots): Dashboard, Jobs, Prospector, Clients, Survival Guide. (Settings stays reachable from the user menu.)
 
-Algorithm:
-```text
-group rows by base = stripPrefix(name) + "|" + unit + "|" + trade + "|" + subgroup
-  stripPrefix removes leading "Remove ", "Replace ", "Tear off …",
-              "Add. layer … remove & disp. - " variants
-for each group:
-  if an existing R&R row is present → keep rows as-is (catalog already has it)
-  else if exactly one Remove row + one Replace row exist for that base:
-    emit a synthetic row:
-      id        = `pair:${removeId}:${replaceId}`
-      code      = `${removeCode}+${replaceCode}`
-      name      = `R&R ${base}`
-      unit      = replace.unit
-      unit_price= (remove.remove_price ?? 0) + (replace.replace_price ?? replace.default_price)
-    hide the two source rows
-  else: leave rows untouched
-```
+## Survival Guide page
 
-When the user picks a synthetic pair row, `handlePick` resolves the `pair:` id and calls `onPick` twice (once for the remove row, once for the replace row) so the estimate keeps two auditable line items with their own prices. The picker just collapses the *choice*, not the billing detail.
+New route `/survival-guide` (under the authenticated `_app` layout, so it inherits the existing chrome).
 
-### Out of scope (call out, don't build)
-- Mutating `line_item_master` to add real R&R rows — leave the master as the contractor-friendly source of truth.
-- Reflecting the pair-merge in `MasterCatalogBrowser` (admin view should stay row-accurate).
-- Re-pricing existing estimates — only new picks benefit; old line items keep their stored `unit_price`.
+Approach: ship the uploaded guide as a **static HTML asset** and render it inside a full-height styled iframe. This preserves the guide's left-nav, sections, search box, accordions, and copy-to-clipboard buttons exactly as designed — no content reflow, no risk of breaking 2,500 lines of curated copy.
 
-## Files touched
-- `src/components/estimate/AddLineItemCombobox.tsx` — load extra columns, coalesce price, build pair-merged list, fan-out on pick.
-- `src/components/catalog/MasterCatalogBrowser.tsx` — coalesce in the "Default" column only.
+- Copy `blue-collar-sales-survival-guide.html` into `public/survival-guide/index.html`.
+- Route file `src/routes/_app.survival-guide.tsx` renders a page header ("Survival Guide — Blue Collar Sales") plus an `<iframe src="/survival-guide/index.html">` that fills the viewport minus the app header.
+- Iframe styled with `border: 0`, `width: 100%`, `height: calc(100vh - <header offset>)`, dark background to match app while it loads.
+- SEO/head: title "Survival Guide — globalcontractor.app", description from the guide intro.
 
-## Verification
-- Open the picker on an estimate, expand **Asphalt Shingles**: `0209 Remove Laminated…` shows `$84.69/SQ`, `0210 Replace Laminated…` is collapsed into a new `R&R Laminated - comp. shingle rfg. - w/out felt` priced at `$480.57/SQ` (84.69 + 395.88). Picking it adds both 0209 and 0210 to the estimate.
-- `0256 Tear off … Laminated` shows `$84.69/SQ` (stays standalone — no matching Replace row).
-- Existing real R&R rows (`0211 R&R Hip / Ridge cap…`) render unchanged.
-- Master Catalog admin page shows correct Default price for every removal row; Remove/Replace columns unchanged.
+The richer schema-backed version described in `lovable-prompt-sales-playbook.md` (Supabase tables, damage checklist → estimator bridge, analytics, Cmd+K search) is **out of scope for this pass**. We can layer it on later without changing the route URL. The iframe already gives reps the full content today.
+
+## Files to touch
+
+- `src/components/layout/AppSidebar.tsx` — reorder `WORKSPACE_NAV`, append Survival Guide entry with a small top border above it.
+- `src/components/layout/MobileBottomTabs.tsx` — new 5-tab set above.
+- `src/routes/_app.survival-guide.tsx` — new route, iframe wrapper.
+- `public/survival-guide/index.html` — copied verbatim from upload.
+
+## Out of scope
+
+- Database tables for sections/cards/scripts
+- Damage checklist → estimator prefill
+- Per-rep analytics on script copies
+- Global Cmd+K search across guide content
+- Per-org content editing
+
+These remain available as Phase 2/3 follow-ups when you want to invest in deeper integration.
