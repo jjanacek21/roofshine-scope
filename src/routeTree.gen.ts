@@ -51,6 +51,7 @@ import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAnnouncementsRouteImport } from './routes/admin.announcements'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AppTeamRouteImport } from './routes/_app.team'
+import { Route as AppSurvivalGuideRouteImport } from './routes/_app.survival-guide'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
@@ -301,6 +302,11 @@ const AppTeamRoute = AppTeamRouteImport.update({
   path: '/team',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSurvivalGuideRoute = AppSurvivalGuideRouteImport.update({
+  id: '/survival-guide',
+  path: '/survival-guide',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -512,6 +518,7 @@ export interface FileRoutesByFullPath {
   '/leads': typeof AppLeadsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
+  '/survival-guide': typeof AppSurvivalGuideRoute
   '/team': typeof AppTeamRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
@@ -591,6 +598,7 @@ export interface FileRoutesByTo {
   '/clients': typeof AppClientsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
+  '/survival-guide': typeof AppSurvivalGuideRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
@@ -673,6 +681,7 @@ export interface FileRoutesById {
   '/_app/leads': typeof AppLeadsRouteWithChildren
   '/_app/price-books': typeof AppPriceBooksRouteWithChildren
   '/_app/settings': typeof AppSettingsRoute
+  '/_app/survival-guide': typeof AppSurvivalGuideRoute
   '/_app/team': typeof AppTeamRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
@@ -758,6 +767,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/price-books'
     | '/settings'
+    | '/survival-guide'
     | '/team'
     | '/admin/analytics'
     | '/admin/announcements'
@@ -837,6 +847,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/price-books'
     | '/settings'
+    | '/survival-guide'
     | '/admin/analytics'
     | '/admin/announcements'
     | '/admin/audit'
@@ -918,6 +929,7 @@ export interface FileRouteTypes {
     | '/_app/leads'
     | '/_app/price-books'
     | '/_app/settings'
+    | '/_app/survival-guide'
     | '/_app/team'
     | '/admin/analytics'
     | '/admin/announcements'
@@ -1312,6 +1324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTeamRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/survival-guide': {
+      id: '/_app/survival-guide'
+      path: '/survival-guide'
+      fullPath: '/survival-guide'
+      preLoaderRoute: typeof AppSurvivalGuideRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
@@ -1689,6 +1708,7 @@ interface AppRouteChildren {
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
   AppPriceBooksRoute: typeof AppPriceBooksRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRoute
+  AppSurvivalGuideRoute: typeof AppSurvivalGuideRoute
   AppTeamRoute: typeof AppTeamRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppInvoicesIdRoute: typeof AppInvoicesIdRoute
@@ -1705,6 +1725,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLeadsRoute: AppLeadsRouteWithChildren,
   AppPriceBooksRoute: AppPriceBooksRouteWithChildren,
   AppSettingsRoute: AppSettingsRoute,
+  AppSurvivalGuideRoute: AppSurvivalGuideRoute,
   AppTeamRoute: AppTeamRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppInvoicesIdRoute: AppInvoicesIdRoute,
@@ -1815,13 +1836,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

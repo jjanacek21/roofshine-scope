@@ -12,6 +12,7 @@ import {
   Target,
   IdCard,
   Receipt,
+  BookOpenText,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -26,10 +27,14 @@ import { cn } from "@/lib/utils";
 
 const WORKSPACE_NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, badgeKey: null },
+  { to: "/clients", label: "Clients", icon: Users, badgeKey: null },
   { to: "/jobs", label: "Jobs", icon: Briefcase, badgeKey: "jobs" as const },
   { to: "/leads", label: "Prospector", icon: Target, badgeKey: null },
-  { to: "/clients", label: "Clients", icon: Users, badgeKey: null },
   { to: "/card", label: "My Card", icon: IdCard, badgeKey: null },
+] as const;
+
+const RESOURCES_NAV = [
+  { to: "/survival-guide", label: "Survival Guide", icon: BookOpenText },
 ] as const;
 
 export function AppSidebar() {
@@ -127,6 +132,48 @@ export function AppSidebar() {
                       {jobsCount}
                     </span>
                   )}
+                </Link>
+              );
+              return collapsed ? (
+                <Tooltip key={item.to}>
+                  <TooltipTrigger asChild>{link}</TooltipTrigger>
+                  <TooltipContent side="right">{item.label}</TooltipContent>
+                </Tooltip>
+              ) : (
+                link
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Resources */}
+        <div className="mt-4 border-t pt-3" style={{ borderColor: "var(--border)" }}>
+          {!collapsed && (
+            <p
+              className="px-2.5 pb-2 pt-1 text-[10px] font-semibold uppercase"
+              style={{ color: "var(--text-muted)", letterSpacing: "1.5px" }}
+            >
+              Resources
+            </p>
+          )}
+          <nav className="space-y-1">
+            {RESOURCES_NAV.map((item) => {
+              const active = isActive(item.to);
+              const Icon = item.icon;
+              const link = (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={cn(
+                    "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors",
+                    collapsed && "justify-center",
+                    active
+                      ? "nav-active"
+                      : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+                  {!collapsed && <span>{item.label}</span>}
                 </Link>
               );
               return collapsed ? (
