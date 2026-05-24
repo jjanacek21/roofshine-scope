@@ -1,0 +1,2534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Blue Collar Sales Survival Guide</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #11121a;
+    --panel-2: #161823;
+    --border: #23263a;
+    --border-2: #2c2f47;
+    --text: #e6e8f2;
+    --text-dim: #a4a8bd;
+    --text-mute: #6b6f88;
+    --accent: #4ea3ff;
+    --accent-2: #6fbaff;
+    --good: #54e08b;
+    --warn: #ffb547;
+    --hot: #ff5d6c;
+    --shadow: 0 6px 20px rgba(0,0,0,0.45);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    font-size: 14.5px;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-2); }
+
+  /* Top bar */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+    background: linear-gradient(180deg, rgba(10,10,15,0.95), rgba(10,10,15,0.85));
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .crumbs { color: var(--text-dim); font-size: 13px; letter-spacing: 0.3px; }
+  .crumbs .sep { margin: 0 8px; color: var(--text-mute); }
+  .crumbs strong { color: var(--text); font-weight: 600; }
+  .search-wrap { position: relative; }
+  .search {
+    width: 280px; max-width: 40vw;
+    background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px 9px 32px;
+    border-radius: 10px;
+    font-size: 13px;
+    outline: none;
+  }
+  .search:focus { border-color: var(--accent); }
+  .search-icon {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    color: var(--text-mute); font-size: 14px;
+  }
+  .pill {
+    background: linear-gradient(180deg, #4ea3ff, #2f7fd9);
+    color: white; padding: 8px 14px;
+    border-radius: 999px; font-weight: 600; font-size: 13px;
+    box-shadow: var(--shadow);
+  }
+
+  /* Layout */
+  .layout { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 56px); }
+  .sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+    padding: 14px 10px;
+    position: sticky; top: 56px;
+    align-self: start;
+    max-height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px;
+    color: var(--text-dim); cursor: pointer;
+    font-size: 14px;
+    border: 1px solid transparent;
+    user-select: none;
+    transition: background 0.15s, color 0.15s, border 0.15s;
+  }
+  .nav-item:hover { background: var(--panel); color: var(--text); }
+  .nav-item.active {
+    background: var(--panel);
+    color: var(--text);
+    border-color: var(--border);
+  }
+  .nav-item .ico { width: 22px; text-align: center; }
+  .nav-item .dot {
+    margin-left: auto;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--good); display: none;
+  }
+  .nav-item.fresh .dot { display: inline-block; }
+
+  .main { padding: 22px 28px 80px; max-width: 1100px; }
+
+  .section-head {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 22px; color: var(--accent); margin: 6px 0 18px;
+    font-weight: 600;
+  }
+  .section-sub {
+    color: var(--text-dim); margin-bottom: 22px; font-size: 14px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .card-head .title { font-weight: 600; color: var(--text); font-size: 15px; }
+  .card-head .chev { color: var(--text-mute); transition: transform 0.2s; }
+  .card.open .card-head .chev { transform: rotate(180deg); color: var(--accent); }
+  .card-body {
+    padding: 0 18px 18px;
+    display: none;
+    color: var(--text);
+  }
+  .card.open .card-body { display: block; }
+
+  .card-body p { margin: 0 0 10px; color: var(--text); }
+  .card-body .lede { color: var(--text-dim); }
+  .card-body ul, .card-body ol { margin: 0 0 12px; padding-left: 20px; }
+  .card-body li { margin-bottom: 6px; }
+  .card-body h4 {
+    margin: 16px 0 8px;
+    color: var(--accent-2);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+  }
+  .card-body h5 {
+    margin: 14px 0 6px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .card-body code {
+    background: #1a1d2b; border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 4px;
+    font-size: 12.5px; color: #f0e8a6;
+  }
+  .script {
+    position: relative;
+    background: #0d0e16;
+    border: 1px solid var(--border-2);
+    border-radius: 10px;
+    padding: 14px 14px 14px 16px;
+    margin: 8px 0 14px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    color: #d6dafd;
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+  .script .copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: var(--panel-2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .script .copy-btn:hover { color: var(--text); border-color: var(--accent); }
+  .script .label {
+    display: inline-block;
+    color: var(--accent-2);
+    font-size: 11px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-family: -apple-system, sans-serif;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    margin-right: 6px;
+  }
+  .tag.r { background: rgba(255,93,108,0.12); color: var(--hot); border: 1px solid rgba(255,93,108,0.3); }
+  .tag.g { background: rgba(84,224,139,0.10); color: var(--good); border: 1px solid rgba(84,224,139,0.3); }
+  .tag.y { background: rgba(255,181,71,0.10); color: var(--warn); border: 1px solid rgba(255,181,71,0.3); }
+  .tag.b { background: rgba(78,163,255,0.10); color: var(--accent); border: 1px solid rgba(78,163,255,0.3); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media (max-width: 800px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .kv {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+    border-radius: 10px;
+  }
+  .kv h6 {
+    margin: 0 0 6px;
+    color: var(--text-mute);
+    font-size: 11px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  .kv .val { color: var(--text); font-weight: 600; }
+
+  .quote {
+    border-left: 3px solid var(--accent);
+    padding: 8px 12px;
+    color: var(--text-dim);
+    background: rgba(78,163,255,0.06);
+    margin: 10px 0;
+    font-style: italic;
+  }
+  .quote .who { display: block; margin-top: 4px; color: var(--text-mute); font-size: 12px; font-style: normal; }
+
+  .footnote {
+    color: var(--text-mute);
+    font-size: 12px;
+    text-align: center;
+    margin-top: 30px;
+  }
+
+  .hidden { display: none !important; }
+
+  /* simple search hit highlight */
+  .hit-section { box-shadow: 0 0 0 2px rgba(78,163,255,0.25); }
+
+  /* Mobile */
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar {
+      position: static;
+      max-height: none;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      display: flex; overflow-x: auto;
+      gap: 6px;
+    }
+    .nav-item { flex: 0 0 auto; }
+    .search { width: 180px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="crumbs">Workspace <span class="sep">/</span> <strong>Blue Collar Sales Survival Guide</strong></div>
+  <div style="display:flex; align-items:center; gap:14px;">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input id="search" class="search" placeholder="Search guide…  (⌘K)" />
+    </div>
+    <div class="pill">+ Field Notes</div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="nav-item active" data-target="sec-philosophy"><span class="ico">🧠</span> The Philosophy</div>
+    <div class="nav-item" data-target="sec-trainers"><span class="ico">🎓</span> Trainer Cheat Sheets<span class="dot"></span></div>
+    <div class="nav-item" data-target="sec-leadgen"><span class="ico">🎯</span> Lead Gen Engine</div>
+    <div class="nav-item" data-target="sec-d2d"><span class="ico">🚪</span> D2D Combat Manual<span class="dot"></span></div>
+    <div class="nav-item" data-target="sec-coldcall"><span class="ico">📞</span> Cold Calling Mastery<span class="dot"></span></div>
+    <div class="nav-item" data-target="sec-outreach"><span class="ico">💬</span> Cold Outreach (SMS/Email/Social)</div>
+    <div class="nav-item" data-target="sec-network"><span class="ico">🤝</span> Networking &amp; Referrals</div>
+    <div class="nav-item" data-target="sec-roofs"><span class="ico">🏠</span> Roofing Systems Encyclopedia<span class="dot"></span></div>
+    <div class="nav-item fresh" data-target="sec-insurance"><span class="ico">🌪️</span> Insurance Process Mastery<span class="dot"></span></div>
+    <div class="nav-item" data-target="sec-rebuttals"><span class="ico">🛡️</span> Rebuttal Arsenal</div>
+    <div class="nav-item" data-target="sec-closes"><span class="ico">💰</span> Closing Arsenal</div>
+    <div class="nav-item" data-target="sec-tonality"><span class="ico">🎚️</span> Tonality &amp; Pacing</div>
+    <div class="nav-item" data-target="sec-scenarios"><span class="ico">🎭</span> Scenario Playbook</div>
+    <div class="nav-item" data-target="sec-quickref"><span class="ico">⚡</span> Quick Reference Card<span class="dot"></span></div>
+    <div class="nav-item" data-target="sec-training"><span class="ico">📚</span> New Rep 7-Day Ramp</div>
+  </aside>
+
+  <main class="main" id="main">
+
+  <!-- =================== PHILOSOPHY =================== -->
+  <section id="sec-philosophy">
+    <div class="section-head">🧠 The Philosophy</div>
+    <div class="section-sub">The mindset before the script. If your head isn't right, no rebuttal saves you.</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">The Blue Collar Operator's Code</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">You're not a "sales guy." You're a problem solver who happens to carry a clipboard, a phone, or a pair of boots. The homeowner doesn't want a roof — they want their house to stop being a source of stress. The property manager doesn't want bids — they want one less fire to put out this week. Sell the relief, not the shingles.</p>
+        <ul>
+          <li><strong>Show up like a professional, talk like a neighbor.</strong> Polo + clipboard + truck wrap beats suit + tie every time at the door. On the phone, sound like the smartest friend they have in the trades — not a script reader.</li>
+          <li><strong>You're not interrupting them — you're correcting their ignorance.</strong> Most people don't know their roof is failing until water is in the drywall. You're the early warning system.</li>
+          <li><strong>The deal is decided in the first 15 seconds.</strong> Tone, pace, smile, certainty. The words matter less than people think. (Belfort: tonality 70%, body language 20%, words 10%.)</li>
+          <li><strong>Stay in the conversation longer than they expect.</strong> Average rep eats a "not interested" and leaves. Top reps reframe and stay one more beat. 80% of money is on the other side of that beat.</li>
+          <li><strong>You're a transaction broker, not a friend-maker.</strong> Friendliness is the wrapper, not the goal. Don't trade the close for likeability.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Three Voices to Channel</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p><strong>Belfort:</strong> tonality wins. Pace, certainty, micro-pauses. Sound like the smartest person they'll talk to today.</p>
+        <p><strong>Brunson:</strong> lead with a hook, deliver value before the ask, frame the offer as the obvious next step.</p>
+        <p><strong>Carnegie:</strong> people don't care what you sell. They care about their problem, their building, their headache. Make them feel important.</p>
+        <p><strong>Add J. Douglas Edwards on top of all three:</strong> assume the sale. Use the close that fits the moment. Never ask a question you don't already know the answer to.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The One Rule</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>Give immediate, specific value before you ask for anything. The knock, the call, the DM — none of those are favors you're asking for. They're <em>delivery channels for value the customer already wants</em>. Your job is to make that delivery so obviously useful they can't say no without feeling foolish.</p>
+        <p class="lede">If the first thing out of your mouth is an ask, you've already lost. If the first thing out of your mouth is a <em>specific observation about them</em>, you're in.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Why Most Reps Fail in Year One</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>They take "no" as information instead of as a reflex.</strong> 80% of first "no"s are pre-trained gatekeepers. Not real objections.</li>
+          <li><strong>They pitch too early.</strong> No problem found, no urgency built, no money confirmed — but already talking square footage. People buy out of pain. Find the pain first.</li>
+          <li><strong>They confuse activity with productivity.</strong> 200 dials of mush beats nothing, but 80 dials with recordings, scoring, and one daily coaching session crushes 200 dials.</li>
+          <li><strong>They quit at the cliff.</strong> The roofing/trades rep who survives month 4 prints money in year 2. The one who quits in week 7 never tells anyone how close they were.</li>
+          <li><strong>They believe the customer.</strong> When a homeowner says "we'll think about it," they're not thinking about it. They have an unresolved objection they didn't tell you. Your job is to find it.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Daily Rituals That Print Money</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>5 min before first knock/dial:</strong> Stand up, deep breath, smile, say your opener out loud three times. Audible smile is real.</li>
+          <li><strong>End of every block:</strong> Score yourself. How many contacts? How many problem-found? How many sit-downs? How many closes attempted? Track the funnel, not just the win.</li>
+          <li><strong>End of day, 15 min review:</strong> Listen to one call recording. Find one thing to fix tomorrow. One. Not five. One.</li>
+          <li><strong>Friday afternoon:</strong> Write three handwritten thank-you cards. To closed customers, to a referral source, or to a "not now" who treated you well. This is your Year 2 pipeline.</li>
+          <li><strong>Sunday night:</strong> Plan Monday before noon. Top 10 callbacks queued, top 5 streets mapped, top 3 referral asks. Monday morning is too late to plan Monday.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== TRAINERS =================== -->
+  <section id="sec-trainers" class="hidden">
+    <div class="section-head">🎓 Sales Trainer Cheat Sheets</div>
+    <div class="section-sub">The greatest hits of every trainer you should be stealing from. Lift their tactics, not their style.</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">J. Douglas Edwards — The Father of Modern Closing</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Edwards built the language of modern closing in the 1950s-70s and trained Tom Hopkins, Zig Ziglar, and most of the trainers you've heard of since. If you only memorize one trainer cold, make it Edwards.</p>
+
+        <h4>Edwards' Core Beliefs</h4>
+        <ul>
+          <li><strong>"A close is a question whose answer confirms the sale."</strong> Stop asking yes/no questions. Ask choice questions.</li>
+          <li><strong>"Whenever you ask a closing question, shut up. The next person to talk loses."</strong> Silence is a weapon. Practice it.</li>
+          <li><strong>"People are convinced by reasons they discover themselves."</strong> Don't tell them why they need a new roof. Ask the question that makes them say it.</li>
+        </ul>
+
+        <h4>Edwards' Most-Used Closes</h4>
+        <ol>
+          <li><strong>Alternate of Choice</strong> — never ask "do you want it," ask "do you want A or B." "Would Tuesday or Thursday work better for the install?"</li>
+          <li><strong>Sharp Angle</strong> — when they raise an objection that's actually a request, throw it back. "If I could get you the 50-year shingle at the 30-year price, would you be ready to move forward today?"</li>
+          <li><strong>Order Blank</strong> — start filling out the paperwork while you talk. Their non-objection IS the close.</li>
+          <li><strong>Puppy Dog</strong> — "Let me leave the sample shingle with you for the weekend. If it doesn't fit, I'll come pick it up Monday." Hard to give the puppy back.</li>
+          <li><strong>Ben Franklin (T-account)</strong> — when stuck on a fence-sitter, draw a line down the page. Help them list reasons to do it. Then say "now you list the reasons not to" and stay silent. They always come up short on the right.</li>
+          <li><strong>Lost Sale</strong> — when the deal walks, before you leave, say <em>"Mrs. Jones, I'm clearly not going to earn your business today, and that's okay. But for my own training, what could I have done differently?"</em> 30% of the time, the real objection comes out — and you get to handle it.</li>
+          <li><strong>Similar Situation</strong> — third-person story. "Mr. and Mrs. Garcia on Elm thought the same thing six months ago. Here's what they decided…"</li>
+          <li><strong>Erroneous Conclusion</strong> — purposefully say a wrong "fact" so they correct you, and the correction confirms the sale. "So you said you wanted to wait until <em>next</em> spring, right?" "No, I said this fall." → Calendar's out.</li>
+        </ol>
+
+        <div class="quote">"The sale is made in the silence after the close, not in the words before it."<span class="who">— J. Douglas Edwards</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Jordan Belfort — The Straight Line</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Belfort's contribution is tonality and the Straight Line System — keep the prospect on a tight conversational line from open to close, looping back through three tens.</p>
+
+        <h4>The Three Tens</h4>
+        <p>By the close, your prospect must be a 10/10 certain on three things: (1) the <strong>product</strong>, (2) <strong>you</strong>, (3) <strong>your company</strong>. If any of those is below a 9, you're not closing — you're "looping" to raise that score.</p>
+
+        <h4>Belfort's Tonality Stack (memorize these)</h4>
+        <ul>
+          <li><strong>"I care, I really want to know"</strong> — questioning tone, slight upward inflection</li>
+          <li><strong>The mysterious mystique tone</strong> — drops in volume, slows down, draws them in</li>
+          <li><strong>The "money tone"</strong> — when you say the price, drop the voice, slow down, no apology</li>
+          <li><strong>Scarcity / urgency tone</strong> — hushed, like sharing a secret</li>
+          <li><strong>Absolute certainty</strong> — flat, level, no waiver. Not loud. <em>Certain.</em></li>
+        </ul>
+
+        <h4>The Looping Pattern</h4>
+        <p>Prospect objection → "I hear you, and let me ask you this…" → loop them into a question that raises certainty on the weakest "ten" → re-close. Never argue. Never defend. Loop.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Tom Hopkins — Assume, Assume, Assume</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Hopkins trained under Edwards and refined the assumptive close into something blue collar reps can use immediately.</p>
+        <ul>
+          <li><strong>Assumptive language at every turn.</strong> Never "if we do this" — always "when we do this." Never "should you decide" — always "once we get this scheduled."</li>
+          <li><strong>The 1-2-3 Close.</strong> "There are three good reasons to move forward today: one, the price holds; two, we can fit your install before the rainy season; three, your neighbors are getting their work done now and the crew is in your zip code. Sound fair?"</li>
+          <li><strong>The Tie-Down.</strong> End statements with a built-in agreement: "…makes sense, doesn't it?" / "…that's important to you, isn't it?" / "…you'd want that, wouldn't you?" Use sparingly — 3 max per conversation.</li>
+          <li><strong>"Don't say 'cost.' Say 'investment.' Don't say 'contract.' Say 'agreement.' Don't say 'sign.' Say 'okay it' or 'authorize.'"</strong> Reframe the loaded words.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Zig Ziglar — Emotion Buys, Logic Justifies</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Ziglar's gift: he understood that the buying decision is emotional and the rep's job is to give the emotional brain enough logical cover to feel okay about it.</p>
+        <ul>
+          <li><strong>"People don't buy for logical reasons. They buy for emotional reasons. Then they justify with logic."</strong> — say the emotional thing first (their family safe and dry; their property value protected; pride of ownership), back it with logic second (warranty, square footage, financing math).</li>
+          <li><strong>"You can have everything in life you want, if you will just help enough other people get what they want."</strong> Reframe yourself as the help, not the seller.</li>
+          <li><strong>The pain-pleasure pivot.</strong> Spend 60% of the conversation on the pain of <em>not</em> doing it (water damage, mold, insurance non-renewal, decking rot) and 40% on the pleasure of doing it (peace of mind, curb appeal, warranty backing).</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Russell Brunson — Hook, Story, Offer</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Brunson is a marketer first, but his Hook/Story/Offer structure is the cleanest framework for a 60-second pitch — at the door, on the phone, in a DM.</p>
+        <h4>The Three Beats</h4>
+        <ol>
+          <li><strong>Hook</strong> — the pattern interrupt. Specific, weird, or curiosity-piquing. Earn the next 10 seconds.</li>
+          <li><strong>Story</strong> — third-party proof. A similar customer, a recent storm, a discovery on a neighbor's roof. People believe stories before facts.</li>
+          <li><strong>Offer</strong> — the very next step. Not the sale. The micro-yes: a free inspection, a 10-minute report, a sample.</li>
+        </ol>
+        <p>Door example: <em>"Hi — quick one. We were doing drone scans on Maple yesterday [hook] and we spotted three or four homes on this block with hail bruising that's eligible for an insurance look [story]. I'd like to drone-scan yours real quick — 8 minutes, free, you keep the photos [offer]."</em></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Dale Carnegie — Make Them Feel Important</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>Use their name. Twice.</strong> Once at the open, once at the close. More than that gets weird.</li>
+          <li><strong>Talk in terms of <em>their</em> interests.</strong> "Your house," "your driveway," "your kids," "your warranty," "your tenant." Almost never "we" or "our company."</li>
+          <li><strong>Be a good listener. Encourage them to talk about themselves.</strong> The longer they talk, the closer you are. Aim for them talking 60% of the time after the opener.</li>
+          <li><strong>Begin in a friendly way.</strong> No matter how rough the open looks — smile, soft tone, slow pace.</li>
+          <li><strong>Let the other person feel the idea is theirs.</strong> "You mentioned earlier you were worried about the granule loss — that's exactly what we want to put a number on today."</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Grant Cardone — 10X &amp; The Hard Close</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>Massive action, then massive action again.</strong> The actual prescription: 10x whatever you think the right activity number is. If you think 30 dials, do 300. If you think 5 doors, do 50.</li>
+          <li><strong>"The deal is closed somewhere between attempt 5 and attempt 12."</strong> Most reps stop at 2. Drill follow-up cadences.</li>
+          <li><strong>Take-away close.</strong> "You know what, this might not be a fit. Let me ask — is the roof keeping you up at night, or are we doing this just to do it?" Pulling away triggers re-engagement.</li>
+          <li><strong>"Price is a myth. There's no such thing as price — only payments and value."</strong> Stop debating sticker. Debate monthly impact, lifetime cost, replacement avoided.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Brian Tracy — Psychology of Selling</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>The Law of 6.</strong> Every prospect has 6 reasons they'd buy — but only 1 or 2 dominate. Your job is to find the dominant buying motive (DBM) early. Ask: "If we did this, what would it solve for you first?"</li>
+          <li><strong>Approach close.</strong> Walk in already assuming the sale is happening. Body, voice, posture. They mirror your certainty.</li>
+          <li><strong>Summary close.</strong> Before asking for the agreement, recap their words back to them in order. "So just to recap — you're concerned about the leak above the kitchen, you want this done before the kids are home for break, and your budget is in the 12-15 range. We're solving all three." Their nod is the close.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Chet Holmes — The Stadium Pitch</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>Holmes' famous insight: in any market, only <strong>3% are actively buying right now</strong>. Another 7% are open. The other 90% are <em>not</em> in market — but they will be eventually.</p>
+        <ul>
+          <li><strong>The pitch isn't about the product, it's about the problem the product solves.</strong> When you talk to a homeowner whose roof is fine, don't pitch your shingles — pitch <em>"the 5 hidden ways a roof costs you money before it leaks."</em> Now the 87% who aren't in-market still want to listen.</li>
+          <li><strong>The dream buyer list.</strong> Make a written list of the 100 best prospects on your patch. Property managers, HOAs, large commercial buildings, multi-property landlords. Touch each one every two weeks for a year. By month 12 you own the territory.</li>
+          <li><strong>The pig-headed discipline.</strong> Pick a number of touches per week and do it no matter what. The reps who win are not the smart ones — they're the ones who don't break the cadence.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Neil Rackham — SPIN Selling (for bigger commercial deals)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">SPIN is built for bigger-ticket B2B. For commercial roofing, property managers, REITs, HOAs — this is your framework. Less useful for a $9k residential shingle replacement, essential for a $300k TPO re-cover.</p>
+        <ol>
+          <li><strong>Situation</strong> — fact-finding. "How many buildings in your portfolio? What's the roof age on each? Any active leaks?"</li>
+          <li><strong>Problem</strong> — pain discovery. "What roofing issue has cost you the most this past 12 months?"</li>
+          <li><strong>Implication</strong> — make the pain bigger. "If that leak shows up again next storm, what's the tenant ramification? What's it cost you in retention?"</li>
+          <li><strong>Need-Payoff</strong> — let <em>them</em> articulate the solution's value. "If we eliminated that leak permanently and warrantied 20 years, what would that be worth to you in tenant calls saved?"</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== LEAD GEN =================== -->
+  <section id="sec-leadgen" class="hidden">
+    <div class="section-head">🎯 Lead Generation Engine</div>
+    <div class="section-sub">Leads aren't found — they're <em>manufactured</em>. Five channels, run them all.</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">The 5 Channels Every Trades Rep Runs in Parallel</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-2">
+          <div class="kv"><h6>1. Door-to-Door</h6><div class="val">Highest conversion, lowest scale. Your control mechanism.</div></div>
+          <div class="kv"><h6>2. Cold Calling</h6><div class="val">High volume, fast feedback, scripts compound.</div></div>
+          <div class="kv"><h6>3. Cold Outreach</h6><div class="val">SMS / Email / DMs. Async, scalable, asynchronous trust.</div></div>
+          <div class="kv"><h6>4. Networking &amp; Referrals</h6><div class="val">Slowest to start, highest LTV, year-2 income source.</div></div>
+          <div class="kv"><h6>5. Storm / Event Spotting</h6><div class="val">Hail, wind, age-of-neighborhood. The asymmetric channel.</div></div>
+          <div class="kv"><h6>6. Inbound Authority</h6><div class="val">Google reviews, Nextdoor, NextDoor posts, FB groups — long-term.</div></div>
+        </div>
+        <p>Rule: never run fewer than 3 of these at once. If one dries up (winter slowdown, no storms, lawsuit pause) you don't starve.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Storm Spotting — The Asymmetric Channel</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>Hail map subscriptions:</strong> HailTrace, Interactive Hail Maps, NOAA SPC archive. Daily check, screenshot the polygons.</li>
+          <li><strong>Wind events &gt; 58 mph</strong> usually qualify for an insurance look. Map these too.</li>
+          <li><strong>Within 48-72 hours of a confirmed storm</strong> — be on those streets. Adjusters are already booking. If you're the first knock, you're the contractor on the claim.</li>
+          <li><strong>Drone scan + free inspection</strong> is the asset. "Here's what we found on your neighbor's roof" is the opener.</li>
+          <li><strong>The angle is NOT "you should file a claim."</strong> The angle is "let's see if you have damage that's worth filing a claim over." Big legal difference, big rapport difference.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Insurance Adjuster Relationships</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>Adjusters are your most underrated referral source. They see every claim. They know which roofs are getting denied for bad install work. They know which contractors close cleanly.</p>
+        <ul>
+          <li><strong>Show up to claim ride-alongs prepared.</strong> Ladder ready, drone charged, measuring app open. Know the policy basics: ACV vs RCV, depreciation recoverable, supplements.</li>
+          <li><strong>Never argue with an adjuster on-site.</strong> Argue politely in writing afterwards. The adjuster who likes you sends you 3-5 leads a year.</li>
+          <li><strong>The 3-adjuster rule:</strong> aim to have a working relationship with at least 3 adjusters from 3 different carriers. Drop off a coffee on a Tuesday. That's the ask.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Real Estate Agent &amp; Inspector Referrals</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>Pre-listing inspections</strong> — agents need a contractor who can give a same-day "good enough to sell as-is" or "needs replacement" call. Be the one they trust.</li>
+          <li><strong>Post-inspection repairs</strong> — when a buyer's inspector flags a roof, the listing agent needs a 24-hour bid. If you're that contractor, you get every one of their listings.</li>
+          <li><strong>The handoff fee.</strong> Some markets, a $200-500 referral fee to the agent is normal and legal (check state). In others it's strictly a "favor for a favor." Know your market.</li>
+          <li><strong>Inspectors:</strong> bring them coffee. Ask what trends they're seeing. They will absolutely tell you which streets are due for replacement.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Property Manager / HOA / Multi-Family Outreach</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>This is the commercial gold mine and most residential reps ignore it.</p>
+        <ul>
+          <li>Build a list of every property management company in a 25-mile radius. NARPM directory + local commercial listings. Aim for 50+ on the list.</li>
+          <li>Outreach cadence: cold call → handwritten note → LinkedIn → drop-by with donuts → 90-day repeat. <strong>It takes 6-9 touches</strong>. Reps quit at 2.</li>
+          <li>Their pain isn't roofs. Their pain is <strong>tenant complaints, owner complaints, and budget surprises</strong>. Pitch in their language: "we eliminate the 3am leak call."</li>
+          <li>One signed PM relationship = 10-40 roofs a year, recurring. Worth ten residential closes.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Inbound Authority — The Slow Burn</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>Google reviews are the new yellow pages.</strong> Goal: 100 reviews, 4.8+ stars. Ask at the moment of joy: when the crew leaves and the roof looks great. Send the link by text within an hour.</li>
+          <li><strong>Nextdoor posts:</strong> "Anyone recommend a roofer?" — set alerts. Be the second or third response, never the first (looks spammy). Drop a real customer's review.</li>
+          <li><strong>Facebook neighborhood groups:</strong> same play. Helpful comments build authority over 6-12 months.</li>
+          <li><strong>YouTube / TikTok:</strong> 60-second "what we found on a roof today" videos. Free, viral-able, builds you into a local personality. Tate, Ramsey, Belfort all built audiences before they sold.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== D2D =================== -->
+  <section id="sec-d2d" class="hidden">
+    <div class="section-head">🚪 Door-to-Door Combat Manual</div>
+    <div class="section-sub">Pre-pitch setup, the walk-up, the open, reading the door, handling the no. Built for every trade.</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">Pre-Pitch Setup (Before You Even Park)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <h4>The Uniform</h4>
+        <ul>
+          <li>Polo with company logo (not T-shirt). Tucked in. Belt visible.</li>
+          <li>Clean jeans or work pants. No basketball shorts. No sandals. Ever.</li>
+          <li>Badge on a lanyard or clipped to belt. Company name + your photo + name big.</li>
+          <li>Clipboard with branded paperwork visible. The clipboard is a psychological weapon — it screams "this is official."</li>
+          <li>Hat optional but team hat &gt; ballcap with random logo.</li>
+        </ul>
+
+        <h4>The Truck</h4>
+        <ul>
+          <li>Parked one or two houses past — never directly in their driveway.</li>
+          <li>Wrapped or magnetic signs. Their neighbors should be able to see your company name from 3 doors down.</li>
+          <li>Ladder visible. "Real contractor energy" beats "vague door knocker energy."</li>
+        </ul>
+
+        <h4>The Loadout</h4>
+        <ul>
+          <li>Phone with drone footage of recent local jobs queued up</li>
+          <li>Tablet or paper "free roof inspection" form</li>
+          <li>2-3 shingle samples or material swatches in a small bag</li>
+          <li>Business cards (still useful)</li>
+          <li>Door hangers for non-answers</li>
+        </ul>
+
+        <h4>The Mental Pre-Game (60 seconds in the truck)</h4>
+        <ol>
+          <li>Three breaths in through nose, out through mouth.</li>
+          <li>Smile at yourself in the rear-view mirror. Hold it for 5 seconds.</li>
+          <li>Say the opener out loud once. Out loud. Not in your head.</li>
+          <li>Tell yourself: "I'm here to help. If they say no, I say thank you and walk."</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Walk-Up &amp; The 5-Second Pattern Interrupt</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <h4>The walk-up reads</h4>
+        <p>Before you knock, you've already clocked: roof age (granule loss, curled tabs, missing shingles), gutters (separating, debris), siding/paint (wealth signal), kids' bikes (family home), no car in driveway (likely empty), security camera (smile, you're being filmed), Ring doorbell (assume the audio is rolling), Tesla / Bronco / Hellcat in the driveway (cash signal but also "I just spent it"), HOA flag on the lawn (restricted neighborhood — be ready). Everything feeds your opener.</p>
+
+        <h4>The Knock</h4>
+        <p>Two firm knocks. Pause 2 seconds. Ring doorbell once. Step back <strong>3-4 feet</strong> from the door. Hands visible. Clipboard at your side, not raised. If a Ring camera is staring at you, look at it once, smile, give a little nod. Then turn back to the door.</p>
+
+        <h4>The Modern Opener — Built for the Over-Knocked Homeowner</h4>
+        <p class="lede">Your prospect has been knocked 4-15 times this month. The "drone scan / your neighbors / hail bruising" speech is dead the moment they hear "drone." Generic doesn't work. You need to <strong>lampshade the saturation</strong>, sound like a human, and earn the next 10 seconds with wit and specificity. Three things every opener should do now:</p>
+        <ol>
+          <li><strong>Acknowledge they've been knocked.</strong> Disarm with self-awareness. "I know — another roofer."</li>
+          <li><strong>Make a promise.</strong> "30 seconds and I'm gone if it's not interesting."</li>
+          <li><strong>Skip the pitch — go straight to a question only they can answer.</strong> Questions earn time. Pitches lose it.</li>
+        </ol>
+
+        <h4>The Witty Opener Bank</h4>
+        <p>Five tested openers. Pick the one that matches the door, the homeowner, and the mood. Rotate. Never use the same opener twice on the same street.</p>
+
+        <div class="script">
+<span class="label">Opener #1 — "I Know" (Universal Disarm)</span><button class="copy-btn">Copy</button>"Hey — I know. Another roofer. I owe you 30 seconds and then I'm gone. Quick question — has your insurance company sent you any 'we regret to inform you' love letters about your roof this year, or are you still in the clear?"</div>
+
+        <div class="script">
+<span class="label">Opener #2 — The Insurance Drop (South Florida / coastal)</span><button class="copy-btn">Copy</button>"Hey — quick one, then I'm out of your hair. The insurance companies are dropping homeowners in [BROWARD / MIAMI-DADE / PALM BEACH] faster than they can issue policies. Roofs over 12 years are getting non-renewed across the board, and the new policies are tripling in cost. Two questions: how old is your roof, and has your carrier said anything yet?"</div>
+
+        <div class="script">
+<span class="label">Opener #3 — Metal Roof / Premium Savings</span><button class="copy-btn">Copy</button>"Hi — I'll be quick. Are you aware that swapping from asphalt to a wind-rated metal roof in Florida cuts your homeowners premium 30-70% from the wind mitigation credit alone? Most homeowners on this street don't know that. The roof basically pays for itself out of premium savings. Want me to run the math on yours? 8 minutes, no charge."</div>
+
+        <div class="script">
+<span class="label">Opener #4 — The Self-Aware Drone Reference</span><button class="copy-btn">Copy</button>"I'll skip the 'we were on your neighbor's roof yesterday' speech because you've heard it 12 times this month. Real reason I'm here — your roof from the street has [specific observation: granule loss / curled tabs / a wavy ridge line / dark streaking]. If insurance is still your carrier and that's storm-related, you've got money on the table. Have you filed anything this year?"</div>
+
+        <div class="script">
+<span class="label">Opener #5 — The Permit Office Angle</span><button class="copy-btn">Copy</button>"Hey [NAME] — quick reason. We pulled the permit records on this block and your house is one of the ones that hasn't had a roof permit pulled in [#] years. Combined with what I can see from the street, you're sitting in the highest-risk window for non-renewal and the highest-payout window for an insurance claim, at the same time. 8 minutes worth checking?"</div>
+
+        <p><strong>The rules:</strong> Specific over generic. Wit over scripted. Question over pitch. Promise an exit. Then ask the one thing only they can answer.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Claim-Process Icebreaker (The Real Second Question)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Once you've earned 30 seconds with the opener, don't pitch the roof. Pitch the <em>conversation</em>. The single best icebreaker in storm/insurance work is:</p>
+
+        <div class="script">
+<span class="label">The Master Icebreaker</span><button class="copy-btn">Copy</button>"Real quick — where are you at in the claim process right now?"</div>
+
+        <p>That question does five things in one breath: qualifies the lead, assumes competence (flatters them), reveals their exact stage, gives you a branch to follow, and sounds like a peer asking — not a salesman pitching. Their answer puts them in one of <strong>five buckets</strong> — each with its own next move.</p>
+
+        <h4>🟢 Bucket A — "What claim?" / "I haven't filed anything."</h4>
+        <p>They're unaware or have written it off. Educate, don't pitch.</p>
+        <div class="script">
+<span class="label">Branch A Response</span><button class="copy-btn">Copy</button>"Got it — most homeowners on this street are in the same boat. Here's the thing: [STORM DATE] dropped enough hail/wind through this neighborhood that 6 out of 10 homes I scan still qualify for a claim. Asphalt damage doesn't leak right away — it ages the roof, shows up as a leak 12-18 months later, and by then your claim window has closed. Free drone scan tells us if you've got anything worth filing. Yes or no?"</div>
+
+        <h4>🟡 Bucket B — "I already have a contractor."</h4>
+        <p>Don't try to steal the deal. Position as second opinion.</p>
+        <div class="script">
+<span class="label">Branch B Response</span><button class="copy-btn">Copy</button>"Smart — that's what I'd do too. All I'm offering is a free second-opinion drone scan. Either your guy nailed the scope and we confirm it, or we catch something they missed and I send you the photos to give them. Either way you win. Has the adjuster been out yet?"</div>
+        <p class="lede">Follow up: ask who the contractor is. If it's a known fly-by-night, gently warn. If it's a respected local company, congratulate them and ask for the referral introduction. Never bash a competitor — it makes you look small.</p>
+
+        <h4>🔴 Bucket C — "I got denied."</h4>
+        <p><strong>This is your favorite answer.</strong> Denials flip on re-inspection 30-40% of the time when documentation is properly built. This is high-value, low-competition work.</p>
+        <div class="script">
+<span class="label">Branch C Response</span><button class="copy-btn">Copy</button>"That's actually what we specialize in. 40% of denials in [METRO] flip when somebody re-documents the damage properly and pushes a re-inspection. Three quick questions: when was it denied, who was the carrier, and did the adjuster cite 'cosmetic' or 'no functional damage'? Because if it was either of those, there's a play."</div>
+
+        <h4>🔵 Bucket D — "I have a Public Adjuster / Attorney."</h4>
+        <p>Don't fight them. Become useful to them. PAs and attorneys love contractors who write clean scopes and respond quickly.</p>
+        <div class="script">
+<span class="label">Branch D Response</span><button class="copy-btn">Copy</button>"Good move — that's the right play when carriers are stalling. Most attorneys and PAs we work with actually prefer when we coordinate scope and supplements with them — saves them hours and tightens the case. Who are you working with? I want to make sure they have my direct line for when they need someone on the roof."</div>
+
+        <h4>⚪ Bucket E — "I'm still waiting on the adjuster" / "I filed but nothing's happened."</h4>
+        <p>You're in the most leveraged spot. Position yourself as the rep who will be on the roof <em>with</em> the adjuster.</p>
+        <div class="script">
+<span class="label">Branch E Response</span><button class="copy-btn">Copy</button>"That's the most important meeting in your entire claim. Whoever's on the roof with the adjuster sets the scope. If nobody's there representing you, the adjuster writes the minimum and you eat the rest. When are they coming? I want to be there with you. Free, no obligation, you don't sign anything until you see what they write."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The "Not Interested" Reframe — They Don't Want to Pay Cash</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">When a homeowner says "not interested" <em>after</em> you've established they have damage or an aging roof, assume one thing: <strong>they don't want to pay cash</strong>. Almost nobody objects to a new roof on principle. They object to writing a $14,000 check. That's it. Solve that and the deal opens. Three paths in: grants, insurance, and the premium-replacement math.</p>
+
+        <h4>The Three Paths In (memorize them)</h4>
+        <ol>
+          <li><strong>Grants</strong> — state &amp; local programs that pay homeowners directly to upgrade roofs to wind-mitigation standards. In Florida, <em>My Safe Florida Home (MSFH)</em> gives up to $10k. Other states have similar programs.</li>
+          <li><strong>Insurance / Act-of-God claim</strong> — if there's <em>any</em> qualifying storm damage, insurance pays the bulk and the homeowner's only out-of-pocket is the deductible.</li>
+          <li><strong>Premium-to-Payment Math</strong> — when insurance dropped them or tripled rates, the new roof financing payment <em>replaces</em> the premium hike. Net cost: near zero. Often <em>net savings</em>.</li>
+        </ol>
+
+        <div class="script">
+<span class="label">The "Not Interested" Reframe — Master Script</span><button class="copy-btn">Copy</button>"Totally fair — and honestly, most of the homeowners who tell me 'not interested' aren't actually uninterested in the roof. They're not interested in writing a $14k check. Fair enough. Here's the thing though — I'm not asking you to write that check. There are three ways this gets paid for and zero of them are 'cash out of your savings.' Want me to walk through the three real quick, and if none of them fit, I'm gone? 90 seconds."</div>
+
+        <h4>Path 1 — The Grant Pitch (Florida)</h4>
+        <div class="script">
+<span class="label">My Safe Florida Home (MSFH)</span><button class="copy-btn">Copy</button>"The state of Florida has a grant program called My Safe Florida Home — they give homeowners up to $10,000 to upgrade roofs to wind-mitigation standards. It's not a loan, it's a grant. The homestead requirement is straightforward. Combined with what insurance might pay, a lot of folks end up paying almost nothing out of pocket. Want me to check your eligibility while I'm here? 5 minutes."</div>
+        <p class="lede">Adjust the program name in other states (e.g., NC's "Strengthen Your Home," AL's "Strengthen Alabama Homes"). Know your state's program cold — it's a deal-maker.</p>
+
+        <h4>Path 2 — The Act-of-God Insurance Pitch</h4>
+        <div class="script">
+<span class="label">Storm / Act-of-God Reframe</span><button class="copy-btn">Copy</button>"If you've had <em>any</em> hail or wind event in the last 12-24 months — and this neighborhood definitely has — that's not your roof, that's an act of God. Insurance pays for those. Your only out-of-pocket is your deductible. So if your deductible is $2,500 and the roof is a $14k job, that's a $2,500 decision, not a $14k decision. Different conversation, right? Let me drone-scan it and we'll know in 8 minutes whether the storm angle is on the table."</div>
+
+        <h4>Path 3 — Premium-to-Payment Math (the killer in 2025+ insurance markets)</h4>
+        <p>This works in any market where insurance has spiked or carriers are dropping. Most of Florida, Texas, Louisiana, Colorado, California fire zones.</p>
+        <div class="script">
+<span class="label">The Premium-to-Payment Math</span><button class="copy-btn">Copy</button>"Quick question — what did your homeowners insurance go up this year? [Wait — they'll tell you. $200/mo, $400/mo, sometimes more.] OK so let's say your premium went up $250 a month. That's $3,000 a year you're now paying for the privilege of having a roof your carrier doesn't even like. Here's the move: if we put a wind-rated metal or impact-resistant roof on this house, your premium drops 30-70% from the wind mitigation credit. Meanwhile, the financing on the new roof is around $200-$280 a month. You're <em>literally moving the same money</em> from a premium that's going up every year to a roof payment that's fixed for 10 years — and when it's paid off, you own a metal roof that lasts 50 years and a premium that stays low. The math is on your side. Want me to put numbers on it?"</div>
+
+        <h4>The Three-Path Close</h4>
+        <div class="script">
+<span class="label">Three-Path Close</span><button class="copy-btn">Copy</button>"So three doors: grant money, insurance, or premium-swap financing. Most homeowners we work with use two of the three. Worst case, one applies. Best case, all three stack and your out-of-pocket is your deductible or less. Mind if I do the 8-minute drone scan so we know which doors are actually open for your house?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">South Florida Insurance Crisis Playbook (deep dive)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">The SoFla market is unlike anywhere else in the country right now. Non-renewals, Citizens overload, mortgage lenders requiring re-roofs, premium spikes 2-3x — every door in Broward / Miami-Dade / Palm Beach has a story. Reps who know the landscape close at 2-3x the rate of generalists.</p>
+
+        <h4>What's Actually Happening (so you sound like you know your stuff)</h4>
+        <ul>
+          <li><strong>Carriers are pulling out of FL or non-renewing.</strong> Universal, Citizens, Heritage, FedNat — major moves over the last 5 years. Homeowners are being shunted to Citizens (state-backed last resort) or specialty carriers at 2-3x premium.</li>
+          <li><strong>Roofs over 12-15 years</strong> are getting non-renewed or denied coverage outright. Some carriers won't write any roof over 10 years.</li>
+          <li><strong>Mortgage lenders</strong> require continuous coverage. If insurance non-renews and the homeowner can't get a replacement policy, the lender can force-place insurance at 3-5x the cost, or worse — call the loan.</li>
+          <li><strong>Wind mitigation credits</strong> are huge in FL. A new wind-rated roof (especially metal or stone-coated steel) can knock 30-70% off the premium, depending on the wind mit inspection result.</li>
+          <li><strong>My Safe Florida Home (MSFH)</strong> grant — up to $10k for qualifying homeowners to upgrade to wind-mitigation standards. Real money, free, the state literally wants to give it away.</li>
+        </ul>
+
+        <h4>The SoFla Master Talk Track</h4>
+        <div class="script">
+<span class="label">SoFla Master Talk Track</span><button class="copy-btn">Copy</button>"Real quick on what's happening in [BROWARD / MIAMI-DADE / PALM BEACH] right now, in case nobody's broken this down for you. Three things, 60 seconds.
+
+One — carriers are non-renewing roofs over 12 years across the board. Doesn't matter how good shape it's in. Your asphalt roof is on the clock.
+
+Two — if you get dropped and Citizens picks you up, your premium roughly triples. We're seeing $3,200/year policies turning into $9-10k.
+
+Three — a wind-rated metal roof with the wind mit inspection knocks your premium 30-70%. So homeowners are paying their old premium and putting a new metal roof on the house — and the math still wins. Plus the state of Florida has the My Safe Florida Home grant — up to $10k toward exactly this upgrade.
+
+The question isn't whether you replace the roof. It's whether you replace it now while grants and insurance are still on the table, or in 18 months when you're already on Citizens at triple rate. Make sense?"</div>
+
+        <h4>SoFla-Specific Closes</h4>
+        <div class="script">
+<span class="label">Close — The Non-Renewal Clock</span><button class="copy-btn">Copy</button>"Your roof is currently the asset standing between you and a 3x premium hike. Every month we wait, your carrier is closer to writing a non-renewal letter. The homeowners who get ahead of it pay one premium and one financed payment that replaces it. The ones who wait pay a tripled premium and still have to replace the roof. Want to get ahead of it?"</div>
+
+        <div class="script">
+<span class="label">Close — The Mortgage Risk</span><button class="copy-btn">Copy</button>"Worst case here isn't 'old roof.' Worst case is force-placed insurance from your lender — that's 3-5x normal premium, and it doesn't even cover your stuff, only the lender's. Or worse, the lender calls the loan because you're out of compliance. Both of those happen in Florida every week. A new wind-rated roof shuts the door on both risks. That's the actual value here."</div>
+
+        <h4>What to Ask in the SoFla Conversation</h4>
+        <ol>
+          <li>"Who's your carrier?" → Tells you risk level.</li>
+          <li>"When does your policy renew?" → Tells you the urgency.</li>
+          <li>"Has the carrier asked for a wind mit inspection or a 4-point recently?" → Means non-renewal is being considered.</li>
+          <li>"Have you gotten any non-renewal letters in the last 18 months?" → If yes, immediate priority lead.</li>
+          <li>"How much did your premium go up this year?" → Sets up the premium-swap math.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Three Doors (Yes, No, Maybe)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <h4>Door 1: "Yes, sure, come look"</h4>
+        <p>30% of the time, if your opener is sharp. Don't celebrate. Walk to the roof side, set up drone or ladder, narrate what you're seeing, take photos. Take your time. Build trust through competence on the spot.</p>
+
+        <h4>Door 2: "Not interested" (the reflex no)</h4>
+        <p>80% of first no's are pre-trained gatekeeping. Don't fight. Reframe.</p>
+        <div class="script">
+<span class="label">Reflex-No Reframe</span><button class="copy-btn">Copy</button>"Totally fair — most people aren't until they see what's actually up there. Real quick — when's the last time anybody actually looked at your roof? Because what we're seeing from the street is the kind of thing insurance pays for, not you. If we find nothing, you've lost nothing. If we find something, I just saved you a deductible. Worth 8 minutes?"</div>
+
+        <h4>Door 3: "I'll think about it" / "Send me info"</h4>
+        <p>This is the maybe — the dangerous one. Don't leave a card and walk. Pin the next step.</p>
+        <div class="script">
+<span class="label">"Send me info" Reframe</span><button class="copy-btn">Copy</button>"I can do better than info — info doesn't tell you what's on your specific roof. Here's what I'd suggest: I'm in this neighborhood Thursday morning and Saturday at 10. I'll come back, drone-scan it, and we'll know in 15 minutes whether there's anything to even talk about. Which is easier — Thursday or Saturday?"</div>
+
+        <p class="lede">Alternate of choice. Never "do you want to schedule" — always "Thursday or Saturday."</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Reading the Homeowner</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-2">
+          <div class="kv"><h6>The Cracked Door</h6><div class="val">Don't push it open. Step back further. Drop volume. Smile bigger. They open the door if they feel safer.</div></div>
+          <div class="kv"><h6>Hands on Hips / Wide Stance</h6><div class="val">They're prepared to say no. Lead with curiosity, not pitch. "Can I ask — how long have you been in the house?"</div></div>
+          <div class="kv"><h6>"My husband handles that"</h6><div class="val">Don't write them off. Wife often controls the calendar. "Totally understand — when's the easiest time to catch you both? I'd rather present once to the two of you than three times to one of you."</div></div>
+          <div class="kv"><h6>"My nephew is a roofer"</h6><div class="val">"Awesome — keep him in the loop. All I'm offering is a free second opinion with drone photos he can use. No charge, no pressure."</div></div>
+          <div class="kv"><h6>Elderly homeowner alone</h6><div class="val">Slow down. Don't sit. Don't take out paperwork unless invited. If there's a child or relative they'd want to call, encourage it. Reputation is your business.</div></div>
+          <div class="kv"><h6>The dog at the door</h6><div class="val">Step back further. Compliment the dog. Many homeowners thaw when you treat the dog right.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Inspection — Convert the Free Look Into a Sit-Down</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>You got the yes. Now don't blow it.</p>
+        <ol>
+          <li><strong>Narrate while you work.</strong> "I'm pulling up the drone. I'm going to fly the four sides. I'm looking for impact marks, granule loss, sealant failure, and any spots where the deck's showing."</li>
+          <li><strong>Show them the photos on the spot.</strong> Don't say it — show it. Granules in the gutter. The bruise spots. The flashing gap.</li>
+          <li><strong>Use the language of the adjuster.</strong> "Hail bruising," "wind uplift," "creased shingle," "compromised seal" — sounds real, because it is.</li>
+          <li><strong>Sit down before you quote.</strong> Standing in the driveway is the wrong place to talk numbers. "Can we sit at the kitchen table real quick? I want to walk through the report and the two paths from here." (Alternate of choice baked in: "two paths.")</li>
+          <li><strong>Always present "two paths."</strong> Repair / Replace. Insurance / Out-of-pocket. Low / Mid. Never one option — always two. Two paths = real choice = no "let me think about it."</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">When to Walk Away</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>You can't close every door. Knowing when to walk preserves your energy for the doors that pay.</p>
+        <ul>
+          <li><strong>Three real objections, three handled, still a no?</strong> Walk. Leave the door hanger.</li>
+          <li><strong>Hostile? Yelling? Threats?</strong> "I'm sorry to bother you, have a great day." Smile, walk. Never escalate. Never. Note the address — don't go back.</li>
+          <li><strong>House has no roof problem AND no money AND no urgency?</strong> Walk. Leave a card. They'll need you in 2-5 years. Be the rep they remember.</li>
+        </ul>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- =================== COLD CALL =================== -->
+  <section id="sec-coldcall" class="hidden">
+    <div class="section-head">📞 Cold Calling Mastery</div>
+    <div class="section-sub">Phone is leverage. One headset, 100 dials, you talk to 25 people, you book 5, you close 2. Math is unforgiving — and beautiful.</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">Phone Setup &amp; The Pre-Call Ritual</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>Stand up while you dial.</strong> Voice carries from the diaphragm. Sitting = sounding tired even when you aren't.</li>
+          <li><strong>Headset, not handset.</strong> Free hands = better notes = sharper recall.</li>
+          <li><strong>Mirror on your desk.</strong> Watch yourself talk. If your face is dead, your voice is dead.</li>
+          <li><strong>One pen, one notebook, one CRM tab.</strong> Don't be hunting for stuff mid-call.</li>
+          <li><strong>Smile <em>before</em> the line picks up.</strong> A second is enough. The first syllable carries the smile.</li>
+          <li><strong>Drink water between blocks, not during.</strong> Dry mouth = small voice = uncertain rep.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Opening 15 Seconds</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>Cold calling is more brutal than D2D in one specific way: they can't see you, so tone is 100% of the trust. Your opener must do three things in 15 seconds:</p>
+        <ol>
+          <li>Sound human, not scripted</li>
+          <li>Give them a reason to <em>not</em> hang up (specificity, curiosity, or value)</li>
+          <li>End with a question they have to answer (silence on your end is the close)</li>
+        </ol>
+
+        <div class="script">
+<span class="label">Master Cold Call Opener — Roofing (Residential)</span><button class="copy-btn">Copy</button>"Hey [NAME], this is [REP] over at [COMPANY] — I know I'm calling you cold so I'll be quick. We were doing drone work on [STREET / NEARBY ADDRESS] last week and we flagged what looks like hail and wind damage on a handful of homes on your block. Yours is on the list. Two questions: have you had anybody actually look at your roof this year, and would it be worth 10 minutes for me to send you the drone photos of what we're seeing?"</div>
+
+        <div class="script">
+<span class="label">Master Cold Call Opener — Commercial Property Manager</span><button class="copy-btn">Copy</button>"Hi [NAME], this is [REP] with [COMPANY] — I'll keep this to 30 seconds. We work specifically with property managers in [METRO] on commercial roof maintenance and replacement — the stuff that shows up at 2am as a tenant call. I'm not pitching you today. I'm asking one question: out of your portfolio, which 1 or 2 buildings have given you the most roof headaches in the last 12 months? Because that's where we'd typically start."</div>
+
+        <p><strong>Why these work:</strong> they don't ask permission to talk. They name a specific problem the prospect already has. They end with a question that opens the conversation rather than closing it.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Voicemail Strategy</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>80% of cold dials hit voicemail. Don't waste them. Don't try to close on voicemail. The job of voicemail is to make the callback or the follow-up text feel warm.</p>
+        <div class="script">
+<span class="label">Voicemail #1 — Cold</span><button class="copy-btn">Copy</button>"Hey [NAME], [REP] over at [COMPANY] — drone work on your block flagged your roof on the list of likely hail damage. Just wanted to send you the photos before insurance season closes. Call me back at [NUMBER] or shoot me a text — same number. Thanks."</div>
+
+        <div class="script">
+<span class="label">Voicemail #2 — Bump (3 days later)</span><button class="copy-btn">Copy</button>"Hey [NAME], [REP] again — quick bump on the drone photos. Sending them via text right now in case voicemail's not your thing. No worries either way."</div>
+
+        <p><strong>Then immediately text:</strong> "Hi [NAME] — [REP] from [COMPANY], just left you a voicemail. Drone caught a few spots on your roof I'd want a homeowner to see. Want me to send the photos?"</p>
+        <p>Triple-tap (call → voicemail → text in 60 seconds) lifts callback rate 3-4x vs. a single voicemail.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Decision-Maker Bypass (Commercial Calls)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>Gatekeepers aren't your enemy — they're a filter. Treat them with respect; they remember you.</p>
+        <ul>
+          <li><strong>Use first names with the front desk.</strong> "Hi Sarah, is Mike around?" not "Can I speak to Mr. Lawson?"</li>
+          <li><strong>Sound like you've talked before, even if you haven't.</strong> "Hey, is Mike free? I was supposed to get him some info." (Not lying — you did intend to.)</li>
+          <li><strong>If blocked: "Totally understand — what's his best email?"</strong> Now you have an email, AND you've extracted info politely.</li>
+          <li><strong>The 7am / 6pm trick:</strong> decision makers often pick up their own phone before 8am and after 5pm. The gatekeeper isn't there.</li>
+          <li><strong>The LinkedIn warm-up:</strong> connect, comment on a post, then call 48 hours later. "Hi Mike, I'm the one who commented on your facilities post yesterday." Instant warmth.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Daily Quotas &amp; Energy Management</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="kv"><h6>Dial Volume</h6><div class="val">80-120 dials/day for residential rep. 60-80 for commercial rep with bigger ACV.</div></div>
+          <div class="kv"><h6>Talk Time</h6><div class="val">3 hours of <em>actual</em> conversations per 8-hour day = top decile.</div></div>
+          <div class="kv"><h6>Conversion Targets</h6><div class="val">25% pickup → 30% past opener → 20% booked → 30% close = ~1.5% dials-to-deal. Run the math.</div></div>
+        </div>
+        <h5>The Block Method</h5>
+        <p>Don't dial all day. Dial in 90-minute blocks with 15-minute breaks. Two blocks before lunch, two after. Energy beats volume after hour 3.</p>
+        <h5>The Recording Drill</h5>
+        <p>Record one in five calls. Listen for: did I smile? did I pause? did I rush? did I let them talk 60% of the time? Find <strong>one</strong> thing to fix tomorrow. Not five. One.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== OUTREACH =================== -->
+  <section id="sec-outreach" class="hidden">
+    <div class="section-head">💬 Cold Outreach — SMS, Email, Social</div>
+    <div class="section-sub">Async channels. They don't replace dials and doors — they amplify them.</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">SMS Templates That Don't Sound Spammy</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>SMS works when (a) you have a legit reason to text — neighbor, drone scan, recent storm — and (b) you keep it under 200 characters. Long texts get ignored. Compliance: identify yourself, give an opt-out, and check your state's TCPA rules.</p>
+        <div class="script">
+<span class="label">SMS #1 — Storm aftermath</span><button class="copy-btn">Copy</button>Hi [NAME] — [REP] w/ [COMPANY]. We were on your block after the [STORM DATE] hail event & flagged a few homes incl. yours for possible damage. Want me to send the drone shots? Free, no pressure. Reply STOP to opt out.</div>
+
+        <div class="script">
+<span class="label">SMS #2 — Referral name-drop</span><button class="copy-btn">Copy</button>Hey [NAME] — [REFERRER] over on Elm gave me your name. We just finished his roof and he mentioned you might want a free inspection. Is now a bad time to text? — [REP], [COMPANY]</div>
+
+        <div class="script">
+<span class="label">SMS #3 — Voicemail follow-up</span><button class="copy-btn">Copy</button>Hi [NAME] — just left you a voicemail. Wanted to send the drone photos of your roof rather than play phone tag. Want them? — [REP], [COMPANY]</div>
+
+        <div class="script">
+<span class="label">SMS #4 — Re-engagement (90 days)</span><button class="copy-btn">Copy</button>Hey [NAME] — [REP] from [COMPANY], we drone-scanned your roof back in [MONTH]. Quick check-in: any new leaks or moisture since? If yes, I'll get out there this week. If not, glad to hear it.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Cold Email — Trades / Commercial</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>Three rules: (1) subject line is a question or curiosity, never a pitch. (2) body is &lt; 80 words. (3) one specific CTA, never "would love to connect."</p>
+
+        <div class="script">
+<span class="label">Cold Email — Property Manager</span><button class="copy-btn">Copy</button>Subject: 2am leak call question
+
+Hi [NAME],
+
+Out of the [#] buildings in your portfolio, which one has cost you the most in roof-related tenant calls this year?
+
+I work with PMs in [METRO] on commercial roof maintenance — typically the buildings nobody wants to think about until they're leaking.
+
+If you've got a worst-offender, I'd come out and give you a no-charge condition report. No pitch, just a number.
+
+Worth 20 minutes next week?
+
+[REP]
+[COMPANY] | [PHONE]</div>
+
+        <div class="script">
+<span class="label">Cold Email — Real Estate Agent</span><button class="copy-btn">Copy</button>Subject: roof bid in 24 hrs?
+
+Hi [NAME],
+
+I'm a roofer in [METRO] and most agents I work with hate the same thing: a buyer's inspector flags the roof and suddenly the close date is in jeopardy.
+
+I do 24-hour bids for agents — drone scan, written report, repair vs replace options. No surprise upsells, no agent fees.
+
+If you want me on your shortlist for the next inspection drama, reply with "shortlist" and I'll send my agent one-pager.
+
+[REP]
+[COMPANY]</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Social DMs — LinkedIn, Facebook, Nextdoor</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>LinkedIn is for commercial only.</strong> Property managers, facility directors, HOA presidents, multi-family asset managers, school district maintenance heads. Never use LinkedIn for residential.</li>
+          <li><strong>Connect first, message after they accept.</strong> The first message is never a pitch. It's a comment on something they posted, or a question about their portfolio.</li>
+          <li><strong>Facebook DMs work for residential storm response.</strong> Geo-targeted neighborhood groups. "Saw the post about hail on Walnut — drone-scanned a few homes there yesterday. Want me to send the photos? No charge."</li>
+          <li><strong>Nextdoor: never DM cold.</strong> Build authority through helpful comments on roof-related posts for 6 months before any DM.</li>
+        </ul>
+
+        <div class="script">
+<span class="label">LinkedIn First Message — PM</span><button class="copy-btn">Copy</button>Hi [NAME] — thanks for connecting. Saw you manage [PORTFOLIO TYPE / SIZE] in [METRO]. Quick question, not a pitch: which of your buildings has given you the most roof-related grief in the last 12 months? I work with PMs on the "won't stop leaking" properties specifically — happy to share a no-charge condition report on your worst offender if useful.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The 5-Touch Cadence Across Channels</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>One channel never wins. Stack them.</p>
+        <ol>
+          <li><strong>Day 1:</strong> Cold call → voicemail → SMS in 60 seconds.</li>
+          <li><strong>Day 3:</strong> Cold email.</li>
+          <li><strong>Day 5:</strong> LinkedIn connect (commercial) OR door knock (residential storm).</li>
+          <li><strong>Day 8:</strong> Second cold call → voicemail → SMS.</li>
+          <li><strong>Day 14:</strong> Handwritten note in the mail. Yes, paper. Stops them in their tracks. 80% open rate.</li>
+        </ol>
+        <p>If still no response by day 21: drop into a 90-day re-engagement list. Touch every 90 days for a year. Most deals close on touch 7-12.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== NETWORKING =================== -->
+  <section id="sec-network" class="hidden">
+    <div class="section-head">🤝 Networking &amp; Referrals</div>
+    <div class="section-sub">Slowest channel to start, highest LTV. Your year-2 income comes from here.</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">The Referral Math</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>A closed customer who refers one neighbor = $9-15k. That's a $9-15k follow-up call you never made. The reps who win year 2 don't just close — they <strong>convert closes into referrers</strong>.</p>
+        <ul>
+          <li><strong>Ask at the moment of joy.</strong> Crew leaves, roof looks great, homeowner walks out smiling. That's when. Not 2 weeks later.</li>
+          <li><strong>Ask specifically.</strong> Not "know anyone who needs a roof" — "is there one neighbor on this block you'd hate to see go to a fly-by-night company?"</li>
+          <li><strong>Give them a tool.</strong> Branded postcard, $250 referral check, your card with their name on the back. Make it easy.</li>
+          <li><strong>Close the loop.</strong> When the referral closes, send the referrer a hand-signed thank you + the check + a photo of the new roof. They'll send more.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">BNI / Chamber / Trade Groups</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>BNI (Business Network International)</strong> — one of you per category. Weekly meetings, structured referrals. Worth it in years 2-5 of your career, not year 1.</li>
+          <li><strong>Local Chamber of Commerce</strong> — slower than BNI but the network includes commercial decision-makers. Show up to mixers. Bring cards. Don't pitch.</li>
+          <li><strong>NARI / NAHB / NRCA</strong> — trade-specific orgs. Membership = access to local trade-only events where adjusters, inspectors, and builders all hang out.</li>
+          <li><strong>The "no-pitch rule" at networking events.</strong> First 3 events at any new group = zero pitching. Just learn names, ask questions, be useful. Pitch in event 4+.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Subcontractor &amp; Adjacent-Trade Relationships</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>The other trades on a property are an underrated referral source. They see what you don't.</p>
+        <ul>
+          <li><strong>HVAC techs</strong> are on roofs constantly. They see hail bruising before any rep. A 6-pack and a conversation = a multi-year referral pipeline.</li>
+          <li><strong>Solar installers</strong> can't install over a bad roof. They need someone to call when the roof flunks. Be that person.</li>
+          <li><strong>Gutter, siding, painters, pressure washers</strong> — all see the roof. All have customer trust. All can refer.</li>
+          <li><strong>Plumbers</strong> when there's a leak — they get called first. If they have a roofer they trust, they refer.</li>
+        </ul>
+
+        <div class="script">
+<span class="label">Cross-Trade Outreach Script</span><button class="copy-btn">Copy</button>"Hey [NAME] — [REP] with [COMPANY], we're the roofer that picks up the phone when you've got a customer with a roof issue you can't touch. I'm not asking for a referral right now. I'm asking who you usually call when a customer's roof is the problem — and if it's not you happy with that person, I'd love a shot. Coffee on me, this week or next?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Referral Ask Script Bank</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">
+<span class="label">Crew-Done Ask (the gold one)</span><button class="copy-btn">Copy</button>"The crew's wrapping up — roof looks great, you should be set for the next 25+ years. One favor, no pressure: as we head out, is there a neighbor on this block you'd actually hate to see go to a bad roofer? If you've got a name, I'll knock on their door this week with a referral discount and tell them you sent me. Worst case, they say no thanks."</div>
+
+        <div class="script">
+<span class="label">90-Day Check-In Ask</span><button class="copy-btn">Copy</button>"Hey [NAME] — [REP] from [COMPANY], you're 90 days in on the new roof. Two things: first, any drips, any concerns? Second — quick favor — would you mind dropping a Google review? I'll send the link via text. Takes 30 seconds, makes my year."</div>
+
+        <div class="script">
+<span class="label">Review Request SMS</span><button class="copy-btn">Copy</button>Hey [NAME] — [REP] here. Quick favor: would you drop a quick Google review on us? Anything you write is genuinely useful. Link: [REVIEW LINK]. Thanks 🙏</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== ROOFING SYSTEMS =================== -->
+  <section id="sec-roofs" class="hidden">
+    <div class="section-head">🏠 Roofing Systems Encyclopedia</div>
+    <div class="section-sub">11 systems. What they are, how they fail, what to pitch, and the exact scripts to use at the door and on the phone.</div>
+
+    <!-- ASPHALT -->
+    <div class="card open">
+      <div class="card-head"><div class="title">Asphalt Shingles (3-tab &amp; Architectural)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="kv"><h6>Lifespan</h6><div class="val">3-tab: 15-20 yrs. Arch: 25-30 yrs.</div></div>
+          <div class="kv"><h6>Avg Cost</h6><div class="val">$5-10/sqft installed</div></div>
+          <div class="kv"><h6>Market Share</h6><div class="val">~75% of US residential</div></div>
+        </div>
+        <h4>How it fails</h4>
+        <ul>
+          <li>Granule loss → UV exposes asphalt → cracking</li>
+          <li>Curling tabs (wind uplift + age)</li>
+          <li>Hail bruising (impact marks, broken seal strips)</li>
+          <li>Algae streaking (cosmetic but signals age)</li>
+          <li>Flashing failure at chimneys, vents, valleys</li>
+          <li>Nail pops &amp; missing tabs from wind</li>
+        </ul>
+        <h4>The pitch angle</h4>
+        <p>For 95% of homeowners, asphalt is the default. They don't need to be sold <em>asphalt</em> — they need to be sold <em>now vs. later</em>. Lean on hail/wind damage (insurance pays), warranty (peace of mind), and home value (1-for-1 ROI in most markets).</p>
+
+        <div class="script">
+<span class="label">D2D — Asphalt</span><button class="copy-btn">Copy</button>"Mr./Mrs. [NAME], roof looks like the original arch shingles from when the neighborhood was built — what, '08, '09? They've got maybe 5-7 good years left, which is fine, except you've got hail bruising on the south slope that means insurance might pay for the whole thing right now — and won't in two years when they age out. 8 minutes with the drone tells us if you're sitting on a free replacement. Worth the time?"</div>
+
+        <div class="script">
+<span class="label">Cold Call — Asphalt</span><button class="copy-btn">Copy</button>"Hi [NAME] — drone work in [NEIGHBORHOOD] flagged your roof on the list of likely hail bruising. Asphalt shingles past 12-15 years stop qualifying for full claims, so timing matters. Want me to send the drone shots so you can see what we saw?"</div>
+      </div>
+    </div>
+
+    <!-- METAL -->
+    <div class="card">
+      <div class="card-head"><div class="title">Metal Roofing (Standing Seam, R-Panel, Stone-Coated Steel)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="kv"><h6>Lifespan</h6><div class="val">40-70 years</div></div>
+          <div class="kv"><h6>Avg Cost</h6><div class="val">$10-18/sqft installed</div></div>
+          <div class="kv"><h6>Best for</h6><div class="val">Long-term owners, high-wind/snow zones, fire-prone areas</div></div>
+        </div>
+        <h4>How it fails</h4>
+        <ul>
+          <li>Fastener back-out (exposed fastener systems)</li>
+          <li>Sealant degradation at panel laps and penetrations</li>
+          <li>Oil canning (cosmetic — manage expectations)</li>
+          <li>Galvanic corrosion at dissimilar metal contact</li>
+          <li>Hail dents (cosmetic on most panels, structural rare)</li>
+        </ul>
+        <h4>The pitch angle</h4>
+        <p>Metal is bought, not sold. The customer is usually already curious. Your job is to (1) qualify their lifetime intent, (2) protect them from cheap exposed-fastener installs, (3) sell standing seam if budget allows.</p>
+
+        <div class="script">
+<span class="label">D2D — Metal Upsell from Asphalt</span><button class="copy-btn">Copy</button>"Quick question — how long do you plan on being in this house? Because we're seeing about 70% of replacements in this neighborhood going to standing seam metal lately. Costs more upfront, but it's the last roof you'd ever buy. If you're a 10+ year owner, the math works. If you're 5 and out, we'd stick with arch shingles. Either way, I want to drone-scan first so we know what we're working with."</div>
+
+        <div class="script">
+<span class="label">Cold Call — Metal (commercial / agricultural)</span><button class="copy-btn">Copy</button>"Hi [NAME] — calling because we do standing seam and R-panel work for commercial/ag buildings in [METRO], and metal roofs your age tend to start showing fastener back-out and seam failure around year 20-25. Has anyone done a sealant inspection on yours in the last 5 years? Because a $2k touch-up now usually saves a $40k re-cover later."</div>
+      </div>
+    </div>
+
+    <!-- TILE -->
+    <div class="card">
+      <div class="card-head"><div class="title">Clay &amp; Concrete Tile</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="kv"><h6>Lifespan</h6><div class="val">50-100 yrs (tile). Underlayment 20-25 yrs.</div></div>
+          <div class="kv"><h6>Avg Cost</h6><div class="val">$10-25/sqft installed (relay $5-10/sqft)</div></div>
+          <div class="kv"><h6>Region</h6><div class="val">CA, AZ, FL, TX — Mediterranean/Spanish architecture</div></div>
+        </div>
+        <h4>How it fails (this is the key insight)</h4>
+        <p><strong>The tile rarely fails — the underlayment does.</strong> Most homeowners think their tile roof is fine because they see no cracked tiles. Meanwhile the underlayment beneath has aged out and is leaking into the deck. <em>This is the pitch.</em></p>
+        <ul>
+          <li>Underlayment 20-25 yr lifespan</li>
+          <li>Cracked or slipped tiles from foot traffic or impact</li>
+          <li>Mortar failure at hips and ridges</li>
+          <li>Valley metal corrosion</li>
+        </ul>
+
+        <div class="script">
+<span class="label">D2D — Tile (the underlayment angle)</span><button class="copy-btn">Copy</button>"Beautiful tile roof — what is that, '02, '03? Here's the thing nobody tells homeowners about tile: the tile lasts 100 years, but the underlayment beneath only lasts 20-25. Most folks don't replace it because the tile looks fine — and that's exactly how decking rot starts. The good news: we can lift the tile, replace the underlayment, and reuse 90%+ of the original tile. Costs about half a full replacement. Want me to come up and pull a tile to show you what's underneath?"</div>
+
+        <div class="script">
+<span class="label">Cold Call — Tile (relay opportunity)</span><button class="copy-btn">Copy</button>"Hey [NAME] — [REP] from [COMPANY]. Quick reason for the call: tile underlayment ages out around year 22-25 and we're seeing a wave of homes in [NEIGHBORHOOD] hitting that age right now. A tile relay is roughly half what a new tile roof costs and you reuse most of your existing tile. Worth me coming out for a no-charge look?"</div>
+      </div>
+    </div>
+
+    <!-- SLATE -->
+    <div class="card">
+      <div class="card-head"><div class="title">Slate</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="kv"><h6>Lifespan</h6><div class="val">75-200 yrs (natural)</div></div>
+          <div class="kv"><h6>Avg Cost</h6><div class="val">$15-30/sqft installed</div></div>
+          <div class="kv"><h6>Region</h6><div class="val">Northeast, Mid-Atlantic — older &amp; high-end homes</div></div>
+        </div>
+        <h4>How it fails</h4>
+        <ul>
+          <li>Nail/fastener failure (slate stays, fasteners fail — slates slide)</li>
+          <li>Delaminating tiles (soft slate variants 60-100 yrs)</li>
+          <li>Flashing failure at chimneys, valleys, eaves</li>
+          <li>Improper foot traffic damage</li>
+        </ul>
+        <h4>The pitch angle</h4>
+        <p>Slate clients are sophisticated. Don't sell — diagnose. Lead with expertise: "most so-called slate contractors are actually doing slate-look composite. Real slate is its own craft. Here's what we look at…"</p>
+
+        <div class="script">
+<span class="label">D2D — Slate (high-end, low-volume)</span><button class="copy-btn">Copy</button>"Beautiful slate — that looks like Vermont gray? With slate the slates themselves outlive the building, but the copper flashings and the nail fasteners age out at maybe 60-80 years. Has anyone evaluated the flashings on this roof recently? Because if you're going to spend on slate repair, you want it done by someone who's actually working slate — not asphalt guys with a ladder. Mind if I take a quick look?"</div>
+      </div>
+    </div>
+
+    <!-- WOOD SHAKE -->
+    <div class="card">
+      <div class="card-head"><div class="title">Wood Shake / Cedar Shingle</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="kv"><h6>Lifespan</h6><div class="val">20-40 yrs (climate dependent)</div></div>
+          <div class="kv"><h6>Avg Cost</h6><div class="val">$8-15/sqft installed</div></div>
+          <div class="kv"><h6>Watch-outs</h6><div class="val">Fire codes, insurance non-renewal in WUI zones</div></div>
+        </div>
+        <h4>How it fails</h4>
+        <ul>
+          <li>Splitting, cupping, curling (UV + moisture cycles)</li>
+          <li>Moss &amp; algae growth (Pacific NW especially)</li>
+          <li>Fire insurance non-renewal (huge in CA/CO/AZ wildfire zones)</li>
+          <li>Pest infiltration</li>
+        </ul>
+        <h4>The pitch angle</h4>
+        <p>In wildfire zones, the angle is <strong>insurance non-renewal</strong>. Most cedar homes are getting dropped or having premiums doubled. Conversion to Class A fire-rated (asphalt, metal, tile) saves the policy.</p>
+
+        <div class="script">
+<span class="label">D2D — Cedar in wildfire zone</span><button class="copy-btn">Copy</button>"Quick one — has your insurance carrier said anything yet about the cedar shake? Because over the last 18 months we've had 4 out of 5 cedar-shake homeowners on this street get non-renewal notices or premium hikes north of 60%. We do conversions to Class A fire-rated — saves the policy, raises the home value. Mind if I take a look at what's up there and pull a quick number?"</div>
+      </div>
+    </div>
+
+    <!-- TPO -->
+    <div class="card">
+      <div class="card-head"><div class="title">TPO (Thermoplastic Polyolefin) — Commercial Flat</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="kv"><h6>Lifespan</h6><div class="val">15-25 yrs</div></div>
+          <div class="kv"><h6>Avg Cost</h6><div class="val">$6-12/sqft installed</div></div>
+          <div class="kv"><h6>Best for</h6><div class="val">Strip malls, warehouses, schools, retail, small commercial</div></div>
+        </div>
+        <h4>How it fails</h4>
+        <ul>
+          <li>Seam separation (heat-welded seams weakening over time)</li>
+          <li>Punctures (HVAC techs walking with tools)</li>
+          <li>Membrane shrinkage pulling at perimeters</li>
+          <li>Ponding water → premature aging</li>
+          <li>Inadequate or compressed insulation</li>
+        </ul>
+        <h4>The pitch angle</h4>
+        <p>Property managers don't care about membranes. They care about tenant calls. Pitch <strong>leak elimination + tax depreciation + capex planning</strong>. The conversation is about their P&amp;L, not your roof.</p>
+
+        <div class="script">
+<span class="label">Cold Call — TPO (PM)</span><button class="copy-btn">Copy</button>"Hi [NAME] — [REP] with [COMPANY]. We do commercial TPO and EPDM work in [METRO]. Quick question, not a pitch: out of your portfolio, which 1-2 buildings have called you most about roof leaks in the last 12 months? Because that's where we'd start with a free condition report — and you'd get something useful to budget against for next year's capex."</div>
+
+        <div class="script">
+<span class="label">D2D — TPO Strip Mall (walk-in to manager)</span><button class="copy-btn">Copy</button>"Hi — looking for the property manager? I'm [REP] with [COMPANY], we just finished a TPO re-cover on [NEARBY PROPERTY] and I noticed your roof shows some classic membrane shrinkage from the parking lot. Mind if I leave a card for the PM and grab their email? I want to send a quick drone scan we'd do for free."</div>
+      </div>
+    </div>
+
+    <!-- EPDM -->
+    <div class="card">
+      <div class="card-head"><div class="title">EPDM (Rubber) — Commercial Flat</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="kv"><h6>Lifespan</h6><div class="val">20-30 yrs</div></div>
+          <div class="kv"><h6>Avg Cost</h6><div class="val">$5-10/sqft installed</div></div>
+          <div class="kv"><h6>Best for</h6><div class="val">Larger flat roofs, freezer/warehouse, retrofits</div></div>
+        </div>
+        <h4>How it fails</h4>
+        <ul>
+          <li>Seam tape failure (older glue-down systems especially)</li>
+          <li>Shrinkage at perimeters &amp; penetrations</li>
+          <li>Hail bruising (visible on black membrane)</li>
+          <li>UV-driven cracking on unballasted systems</li>
+        </ul>
+
+        <div class="script">
+<span class="label">Cold Call — EPDM (Facility Director)</span><button class="copy-btn">Copy</button>"Hi [NAME] — [REP] from [COMPANY]. Calling because EPDM roofs from the mid-90s to early 2000s are hitting end of life right now, and we're seeing a wave of seam failures across [METRO]. Has anyone done a seam inspection on your roof in the last 2 years? We do them no-charge — usually we walk away with photos and a 5-page condition report you can take to your board."</div>
+      </div>
+    </div>
+
+    <!-- PVC -->
+    <div class="card">
+      <div class="card-head"><div class="title">PVC — Commercial Flat (Premium)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="kv"><h6>Lifespan</h6><div class="val">20-30 yrs</div></div>
+          <div class="kv"><h6>Avg Cost</h6><div class="val">$8-14/sqft installed</div></div>
+          <div class="kv"><h6>Best for</h6><div class="val">Restaurants, grease-exposed, chemical exposure, hospitals</div></div>
+        </div>
+        <h4>The pitch angle</h4>
+        <p>PVC's pitch is <strong>chemical resistance + welded seams</strong>. If the building handles food, chemicals, or has rooftop exhaust, PVC dramatically outlasts TPO. Lead with regulatory + insurance angle: many food-service properties require PVC for grease compliance.</p>
+
+        <div class="script">
+<span class="label">Cold Call — PVC (Restaurant chain GM/ops)</span><button class="copy-btn">Copy</button>"Hi [NAME] — [REP] with [COMPANY]. We specialize in PVC roofing for restaurant operations. Quick question: how often is your kitchen exhaust dumping grease near the roof penetrations? Because TPO and EPDM break down where grease lands — and we replace a lot of 12-year-old TPO roofs that should have been PVC from day one. Worth 15 minutes to look at your worst location?"</div>
+      </div>
+    </div>
+
+    <!-- SPF -->
+    <div class="card">
+      <div class="card-head"><div class="title">SPF (Spray Polyurethane Foam)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="kv"><h6>Lifespan</h6><div class="val">30-50 yrs with recoats</div></div>
+          <div class="kv"><h6>Avg Cost</h6><div class="val">$5-9/sqft installed</div></div>
+          <div class="kv"><h6>Best for</h6><div class="val">Recovering existing flat roofs, R-value upgrades, irregular shapes</div></div>
+        </div>
+        <h4>Why SPF is the secret weapon</h4>
+        <p>SPF goes <strong>over</strong> existing roofs without tear-off in most cases. That's the pitch: half the cost of replacement, doubles the R-value, eliminates seams (monolithic), can be re-coated every 10-15 years for life. Most building owners have no idea this is an option.</p>
+        <ul>
+          <li>Re-coat cycle: silicone or acrylic top coat at year 10-15 → another 10-15 yrs</li>
+          <li>Energy savings: typical 25-35% AC reduction (Cool Roof rated coatings)</li>
+          <li>Insurance/tax: many buildings get reclassified for energy credits</li>
+        </ul>
+        <h4>How it fails</h4>
+        <ul>
+          <li>Coating wear (UV) — solvable with re-coat</li>
+          <li>Mechanical damage (HVAC techs again)</li>
+          <li>Bird damage (rare, but real in some markets)</li>
+          <li>Improper substrate prep on install (the #1 reason SPF fails — pick a good installer)</li>
+        </ul>
+
+        <div class="script">
+<span class="label">Cold Call — SPF (the "no tear-off" angle)</span><button class="copy-btn">Copy</button>"Hi [NAME] — [REP] with [COMPANY]. I'll keep this to 30 seconds. We do spray polyurethane foam roof recovers — which means we can typically go right over your existing roof, no tear-off, and double your R-value while we're at it. Properties our size usually see 25-30% summer AC reduction. Most owners have no idea this is even an option. Worth a 15-minute conversation about your worst-performing building?"</div>
+
+        <div class="script">
+<span class="label">D2D — SPF for Industrial / Warehouse Walk-in</span><button class="copy-btn">Copy</button>"Hi — is the building owner or facility manager around? I'm [REP] with [COMPANY] — we just did a spray foam recover on [NEARBY BUILDING] and it cut their summer cooling bill almost in half. I noticed your roof is the kind that's a perfect SPF candidate — flat, asphalt or single-ply under it, would save you a tear-off. Can I leave a one-pager?"</div>
+      </div>
+    </div>
+
+    <!-- MOD BIT -->
+    <div class="card">
+      <div class="card-head"><div class="title">Modified Bitumen (Mod Bit)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="kv"><h6>Lifespan</h6><div class="val">10-20 yrs</div></div>
+          <div class="kv"><h6>Avg Cost</h6><div class="val">$4-8/sqft installed</div></div>
+          <div class="kv"><h6>Best for</h6><div class="val">Smaller flat commercial, older retrofits</div></div>
+        </div>
+        <h4>How it fails</h4>
+        <ul>
+          <li>Granule loss exposing asphalt</li>
+          <li>Seam separation, especially torch-applied</li>
+          <li>Alligator cracking from UV</li>
+          <li>Ponding water deterioration</li>
+        </ul>
+        <h4>The pitch angle</h4>
+        <p>Most mod bit owners are good candidates for an SPF recover or a TPO/PVC re-cover. Don't sell them another mod bit unless they specifically need it. The pitch is "upgrade to a 25-year system for not much more than another 12-year band-aid."</p>
+      </div>
+    </div>
+
+    <!-- BUR -->
+    <div class="card">
+      <div class="card-head"><div class="title">BUR (Built-Up Roof, "Tar &amp; Gravel")</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="kv"><h6>Lifespan</h6><div class="val">15-30 yrs</div></div>
+          <div class="kv"><h6>Avg Cost</h6><div class="val">$5-10/sqft installed</div></div>
+          <div class="kv"><h6>Status</h6><div class="val">Declining install — mostly seen on older buildings</div></div>
+        </div>
+        <h4>How it fails</h4>
+        <ul>
+          <li>Ballast displacement → membrane exposure</li>
+          <li>Alligatoring of bitumen</li>
+          <li>Blistering &amp; ridging</li>
+          <li>Flashing failure at parapets</li>
+        </ul>
+        <h4>The pitch angle</h4>
+        <p>BUR owners are almost always candidates for an SPF recover or single-ply re-cover. Lead with the maintenance burden: "BUR was 30-year tech in the '70s, but maintenance costs have crept up to where most owners save money switching to TPO or SPF in years 18-22."</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== INSURANCE =================== -->
+  <section id="sec-insurance" class="hidden">
+    <div class="section-head">🌪️ Insurance Process Mastery</div>
+    <div class="section-sub">Storm work is half the income in this trade — and 80% of reps leave money on the table because they don't know the process, the timing, or the line items. Inspired by RRCA &amp; O'Brien Contracting training. (Future build: connect <code>globalcontractor.app</code> for Xactimate-style estimating in-app.)</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">The Insurance Process — End to End</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">The whole flow, in plain English. Every rep should be able to recite this cold — homeowners ask, and the rep who explains it clearly wins the job.</p>
+
+        <h4>Phase 1 — Pre-Claim Discovery (you, before the call)</h4>
+        <ol>
+          <li><strong>Storm event verification.</strong> Pull NOAA / HailTrace / Interactive Hail Maps. Confirm date, time, hail size, wind speed, polygon coverage. Screenshot it. This is your evidence.</li>
+          <li><strong>Free inspection.</strong> Drone + ladder. Document <em>everything</em> (see master checklist below — not just the roof).</li>
+          <li><strong>Walk the homeowner through your findings.</strong> Photos on the spot. Use adjuster language: "hail bruising," "wind uplift," "creased shingle," "compromised seal," "collateral damage."</li>
+          <li><strong>Sign a contingency agreement</strong> (or AOB where legal). This says you do the work <em>contingent</em> on insurance approval. Protects both of you.</li>
+        </ol>
+
+        <h4>Phase 2 — Claim Filing &amp; Adjuster Meeting</h4>
+        <ol>
+          <li>Homeowner files the claim (you coach them — don't file for them in most states; it's their policy).</li>
+          <li>Insurance assigns an adjuster. Usually 3-21 day window.</li>
+          <li><strong>You meet the adjuster on the roof.</strong> Always. Never let the homeowner meet the adjuster alone.</li>
+          <li>Adjuster issues a scope &amp; estimate (the "Scope of Loss" or "Estimate of Damage").</li>
+          <li>Carrier sends the homeowner the ACV check (initial payment minus depreciation minus deductible).</li>
+        </ol>
+
+        <h4>Phase 3 — Supplements, Work, Final Payment</h4>
+        <ol>
+          <li><strong>You review the adjuster's scope line-by-line.</strong> Anything missed? File a supplement immediately.</li>
+          <li>Do the work. Document with photos: before, during, after, code upgrades.</li>
+          <li>Submit final invoice with completion certificate, photos, code-required upgrade documentation.</li>
+          <li>Carrier releases <strong>depreciation recovery</strong> (the RCV minus ACV difference) once work is complete.</li>
+          <li>Homeowner endorses the depreciation check. You collect.</li>
+        </ol>
+
+        <div class="quote">"The reps who treat insurance like a separate job from sales make 6 figures. The reps who treat it as paperwork after a sale stay at 50k forever."<span class="who">— blue collar truth</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Storm Response Timing — The Four Windows</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Every storm creates four distinct selling windows. The opener, the urgency, and the conversation are completely different in each.</p>
+
+        <h4>🔥 Window 1 — Immediate (0-72 hours after the storm)</h4>
+        <ul>
+          <li><strong>Homeowner state:</strong> aware, alert, anxious, watching for adjusters.</li>
+          <li><strong>Competition:</strong> brutal — every roofer in the state is on the polygons. Be first or be third.</li>
+          <li><strong>Pitch angle:</strong> "Get inspected and documented <em>before</em> your adjuster. Whoever sees the roof first sets the narrative."</li>
+          <li><strong>Risk:</strong> storm chasers from out of state, fly-by-night LLCs, predatory AOB schemes. Differentiate hard on being local + licensed + insured.</li>
+        </ul>
+
+        <div class="script">
+<span class="label">D2D — Immediate Storm Window</span><button class="copy-btn">Copy</button>"Hey [NAME], [REP] with [COMPANY] — I won't take 60 seconds. We were on your block at [TIME] yesterday and the hail polygon went right over your house. Insurance carriers are scheduling adjusters this week, and the homes that get documented <em>before</em> the adjuster shows up get a way better claim outcome. Free drone scan, 8 minutes, no obligation. Yes or no?"</div>
+
+        <h4>🟡 Window 2 — Mid-Range (2-12 weeks post-storm)</h4>
+        <ul>
+          <li><strong>Homeowner state:</strong> moving on. "I checked, didn't see anything. I'm fine." Wrong, but reasonable.</li>
+          <li><strong>Pitch angle:</strong> "Hail damage doesn't show as a leak for 6-18 months. By then the claim window has tightened and the damage is harder to prove. Now is the window."</li>
+          <li><strong>Approach:</strong> reference the specific storm date. Show them the hail polygon over their address. Most haven't seen this evidence.</li>
+        </ul>
+
+        <div class="script">
+<span class="label">D2D — Mid-Range</span><button class="copy-btn">Copy</button>"Hi [NAME] — quick question. Did anyone ever look at your roof after the [STORM DATE] hail event? Because most people on this block didn't get inspected and they're sitting on damage they don't know about. The trap is, hail damage doesn't leak right away — it ages the shingles and shows up as a leak 12-18 months later, after the claim window closes. 8 minutes with the drone tells us if there's anything to even file."</div>
+
+        <h4>🟠 Window 3 — Aged Claim (3-12+ months post-storm)</h4>
+        <ul>
+          <li><strong>Homeowner state:</strong> forgot about the storm. "We had a storm? When?"</li>
+          <li><strong>Pitch angle:</strong> revive the memory with specifics. Date, time, hail size, polygon. Then show that most carriers have a 1-2 year filing window from date of loss — but it tightens fast.</li>
+          <li><strong>Approach:</strong> bring a printed weather report. Sounds extreme; it works.</li>
+        </ul>
+
+        <div class="script">
+<span class="label">D2D — Aged Claim</span><button class="copy-btn">Copy</button>"Mr./Mrs. [NAME] — bear with me, this'll sound weird. On [DATE] — about [#] months back — there was a hail event that put 1.25" stones over this neighborhood for about 15 minutes. Most homeowners forgot. Here's the National Weather Service report [hand them a printout]. Most carriers will still pay damage from that event for another [#] months, but the window closes. We're knocking the affected streets one more time. Worth 8 minutes with the drone to see if you've got anything?"</div>
+
+        <h4>🟢 Window 4 — Outskirts / Borderline Hail (the underrated channel)</h4>
+        <ul>
+          <li><strong>State:</strong> homes on the edge of a storm polygon, or hit by smaller hail (½" - ¾"). Most reps skip these streets because the damage is harder to see.</li>
+          <li><strong>Reality:</strong> smaller hail still creates <strong>functional damage</strong> — granule loss, mat exposure, shortened roof life. Many carriers pay if you document properly.</li>
+          <li><strong>Pitch angle:</strong> "You were on the edge of the storm. The bigger streets got hammered and got fast service. Your block got less hail, so you got skipped. But you might still qualify — and the rep who documents you carefully gets you paid."</li>
+          <li><strong>This is your year-round work after a storm cycle.</strong> Lower competition, slightly lower close rate, but doors stay open longer than the hot zones.</li>
+        </ul>
+
+        <div class="script">
+<span class="label">D2D — Outskirts / Borderline</span><button class="copy-btn">Copy</button>"Hi [NAME] — your block was on the edge of the [DATE] storm, the part most roofers skip because the hail was smaller. But smaller hail still beats up shingles — just less visibly. We do a careful drone inspection looking specifically for granule loss, mat exposure, and the borderline impacts that bigger crews miss. Half the homes I scan on these edge streets still qualify for an insurance look. Free, 8 minutes, no obligation."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Master Damage Documentation Checklist</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">The roof is the entry point — but the rest of the property is where the supplement money lives. Walk the entire exterior, every time. If you only document the roof, you're working at half rate.</p>
+
+        <h4>🏠 The Roof Itself</h4>
+        <ul>
+          <li>Hail bruising / impact marks (chalk-circle each one for photo)</li>
+          <li>Wind damage: creased shingles, lifted tabs, missing shingles</li>
+          <li>Granule loss in valleys, gutters, downspout splash blocks</li>
+          <li>Mat / fiberglass exposure under granule loss</li>
+          <li>Compromised seal strips (lift test)</li>
+          <li>Flashing damage: step, counter, valley, drip edge, apron</li>
+          <li>Pipe boots &amp; collars (cracked, lifted)</li>
+          <li>Ridge cap shingles (frequently overlooked)</li>
+          <li>Hip &amp; valley damage</li>
+          <li>Underlayment exposure, decking visible</li>
+          <li>Skylights (frames, flashing, glass)</li>
+          <li>Sun tunnels / solar tubes</li>
+          <li>Turtle vents, ridge vent, box vents, gable vents</li>
+          <li>Chimney chase pan, shroud, cap, cricket flashing</li>
+          <li>Solar panel tempered glass (look closely)</li>
+          <li>Satellite dish brackets (DnR opportunity)</li>
+        </ul>
+
+        <h4>🪵 Gutters, Fascia, Soffit, Wraps</h4>
+        <ul>
+          <li>Gutter dents, dings, splatter marks (hail "splash pattern")</li>
+          <li>Gutter pitch / detachment</li>
+          <li>Downspouts: dents, detachment, splash block</li>
+          <li>Fascia: wood rot under aluminum, dents in aluminum wrap</li>
+          <li>Soffit panels: dents, holes, ventilation soffit damage</li>
+          <li>Gutter guards / leaf filter (often hail-pitted)</li>
+          <li><strong>Fascia wrap / aluminum trim</strong> — frequently missed line item</li>
+          <li><strong>Frieze board</strong> — the trim board where siding meets soffit</li>
+        </ul>
+
+        <h4>🧱 Siding &amp; Exterior Walls</h4>
+        <ul>
+          <li>Vinyl siding: cracks, chips, holes, fading from impact</li>
+          <li>Hardiplank / fiber cement: chips, breaks, paint loss at impacts</li>
+          <li>Stucco: pitting, cracking, chunks missing</li>
+          <li>Brick &amp; stone: rare but check for chips on softer brick</li>
+          <li>Wood siding: dents, paint loss at impact, splintering</li>
+          <li>Caulking damage at seams</li>
+          <li>Paint chipping at impact zones (separate paint line item)</li>
+        </ul>
+
+        <h4>🪟 Windows, Doors, &amp; Wraps (the easy-to-miss money)</h4>
+        <ul>
+          <li><strong>Window screens</strong> — always paid, check every one. Hail-pitted screens come out 100% of the time.</li>
+          <li>Window glass: cracking, pitting (uncommon but check tempered/casement)</li>
+          <li><strong>Window wraps / aluminum trim</strong> — the aluminum surround on most newer windows. Dents = full replacement on that wrap.</li>
+          <li>Window sills (wood): paint loss, denting, rot exposed</li>
+          <li>Window frames: vinyl cracking, aluminum denting</li>
+          <li>Storm windows / storm doors</li>
+          <li>Bay window roofs (mini-roof above bay — frequently missed)</li>
+          <li><strong>Door wraps / aluminum trim</strong> — same as window wraps, around exterior doors</li>
+          <li>Garage doors — <strong>this is a $1,500-$4,000 line item people forget</strong>. Even small dents = panel replacement.</li>
+          <li>Door screens, screen doors</li>
+          <li>Door glass: storm doors, sidelights, transom windows</li>
+          <li>Door hardware: kickplate damage, dented handles</li>
+        </ul>
+
+        <h4>❄️ HVAC, Electrical, &amp; Utility</h4>
+        <ul>
+          <li><strong>AC condenser fins</strong> — bent fins from hail. The fix is "condenser comb" — a labor line item, ~$150-300 per unit. <em>Always check, almost always paid.</em></li>
+          <li>AC unit covers / top grilles (dented or cracked)</li>
+          <li>Mini-split outdoor units</li>
+          <li>Electrical meter / meter base wrap</li>
+          <li>Electrical service mast (if bent from wind)</li>
+          <li>Light fixtures: broken globes, dented housings, broken bulbs</li>
+          <li>Doorbell housing, intercom box</li>
+          <li>Security camera housings</li>
+          <li>Pool pump housing</li>
+        </ul>
+
+        <h4>🌳 Outdoor Structures &amp; Items</h4>
+        <ul>
+          <li>Detached garage / shed roof &amp; siding</li>
+          <li>Pergola / gazebo roofs</li>
+          <li>Outdoor kitchen tops, grill covers</li>
+          <li>Mailbox &amp; mailbox post</li>
+          <li>House numbers, decorative gable items</li>
+          <li>Pool screen enclosure / lanai (huge in FL — entire screen + frame replaced)</li>
+          <li>Trampoline (if visible event damage)</li>
+          <li>Playhouse / swing set roofs</li>
+          <li>RV cover / boat cover (if structural)</li>
+          <li><strong>Wood fence — paint and stain.</strong> If the storm peppered the fence enough to chip paint or pit the stain, that's a re-stain line item: <em>"pressure wash &amp; restain wood fence."</em> Frequently missed.</li>
+          <li><strong>Wood deck — re-stain</strong> if the storm peppered the deck surface and stripped finish</li>
+        </ul>
+
+        <h4>📋 Add-On / Code-Required / Overhead</h4>
+        <ul>
+          <li><strong>Ice &amp; water shield</strong> at eaves, valleys, penetrations (code in most cold-climate jurisdictions)</li>
+          <li><strong>Drip edge</strong> (code in most states post-2012; if not present, add as code upgrade)</li>
+          <li><strong>Synthetic underlayment upgrade</strong> (vs felt)</li>
+          <li>Deck re-nailing pattern (6-nail in high-wind, code in many jurisdictions)</li>
+          <li>Step flashing replacement (cannot reuse old step flashing — code in most jurisdictions)</li>
+          <li>Permit fees (line item — varies by city)</li>
+          <li>Dumpster &amp; debris haul-off</li>
+          <li><strong>Detach &amp; Reset (DnR)</strong>: solar panels, satellite dishes, lightning rods, antennas, weather stations</li>
+          <li><strong>General Contractor Overhead &amp; Profit (O&amp;P)</strong>: 10% / 10% = 20% on claims involving 3+ trades. Many adjusters omit this — supplement it.</li>
+          <li>Sales tax on materials (state-dependent)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Money Makers — Line Items 80% of Reps Miss</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Memorize these. Every one of them is a real, common, payable line item that the average rep overlooks. This list is the difference between a $14k job and a $22k job on the same roof.</p>
+        <div class="grid-2">
+          <div class="kv"><h6>Condenser Comb</h6><div class="val">Hail-bent AC fins. ~$150-300/unit. Universal.</div></div>
+          <div class="kv"><h6>Window Screens</h6><div class="val">Pitted from hail. ~$35-75 each. Almost always paid.</div></div>
+          <div class="kv"><h6>Window &amp; Door Wraps</h6><div class="val">Aluminum trim surrounds. ~$80-250 per opening. Dents = replace.</div></div>
+          <div class="kv"><h6>Garage Door Panels</h6><div class="val">Small dents = panel replacement. $1.5k-4k.</div></div>
+          <div class="kv"><h6>Fascia Wrap / Frieze Board</h6><div class="val">Dented aluminum or stained wood trim along eaves.</div></div>
+          <div class="kv"><h6>Pressure Wash + Restain Fence</h6><div class="val">Peppered fence loses stain — restain is line-item.</div></div>
+          <div class="kv"><h6>Pressure Wash + Restain Deck</h6><div class="val">Same logic if deck took impacts.</div></div>
+          <div class="kv"><h6>Pool Screen Enclosure</h6><div class="val">FL/TX — entire panel + frame, huge ticket.</div></div>
+          <div class="kv"><h6>Bay Window Roof</h6><div class="val">Mini-roof above bay window — own line.</div></div>
+          <div class="kv"><h6>Chimney Chase Pan / Shroud / Cap</h6><div class="val">Three separate items. Each can dent.</div></div>
+          <div class="kv"><h6>Skylight Frames &amp; Flashing</h6><div class="val">Even if glass is fine, frame/flash often damaged.</div></div>
+          <div class="kv"><h6>Light Fixture Globes</h6><div class="val">Hail-smashed plastic or glass exterior fixtures.</div></div>
+          <div class="kv"><h6>Mailbox &amp; Post</h6><div class="val">Wood or metal — both qualify.</div></div>
+          <div class="kv"><h6>Detached Shed / Garage Roof</h6><div class="val">Separate structure, separate scope.</div></div>
+          <div class="kv"><h6>Ridge Vent / Box Vents / Turtle Vents</h6><div class="val">Plastic ones crack from hail. Per-vent replacement.</div></div>
+          <div class="kv"><h6>Pipe Boots &amp; Collars</h6><div class="val">UV-cracked or hail-cracked. ~$40-80 each.</div></div>
+          <div class="kv"><h6>Solar Panel Tempered Glass</h6><div class="val">Stress fractures show under angled light. Huge claim.</div></div>
+          <div class="kv"><h6>Satellite/Antenna DnR</h6><div class="val">Detach &amp; reset is a labor line.</div></div>
+          <div class="kv"><h6>Step Flashing</h6><div class="val">Cannot reuse — code requires new. Often skipped.</div></div>
+          <div class="kv"><h6>Drip Edge</h6><div class="val">Code in most states post-2012. If absent, add as code upgrade.</div></div>
+          <div class="kv"><h6>Ice &amp; Water Shield</h6><div class="val">Code upgrade in cold climates — separate line.</div></div>
+          <div class="kv"><h6>Permit Fees</h6><div class="val">Always a line item. Pull from your city's fee schedule.</div></div>
+          <div class="kv"><h6>Dumpster &amp; Haul-Off</h6><div class="val">Often separate line; some adjusters bundle.</div></div>
+          <div class="kv"><h6>GC Overhead &amp; Profit</h6><div class="val">20% (10/10) on 3+ trade claims. Supplement if missing.</div></div>
+        </div>
+        <p style="margin-top:14px"><strong>Walk every claim with this list in hand.</strong> Print it. Laminate it. Clip it to the clipboard. Adjusters will never volunteer these — you have to bring them up.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Adjuster Meeting Playbook</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">The 90-minute window when the adjuster is on the property is the most important meeting in the entire claim. Show up like a pro and you set the scope; show up unprepared and the homeowner gets a partial claim.</p>
+
+        <h4>What to Bring</h4>
+        <ul>
+          <li>Ladder (yours, not theirs)</li>
+          <li>Drone (charged, SD card cleared)</li>
+          <li>Chalk (for circling hail hits — adjusters appreciate the courtesy and it makes photos pop)</li>
+          <li>Tape measure / Bluetooth distance meter</li>
+          <li>Printed copy of your scope and your own Xactimate-style estimate (or the globalcontractor.app printout)</li>
+          <li>Printed storm verification (NOAA / HailTrace screenshot with date, hail size, polygon)</li>
+          <li>Camera or phone for documentation (your photos, not theirs)</li>
+          <li>Master Damage Documentation Checklist (the one above, printed)</li>
+          <li>Business cards + your contractor license number visible</li>
+        </ul>
+
+        <h4>The Meeting — Pre-Roof</h4>
+        <ol>
+          <li>Shake the adjuster's hand. Use their name. Be warm — they have 5 of these today.</li>
+          <li>Confirm the storm event with them. "We're looking at the [DATE] event, 1.5" hail per NOAA, polygon ran from [STREET] to [STREET]." Establishes you've done your homework.</li>
+          <li>Walk them around the exterior <em>before</em> the roof. Point at the gutter splash, the window screens, the fascia. Plant the seed: "we'll want to look at these on the way down too."</li>
+        </ol>
+
+        <h4>The Meeting — On the Roof</h4>
+        <ol>
+          <li>You go up first. Adjuster follows. Don't crowd them.</li>
+          <li>Use the test square method: a 10' × 10' chalk box on the worst slope. Count visible impacts inside the square. Most carriers require 6-8 hits per square (varies — know your carrier).</li>
+          <li>Chalk-circle every hit you find. Take photos.</li>
+          <li>If the adjuster is missing things: <em>"Did you catch the soft hit on the south slope ridge cap?"</em> Don't argue — point.</li>
+          <li>Show wind uplift: lift a tab gently. If the seal strip is broken, photograph.</li>
+          <li>Document collateral: gutters, vents, pipe boots, skylights.</li>
+        </ol>
+
+        <h4>The Meeting — Post-Roof Walk</h4>
+        <ol>
+          <li>Walk the exterior again with checklist in hand. Window screens, window wraps, door wraps, garage door, AC condenser fins, fascia, fence, etc.</li>
+          <li>Don't argue functional vs cosmetic on-site. If they call something cosmetic and you disagree, document it and supplement later in writing.</li>
+          <li>Get their estimate number, expected turnaround, and direct contact info.</li>
+          <li>Thank them. Genuine handshake. They'll send you a Christmas card next year.</li>
+        </ol>
+
+        <h4>Red Flags From the Adjuster</h4>
+        <ul>
+          <li>"I'm only writing a few squares for repair." → Push back politely, request full slope replacement if matching shingles are no longer available.</li>
+          <li>"I don't see enough hits." → Request a re-inspection from a senior adjuster.</li>
+          <li>"That's cosmetic, not functional." → Document, supplement in writing with manufacturer specs &amp; ASTM 4869 references.</li>
+          <li>"You can't be here." → Some adjusters try this. You're a representative of the homeowner. Be polite, stand your ground.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">ACV vs RCV — The Insurance Conversation with the Homeowner</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">The single most common reason a deal dies in the kitchen is the homeowner doesn't understand how insurance pays. Explain it cleanly and you remove the biggest objection.</p>
+
+        <h4>The 60-Second Explanation</h4>
+        <div class="script">"Your policy is one of two types: ACV or RCV. ACV — actual cash value — means they pay you what the roof was worth <em>at the moment of the storm</em>, factoring in depreciation. So a 15-year-old roof with 10 more years of life might be valued at $7k even if a new one costs $14k. You're on the hook for the difference.
+
+RCV — replacement cost value — pays you the actual cost to replace the roof with a new one, minus your deductible. They send you the depreciation as a held-back amount, and they release it once we finish the work. Most policies today are RCV. Let's pull your declarations page and check."</div>
+
+        <h4>What the Homeowner Pays Out of Pocket</h4>
+        <ul>
+          <li><strong>The deductible.</strong> Always. That's their share, set by their policy. (Some states have higher hail/wind deductibles — 1-2% of dwelling value.)</li>
+          <li><strong>Any upgrades they choose</strong> beyond what insurance pays for. (e.g., they want the impact-resistant shingle but insurance only paid for standard arch.)</li>
+          <li><strong>Nothing else.</strong> If we wrote the scope right and supplemented properly, the deductible is their entire out-of-pocket.</li>
+        </ul>
+
+        <h4>Two Phrases to Never Use</h4>
+        <ul>
+          <li>❌ <strong>"We'll cover your deductible."</strong> Illegal in most states. Insurance fraud. Career-ending. Don't do it. Don't imply it.</li>
+          <li>❌ <strong>"This is a free roof."</strong> It's not free — they paid premiums for decades. Frame it correctly: "Your insurance is doing what you paid them to do."</li>
+        </ul>
+
+        <h4>The Homeowner Script</h4>
+        <div class="script">
+<span class="label">Insurance Walk-Through Script</span><button class="copy-btn">Copy</button>"Here's exactly what's going to happen. Today we sign a contingency agreement — that means we do the work <em>only</em> if your insurance approves it. Tomorrow you call your carrier and file the claim — I'll text you the script. Within a few weeks they'll send an adjuster. I'll be here on the roof with him.
+
+Once they issue the scope and the check, you'll get an ACV check minus your deductible. That money goes into your account. We schedule the work. We do the roof and everything else we documented. When it's done, I submit a completion package and the insurance company releases the depreciation — the second check.
+
+Your only out-of-pocket is your deductible. That's it. Sound clear?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Supplements &amp; Re-Inspections — The Second Payday</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">If you only collect on the initial scope, you're working at 60-70% of full payout. Most claims supplement 1-3 times before the final check clears. Treat supplements as standard procedure, not an exception.</p>
+
+        <h4>When to Supplement</h4>
+        <ul>
+          <li>Adjuster missed a line item from your master checklist</li>
+          <li>You discovered additional damage during tear-off (rotted decking, hidden underlayment damage)</li>
+          <li>Code upgrades were not included (ice &amp; water shield, drip edge, deck re-nail)</li>
+          <li>Detach &amp; reset items were missed (solar panels, satellite, lightning rod)</li>
+          <li>Overhead &amp; profit (O&amp;P) wasn't applied to a 3+ trade claim</li>
+          <li>Material prices increased between scope and completion</li>
+          <li>Matching: full slope or full roof required because shingle no longer manufactured (line of sight rule in many states)</li>
+        </ul>
+
+        <h4>How to File a Supplement</h4>
+        <ol>
+          <li>Document the additional item with photos, measurement, and manufacturer/code reference</li>
+          <li>Write a clear, professional letter to the adjuster (or their supervisor if no response)</li>
+          <li>Attach: photos, line-item description, Xactimate-style pricing, code reference if applicable</li>
+          <li>Send via email AND certified mail. Keep proof of delivery.</li>
+          <li>Follow up at day 7 if no response. Day 14, escalate to supervisor. Day 21, file a re-inspection request.</li>
+        </ol>
+
+        <h4>Re-Inspection Strategy</h4>
+        <p>If an adjuster denies functional damage you believe is real, request a re-inspection — usually a senior adjuster comes out. Bring everything you'd bring to the first meeting, <em>plus</em> the original scope with your annotations and supplement letter. Be cordial. Senior adjusters often correct first-pass mistakes if you give them an easy out.</p>
+
+        <h4>When to Bring in a Public Adjuster or Attorney</h4>
+        <p>If the carrier is denying a clearly valid claim, refusing to engage on supplements, or low-balling severely (more than 30% under fair scope), refer the homeowner to a licensed public adjuster (PA) or insurance attorney. <strong>Do not</strong> represent the homeowner yourself unless you are licensed in your state. Boundaries matter — and adjusters notice when contractors play attorney.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Estimate — Xactimate Basics &amp; globalcontractor.app</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Insurance carriers run on Xactimate. You don't have to write Xactimate to compete, but you need to <em>read</em> it cold, and your own estimate needs to mirror its structure so you can argue line-by-line.</p>
+
+        <h4>Xactimate Cheat Sheet</h4>
+        <ul>
+          <li><strong>Codes:</strong> every line item has a code. RFG (roofing), GUT (gutters), SDG (siding), WDW (windows), DOR (doors), HVC (HVAC). Memorize the most-used codes.</li>
+          <li><strong>Pricing:</strong> regional, updated monthly. Two homes 10 miles apart can have different unit costs.</li>
+          <li><strong>Activity vs material:</strong> most lines are split — labor + material. Some lines are "remove &amp; replace," some are "remove only" + new install.</li>
+          <li><strong>Waste factor:</strong> standard 10-15% on roofing materials. More for complex roofs (lots of valleys, hips).</li>
+          <li><strong>Overhead &amp; Profit (O&amp;P):</strong> 10% overhead + 10% profit = 20%. Standard on claims involving 3+ trades.</li>
+          <li><strong>Sales tax:</strong> applied to materials only, state-dependent.</li>
+          <li><strong>Depreciation:</strong> applied to materials based on age &amp; condition; recoverable on RCV policies upon completion.</li>
+        </ul>
+
+        <h4>The Estimate Workflow (Today)</h4>
+        <ol>
+          <li>Measure the roof (drone software, EagleView, GAF QuickMeasure, or hand)</li>
+          <li>Walk the exterior with the master checklist</li>
+          <li>Photograph everything</li>
+          <li>Build line-item estimate matching adjuster scope structure</li>
+          <li>Print + review with homeowner + present to adjuster</li>
+        </ol>
+
+        <h4>🔗 Future Integration — globalcontractor.app</h4>
+        <p>Roadmap note for this app: connect <code>globalcontractor.app</code> as the estimating engine — Xactimate-style line-item pricing, regional, mobile-friendly, and dramatically easier than full Xactimate. The plan is for reps to:</p>
+        <ul>
+          <li>Pull the documented damage checklist directly from this guide into a globalcontractor.app estimate</li>
+          <li>Build the scope in minutes on a phone or tablet</li>
+          <li>Match adjuster Xactimate output line-for-line for clean supplements</li>
+          <li>Email the estimate to the homeowner &amp; adjuster directly from the app</li>
+        </ul>
+        <p class="lede">Until that integration is live, build the estimate in globalcontractor.app separately and treat this guide as the field-side reference. Once connected, the two will be one workflow.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Storm-Specific Homeowner Scripts</div><div class="chev">▾</div></div>
+      <div class="card-body">
+
+        <div class="script">
+<span class="label">"Should I file a claim?" — the homeowner's #1 question</span><button class="copy-btn">Copy</button>"Here's how I'd think about it. We document the damage first. If what we find is below your deductible, you don't file — no point. If what we find is well above your deductible, you absolutely file — that's what your policy is for. The drone scan tells us which one it is. No claim filed until we know."</div>
+
+        <div class="script">
+<span class="label">"Will my rates go up?" — the second-most-common question</span><button class="copy-btn">Copy</button>"Honest answer: not for catastrophic weather claims in most states. Hail and wind are 'act of God' events — carriers can't single you out for filing one. Your <em>area's</em> rates may go up across the board because of the storm, but they're going up whether you file or not. The question is whether you want to pay for the roof you already paid for in premiums."</div>
+
+        <div class="script">
+<span class="label">"What if my claim gets denied?" </span><button class="copy-btn">Copy</button>"Two paths if that happens. One — we request a re-inspection from a senior adjuster, and 40% of the time that flips the decision. Two — if it's still denied and we strongly disagree, we can refer you to a licensed public adjuster who works for you, not the insurance company. Worst case, you've lost nothing — you didn't pay your deductible because no work happened."</div>
+
+        <div class="script">
+<span class="label">"I don't want to deal with the insurance company"</span><button class="copy-btn">Copy</button>"You don't have to deal with them much at all. You file the claim — one phone call, I'll text you the script. After that, I'm on the roof with the adjuster, I review their scope, I file any supplements, I handle the paperwork. You sign a couple of things and cash a couple of checks. Most of my homeowners spend less than 90 total minutes on the whole process."</div>
+
+        <div class="script">
+<span class="label">"My neighbor says insurance is going to drop me"</span><button class="copy-btn">Copy</button>"Your neighbor may be repeating something they heard. The reality: carriers can non-renew for excessive small claims or multiple at-fault claims. A catastrophic weather claim almost never triggers non-renewal in [STATE]. If you're worried, let's call your agent together right now and ask before we file. Three-minute call, ends the worry."</div>
+
+        <div class="script">
+<span class="label">Filing the claim — what to tell the homeowner to say on the call</span><button class="copy-btn">Copy</button>Coach the homeowner to say (and only this):
+
+"Hi, I'd like to file a claim. I had storm damage from the [DATE] hail/wind event. I had a roofing contractor do an inspection and they found [hail damage / wind damage / both]. I'd like to schedule an adjuster to come out."
+
+Things to NOT say:
+- Don't speculate on cost
+- Don't say "my roof is destroyed"
+- Don't say "the contractor said it's totaled"
+- Don't volunteer information about previous claims
+- Don't agree to language like "minor damage" or "small claim"
+
+Get the claim number. Write it down. Text it to me.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== REBUTTALS =================== -->
+  <section id="sec-rebuttals" class="hidden">
+    <div class="section-head">🛡️ Rebuttal Arsenal</div>
+    <div class="section-sub">25 objections, multiple responses each. Don't argue — reframe. Loop, never push.</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">"I'm not interested."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">95% of "not interested"s are reflex. Don't take it personally; reframe and stay.</p>
+        <div class="script">"Totally fair — you don't even know what I'd be interesting <em>about</em> yet. Real quick — when's the last time anyone actually looked at your roof? Because what we're seeing from the street is something insurance pays for, not you. If we find nothing, you've lost nothing."</div>
+        <div class="script">"You shouldn't be — most of the homeowners we end up working with weren't interested at first either. Then they saw the drone photos. 8 minutes."</div>
+        <div class="script">"Got it — I'll make it easy. Yes or no: do you want me to send you the drone photos we already took, or no?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"Just send me information / Send me a quote."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Happy to — but here's the trap: any quote without me actually seeing the roof is fiction, and you'll just have to throw it out. Give me 15 minutes on the roof and I'll send you a real number plus drone photos. Thursday or Saturday work better?"</div>
+        <div class="script">"I'd love to, but the truth is generic info isn't useful — your roof is different from your neighbor's. Let me put eyes on it for 15 minutes and you'll get a report that's actually about <em>your</em> house."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"I don't have the money."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"That's exactly why we should look at it now — because if there's hail or wind damage, insurance pays, not you. We've literally never had a homeowner pay out of pocket for damage that qualified. Worth 8 minutes to find out if you're sitting on a free replacement?"</div>
+        <div class="script">"Got it. Two paths: one, if there's storm damage, this is an insurance project, not a money project. Two, if it's just age, we have financing as low as $89/month with $0 down. Either path, the inspection is free. Thursday or Saturday?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"I need to think about it."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Edwards' Law: "I need to think about it" is never the real objection. There's an unresolved concern they're hiding. Find it.</p>
+        <div class="script">"Fair enough — folks usually want to think about three things: the price, the timing, or the company itself. Which of those is the one sitting on you tonight?"</div>
+        <div class="script">"Of course. Real quick — is it the price, the timing, or the people? Because if it's price, we have options. If it's timing, we have options. If it's the company, that's the most important thing to talk through before I leave."</div>
+        <div class="script"><strong>(Edwards' Lost Sale variant):</strong> "Totally — and I'm clearly not going to earn your business tonight, that's okay. For my own training, what's the one thing I could've done differently?" → 30% of the time the real objection drops here. Now handle it.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"I need to talk to my spouse."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Of course. Quick — what time tomorrow or the next day are you both home? I'd rather present once to both of you than three times to one of you. Tomorrow at 6 or Wednesday at 7?"</div>
+        <div class="script">"Smart — never sign anything without your partner. Let me ask: between you and your spouse, who would have the biggest concern about us doing this? That's the question I want to be ready to answer when you both sit down."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"Call me back in 6 months / next year."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Happy to — out of curiosity, what changes in 6 months? Because if it's budget, we have $0-down financing now. If it's storm damage, insurance gets harder, not easier. If it's just timing, I get it — and I'll put it on my calendar."</div>
+        <div class="script">"I'll absolutely follow up. Quick favor though — let me drone-scan it now so the file I bring back in 6 months actually has data, not guesses. Costs you nothing."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"I already have someone / a buddy."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Great — most homeowners who hire us already had someone. All I'm offering is a free second opinion with drone photos. Take it to your guy and ask if he agrees with what we found. Either we're right and he confirms, or we're wrong and your guy looks like a hero. You win both ways."</div>
+        <div class="script">"That's smart — relationships matter. The only thing I'd say is: when's the last time your guy did a no-charge inspection with current drone photos? Because that's all we're offering. Same playbook your guy probably runs."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"Your price is too high."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Cardone: "There's no such thing as price — only payments and value." Reframe.</p>
+        <div class="script">"I get it. Let me ask — too high compared to <em>what</em>? Because if you got a bid for $X less, I want to see what's in it. Most of the time, the difference is decking, underlayment, or warranty — and that's where roofs leak."</div>
+        <div class="script">"Compared to nothing, every roof is too high. Compared to the bill when this thing fails in a storm, we're a bargain. Let me show you the line items vs the cheap bid — I'll bet I find the $3k of stuff they're skipping."</div>
+        <div class="script">"It's a real number — and I won't apologize for it. What I will do is show you why. If after I walk you through it, you still think it's too high, we shake hands and I leave. Fair?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"I just need a repair, not a replacement."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"That's possible — and if that's all you need, I'll tell you that. But let me ask: are you OK spending $1,800 on a repair if the roof has 18 months left? Because that math doesn't work. Let me drone-scan it, give you a real life-expectancy number, and then you'll know whether to repair or replace."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"Take me off your list."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Comply immediately. Don't argue. Don't try to "save" the call.</p>
+        <div class="script">"Absolutely — done. Sorry for the bother. Have a great rest of your day."</div>
+        <p>Log it. Move on. The fastest way to lose a license and a reputation is to harass a DNC.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"How did you get my number?"</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Fair question — we use public records and lead lists scrubbed against the DNC. If you'd rather not hear from us, I'll take you off right now. But while I've got you for 30 seconds — was there a reason for the question, or just curious?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"I don't take cold calls."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Most people don't — and that's exactly why I make a point of being useful in 30 seconds or off the line. So here's 30 seconds: [hook]. Worth one more minute, or do you want me off the call?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"We're under contract with another vendor."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Smart — and I'm not trying to break a contract. What I am asking is: when does it come up for renewal, and are you happy enough with the current vendor that you wouldn't even take a second bid? Because most facility directors I work with want a backup vendor on speed dial for the things their main vendor won't touch."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"I'm in a meeting / busy right now."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Totally — I'll let you go. What's a better time later today or tomorrow? Morning or afternoon?"</div>
+        <div class="script">"Got it. 30 seconds: [drop the hook]. If that's interesting, I'll call you tomorrow at a real time. Sound fair?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"Just email me."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Will do. While I have you — give me 60 seconds to know what to actually put <em>in</em> the email so I'm not wasting your inbox. Two questions: [Q1] and [Q2]."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"Not now."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Got it. 'Not now' means there's a 'when.' Is the 'when' next month, next quarter, or just 'someday'? Because if it's someday, I'm not gonna waste your time. If it's next quarter, I'd rather schedule the look now so we beat the rainy season."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"I had a bad experience with roofers."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"I'm sorry — and unfortunately I hear that a lot. Honestly the bad operators in our industry are what made me start [COMPANY] in the first place. Tell me what went wrong last time — I want to make sure I don't repeat any of it."</div>
+        <p>Then <em>listen</em>. Carnegie's rule: people who feel heard buy from you. Once they've vented, ask: "If I could guarantee none of that happens again, would you let me drone-scan it?"</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"I'll get back to you."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Of course — and just so we're on the same page, what's our next step look like? Are you calling me Friday, or do you want me to circle back Monday morning? Easier on you?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"Insurance won't cover it."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"You may be right. Question — has an actual adjuster been out, or is that what someone told you on the phone? Because we get roofs approved every week that homeowners were told wouldn't qualify. Let me drone-scan it. If there's nothing, we walk away friends. If there's something, I'll show you the photos and you can decide."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"I'm too old to invest in a new roof."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Totally understand. Let me ask — are you planning to sell, or stay? If you're staying, a leak in 5 years costs more than the roof. If you're selling, an old roof drops your asking price by 2-3x the roof cost. Either way, the math is on our side. And we have financing if you'd rather not touch savings."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"I'm selling soon anyway."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"That's actually the best time. The #1 thing buyers and inspectors flag is the roof, and old roofs become a $5k-$15k negotiation hit. Most agents will tell you a new roof returns 100-110%, plus you don't lose the sale. Let me show you the bid, you can decide if it makes sense before listing."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"It's not leaking yet."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"And that's a great time to do it. Once it's leaking, you're paying for the roof <em>plus</em> the drywall <em>plus</em> the insulation <em>plus</em> the mold remediation. We replace before the leak; that's how you avoid the $40k version of this conversation."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"My nephew/buddy is a roofer."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Awesome — keep him in the loop. All I'm offering is a free second opinion with drone photos he can use. Worst case, he confirms what I'm seeing and you give him the job. Best case, you get a competing bid that lowers his price. Either way you win."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"I'll get three bids."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Smart move — that's what I'd do. Two things though: one, make sure all three bids are apples-to-apples — same shingle grade, same underlayment, same warranty. Otherwise the cheap one is hiding something. Two, before you call anyone else, can I do my drone scan now so you've got photos you can show the other guys? Saves them a trip up and you a delay."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">"I trust my current contractor."</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"That's huge — and I'm not trying to replace him. I'm asking you to put me on your bench so you've got two phones to dial when something happens. Cost you nothing today. If your guy's out of town when a leak hits, you've got me."</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== CLOSES =================== -->
+  <section id="sec-closes" class="hidden">
+    <div class="section-head">💰 Closing Arsenal</div>
+    <div class="section-sub">15 closes drawn from Edwards, Hopkins, Tracy, Cardone, Ziglar. Learn 5 cold. Match the close to the moment.</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">1. Alternate of Choice (Edwards)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Never ask yes/no. Always two yeses.</p>
+        <div class="script">"Would Tuesday or Thursday work better for the install?"</div>
+        <div class="script">"Did you want the 30-year arch or the 50-year impact-resistant?"</div>
+        <div class="script">"Are you putting it on the card today, or going with the financing?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">2. Sharp Angle (Edwards)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Use when they raise an objection that's actually a request. Throw it back as a close.</p>
+        <div class="script">Prospect: "Can you knock $500 off?"
+You: "If I could get that approved with my manager, would you be ready to authorize the paperwork right now?"</div>
+        <div class="script">Prospect: "Could you start next week instead of in three weeks?"
+You: "If I can move you up in the schedule, are we wrapping this up tonight?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">3. Assumptive Close (Hopkins)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Skip "if we do this." Always "when we do this." Roll the paperwork out while talking.</p>
+        <div class="script">"OK — so when the crew gets here, the dumpster goes in the driveway. Where do you want it — closer to the garage or by the curb?"</div>
+        <div class="script">"Once we start, what's the best way to reach you during the day if questions come up?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">4. 1-2-3 Close (Hopkins)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"There are three good reasons to move forward today. One, the price holds at this number for 30 days, after that the manufacturer raises it. Two, your crew slot is reserved for the next 2 weeks — after that it pushes into rainy season. Three, your insurance claim window closes in 6 months and starts the clock. We solve all three by getting this signed tonight. Sound fair?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">5. Ben Franklin / T-Account (Edwards)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">For the fence-sitter who can't decide. Draw a line down a page. Reasons-to-do on the left. Reasons-not-to on the right. Help them with the left side. <em>Be silent</em> on the right side.</p>
+        <p>Left side prompts: "What did you say about the granule loss? Where would you put the warranty? What about the leak risk?" → Get to 8-10 reasons.</p>
+        <p>Right side: "OK, now you list the reasons not to." → They get to 1-2. The math wins itself.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">6. Summary Close (Tracy)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Let me make sure I've got this right. You're worried about the leak above the kitchen. You want it done before the kids are home for the holidays. Your budget's in the 12-14 range. And you'd rather not deal with the insurance back-and-forth. All four of those are on the work order in front of me. Ready to authorize?"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">7. Similar Situation (Edwards)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Mr. and Mrs. Garcia over on Elm thought the same thing — they were going to wait. Six months later they had water in the master bedroom ceiling, drywall, insulation, and a mold remediation bill that came in north of $11k. The new roof would have been $9k. They told me they should have called me back. I don't want you to be that story. Let's just get this on the books."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">8. Erroneous Conclusion (Edwards)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Mis-state on purpose. The correction confirms the sale.</p>
+        <div class="script">You (writing): "So you said you wanted to start next spring, right?"
+Prospect: "No, I said this fall."
+You: "Oh, of course — this fall. Let me update that." [Continues writing.]</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">9. Puppy Dog (Edwards/Hopkins)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Let them "test drive" something. Hard to give the puppy back.</p>
+        <div class="script">"Let me leave the actual shingle sample with you for the weekend. Set it next to the house, see how it looks. If it doesn't fit, I'll pick it up Monday and we'll talk options."</div>
+        <div class="script">(Commercial) "We do a 50-square test patch on your worst section, no charge. If you don't see a difference in 30 days, we walk away. If you do, we have the conversation about the rest of the building."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">10. Take-Away (Cardone)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Pull back. Trigger their re-engagement.</p>
+        <div class="script">"You know what, this might not be the right fit. Let me ask — is this roof actually keeping you up at night, or are we doing this just to do it? Because if it's not pressing, I'd rather you save your money."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">11. The Lost Sale (Edwards)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">For when the deal walks. Used at the door <em>after</em> they say no.</p>
+        <div class="script">"Mrs. Jones, I'm clearly not going to earn your business today, and that's OK. But for my own training — what's the one thing I could have done differently?"</div>
+        <p>30% of the time, the real objection drops here. <strong>Now handle it</strong>: "OK — given that's actually the issue, can I show you one thing real quick?" Get back in.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">12. The Silence Close</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Ask the closing question. Then shut up. The next person to talk loses.</p>
+        <div class="script">"So we're at $11,400 with the GAF Timberline HDZ and the lifetime workmanship warranty. Are we ready to get you on the schedule?"
+[Silence. Count to ten in your head. Do not break it.]</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">13. Order Blank (Edwards)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Pull out the agreement. Start filling it in. Their not-stopping-you is the close.</p>
+        <div class="script">"Let me start writing this up so we don't lose any of the details. What's the best phone number to reach you on a Tuesday morning?" [Write.] "Email for the warranty docs?" [Write.] "Just need your okay on the bottom line here."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">14. Reduction to the Ridiculous (Edwards)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p class="lede">Break the big number into a tiny one. Daily, monthly, per-square.</p>
+        <div class="script">"$13,400 sounds like a lot until you spread it. 25 year warranty = 9,125 days. Comes out to $1.47 a day for a roof that doesn't leak. Cheaper than your coffee."</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">15. Empathy / Best-Interest Close</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <div class="script">"Look — I'd rather you not buy this than buy it wrong. So here's what I'd do if you were my mom: I'd take the mid-tier shingle, the full underlayment upgrade, and the financing — and I'd skip the ridge upgrade because for your house it's overkill. That's $11,800 instead of $14,200. You good with that?"</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== TONALITY =================== -->
+  <section id="sec-tonality" class="hidden">
+    <div class="section-head">🎚️ Tonality &amp; Pacing</div>
+    <div class="section-sub">Belfort's claim: tonality is 70% of the sale, body language 20%, words 10%. He's roughly right.</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">The 10 Tones to Practice</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ol>
+          <li><strong>"I care, I really want to know"</strong> — soft, slight upward inflection on the last word. Opens conversations.</li>
+          <li><strong>Mysterious mystique</strong> — drop volume, slow down. Leans them in.</li>
+          <li><strong>Scarcity / "this is between us"</strong> — quieter, conspiratorial. Used for offers, financing, exceptions.</li>
+          <li><strong>The certainty tone</strong> — flat, level, no waver. Not loud. <em>Certain</em>. Used at every close.</li>
+          <li><strong>The money tone</strong> — drop pitch, slow down, no apology. Say the price like it's the weather.</li>
+          <li><strong>The "I'm hesitating to share this"</strong> — implies value is being revealed. "I probably shouldn't say this, but…"</li>
+          <li><strong>The warm-pivot</strong> — used after an objection. Drop volume, soften pace, lean in vocally. "Hey, I totally get that…"</li>
+          <li><strong>The reasonable man</strong> — used when prospect is being unreasonable. Calm, steady, "I want to be fair here."</li>
+          <li><strong>The implied obviousness</strong> — used during summary. "Obviously, we'd want the lifetime warranty rather than the 25-year."</li>
+          <li><strong>The smile-in-voice</strong> — baseline. Always audible. If you can't hear your own smile, neither can they.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Pacing — Slow Down to Win</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>Nervous = fast.</strong> Confident = paced. Slow your speech 10-20% from baseline.</li>
+          <li><strong>Micro-pauses (half-second) before key words</strong> — "we found… <em>three</em> things on your roof." That pause makes "three" the headline.</li>
+          <li><strong>Match their pace, then lead them down.</strong> Mirror their first two sentences. Then slowly drop tempo. They follow.</li>
+          <li><strong>End every closing question with a downward inflection.</strong> Up = uncertain, down = decided. Practice this — it's the #1 tonal mistake new reps make.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Mirror Drill</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p>Daily practice, 5 minutes:</p>
+        <ol>
+          <li>Sit with a mirror or selfie camera</li>
+          <li>Read your opener with each of the 10 tones above</li>
+          <li>Record yourself. Listen back.</li>
+          <li>Which tone is hardest for you? That's the one to drill 100 times this week.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Smile Audible</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li>The shape of your mouth changes the sound of consonants. A smile produces wider Hs, brighter As, a more open voice.</li>
+          <li>People can <strong>hear</strong> a smile through a phone line within 2 seconds. They can also hear its absence.</li>
+          <li>Put a small mirror on your desk if you cold call. Glance at it every 90 seconds. If you're not smiling, fix it.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== SCENARIOS =================== -->
+  <section id="sec-scenarios" class="hidden">
+    <div class="section-head">🎭 Scenario Playbook</div>
+    <div class="section-sub">Live situations with the exact moves. Memorize 3-4 of these cold; you'll see them every week.</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">The Cranky Elderly Homeowner</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p><strong>Read:</strong> alone, suspicious, has been burned before, doesn't trust contractors.</p>
+        <p><strong>Move:</strong> step back further than normal. Compliment something specific about the house. Don't sit unless invited. Offer to call a son/daughter/relative on speaker so they can be part of the conversation. Speak slower and lower. If they want to pause and call someone, encourage it loudly: "Please do, that's the right move."</p>
+        <p><strong>Don't:</strong> push paperwork in the first visit. <strong>Do:</strong> book a second visit when a family member can be present. You'll close that one.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Skeptical Engineer</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p><strong>Read:</strong> wants data, distrusts emotional pitch, will look up everything you say.</p>
+        <p><strong>Move:</strong> drop the personality, give specs. ASTM ratings, wind uplift class, R-values, manufacturer warranty terms, installation specifications. Bring a one-pager with technical detail. Use the SPIN framework (Situation → Problem → Implication → Need-payoff).</p>
+        <p><strong>Don't:</strong> exaggerate or guess. They will catch it. <strong>Do:</strong> say "I don't know, let me find out and follow up" when you don't know. It builds more trust than bluffing.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The "I'm Too Busy" Exec</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p><strong>Read:</strong> values time above everything. Hates small talk.</p>
+        <p><strong>Move:</strong> "I respect your time — 30 seconds: [hook]. Two follow-up questions, then I'm gone." Be ruthlessly concise. Skip the rapport opener. Lead with the number.</p>
+        <p><strong>Close move:</strong> "Three options, I'll send via email today. Which decision-maker should be on the thread besides you?"</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Price Shopper</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p><strong>Read:</strong> already has 2 bids, has decided cheap = good.</p>
+        <p><strong>Move:</strong> don't compete on price. Compete on apples-to-apples comparison. Ask to see the other bids. "What grade shingle did they spec? What underlayment? How many penetrations are they pricing? What's their warranty length on labor?" 9 times out of 10, the cheap bid is missing $2-4k of work.</p>
+        <p><strong>Don't drop your price first.</strong> Make them earn it. If they walk on price, hand them your card and say "the cheap one will leak in 4 years. I'll see you then." Half the time they come back next week.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Previous Bad Experience</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p><strong>Read:</strong> burned by a roofer in the last 5 years. Defensive.</p>
+        <p><strong>Move:</strong> let them vent. <em>Fully</em>. Don't interject. When they finish, say: "I'm sorry that happened. That's why I do this work. Let me ask: what specifically went wrong — was it the install, the communication, the warranty, or the cleanup?" Pinpoint the wound. Address it directly in your own pitch.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Hostile Spouse</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p><strong>Read:</strong> one spouse warmed up, the other walked in and instantly opposed.</p>
+        <p><strong>Move:</strong> redirect to the hostile one. Their objection runs the deck. "I can tell roofing isn't your favorite topic — and that's fair. Real quick: if we were going to do this, what would your one biggest concern be?" Address it. Then check in with both: "We good? Both of you?"</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Over-Qualified DIY Homeowner</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p><strong>Read:</strong> retired carpenter, contractor, or "guy who does everything himself."</p>
+        <p><strong>Move:</strong> respect the expertise immediately. "Sounds like you've done your own work — that's huge. Honestly the only reason most folks like you call us is the warranty, the workman's comp, and the dumpster logistics. Want me to drone-scan it for free anyway, so you've got photos for your records?"</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Competitor's Rep Is on the Property When You Walk Up</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p><strong>Move:</strong> shake the competitor's hand warmly, in front of the homeowner. "Hey man — looks like you got here first. Mind if I leave my card with [HOMEOWNER] in case they want a second number?" → To homeowner: "Smart move getting multiple eyes on it. Whatever you decide, make sure both bids spec the same underlayment and warranty. Take care."</p>
+        <p>Walk away with grace. Half the time the homeowner calls you back because you weren't pushy.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The HOA-Restricted Neighborhood</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p><strong>Read:</strong> homeowner wants to do something, HOA requires specific color/material.</p>
+        <p><strong>Move:</strong> be the rep who already knows the HOA spec. Pull up the architectural guidelines on your phone. Show them the 2-3 approved shingles. "I've done four houses in this HOA last year — here's what they approve, here's what they don't. Saves you the submission headache."</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">The Slow-Pay Landlord</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <p><strong>Read:</strong> rental property, wants the cheapest fix, will haggle endlessly.</p>
+        <p><strong>Move:</strong> qualify hard upfront. "Quick — are we fixing this to keep tenants from leaving, fixing it before selling, or fixing it because something's leaking right now?" Different answers = different bids. Don't put your premium package in front of someone who's clearly looking to spend the minimum. Offer the band-aid AND the proper fix. Let them pick.</p>
+        <p><strong>Payment terms:</strong> 50% down minimum on landlord work. They forget invoices.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== QUICK REF =================== -->
+  <section id="sec-quickref" class="hidden">
+    <div class="section-head">⚡ Quick Reference Card</div>
+    <div class="section-sub">The one-pager. Print it. Tape it to your dashboard. Read it before every block.</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">The Pocket Card</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <h4>Before the block (60 seconds)</h4>
+        <ul>
+          <li>Smile in the mirror</li>
+          <li>Say opener out loud once</li>
+          <li>"I'm here to help. No = next."</li>
+        </ul>
+
+        <h4>The opener (always 4 beats)</h4>
+        <ol>
+          <li>Identify yourself</li>
+          <li>Reference something specific to them</li>
+          <li>Name a problem</li>
+          <li>Low-commitment ask (8 minutes / drone scan / free photos)</li>
+        </ol>
+
+        <h4>Three problem hooks</h4>
+        <ul>
+          <li>Hail / wind damage (insurance angle)</li>
+          <li>Roof age + neighbors' recent work</li>
+          <li>Visible failure (granule loss, curl, missing tab)</li>
+        </ul>
+
+        <h4>Three rebuttals to know cold</h4>
+        <ul>
+          <li>"Not interested" → "Totally fair. When's the last time anyone actually looked at it?"</li>
+          <li>"Send info" → "Generic info isn't useful — your roof is different. 15 minutes Thursday or Saturday?"</li>
+          <li>"Think about it" → "Sure — is it the price, timing, or the company? That's the one to talk through now."</li>
+        </ul>
+
+        <h4>Three closes to know cold</h4>
+        <ul>
+          <li><strong>Alternate of choice</strong> — Thursday or Saturday?</li>
+          <li><strong>Assumptive</strong> — "When the crew gets here, where do you want the dumpster?"</li>
+          <li><strong>Lost Sale</strong> (at the door, after no) — "For my own training, what could I have done differently?"</li>
+        </ul>
+
+        <h4>Two trainer reminders</h4>
+        <ul>
+          <li>Edwards: "Ask the close, then shut up."</li>
+          <li>Belfort: "Tonality 70%, body 20%, words 10%."</li>
+        </ul>
+
+        <h4>The end of the day</h4>
+        <ul>
+          <li>Score yourself: contacts / problem-found / sit-downs / closes-attempted</li>
+          <li>Listen to one recording</li>
+          <li>Fix one thing tomorrow</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== TRAINING =================== -->
+  <section id="sec-training" class="hidden">
+    <div class="section-head">📚 New Rep 7-Day Ramp</div>
+    <div class="section-sub">A week-by-week plan to take a green rep to first close. Steal it, modify it, run it.</div>
+
+    <div class="card open">
+      <div class="card-head"><div class="title">Day 1 — Mindset &amp; Roof Types Crash Course</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>Morning:</strong> read the Philosophy + Trainer Cheat Sheets sections out loud. Highlight 3 quotes you want to memorize.</li>
+          <li><strong>Midday:</strong> roof identification drill — drive 10 blocks with a coach, identify every roof system as you pass. Goal: 90% accuracy by 5pm.</li>
+          <li><strong>Afternoon:</strong> warranty / shingle line drill. Memorize your 3 main products cold (Timberline HDZ, Heritage, etc.) — features, warranty, install differences.</li>
+          <li><strong>End of day:</strong> watch one recorded D2D pitch from a veteran. Write 3 things you noticed.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Day 2 — Tonality Drills &amp; Recording Yourself</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>Morning:</strong> read the Tonality section. Pick 3 tones to drill.</li>
+          <li><strong>Drill:</strong> record yourself reading the master opener with all 10 tones. Listen back. Pick the 2 worst — drill those 50 more reps.</li>
+          <li><strong>Afternoon:</strong> mock pitch with a coach. They play hostile, tired, distracted, friendly. You stay on tone.</li>
+          <li><strong>End of day:</strong> 10 minutes of pitch-out-loud in the mirror. Smiling. Slower than feels natural.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Day 3 — Cold Call Practice (50 supervised dials)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>Morning:</strong> read Cold Calling Mastery + Outreach sections. Pick your opener variant.</li>
+          <li><strong>Block 1 (90 min):</strong> 25 dials, supervised. Coach listens. Stops you mid-call only for major issues. Notes afterward.</li>
+          <li><strong>Lunch:</strong> debrief. What worked? What didn't? What's the one thing to fix this afternoon?</li>
+          <li><strong>Block 2 (90 min):</strong> 25 more dials. Apply the fix.</li>
+          <li><strong>End of day:</strong> goal isn't to close. Goal is to make it past the opener on 5+ calls. Track it.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Day 4 — D2D Ride-Along</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>Morning:</strong> read the D2D Combat Manual. Memorize the master opener.</li>
+          <li><strong>Block 1:</strong> shadow your coach on 20 doors. You watch. Don't talk. Take notes on tone, body, what they say differently than you would.</li>
+          <li><strong>Block 2:</strong> you knock, coach shadows. Your goal: 20 doors, get past the opener on at least 4. Don't try to close.</li>
+          <li><strong>End of day:</strong> ice cream / coffee debrief. One thing you did right. One thing to fix tomorrow.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Day 5 — Rebuttal Drills (Peer Practice)</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>Read</strong> the Rebuttal Arsenal section in full.</li>
+          <li><strong>Drill:</strong> pair with another rep. They throw you objections at random. You answer in &lt; 3 seconds. 30 minutes. Switch.</li>
+          <li><strong>Drill 2:</strong> film yourself answering 5 objections. Watch back. Look for filler words ("um," "like," "you know"). Cut them.</li>
+          <li><strong>Afternoon:</strong> live blocks with the new rebuttals in your pocket. Notice when you use one.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Day 6 — First Solo Block</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li>Coach steps back. You're on your own for a 3-hour block (D2D or phone, your choice).</li>
+          <li><strong>Goals:</strong> 30 contacts. 8 past-the-opener. 2 sit-downs / inspections scheduled. 1 attempted close.</li>
+          <li><strong>Closing the loop:</strong> end of block, recap with coach. What did you feel? What surprised you? What's the one new thing you noticed?</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="title">Day 7 — Debrief, Scorecard, Coach Review</div><div class="chev">▾</div></div>
+      <div class="card-body">
+        <ul>
+          <li><strong>Morning:</strong> review the week's recordings with coach. Pick top 3 wins, top 3 gaps.</li>
+          <li><strong>Scorecard:</strong> total dials, contacts, past-opener rate, sit-downs, attempted closes, actual closes.</li>
+          <li><strong>Set Week 2 goals:</strong> raise past-opener rate by 20%. Add 1 new close to your repertoire.</li>
+          <li><strong>The Year-1 expectation:</strong> first close usually weeks 2-4. By month 3, you should hit team average. By month 6, top half. If you're still in the bottom half at month 9, the issue is coaching, not the rep — escalate.</li>
+        </ul>
+
+        <div class="quote">"Sales is the highest-paid hard work and the lowest-paid easy work in the world. Show up tomorrow."<span class="who">— attributed to many. Live it.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="footnote">Built as the ultimate blue collar sales survival guide — roofing-first, applicable across trades. Last updated 2026-05-19. Pin the Quick Reference Card.</div>
+
+  </main>
+</div>
+
+<script>
+  // Section switching
+  const navItems = document.querySelectorAll('.nav-item');
+  const sections = document.querySelectorAll('main section');
+  navItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const target = item.dataset.target;
+      navItems.forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      sections.forEach(s => s.classList.add('hidden'));
+      const el = document.getElementById(target);
+      if (el) {
+        el.classList.remove('hidden');
+        window.scrollTo({top: 0, behavior: 'smooth'});
+      }
+    });
+  });
+
+  // Accordion
+  document.addEventListener('click', (e) => {
+    const head = e.target.closest('.card-head');
+    if (!head) return;
+    const card = head.parentElement;
+    card.classList.toggle('open');
+  });
+
+  // Copy buttons
+  document.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('copy-btn')) return;
+    const script = e.target.parentElement;
+    // grab text without the label and without the button
+    const clone = script.cloneNode(true);
+    clone.querySelectorAll('.label, .copy-btn').forEach(n => n.remove());
+    const text = clone.textContent.trim();
+    navigator.clipboard.writeText(text).then(() => {
+      const oldText = e.target.textContent;
+      e.target.textContent = 'Copied ✓';
+      setTimeout(() => e.target.textContent = oldText, 1400);
+    }).catch(() => {
+      e.target.textContent = 'Copy failed';
+    });
+  });
+
+  // Search
+  const search = document.getElementById('search');
+  search.addEventListener('input', () => {
+    const q = search.value.toLowerCase().trim();
+    if (!q) {
+      // restore: hide all sections except the active one
+      const active = document.querySelector('.nav-item.active');
+      sections.forEach(s => s.classList.add('hidden'));
+      if (active) {
+        const target = active.dataset.target;
+        document.getElementById(target).classList.remove('hidden');
+      }
+      // remove highlights
+      document.querySelectorAll('.card').forEach(c => {
+        c.classList.remove('hit-section');
+        c.style.display = '';
+        const head = c.querySelector('.card-head .title');
+        if (head) head.innerHTML = head.textContent;
+      });
+      return;
+    }
+
+    // search mode: show all sections, filter cards within
+    sections.forEach(s => s.classList.remove('hidden'));
+    document.querySelectorAll('.card').forEach(card => {
+      const text = card.textContent.toLowerCase();
+      if (text.includes(q)) {
+        card.style.display = '';
+        card.classList.add('open');
+        card.classList.add('hit-section');
+      } else {
+        card.style.display = 'none';
+        card.classList.remove('hit-section');
+      }
+    });
+  });
+
+  // ⌘K to focus search
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      search.focus();
+    }
+  });
+</script>
+
+</body>
+</html>
