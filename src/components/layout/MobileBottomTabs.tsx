@@ -1,12 +1,13 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, Briefcase, Users, Settings } from "lucide-react";
+import { LayoutDashboard, Briefcase, Users, Target, BookOpenText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { to: "/", label: "Home", icon: LayoutDashboard },
   { to: "/jobs", label: "Jobs", icon: Briefcase },
+  { to: "/leads", label: "Prospector", icon: Target },
   { to: "/clients", label: "Clients", icon: Users },
-  { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/survival-guide", label: "Guide", icon: BookOpenText },
 ] as const;
 
 export function MobileBottomTabs() {
