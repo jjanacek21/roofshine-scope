@@ -16,8 +16,7 @@ interface DoorToDoorMapProps {
   onBoundsChange?: (bounds: { north: number; south: number; east: number; west: number }) => void;
 }
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 
-  'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHNxcXAyMGkwMmt3MmtwOHRtZzRtdTQ0In0.r5TIIyCB7DcObd5rs4BVIw';
+import { useMapboxToken } from "@/hooks/useMapboxToken";
 
 // Use the shared color function from DispositionQuickBar
 
@@ -35,6 +34,7 @@ export function DoorToDoorMap({
   const map = useRef<mapboxgl.Map | null>(null);
   const userMarker = useRef<mapboxgl.Marker | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const { data: MAPBOX_TOKEN } = useMapboxToken();
 
   // Generate property markers GeoJSON
   const getPropertyGeoJSON = useCallback(() => {
