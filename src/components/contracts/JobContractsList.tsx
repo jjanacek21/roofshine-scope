@@ -14,6 +14,7 @@ type ContractRow = {
   rep_user_id: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tenant_users?: any;
+  signed_pdf_url?: string | null;
 };
 
 function fmtDate(iso: string | null) {
@@ -23,6 +24,12 @@ function fmtDate(iso: string | null) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function extractContractsPath(url: string | null): string | null {
+  if (!url) return null;
+  const m = url.match(/\/contracts\/(.+)$/);
+  return m ? decodeURIComponent(m[1]) : null;
 }
 
 export function JobContractsList({ jobId }: { jobId: string }) {
@@ -38,7 +45,18 @@ export function JobContractsList({ jobId }: { jobId: string }) {
         .eq("job_id", jobId)
         .order("signed_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as ContractRow[];
+      const rows = (data ?? []) as ContractRow[];
+      const resolved = await Promise.all(
+        rows.map(async (r) => {
+          const path = extractContractsPath(r.pdf_url);
+          if (!path) return r;
+          const { data: signed } = await supabase.storage
+            .from("contracts")
+            .createSignedUrl(path, 60 * 60);
+          return { ...r, signed_pdf_url: signed?.signedUrl ?? null };
+        }),
+      );
+      return resolved;
     },
   });
 
