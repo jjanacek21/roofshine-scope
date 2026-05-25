@@ -618,6 +618,147 @@ export type Database = {
           },
         ]
       }
+      door_knocks: {
+        Row: {
+          address: string | null
+          appointment_date: string | null
+          company_id: string
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          disposition: Database["public"]["Enums"]["door_to_door_disposition"]
+          dwell_time_seconds: number
+          id: string
+          lat: number
+          lng: number
+          notes: string | null
+          points_awarded: number
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          appointment_date?: string | null
+          company_id: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          disposition: Database["public"]["Enums"]["door_to_door_disposition"]
+          dwell_time_seconds?: number
+          id?: string
+          lat: number
+          lng: number
+          notes?: string | null
+          points_awarded?: number
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          appointment_date?: string | null
+          company_id?: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          disposition?: Database["public"]["Enums"]["door_to_door_disposition"]
+          dwell_time_seconds?: number
+          id?: string
+          lat?: number
+          lng?: number
+          notes?: string | null
+          points_awarded?: number
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      door_session_goals: {
+        Row: {
+          company_id: string
+          created_at: string
+          goals_doors: number
+          goals_leads: number
+          id: string
+          session_id: string
+          user_id: string
+          video_duration_seconds: number
+          video_url: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          goals_doors?: number
+          goals_leads?: number
+          id?: string
+          session_id: string
+          user_id: string
+          video_duration_seconds?: number
+          video_url: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          goals_doors?: number
+          goals_leads?: number
+          id?: string
+          session_id?: string
+          user_id?: string
+          video_duration_seconds?: number
+          video_url?: string
+        }
+        Relationships: []
+      }
+      door_to_door_stats: {
+        Row: {
+          company_id: string
+          current_streak_days: number
+          id: string
+          last_active_date: string | null
+          longest_streak_days: number
+          total_appointments: number
+          total_contracts: number
+          total_doors: number
+          total_points: number
+          total_sessions: number
+          total_verifications: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          current_streak_days?: number
+          id?: string
+          last_active_date?: string | null
+          longest_streak_days?: number
+          total_appointments?: number
+          total_contracts?: number
+          total_doors?: number
+          total_points?: number
+          total_sessions?: number
+          total_verifications?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          current_streak_days?: number
+          id?: string
+          last_active_date?: string | null
+          longest_streak_days?: number
+          total_appointments?: number
+          total_contracts?: number
+          total_doors?: number
+          total_points?: number
+          total_sessions?: number
+          total_verifications?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       estimate_line_items: {
         Row: {
           code: string | null
@@ -761,6 +902,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      field_sessions: {
+        Row: {
+          company_id: string
+          created_at: string
+          ended_at: string | null
+          goals_doors: number | null
+          goals_leads: number | null
+          id: string
+          is_active: boolean
+          route_geojson: Json | null
+          started_at: string
+          status: string | null
+          storm_event_id: string | null
+          total_doors: number
+          total_points: number
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          ended_at?: string | null
+          goals_doors?: number | null
+          goals_leads?: number | null
+          id?: string
+          is_active?: boolean
+          route_geojson?: Json | null
+          started_at?: string
+          status?: string | null
+          storm_event_id?: string | null
+          total_doors?: number
+          total_points?: number
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          ended_at?: string | null
+          goals_doors?: number | null
+          goals_leads?: number | null
+          id?: string
+          is_active?: boolean
+          route_geojson?: Json | null
+          started_at?: string
+          status?: string | null
+          storm_event_id?: string | null
+          total_doors?: number
+          total_points?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       generated_reports: {
         Row: {
@@ -2639,6 +2831,75 @@ export type Database = {
         }
         Relationships: []
       }
+      property_dispositions: {
+        Row: {
+          address: string | null
+          company_id: string
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          disposition: string
+          id: string
+          insurance_claim: boolean | null
+          lat: number
+          lat_lng_hash: string
+          lng: number
+          notes: string | null
+          priority: string | null
+          roof_condition: string | null
+          roof_type: string | null
+          storm_date: string | null
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          company_id: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          disposition?: string
+          id?: string
+          insurance_claim?: boolean | null
+          lat: number
+          lat_lng_hash: string
+          lng: number
+          notes?: string | null
+          priority?: string | null
+          roof_condition?: string | null
+          roof_type?: string | null
+          storm_date?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          company_id?: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          disposition?: string
+          id?: string
+          insurance_claim?: boolean | null
+          lat?: number
+          lat_lng_hash?: string
+          lng?: number
+          notes?: string | null
+          priority?: string | null
+          roof_condition?: string | null
+          roof_type?: string | null
+          storm_date?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       rep_card_blocks: {
         Row: {
           company_id: string | null
@@ -3040,6 +3301,171 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      session_feed_comments: {
+        Row: {
+          company_id: string
+          content: string
+          created_at: string
+          id: string
+          parent_id: string | null
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          content: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      session_feed_posts: {
+        Row: {
+          company_id: string
+          content: string | null
+          created_at: string
+          doors_knocked: number
+          goals_doors: number | null
+          goals_leads: number | null
+          id: string
+          image_url: string | null
+          leads_gotten: number
+          points_earned: number
+          post_type: string | null
+          session_id: string
+          user_id: string
+          video_type: string
+          video_url: string | null
+        }
+        Insert: {
+          company_id: string
+          content?: string | null
+          created_at?: string
+          doors_knocked?: number
+          goals_doors?: number | null
+          goals_leads?: number | null
+          id?: string
+          image_url?: string | null
+          leads_gotten?: number
+          points_earned?: number
+          post_type?: string | null
+          session_id: string
+          user_id: string
+          video_type?: string
+          video_url?: string | null
+        }
+        Update: {
+          company_id?: string
+          content?: string | null
+          created_at?: string
+          doors_knocked?: number
+          goals_doors?: number | null
+          goals_leads?: number | null
+          id?: string
+          image_url?: string | null
+          leads_gotten?: number
+          points_earned?: number
+          post_type?: string | null
+          session_id?: string
+          user_id?: string
+          video_type?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      session_feed_reactions: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          post_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          post_id: string
+          reaction_type?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      session_progress_videos: {
+        Row: {
+          challenges_mentioned: string | null
+          company_id: string
+          created_at: string
+          id: string
+          points_awarded: number
+          points_multiplier: number
+          session_id: string
+          update_number: number
+          updated_goals_doors: number | null
+          updated_goals_leads: number | null
+          user_id: string
+          video_duration_seconds: number
+          video_type: string
+          video_url: string
+        }
+        Insert: {
+          challenges_mentioned?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          points_awarded?: number
+          points_multiplier?: number
+          session_id: string
+          update_number?: number
+          updated_goals_doors?: number | null
+          updated_goals_leads?: number | null
+          user_id: string
+          video_duration_seconds?: number
+          video_type?: string
+          video_url: string
+        }
+        Update: {
+          challenges_mentioned?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          points_awarded?: number
+          points_multiplier?: number
+          session_id?: string
+          update_number?: number
+          updated_goals_doors?: number | null
+          updated_goals_leads?: number | null
+          user_id?: string
+          video_duration_seconds?: number
+          video_type?: string
+          video_url?: string
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {
@@ -3535,6 +3961,14 @@ export type Database = {
       app_role: "owner" | "admin" | "estimator" | "member" | "super_admin"
       catalog_status: "active" | "inactive"
       companion_rule_type: "required" | "recommended" | "conditional"
+      door_to_door_disposition:
+        | "not_home"
+        | "not_interested"
+        | "go_back"
+        | "interested"
+        | "needs_inspection"
+        | "appointment_set"
+        | "contract_signed"
       estimate_doc_status: "draft" | "sent" | "approved" | "rejected"
       estimate_status: "draft" | "sent" | "approved" | "rejected"
       invoice_line_kind: "catalog" | "custom"
@@ -3747,6 +4181,15 @@ export const Constants = {
       app_role: ["owner", "admin", "estimator", "member", "super_admin"],
       catalog_status: ["active", "inactive"],
       companion_rule_type: ["required", "recommended", "conditional"],
+      door_to_door_disposition: [
+        "not_home",
+        "not_interested",
+        "go_back",
+        "interested",
+        "needs_inspection",
+        "appointment_set",
+        "contract_signed",
+      ],
       estimate_doc_status: ["draft", "sent", "approved", "rejected"],
       estimate_status: ["draft", "sent", "approved", "rejected"],
       invoice_line_kind: ["catalog", "custom"],
