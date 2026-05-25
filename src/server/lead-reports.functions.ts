@@ -47,7 +47,7 @@ export const sendLeadReport = createServerFn({ method: "POST" })
         <p>Hi${lead.owner ? ` ${lead.owner}` : ""},</p>
         <p>${data.message ? data.message.replace(/\n/g, "<br>") : `Attached is your free SPF restoration vs. tear-off comparison for <b>${propLine}</b>. It walks through the 20-year cost difference, energy savings, and re-coat schedule so you can see the numbers side by side.`}</p>
         <p>Reply to this email if you'd like a walkthrough or have questions.</p>
-        <p style="color:#64748b; font-size:12px;">Sent via Roof Kings Prospector</p>
+        <p style="color:#64748b; font-size:12px;">Sent via Roof Kings SPF Prospecting</p>
       </div>
     `;
 

@@ -29,7 +29,7 @@ const WORKSPACE_NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, badgeKey: null },
   { to: "/clients", label: "Clients", icon: Users, badgeKey: null },
   { to: "/jobs", label: "Jobs", icon: Briefcase, badgeKey: "jobs" as const },
-  { to: "/leads", label: "Prospector", icon: Target, badgeKey: null },
+  { to: "/leads", label: "SPF Prospecting", icon: Target, badgeKey: null },
   { to: "/card", label: "My Card", icon: IdCard, badgeKey: null },
 ] as const;
 
