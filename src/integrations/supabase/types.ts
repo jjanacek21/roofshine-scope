@@ -3092,12 +3092,22 @@ export type Database = {
           customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
+          disposition: Database["public"]["Enums"]["door_disposition"] | null
           id: string
+          insurance_claim: boolean | null
           last_knocked_at: string | null
+          lat: number | null
+          lat_lng_hash: string | null
           latitude: number | null
+          lng: number | null
           longitude: number | null
           metadata: Json | null
+          notes: string | null
+          priority: string | null
+          roof_condition: string | null
+          roof_type: string | null
           status: Database["public"]["Enums"]["property_status"] | null
+          storm_date: string | null
           tags: string[] | null
           total_knocks: number | null
           updated_at: string | null
@@ -3112,12 +3122,22 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          disposition?: Database["public"]["Enums"]["door_disposition"] | null
           id?: string
+          insurance_claim?: boolean | null
           last_knocked_at?: string | null
+          lat?: number | null
+          lat_lng_hash?: string | null
           latitude?: number | null
+          lng?: number | null
           longitude?: number | null
           metadata?: Json | null
+          notes?: string | null
+          priority?: string | null
+          roof_condition?: string | null
+          roof_type?: string | null
           status?: Database["public"]["Enums"]["property_status"] | null
+          storm_date?: string | null
           tags?: string[] | null
           total_knocks?: number | null
           updated_at?: string | null
@@ -3132,12 +3152,22 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          disposition?: Database["public"]["Enums"]["door_disposition"] | null
           id?: string
+          insurance_claim?: boolean | null
           last_knocked_at?: string | null
+          lat?: number | null
+          lat_lng_hash?: string | null
           latitude?: number | null
+          lng?: number | null
           longitude?: number | null
           metadata?: Json | null
+          notes?: string | null
+          priority?: string | null
+          roof_condition?: string | null
+          roof_type?: string | null
           status?: Database["public"]["Enums"]["property_status"] | null
+          storm_date?: string | null
           tags?: string[] | null
           total_knocks?: number | null
           updated_at?: string | null
@@ -4648,6 +4678,20 @@ export type Database = {
         | "needs_inspection"
         | "appointment_set"
         | "contract_signed"
+        | "need_inspection"
+        | "storm_damage"
+        | "unqualified"
+        | "canvass_lead"
+        | "new_roof"
+        | "follow_up"
+        | "waiting"
+        | "already_solar"
+        | "opportunity"
+        | "commercial"
+        | "inspected"
+        | "old_roof"
+        | "won"
+        | "not_contacted"
       estimate_doc_status: "draft" | "sent" | "approved" | "rejected"
       estimate_status: "draft" | "sent" | "approved" | "rejected"
       invoice_line_kind: "catalog" | "custom"
@@ -4876,6 +4920,20 @@ export const Constants = {
         "needs_inspection",
         "appointment_set",
         "contract_signed",
+        "need_inspection",
+        "storm_damage",
+        "unqualified",
+        "canvass_lead",
+        "new_roof",
+        "follow_up",
+        "waiting",
+        "already_solar",
+        "opportunity",
+        "commercial",
+        "inspected",
+        "old_roof",
+        "won",
+        "not_contacted",
       ],
       estimate_doc_status: ["draft", "sent", "approved", "rejected"],
       estimate_status: ["draft", "sent", "approved", "rejected"],
