@@ -15,6 +15,7 @@ import {
   BookOpenText,
   ChevronLeft,
   ChevronRight,
+  DoorOpen,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/hooks/useAuth";
