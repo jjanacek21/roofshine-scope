@@ -3097,7 +3097,7 @@ export type Database = {
           insurance_claim: boolean | null
           last_knocked_at: string | null
           lat: number | null
-          lat_lng_hash: string | null
+          lat_lng_hash: string
           latitude: number | null
           lng: number | null
           longitude: number | null
@@ -3127,7 +3127,7 @@ export type Database = {
           insurance_claim?: boolean | null
           last_knocked_at?: string | null
           lat?: number | null
-          lat_lng_hash?: string | null
+          lat_lng_hash: string
           latitude?: number | null
           lng?: number | null
           longitude?: number | null
@@ -3157,7 +3157,7 @@ export type Database = {
           insurance_claim?: boolean | null
           last_knocked_at?: string | null
           lat?: number | null
-          lat_lng_hash?: string | null
+          lat_lng_hash?: string
           latitude?: number | null
           lng?: number | null
           longitude?: number | null
