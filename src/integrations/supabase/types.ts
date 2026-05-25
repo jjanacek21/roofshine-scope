@@ -627,7 +627,7 @@ export type Database = {
           customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
-          disposition: Database["public"]["Enums"]["door_to_door_disposition"]
+          disposition: string
           dwell_time_seconds: number
           id: string
           lat: number
@@ -645,7 +645,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
-          disposition: Database["public"]["Enums"]["door_to_door_disposition"]
+          disposition: string
           dwell_time_seconds?: number
           id?: string
           lat: number
@@ -663,7 +663,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
-          disposition?: Database["public"]["Enums"]["door_to_door_disposition"]
+          disposition?: string
           dwell_time_seconds?: number
           id?: string
           lat?: number
