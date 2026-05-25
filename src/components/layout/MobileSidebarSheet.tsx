@@ -33,6 +33,7 @@ const WORKSPACE_NAV = [
   { to: "/jobs", label: "Jobs", icon: Briefcase, badgeKey: "jobs" as const },
   { to: "/leads", label: "SPF Prospecting", icon: Target, badgeKey: null },
   { to: "/clients", label: "Clients", icon: Users, badgeKey: null },
+  { to: "/door-to-door", label: "Door to Door", icon: DoorOpen, badgeKey: null },
   { to: "/card", label: "My Card", icon: IdCard, badgeKey: null },
 ] as const;
 
