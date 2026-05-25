@@ -3084,7 +3084,7 @@ export type Database = {
       }
       property_dispositions: {
         Row: {
-          address: string
+          address: string | null
           created_at: string | null
           current_disposition:
             | Database["public"]["Enums"]["door_disposition"]
@@ -3114,7 +3114,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          address: string
+          address?: string | null
           created_at?: string | null
           current_disposition?:
             | Database["public"]["Enums"]["door_disposition"]
@@ -3144,7 +3144,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          address?: string
+          address?: string | null
           created_at?: string | null
           current_disposition?:
             | Database["public"]["Enums"]["door_disposition"]

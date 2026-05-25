@@ -1,0 +1,1 @@
+ALTER TABLE public.property_dispositions ALTER COLUMN address DROP NOT NULL;
