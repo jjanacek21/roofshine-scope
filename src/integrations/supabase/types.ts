@@ -830,17 +830,17 @@ export type Database = {
         Row: {
           address: string | null
           appointment_date: string | null
-          created_at: string | null
+          created_at: string
           customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
           disposition: Database["public"]["Enums"]["door_disposition"]
-          dwell_seconds: number | null
+          dwell_time_seconds: number
           id: string
-          latitude: number
-          longitude: number
+          lat: number
+          lng: number
           notes: string | null
-          points_earned: number | null
+          points_awarded: number
           property_id: string | null
           session_id: string
           user_id: string
@@ -848,17 +848,17 @@ export type Database = {
         Insert: {
           address?: string | null
           appointment_date?: string | null
-          created_at?: string | null
+          created_at?: string
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           disposition: Database["public"]["Enums"]["door_disposition"]
-          dwell_seconds?: number | null
+          dwell_time_seconds?: number
           id?: string
-          latitude: number
-          longitude: number
+          lat: number
+          lng: number
           notes?: string | null
-          points_earned?: number | null
+          points_awarded?: number
           property_id?: string | null
           session_id: string
           user_id: string
@@ -866,17 +866,17 @@ export type Database = {
         Update: {
           address?: string | null
           appointment_date?: string | null
-          created_at?: string | null
+          created_at?: string
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           disposition?: Database["public"]["Enums"]["door_disposition"]
-          dwell_seconds?: number | null
+          dwell_time_seconds?: number
           id?: string
-          latitude?: number
-          longitude?: number
+          lat?: number
+          lng?: number
           notes?: string | null
-          points_earned?: number | null
+          points_awarded?: number
           property_id?: string | null
           session_id?: string
           user_id?: string
@@ -946,38 +946,41 @@ export type Database = {
       }
       door_to_door_stats: {
         Row: {
-          current_streak_days: number | null
+          current_streak_days: number
           last_session_at: string | null
-          longest_streak_days: number | null
-          total_appointments: number | null
-          total_contracts: number | null
-          total_doors_knocked: number | null
-          total_points: number | null
-          total_sessions: number | null
+          longest_streak_days: number
+          total_appointments: number
+          total_contracts: number
+          total_doors: number
+          total_points: number
+          total_sessions: number
+          total_verifications: number
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          current_streak_days?: number | null
+          current_streak_days?: number
           last_session_at?: string | null
-          longest_streak_days?: number | null
-          total_appointments?: number | null
-          total_contracts?: number | null
-          total_doors_knocked?: number | null
-          total_points?: number | null
-          total_sessions?: number | null
+          longest_streak_days?: number
+          total_appointments?: number
+          total_contracts?: number
+          total_doors?: number
+          total_points?: number
+          total_sessions?: number
+          total_verifications?: number
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          current_streak_days?: number | null
+          current_streak_days?: number
           last_session_at?: string | null
-          longest_streak_days?: number | null
-          total_appointments?: number | null
-          total_contracts?: number | null
-          total_doors_knocked?: number | null
-          total_points?: number | null
-          total_sessions?: number | null
+          longest_streak_days?: number
+          total_appointments?: number
+          total_contracts?: number
+          total_doors?: number
+          total_points?: number
+          total_sessions?: number
+          total_verifications?: number
           updated_at?: string | null
           user_id?: string
         }
@@ -1140,7 +1143,7 @@ export type Database = {
           notes: string | null
           pre_session_goal: string | null
           pre_session_video_url: string | null
-          route_geometry: Json | null
+          route_geojson: Json
           start_location: Json | null
           started_at: string
           status: string
@@ -1164,7 +1167,7 @@ export type Database = {
           notes?: string | null
           pre_session_goal?: string | null
           pre_session_video_url?: string | null
-          route_geometry?: Json | null
+          route_geojson?: Json
           start_location?: Json | null
           started_at?: string
           status?: string
@@ -1188,7 +1191,7 @@ export type Database = {
           notes?: string | null
           pre_session_goal?: string | null
           pre_session_video_url?: string | null
-          route_geometry?: Json | null
+          route_geojson?: Json
           start_location?: Json | null
           started_at?: string
           status?: string
@@ -3939,6 +3942,36 @@ export type Database = {
           },
         ]
       }
+      storm_events: {
+        Row: {
+          affected_area: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          severity: string
+          storm_date: string
+        }
+        Insert: {
+          affected_area?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          severity?: string
+          storm_date: string
+        }
+        Update: {
+          affected_area?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          severity?: string
+          storm_date?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -4332,8 +4365,8 @@ export type Database = {
         Row: {
           accuracy: number | null
           id: string
-          latitude: number
-          longitude: number
+          lat: number
+          lng: number
           recorded_at: string | null
           session_id: string | null
           user_id: string
@@ -4341,8 +4374,8 @@ export type Database = {
         Insert: {
           accuracy?: number | null
           id?: string
-          latitude: number
-          longitude: number
+          lat: number
+          lng: number
           recorded_at?: string | null
           session_id?: string | null
           user_id: string
@@ -4350,8 +4383,8 @@ export type Database = {
         Update: {
           accuracy?: number | null
           id?: string
-          latitude?: number
-          longitude?: number
+          lat?: number
+          lng?: number
           recorded_at?: string | null
           session_id?: string | null
           user_id?: string
@@ -4369,7 +4402,9 @@ export type Database = {
       video_verifications: {
         Row: {
           created_at: string | null
+          duration_seconds: number | null
           id: string
+          points_awarded: number | null
           session_id: string
           user_id: string
           verification_type: string
@@ -4378,7 +4413,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          duration_seconds?: number | null
           id?: string
+          points_awarded?: number | null
           session_id: string
           user_id: string
           verification_type?: string
@@ -4387,7 +4424,9 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          duration_seconds?: number | null
           id?: string
+          points_awarded?: number | null
           session_id?: string
           user_id?: string
           verification_type?: string
