@@ -205,10 +205,7 @@ export default function DoorToDoor() {
   const handleGoalVideoComplete = async (goals: { doors: number; leads: number }, videoUrl: string) => {
     setShowGoalVideo(false);
     setPendingSessionStart(false);
-    toast({
-      title: "🎯 Goals Set!",
-      description: `Let's hit ${goals.doors} doors and ${goals.leads} leads!`,
-    });
+    toast("🎯 Goals Set!", { description: `Let's hit ${goals.doors} doors and ${goals.leads} leads!` });
   };
 
   // Handle goal video cancel - session continues without goals
@@ -313,10 +310,7 @@ export default function DoorToDoor() {
       ...extraData,
     } : null);
 
-    toast({
-      title: "Saved",
-      description: `Property marked as ${disposition.replace(/_/g, ' ')}`,
-    });
+    toast("Saved", { description: `Property marked as ${disposition.replace(/_/g, ' ')}` });
   };
 
   // Handle video upload

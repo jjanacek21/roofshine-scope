@@ -216,10 +216,7 @@ export function useDoorToDoorSession(userId?: string) {
         return;
       }
 
-      toast({
-        title: '✅ Session Complete!',
-        description: `You knocked ${activeSession.total_doors} doors and earned ${activeSession.total_points} points!`
-      });
+      toast('✅ Session Complete!', { description: `You knocked ${activeSession.total_doors} doors and earned ${activeSession.total_points} points!` });
 
       setActiveSession(null);
       setDoorKnocks([]);
@@ -324,30 +321,15 @@ export function useDoorToDoorSession(userId?: string) {
 
       // Show celebration for high-value dispositions
       if (disposition === 'won' || disposition === 'contract_signed') {
-        toast({
-          title: '🎉 CONTRACT WON!',
-          description: `Amazing! +${pointsAwarded} points!`
-        });
+        toast('🎉 CONTRACT WON!', { description: `Amazing! +${pointsAwarded} points!` });
       } else if (disposition === 'inspected') {
-        toast({
-          title: '✅ Property Inspected!',
-          description: `Great work! +${pointsAwarded} points!`
-        });
+        toast('✅ Property Inspected!', { description: `Great work! +${pointsAwarded} points!` });
       } else if (disposition === 'need_inspection' || disposition === 'needs_inspection') {
-        toast({
-          title: '🔍 Inspection Needed!',
-          description: `Promising lead! +${pointsAwarded} points!`
-        });
+        toast('🔍 Inspection Needed!', { description: `Promising lead! +${pointsAwarded} points!` });
       } else if (disposition === 'canvass_lead') {
-        toast({
-          title: '👥 Lead Captured!',
-          description: `Nice! +${pointsAwarded} points!`
-        });
+        toast('👥 Lead Captured!', { description: `Nice! +${pointsAwarded} points!` });
       } else {
-        toast({
-          title: `+${pointsAwarded} Points!`,
-          description: `Door recorded: ${disposition.replace(/_/g, ' ')}`
-        });
+        toast(`+${pointsAwarded} Points!`, { description: `Door recorded: ${disposition.replace(/_/g, ' ')}` });
       }
 
       return knock;
@@ -387,10 +369,7 @@ export function useDoorToDoorSession(userId?: string) {
         'Video check-in completed'
       );
 
-      toast({
-        title: '📹 Video Verified!',
-        description: `+${DOOR_POINTS.video_verification} points!`
-      });
+      toast('📹 Video Verified!', { description: `+${DOOR_POINTS.video_verification} points!` });
 
       return true;
     } catch (err) {
