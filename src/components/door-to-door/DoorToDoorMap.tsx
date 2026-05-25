@@ -64,6 +64,7 @@ export function DoorToDoorMap({
     if (!map.current || !onBoundsChange) return;
     
     const bounds = map.current.getBounds();
+    if (!bounds) return;
     onBoundsChange({
       north: bounds.getNorth(),
       south: bounds.getSouth(),
