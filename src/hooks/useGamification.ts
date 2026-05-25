@@ -223,18 +223,12 @@ export function useGamification(userId?: string) {
       }
 
       // Show toast
-      toast({
-        title: `+${amount} Points!`,
-        description: description,
-      });
+      toast(`+${amount} Points!`, { description: description });
 
       // Check for level up
       if (newLevel !== stats.current_level) {
         const levelInfo = LEVEL_THRESHOLDS[newLevel];
-        toast({
-          title: '🎉 Level Up!',
-          description: `You've reached ${levelInfo.name}!`,
-        });
+        toast('🎉 Level Up!', { description: `You've reached ${levelInfo.name}!` });
       }
 
       // Refresh stats
@@ -299,10 +293,7 @@ export function useGamification(userId?: string) {
         return;
       }
 
-      toast({
-        title: `${badge.icon} Badge Earned!`,
-        description: `You've earned the "${badge.name}" badge!`,
-      });
+      toast(`${badge.icon} Badge Earned!`, { description: `You've earned the "${badge.name}" badge!` });
 
       // Award bonus points for the badge
       if (badge.points_awarded > 0) {

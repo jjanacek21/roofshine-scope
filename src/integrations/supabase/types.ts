@@ -726,6 +726,30 @@ export type Database = {
           },
         ]
       }
+      company_members: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contracts: {
         Row: {
           contract_type: string
@@ -806,17 +830,17 @@ export type Database = {
         Row: {
           address: string | null
           appointment_date: string | null
-          created_at: string | null
+          created_at: string
           customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
           disposition: Database["public"]["Enums"]["door_disposition"]
-          dwell_seconds: number | null
+          dwell_time_seconds: number
           id: string
-          latitude: number
-          longitude: number
+          lat: number
+          lng: number
           notes: string | null
-          points_earned: number | null
+          points_awarded: number
           property_id: string | null
           session_id: string
           user_id: string
@@ -824,17 +848,17 @@ export type Database = {
         Insert: {
           address?: string | null
           appointment_date?: string | null
-          created_at?: string | null
+          created_at?: string
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           disposition: Database["public"]["Enums"]["door_disposition"]
-          dwell_seconds?: number | null
+          dwell_time_seconds?: number
           id?: string
-          latitude: number
-          longitude: number
+          lat: number
+          lng: number
           notes?: string | null
-          points_earned?: number | null
+          points_awarded?: number
           property_id?: string | null
           session_id: string
           user_id: string
@@ -842,17 +866,17 @@ export type Database = {
         Update: {
           address?: string | null
           appointment_date?: string | null
-          created_at?: string | null
+          created_at?: string
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           disposition?: Database["public"]["Enums"]["door_disposition"]
-          dwell_seconds?: number | null
+          dwell_time_seconds?: number
           id?: string
-          latitude?: number
-          longitude?: number
+          lat?: number
+          lng?: number
           notes?: string | null
-          points_earned?: number | null
+          points_awarded?: number
           property_id?: string | null
           session_id?: string
           user_id?: string
@@ -872,31 +896,43 @@ export type Database = {
           completed: boolean | null
           created_at: string | null
           current_value: number | null
-          goal_type: string
+          goal_type: string | null
+          goals_doors: number | null
+          goals_leads: number | null
           id: string
           session_id: string
-          target_value: number
+          target_value: number | null
           user_id: string
+          video_duration_seconds: number | null
+          video_url: string | null
         }
         Insert: {
           completed?: boolean | null
           created_at?: string | null
           current_value?: number | null
-          goal_type: string
+          goal_type?: string | null
+          goals_doors?: number | null
+          goals_leads?: number | null
           id?: string
           session_id: string
-          target_value: number
+          target_value?: number | null
           user_id: string
+          video_duration_seconds?: number | null
+          video_url?: string | null
         }
         Update: {
           completed?: boolean | null
           created_at?: string | null
           current_value?: number | null
-          goal_type?: string
+          goal_type?: string | null
+          goals_doors?: number | null
+          goals_leads?: number | null
           id?: string
           session_id?: string
-          target_value?: number
+          target_value?: number | null
           user_id?: string
+          video_duration_seconds?: number | null
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -910,38 +946,41 @@ export type Database = {
       }
       door_to_door_stats: {
         Row: {
-          current_streak_days: number | null
+          current_streak_days: number
           last_session_at: string | null
-          longest_streak_days: number | null
-          total_appointments: number | null
-          total_contracts: number | null
-          total_doors_knocked: number | null
-          total_points: number | null
-          total_sessions: number | null
+          longest_streak_days: number
+          total_appointments: number
+          total_contracts: number
+          total_doors: number
+          total_points: number
+          total_sessions: number
+          total_verifications: number
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          current_streak_days?: number | null
+          current_streak_days?: number
           last_session_at?: string | null
-          longest_streak_days?: number | null
-          total_appointments?: number | null
-          total_contracts?: number | null
-          total_doors_knocked?: number | null
-          total_points?: number | null
-          total_sessions?: number | null
+          longest_streak_days?: number
+          total_appointments?: number
+          total_contracts?: number
+          total_doors?: number
+          total_points?: number
+          total_sessions?: number
+          total_verifications?: number
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          current_streak_days?: number | null
+          current_streak_days?: number
           last_session_at?: string | null
-          longest_streak_days?: number | null
-          total_appointments?: number | null
-          total_contracts?: number | null
-          total_doors_knocked?: number | null
-          total_points?: number | null
-          total_sessions?: number | null
+          longest_streak_days?: number
+          total_appointments?: number
+          total_contracts?: number
+          total_doors?: number
+          total_points?: number
+          total_sessions?: number
+          total_verifications?: number
           updated_at?: string | null
           user_id?: string
         }
@@ -1097,16 +1136,21 @@ export type Database = {
           created_at: string | null
           end_location: Json | null
           ended_at: string | null
+          goals_doors: number | null
+          goals_leads: number | null
           id: string
+          is_active: boolean
           notes: string | null
           pre_session_goal: string | null
           pre_session_video_url: string | null
-          route_geometry: Json | null
+          route_geojson: Json
           start_location: Json | null
           started_at: string
           status: string
           total_distance_meters: number | null
+          total_doors: number
           total_doors_knocked: number | null
+          total_points: number
           total_points_earned: number | null
           updated_at: string | null
           user_id: string
@@ -1116,16 +1160,21 @@ export type Database = {
           created_at?: string | null
           end_location?: Json | null
           ended_at?: string | null
+          goals_doors?: number | null
+          goals_leads?: number | null
           id?: string
+          is_active?: boolean
           notes?: string | null
           pre_session_goal?: string | null
           pre_session_video_url?: string | null
-          route_geometry?: Json | null
+          route_geojson?: Json
           start_location?: Json | null
           started_at?: string
           status?: string
           total_distance_meters?: number | null
+          total_doors?: number
           total_doors_knocked?: number | null
+          total_points?: number
           total_points_earned?: number | null
           updated_at?: string | null
           user_id: string
@@ -1135,16 +1184,21 @@ export type Database = {
           created_at?: string | null
           end_location?: Json | null
           ended_at?: string | null
+          goals_doors?: number | null
+          goals_leads?: number | null
           id?: string
+          is_active?: boolean
           notes?: string | null
           pre_session_goal?: string | null
           pre_session_video_url?: string | null
-          route_geometry?: Json | null
+          route_geojson?: Json
           start_location?: Json | null
           started_at?: string
           status?: string
           total_distance_meters?: number | null
+          total_doors?: number
           total_doors_knocked?: number | null
+          total_points?: number
           total_points_earned?: number | null
           updated_at?: string | null
           user_id?: string
@@ -3038,12 +3092,22 @@ export type Database = {
           customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
+          disposition: Database["public"]["Enums"]["door_disposition"] | null
           id: string
+          insurance_claim: boolean | null
           last_knocked_at: string | null
+          lat: number | null
+          lat_lng_hash: string
           latitude: number | null
+          lng: number | null
           longitude: number | null
           metadata: Json | null
+          notes: string | null
+          priority: string | null
+          roof_condition: string | null
+          roof_type: string | null
           status: Database["public"]["Enums"]["property_status"] | null
+          storm_date: string | null
           tags: string[] | null
           total_knocks: number | null
           updated_at: string | null
@@ -3058,12 +3122,22 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          disposition?: Database["public"]["Enums"]["door_disposition"] | null
           id?: string
+          insurance_claim?: boolean | null
           last_knocked_at?: string | null
+          lat?: number | null
+          lat_lng_hash: string
           latitude?: number | null
+          lng?: number | null
           longitude?: number | null
           metadata?: Json | null
+          notes?: string | null
+          priority?: string | null
+          roof_condition?: string | null
+          roof_type?: string | null
           status?: Database["public"]["Enums"]["property_status"] | null
+          storm_date?: string | null
           tags?: string[] | null
           total_knocks?: number | null
           updated_at?: string | null
@@ -3078,12 +3152,22 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          disposition?: Database["public"]["Enums"]["door_disposition"] | null
           id?: string
+          insurance_claim?: boolean | null
           last_knocked_at?: string | null
+          lat?: number | null
+          lat_lng_hash?: string
           latitude?: number | null
+          lng?: number | null
           longitude?: number | null
           metadata?: Json | null
+          notes?: string | null
+          priority?: string | null
+          roof_condition?: string | null
+          roof_type?: string | null
           status?: Database["public"]["Enums"]["property_status"] | null
+          storm_date?: string | null
           tags?: string[] | null
           total_knocks?: number | null
           updated_at?: string | null
@@ -3093,30 +3177,109 @@ export type Database = {
       }
       property_notes: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           note: string
-          property_disposition_id: string
+          property_id: string
           user_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           note: string
-          property_disposition_id: string
+          property_id: string
           user_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           note?: string
-          property_disposition_id?: string
+          property_id?: string
           user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "property_notes_property_disposition_id_fkey"
-            columns: ["property_disposition_id"]
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_dispositions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          photo_type: string
+          photo_url: string
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_type?: string
+          photo_url: string
+          property_id: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_type?: string
+          photo_url?: string
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_photos_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_dispositions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_residents: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_primary: boolean
+          name: string | null
+          phone: string | null
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name?: string | null
+          phone?: string | null
+          property_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name?: string | null
+          phone?: string | null
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_residents_property_id_fkey"
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "property_dispositions"
             referencedColumns: ["id"]
@@ -3611,26 +3774,36 @@ export type Database = {
       session_feed_comments: {
         Row: {
           content: string
-          created_at: string | null
+          created_at: string
           id: string
+          parent_id: string | null
           post_id: string
           user_id: string
         }
         Insert: {
           content: string
-          created_at?: string | null
+          created_at?: string
           id?: string
+          parent_id?: string | null
           post_id: string
           user_id: string
         }
         Update: {
           content?: string
-          created_at?: string | null
+          created_at?: string
           id?: string
+          parent_id?: string | null
           post_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "session_feed_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "session_feed_comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "session_feed_comments_post_id_fkey"
             columns: ["post_id"]
@@ -3644,29 +3817,53 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string | null
+          doors_knocked: number | null
+          goals_doors: number | null
+          goals_leads: number | null
           id: string
+          image_url: string | null
+          leads_gotten: number | null
           media_urls: string[] | null
+          points_earned: number | null
           post_type: string | null
           session_id: string | null
           user_id: string
+          video_type: string | null
+          video_url: string | null
         }
         Insert: {
           content?: string | null
           created_at?: string | null
+          doors_knocked?: number | null
+          goals_doors?: number | null
+          goals_leads?: number | null
           id?: string
+          image_url?: string | null
+          leads_gotten?: number | null
           media_urls?: string[] | null
+          points_earned?: number | null
           post_type?: string | null
           session_id?: string | null
           user_id: string
+          video_type?: string | null
+          video_url?: string | null
         }
         Update: {
           content?: string | null
           created_at?: string | null
+          doors_knocked?: number | null
+          goals_doors?: number | null
+          goals_leads?: number | null
           id?: string
+          image_url?: string | null
+          leads_gotten?: number | null
           media_urls?: string[] | null
+          points_earned?: number | null
           post_type?: string | null
           session_id?: string | null
           user_id?: string
+          video_type?: string | null
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -3683,21 +3880,21 @@ export type Database = {
           created_at: string | null
           id: string
           post_id: string
-          reaction: string
+          reaction_type: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           post_id: string
-          reaction?: string
+          reaction_type?: string
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
           post_id?: string
-          reaction?: string
+          reaction_type?: string
           user_id?: string
         }
         Relationships: [
@@ -3713,32 +3910,56 @@ export type Database = {
       session_progress_videos: {
         Row: {
           caption: string | null
+          challenges_mentioned: string | null
           created_at: string | null
           doors_at_recording: number | null
           id: string
           points_at_recording: number | null
+          points_awarded: number | null
+          points_multiplier: number | null
           session_id: string
+          update_number: number | null
+          updated_goals_doors: number | null
+          updated_goals_leads: number | null
           user_id: string
+          video_duration_seconds: number | null
+          video_type: string | null
           video_url: string
         }
         Insert: {
           caption?: string | null
+          challenges_mentioned?: string | null
           created_at?: string | null
           doors_at_recording?: number | null
           id?: string
           points_at_recording?: number | null
+          points_awarded?: number | null
+          points_multiplier?: number | null
           session_id: string
+          update_number?: number | null
+          updated_goals_doors?: number | null
+          updated_goals_leads?: number | null
           user_id: string
+          video_duration_seconds?: number | null
+          video_type?: string | null
           video_url: string
         }
         Update: {
           caption?: string | null
+          challenges_mentioned?: string | null
           created_at?: string | null
           doors_at_recording?: number | null
           id?: string
           points_at_recording?: number | null
+          points_awarded?: number | null
+          points_multiplier?: number | null
           session_id?: string
+          update_number?: number | null
+          updated_goals_doors?: number | null
+          updated_goals_leads?: number | null
           user_id?: string
+          video_duration_seconds?: number | null
+          video_type?: string | null
           video_url?: string
         }
         Relationships: [
@@ -3750,6 +3971,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      storm_events: {
+        Row: {
+          affected_area: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          severity: string
+          storm_date: string
+        }
+        Insert: {
+          affected_area?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          severity?: string
+          storm_date: string
+        }
+        Update: {
+          affected_area?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          severity?: string
+          storm_date?: string
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {
@@ -4144,8 +4395,8 @@ export type Database = {
         Row: {
           accuracy: number | null
           id: string
-          latitude: number
-          longitude: number
+          lat: number
+          lng: number
           recorded_at: string | null
           session_id: string | null
           user_id: string
@@ -4153,8 +4404,8 @@ export type Database = {
         Insert: {
           accuracy?: number | null
           id?: string
-          latitude: number
-          longitude: number
+          lat: number
+          lng: number
           recorded_at?: string | null
           session_id?: string | null
           user_id: string
@@ -4162,8 +4413,8 @@ export type Database = {
         Update: {
           accuracy?: number | null
           id?: string
-          latitude?: number
-          longitude?: number
+          lat?: number
+          lng?: number
           recorded_at?: string | null
           session_id?: string | null
           user_id?: string
@@ -4181,7 +4432,9 @@ export type Database = {
       video_verifications: {
         Row: {
           created_at: string | null
+          duration_seconds: number | null
           id: string
+          points_awarded: number | null
           session_id: string
           user_id: string
           verification_type: string
@@ -4190,7 +4443,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          duration_seconds?: number | null
           id?: string
+          points_awarded?: number | null
           session_id: string
           user_id: string
           verification_type?: string
@@ -4199,7 +4454,9 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          duration_seconds?: number | null
           id?: string
+          points_awarded?: number | null
           session_id?: string
           user_id?: string
           verification_type?: string
@@ -4421,6 +4678,20 @@ export type Database = {
         | "needs_inspection"
         | "appointment_set"
         | "contract_signed"
+        | "need_inspection"
+        | "storm_damage"
+        | "unqualified"
+        | "canvass_lead"
+        | "new_roof"
+        | "follow_up"
+        | "waiting"
+        | "already_solar"
+        | "opportunity"
+        | "commercial"
+        | "inspected"
+        | "old_roof"
+        | "won"
+        | "not_contacted"
       estimate_doc_status: "draft" | "sent" | "approved" | "rejected"
       estimate_status: "draft" | "sent" | "approved" | "rejected"
       invoice_line_kind: "catalog" | "custom"
@@ -4649,6 +4920,20 @@ export const Constants = {
         "needs_inspection",
         "appointment_set",
         "contract_signed",
+        "need_inspection",
+        "storm_damage",
+        "unqualified",
+        "canvass_lead",
+        "new_roof",
+        "follow_up",
+        "waiting",
+        "already_solar",
+        "opportunity",
+        "commercial",
+        "inspected",
+        "old_roof",
+        "won",
+        "not_contacted",
       ],
       estimate_doc_status: ["draft", "sent", "approved", "rejected"],
       estimate_status: ["draft", "sent", "approved", "rejected"],

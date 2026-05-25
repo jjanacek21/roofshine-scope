@@ -261,10 +261,7 @@ export function DispositionVideoModal({
         // Don't throw - the main save succeeded
       }
 
-      toast({
-        title: `+${calculatedPoints} Points!`,
-        description: `${selectedLocation.label} verification recorded successfully.`,
-      });
+      toast(`+${calculatedPoints} Points!`, { description: `${selectedLocation.label} verification recorded successfully.` });
 
       onComplete(calculatedPoints, urlData.publicUrl);
     } catch (error) {

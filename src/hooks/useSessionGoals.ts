@@ -93,10 +93,7 @@ export function useSessionGoals(userId?: string, sessionId?: string) {
       setLastProgressCheck(Date.now());
       await fetchProgressVideos();
 
-      toast({
-        title: `+${points} Points!`,
-        description: `${videoType === 'roof' ? '2x Roof' : videoType === 'homeowner' ? '3x Homeowner' : 'Standard'} bonus applied!`
-      });
+      toast(`+${points} Points!`, { description: `${videoType === 'roof' ? '2x Roof' : videoType === 'homeowner' ? '3x Homeowner' : 'Standard'} bonus applied!` });
 
       return true;
     } catch (err) {
