@@ -896,31 +896,43 @@ export type Database = {
           completed: boolean | null
           created_at: string | null
           current_value: number | null
-          goal_type: string
+          goal_type: string | null
+          goals_doors: number | null
+          goals_leads: number | null
           id: string
           session_id: string
-          target_value: number
+          target_value: number | null
           user_id: string
+          video_duration_seconds: number | null
+          video_url: string | null
         }
         Insert: {
           completed?: boolean | null
           created_at?: string | null
           current_value?: number | null
-          goal_type: string
+          goal_type?: string | null
+          goals_doors?: number | null
+          goals_leads?: number | null
           id?: string
           session_id: string
-          target_value: number
+          target_value?: number | null
           user_id: string
+          video_duration_seconds?: number | null
+          video_url?: string | null
         }
         Update: {
           completed?: boolean | null
           created_at?: string | null
           current_value?: number | null
-          goal_type?: string
+          goal_type?: string | null
+          goals_doors?: number | null
+          goals_leads?: number | null
           id?: string
           session_id?: string
-          target_value?: number
+          target_value?: number | null
           user_id?: string
+          video_duration_seconds?: number | null
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -1121,7 +1133,10 @@ export type Database = {
           created_at: string | null
           end_location: Json | null
           ended_at: string | null
+          goals_doors: number | null
+          goals_leads: number | null
           id: string
+          is_active: boolean
           notes: string | null
           pre_session_goal: string | null
           pre_session_video_url: string | null
@@ -1130,7 +1145,9 @@ export type Database = {
           started_at: string
           status: string
           total_distance_meters: number | null
+          total_doors: number
           total_doors_knocked: number | null
+          total_points: number
           total_points_earned: number | null
           updated_at: string | null
           user_id: string
@@ -1140,7 +1157,10 @@ export type Database = {
           created_at?: string | null
           end_location?: Json | null
           ended_at?: string | null
+          goals_doors?: number | null
+          goals_leads?: number | null
           id?: string
+          is_active?: boolean
           notes?: string | null
           pre_session_goal?: string | null
           pre_session_video_url?: string | null
@@ -1149,7 +1169,9 @@ export type Database = {
           started_at?: string
           status?: string
           total_distance_meters?: number | null
+          total_doors?: number
           total_doors_knocked?: number | null
+          total_points?: number
           total_points_earned?: number | null
           updated_at?: string | null
           user_id: string
@@ -1159,7 +1181,10 @@ export type Database = {
           created_at?: string | null
           end_location?: Json | null
           ended_at?: string | null
+          goals_doors?: number | null
+          goals_leads?: number | null
           id?: string
+          is_active?: boolean
           notes?: string | null
           pre_session_goal?: string | null
           pre_session_video_url?: string | null
@@ -1168,7 +1193,9 @@ export type Database = {
           started_at?: string
           status?: string
           total_distance_meters?: number | null
+          total_doors?: number
           total_doors_knocked?: number | null
+          total_points?: number
           total_points_earned?: number | null
           updated_at?: string | null
           user_id?: string
@@ -3117,21 +3144,21 @@ export type Database = {
       }
       property_notes: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           note: string
           property_id: string
           user_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           note: string
           property_id: string
           user_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           note?: string
           property_id?: string
@@ -3150,27 +3177,27 @@ export type Database = {
       property_photos: {
         Row: {
           caption: string | null
-          created_at: string | null
+          created_at: string
           id: string
-          photo_type: string | null
+          photo_type: string
           photo_url: string
           property_id: string
           user_id: string
         }
         Insert: {
           caption?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
-          photo_type?: string | null
+          photo_type?: string
           photo_url: string
           property_id: string
           user_id: string
         }
         Update: {
           caption?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
-          photo_type?: string | null
+          photo_type?: string
           photo_url?: string
           property_id?: string
           user_id?: string
@@ -3187,30 +3214,30 @@ export type Database = {
       }
       property_residents: {
         Row: {
-          created_at: string | null
+          created_at: string
           email: string | null
           id: string
-          is_primary: boolean | null
+          is_primary: boolean
           name: string | null
           phone: string | null
           property_id: string
           user_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           email?: string | null
           id?: string
-          is_primary?: boolean | null
+          is_primary?: boolean
           name?: string | null
           phone?: string | null
           property_id: string
           user_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           email?: string | null
           id?: string
-          is_primary?: boolean | null
+          is_primary?: boolean
           name?: string | null
           phone?: string | null
           property_id?: string
@@ -3714,7 +3741,7 @@ export type Database = {
       session_feed_comments: {
         Row: {
           content: string
-          created_at: string | null
+          created_at: string
           id: string
           parent_id: string | null
           post_id: string
@@ -3722,7 +3749,7 @@ export type Database = {
         }
         Insert: {
           content: string
-          created_at?: string | null
+          created_at?: string
           id?: string
           parent_id?: string | null
           post_id: string
@@ -3730,7 +3757,7 @@ export type Database = {
         }
         Update: {
           content?: string
-          created_at?: string | null
+          created_at?: string
           id?: string
           parent_id?: string | null
           post_id?: string
@@ -3850,32 +3877,56 @@ export type Database = {
       session_progress_videos: {
         Row: {
           caption: string | null
+          challenges_mentioned: string | null
           created_at: string | null
           doors_at_recording: number | null
           id: string
           points_at_recording: number | null
+          points_awarded: number | null
+          points_multiplier: number | null
           session_id: string
+          update_number: number | null
+          updated_goals_doors: number | null
+          updated_goals_leads: number | null
           user_id: string
+          video_duration_seconds: number | null
+          video_type: string | null
           video_url: string
         }
         Insert: {
           caption?: string | null
+          challenges_mentioned?: string | null
           created_at?: string | null
           doors_at_recording?: number | null
           id?: string
           points_at_recording?: number | null
+          points_awarded?: number | null
+          points_multiplier?: number | null
           session_id: string
+          update_number?: number | null
+          updated_goals_doors?: number | null
+          updated_goals_leads?: number | null
           user_id: string
+          video_duration_seconds?: number | null
+          video_type?: string | null
           video_url: string
         }
         Update: {
           caption?: string | null
+          challenges_mentioned?: string | null
           created_at?: string | null
           doors_at_recording?: number | null
           id?: string
           points_at_recording?: number | null
+          points_awarded?: number | null
+          points_multiplier?: number | null
           session_id?: string
+          update_number?: number | null
+          updated_goals_doors?: number | null
+          updated_goals_leads?: number | null
           user_id?: string
+          video_duration_seconds?: number | null
+          video_type?: string | null
           video_url?: string
         }
         Relationships: [
