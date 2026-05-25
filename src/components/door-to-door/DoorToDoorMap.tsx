@@ -239,7 +239,7 @@ export function DoorToDoorMap({
     return () => {
       map.current?.remove();
     };
-  }, []);
+  }, [MAPBOX_TOKEN]);
 
   // Update user position marker
   useEffect(() => {
