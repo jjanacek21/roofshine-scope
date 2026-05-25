@@ -726,6 +726,30 @@ export type Database = {
           },
         ]
       }
+      company_members: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contracts: {
         Row: {
           contract_type: string
@@ -3096,27 +3120,106 @@ export type Database = {
           created_at: string | null
           id: string
           note: string
-          property_disposition_id: string
+          property_id: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           note: string
-          property_disposition_id: string
+          property_id: string
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
           note?: string
-          property_disposition_id?: string
+          property_id?: string
           user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "property_notes_property_disposition_id_fkey"
-            columns: ["property_disposition_id"]
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_dispositions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_photos: {
+        Row: {
+          caption: string | null
+          created_at: string | null
+          id: string
+          photo_type: string | null
+          photo_url: string
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string | null
+          id?: string
+          photo_type?: string | null
+          photo_url: string
+          property_id: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string | null
+          id?: string
+          photo_type?: string | null
+          photo_url?: string
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_photos_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_dispositions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_residents: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          is_primary: boolean | null
+          name: string | null
+          phone: string | null
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_primary?: boolean | null
+          name?: string | null
+          phone?: string | null
+          property_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_primary?: boolean | null
+          name?: string | null
+          phone?: string | null
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_residents_property_id_fkey"
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "property_dispositions"
             referencedColumns: ["id"]
@@ -3613,6 +3716,7 @@ export type Database = {
           content: string
           created_at: string | null
           id: string
+          parent_id: string | null
           post_id: string
           user_id: string
         }
@@ -3620,6 +3724,7 @@ export type Database = {
           content: string
           created_at?: string | null
           id?: string
+          parent_id?: string | null
           post_id: string
           user_id: string
         }
@@ -3627,10 +3732,18 @@ export type Database = {
           content?: string
           created_at?: string | null
           id?: string
+          parent_id?: string | null
           post_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "session_feed_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "session_feed_comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "session_feed_comments_post_id_fkey"
             columns: ["post_id"]
@@ -3644,29 +3757,53 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string | null
+          doors_knocked: number | null
+          goals_doors: number | null
+          goals_leads: number | null
           id: string
+          image_url: string | null
+          leads_gotten: number | null
           media_urls: string[] | null
+          points_earned: number | null
           post_type: string | null
           session_id: string | null
           user_id: string
+          video_type: string | null
+          video_url: string | null
         }
         Insert: {
           content?: string | null
           created_at?: string | null
+          doors_knocked?: number | null
+          goals_doors?: number | null
+          goals_leads?: number | null
           id?: string
+          image_url?: string | null
+          leads_gotten?: number | null
           media_urls?: string[] | null
+          points_earned?: number | null
           post_type?: string | null
           session_id?: string | null
           user_id: string
+          video_type?: string | null
+          video_url?: string | null
         }
         Update: {
           content?: string | null
           created_at?: string | null
+          doors_knocked?: number | null
+          goals_doors?: number | null
+          goals_leads?: number | null
           id?: string
+          image_url?: string | null
+          leads_gotten?: number | null
           media_urls?: string[] | null
+          points_earned?: number | null
           post_type?: string | null
           session_id?: string | null
           user_id?: string
+          video_type?: string | null
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -3683,21 +3820,21 @@ export type Database = {
           created_at: string | null
           id: string
           post_id: string
-          reaction: string
+          reaction_type: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           post_id: string
-          reaction?: string
+          reaction_type?: string
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
           post_id?: string
-          reaction?: string
+          reaction_type?: string
           user_id?: string
         }
         Relationships: [
