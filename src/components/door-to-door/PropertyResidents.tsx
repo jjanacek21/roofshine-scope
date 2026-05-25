@@ -164,6 +164,7 @@ export function PropertyResidents({
       return;
     }
 
+    if (!propertyId) return;
     setLoading(true);
     try {
       // First, unset all as primary
