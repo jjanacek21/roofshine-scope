@@ -118,9 +118,9 @@ export function JobContractsList({ jobId }: { jobId: string }) {
                 </div>
 
                 <div className="flex shrink-0 gap-2">
-                  {c.pdf_url && (
+                  {c.signed_pdf_url && (
                     <a
-                      href={c.pdf_url}
+                      href={c.signed_pdf_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-ghost inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[12px] font-semibold"
@@ -129,12 +129,12 @@ export function JobContractsList({ jobId }: { jobId: string }) {
                       View PDF
                     </a>
                   )}
-                  {c.customer_email && c.pdf_url && (
+                  {c.customer_email && (
                     <a
                       href={`mailto:${c.customer_email}?subject=${encodeURIComponent(
                         "Your signed contract",
                       )}&body=${encodeURIComponent(
-                        `Your signed contract is available here:\n\n${c.pdf_url}`,
+                        `Your signed contract is ready. Please reply to this email and we'll send you a secure link.`,
                       )}`}
                       className="btn-ghost inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[12px] font-semibold"
                     >
