@@ -107,7 +107,7 @@ export default function DoorToDoor() {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate('/network-login');
+        navigate({ to: '/login' });
         return;
       }
       setUserId(user.id);
@@ -360,7 +360,7 @@ export default function DoorToDoor() {
         <Button
           variant="secondary"
           size="icon"
-          onClick={() => navigate('/member/dashboard')}
+          onClick={() => navigate({ to: '/' })}
           className="rounded-full shadow-lg"
         >
           <ArrowLeft className="w-5 h-5" />
