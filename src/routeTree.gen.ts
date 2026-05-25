@@ -55,6 +55,7 @@ import { Route as AppSurvivalGuideRouteImport } from './routes/_app.survival-gui
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
+import { Route as AppDoorToDoorRouteImport } from './routes/_app.door-to-door'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCardRouteImport } from './routes/_app.card'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
@@ -322,6 +323,11 @@ const AppLeadsRoute = AppLeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDoorToDoorRoute = AppDoorToDoorRouteImport.update({
+  id: '/door-to-door',
+  path: '/door-to-door',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppClientsRoute = AppClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
@@ -515,6 +521,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/card': typeof AppCardRoute
   '/clients': typeof AppClientsRouteWithChildren
+  '/door-to-door': typeof AppDoorToDoorRoute
   '/leads': typeof AppLeadsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
@@ -596,6 +603,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/card': typeof AppCardRoute
   '/clients': typeof AppClientsRouteWithChildren
+  '/door-to-door': typeof AppDoorToDoorRoute
   '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
   '/survival-guide': typeof AppSurvivalGuideRoute
@@ -678,6 +686,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_app/card': typeof AppCardRoute
   '/_app/clients': typeof AppClientsRouteWithChildren
+  '/_app/door-to-door': typeof AppDoorToDoorRoute
   '/_app/leads': typeof AppLeadsRouteWithChildren
   '/_app/price-books': typeof AppPriceBooksRouteWithChildren
   '/_app/settings': typeof AppSettingsRoute
@@ -764,6 +773,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/card'
     | '/clients'
+    | '/door-to-door'
     | '/leads'
     | '/price-books'
     | '/settings'
@@ -845,6 +855,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/card'
     | '/clients'
+    | '/door-to-door'
     | '/price-books'
     | '/settings'
     | '/survival-guide'
@@ -926,6 +937,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_app/card'
     | '/_app/clients'
+    | '/_app/door-to-door'
     | '/_app/leads'
     | '/_app/price-books'
     | '/_app/settings'
@@ -1352,6 +1364,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLeadsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/door-to-door': {
+      id: '/_app/door-to-door'
+      path: '/door-to-door'
+      fullPath: '/door-to-door'
+      preLoaderRoute: typeof AppDoorToDoorRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/clients': {
       id: '/_app/clients'
       path: '/clients'
@@ -1705,6 +1724,7 @@ const AppJobsIdRouteWithChildren = AppJobsIdRoute._addFileChildren(
 interface AppRouteChildren {
   AppCardRoute: typeof AppCardRoute
   AppClientsRoute: typeof AppClientsRouteWithChildren
+  AppDoorToDoorRoute: typeof AppDoorToDoorRoute
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
   AppPriceBooksRoute: typeof AppPriceBooksRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRoute
@@ -1722,6 +1742,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppCardRoute: AppCardRoute,
   AppClientsRoute: AppClientsRouteWithChildren,
+  AppDoorToDoorRoute: AppDoorToDoorRoute,
   AppLeadsRoute: AppLeadsRouteWithChildren,
   AppPriceBooksRoute: AppPriceBooksRouteWithChildren,
   AppSettingsRoute: AppSettingsRoute,
@@ -1836,13 +1857,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
