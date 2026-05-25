@@ -14,6 +14,7 @@ import {
   Target,
   IdCard,
   Receipt,
+  DoorOpen,
 } from "lucide-react";
 import {
   Sheet,
