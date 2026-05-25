@@ -14,6 +14,7 @@ type ContractRow = {
   rep_user_id: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tenant_users?: any;
+  signed_pdf_url?: string | null;
 };
 
 function fmtDate(iso: string | null) {
@@ -23,6 +24,12 @@ function fmtDate(iso: string | null) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function extractContractsPath(url: string | null): string | null {
+  if (!url) return null;
+  const m = url.match(/\/contracts\/(.+)$/);
+  return m ? decodeURIComponent(m[1]) : null;
 }
 
 export function JobContractsList({ jobId }: { jobId: string }) {
@@ -38,7 +45,18 @@ export function JobContractsList({ jobId }: { jobId: string }) {
         .eq("job_id", jobId)
         .order("signed_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as ContractRow[];
+      const rows = (data ?? []) as ContractRow[];
+      const resolved = await Promise.all(
+        rows.map(async (r) => {
+          const path = extractContractsPath(r.pdf_url);
+          if (!path) return r;
+          const { data: signed } = await supabase.storage
+            .from("contracts")
+            .createSignedUrl(path, 60 * 60);
+          return { ...r, signed_pdf_url: signed?.signedUrl ?? null };
+        }),
+      );
+      return resolved;
     },
   });
 
@@ -100,9 +118,9 @@ export function JobContractsList({ jobId }: { jobId: string }) {
                 </div>
 
                 <div className="flex shrink-0 gap-2">
-                  {c.pdf_url && (
+                  {c.signed_pdf_url && (
                     <a
-                      href={c.pdf_url}
+                      href={c.signed_pdf_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-ghost inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[12px] font-semibold"
@@ -111,12 +129,12 @@ export function JobContractsList({ jobId }: { jobId: string }) {
                       View PDF
                     </a>
                   )}
-                  {c.customer_email && c.pdf_url && (
+                  {c.customer_email && (
                     <a
                       href={`mailto:${c.customer_email}?subject=${encodeURIComponent(
                         "Your signed contract",
                       )}&body=${encodeURIComponent(
-                        `Your signed contract is available here:\n\n${c.pdf_url}`,
+                        `Your signed contract is ready. Please reply to this email and we'll send you a secure link.`,
                       )}`}
                       className="btn-ghost inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[12px] font-semibold"
                     >
