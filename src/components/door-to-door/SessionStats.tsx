@@ -71,7 +71,7 @@ export function SessionStats({ session, allTimeStats, sessionStartTime, selected
   }, [sessionStartTime]);
 
   return (
-    <div className="fixed top-20 left-4 z-40 space-y-2 max-w-[280px]">
+    <div className="fixed top-20 right-4 z-40 space-y-2 max-w-[280px]">
       {/* Storm Event Selector */}
       <Card className="bg-background/95 backdrop-blur shadow-lg border-primary/20">
         <CardContent className="p-3 space-y-2">
