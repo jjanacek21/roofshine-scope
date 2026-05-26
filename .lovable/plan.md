@@ -1,86 +1,119 @@
+# Split Door to Door into Sub-Tabs + Dispositions List
 
-## Door to Door — port plan
+## Goal
+Turn `/door-to-door` into a hub with two tabs:
+1. **Enter World** — current full-screen map / session experience
+2. **Dispositions** — list of every pin the user has dropped, filterable, with click-through to the map and one-click convert to a Job.
 
-Bring the D2D / iCanvas feature from the export into this app, adapted to the current stack (TanStack Start, Lovable Cloud, multi-tenant `company_id` RLS, server functions instead of Supabase Edge Functions).
+## Routing
 
-### 1. Database migration
+```
+/door-to-door                  → hub layout w/ tabs (default redirects to /door-to-door/dispositions)
+/door-to-door/world            → existing map UI (current DoorToDoor page contents)
+/door-to-door/dispositions     → new list view
+```
 
-Create one migration that adds:
+Implementation:
+- Convert `src/routes/_app.door-to-door.tsx` into a layout route that renders the two tabs + `<Outlet />`.
+- New files:
+  - `src/routes/_app.door-to-door.world.tsx` → renders existing `DoorToDoor` map page.
+  - `src/routes/_app.door-to-door.dispositions.tsx` → new list page.
+  - `src/routes/_app.door-to-door.index.tsx` → redirects to `/door-to-door/dispositions` so the tab hub is the landing page.
+- Sidebar entry stays `/door-to-door`.
+- "Enter World" tab label uses the existing `DoorOpen` icon; "Dispositions" uses `ListChecks` (or similar).
 
-**Enum**
-- `door_to_door_disposition` (`not_home`, `not_interested`, `go_back`, `interested`, `needs_inspection`, `appointment_set`, `contract_signed`).
+## Enter World tab
+- No behavioral change — same map, GPS, session controls, side panel, video modals.
+- Pins continue to save into `property_dispositions` via the existing `usePropertyDispositions` hook → automatically populates the Dispositions list (no extra plumbing needed).
+- Add a small back-to-tabs header (or keep current full-screen and just rely on the sidebar). Recommendation: keep full-screen map; the tab bar lives on the hub layout but the world view renders edge-to-edge by hiding it when active. Simpler: tab bar is always visible at top, map fills the remainder.
 
-**Tables** — every table gets `company_id uuid not null` in addition to the export's columns, plus a `BEFORE INSERT` trigger that auto-fills `company_id` from `auth_company_id()` when null:
-- `field_sessions`
-- `door_knocks`
-- `property_dispositions` (keep the unique `(user_id, lat_lng_hash)` index)
-- `door_session_goals`
-- `door_to_door_stats` (one row per user; aggregates stay per-user)
-- `session_feed_posts`
-- `session_feed_comments`
-- `session_feed_reactions`
-- `session_progress_videos`
+## Dispositions tab (new)
 
-**RLS — company-scoped:**
-- SELECT: `company_id = auth_company_id()` on all tables (feed + leaderboard visible to teammates).
-- INSERT: `user_id = auth.uid() AND company_id = auth_company_id()`.
-- UPDATE/DELETE: `user_id = auth.uid()` (own knocks/posts/comments only); company admins (`is_company_admin()`) can moderate feed posts/comments.
+### Data source
+Query `property_dispositions` for `user_id = currentUser` (already RLS-scoped). Use TanStack Query with key `['dispositions', userId, filters]`.
 
-**Triggers** (rewrite as `SECURITY DEFINER`, `search_path = public`):
-- `update_door_to_door_stats` (after insert on door_knocks)
-- `update_session_totals` (after insert on door_knocks)
-- `update_stats_on_session_start` (after insert on field_sessions)
-- New: `stamp_d2d_company_id` (before insert on each table) — mirrors the existing `stamp_lead_ownership` pattern.
+### Columns / row content
+- Disposition badge (color-coded via `src/lib/trades.ts`-style tokens, or a new map in `src/lib/dispositions.ts`)
+- Customer name (fallback: "—")
+- Address (fallback: reverse-geocoded coords or "Pin at lat,lng")
+- Phone / Email (compact)
+- Priority chip, tags
+- Created / updated timestamp
+- Row actions: **Open on Map**, **Convert to Job**
 
-**Realtime:** add the four tables to `supabase_realtime` publication.
+### Filters (top bar)
+- Disposition multi-select (all enum values from `PropertyDisposition`)
+- Search box (matches name, address, phone, email, notes)
+- Priority filter (normal / high / urgent)
+- Tag chips (derived from distinct `tags` values)
+- Date range (created_at)
+- "Has contact info" toggle (name OR phone OR email present)
 
-**Storage buckets** (private):
-- `door-to-door-videos`
-- `feed-media` — keep private; serve via short-lived signed URLs from the components (consistent with the recent contracts hardening). Path layout: `{company_id}/{user_id}/...` so RLS scopes by first folder = company_id.
+Filters are local state; query fetches all then filters client-side (volumes per user are small). If a user exceeds ~1k pins we can move filters server-side later.
 
-Storage policies: SELECT/INSERT/DELETE allowed when `(storage.foldername(name))[1] = auth_company_id()::text`.
+### Open on Map
+- Click row (or "Open" button) → `navigate({ to: '/door-to-door/world', search: { lat, lng, propertyId } })`.
+- World page reads `Route.useSearch()`, on mount flies the map to those coords and auto-opens `PropertySidePanel` for that property.
 
-### 2. Server function (replaces edge function)
+### Convert to Job
+- Button per row + bulk action in selection mode.
+- Opens a confirm dialog showing what will be copied.
+- On confirm, creates a `jobs` row with:
+  - `address`, `lat`, `lng` from the disposition
+  - `customer_name`, `customer_phone`, `customer_email`
+  - `notes` (prefixed with "Converted from D2D disposition …")
+  - `source = 'door_to_door'`
+  - `created_by` / `assigned_to` via existing `stamp_job_ownership` trigger
+- Copy associated artifacts:
+  - `property_photos` for that `property_disposition_id` → upload references / copy into `job-documents` bucket and insert `job_photos` rows (or whatever the existing job photos table is — confirmed during implementation by reading `JobPhotosPanel`).
+  - `property_notes` history → append to job notes.
+- Mark the disposition with `converted_job_id` (new nullable column) so the list shows a "Converted →" link instead of the button next time.
+- Toast on success with a link to the new job; option to navigate immediately.
 
-`src/lib/d2d.functions.ts` — exports `logTrainingSession` (`createServerFn` + `requireSupabaseAuth`). Ports the logic from `supabase/functions/log-training-session/index.ts` (validates session ownership, inserts a progress video row, awards points). Helpers live in `src/lib/d2d.server.ts` to satisfy the serverfn-split rule. Wire `attachSupabaseAuth` is already registered in `src/start.ts`.
+### Schema migration (single migration)
+```sql
+ALTER TABLE public.property_dispositions
+  ADD COLUMN converted_job_id uuid REFERENCES public.jobs(id) ON DELETE SET NULL,
+  ADD COLUMN converted_at timestamptz;
 
-### 3. Frontend files
+CREATE INDEX idx_property_dispositions_user_updated
+  ON public.property_dispositions (user_id, updated_at DESC);
+```
+(No new tables. Job creation reuses existing `jobs` insert + RLS.)
 
-Copy from the export, adapted file-by-file:
+### Server function
+`src/lib/d2d-convert.functions.ts`:
+- `convertDispositionToJob({ dispositionId })` using `requireSupabaseAuth`.
+  - Loads the disposition (RLS-scoped to user), inserts a `jobs` row, copies photos/notes, updates `converted_job_id`/`converted_at`, returns `{ jobId }`.
 
-- `src/hooks/useDoorToDoorSession.ts` — keep, swap all `supabase.from(...)` calls to include `company_id` on inserts (RLS still scopes selects automatically via the helper).
-- `src/routes/_app.door-to-door.tsx` — new TanStack route wrapping the page component. No lazy/Suspense (handled by router). Replace `/member/dashboard` redirects with `/`.
-- `src/components/door-to-door/` — port all 19 components verbatim, with these edits:
-  - `DoorToDoorMap.tsx` — replace `import.meta.env.VITE_MAPBOX_TOKEN` with the existing `useMapboxToken()` hook (`src/hooks/useMapboxToken.ts`).
-  - `PropertySidePanel.tsx` — remove imports of `InstantQuoteSection` and `GoodBetterBestCards` (stubbed — see below).
-  - `InstantQuoteSection.tsx` and `GoodBetterBestCards.tsx` — port the files but replace data fetches with empty-state placeholders ("Pricing integration coming soon"). Keeps the visual scaffolding ready for later wiring without crashing on missing `quote_leads`.
-  - Replace any `super_admins` checks with `is_super_admin()` (existing in this DB) or remove if only used for leaderboard visibility.
-  - All `feed-media` public URLs swapped to `supabase.storage.from("feed-media").createSignedUrl(path, 3600)` calls (matches contract-list pattern).
-  - Apply the project's design tokens: replace ad-hoc colors with semantic tokens from `src/styles.css`; headings use Archivo, numbers/codes use JetBrains Mono; cards use `var(--bg-card)` + 1px `var(--border)` + 14px radius. No raw `text-white` / `bg-black`.
-- Toast imports already match (`sonner`). Replace any `useToast` from shadcn with `toast` from `sonner`.
+## UI details
+- Tab bar: shadcn `Tabs` styled per design system (semantic tokens, Archivo, blue gradient active pill matching the existing primary button).
+- List: shadcn `Table` on desktop, stacked cards on mobile (<768px), JetBrains Mono for phone/lat-lng.
+- Empty state: "No dispositions yet — head into the World to drop your first pin" + CTA to Enter World tab.
+- Loading: existing skeleton style.
+- Toasts via `sonner` for save / convert.
 
-### 4. Navigation
+## Files touched
 
-- `src/components/layout/AppSidebar.tsx` — insert `{ label: "Door to Door", icon: DoorOpen, to: "/door-to-door" }` after the SPF Prospecting entry.
-- `src/components/layout/MobileBottomTabs.tsx` and `MobileSidebarSheet.tsx` — add matching entry. Mobile bottom bar already has 5 slots; demote "Guide" to the sheet and put D2D in the bar (or keep Guide and add D2D into the sheet only — quick decision at implementation).
+New:
+- `src/routes/_app.door-to-door.tsx` (rewritten as layout with tabs + Outlet)
+- `src/routes/_app.door-to-door.index.tsx` (redirect)
+- `src/routes/_app.door-to-door.world.tsx`
+- `src/routes/_app.door-to-door.dispositions.tsx`
+- `src/components/door-to-door/DispositionsList.tsx`
+- `src/components/door-to-door/DispositionFilters.tsx`
+- `src/components/door-to-door/ConvertToJobDialog.tsx`
+- `src/lib/d2d-convert.functions.ts`
+- `src/lib/dispositions.ts` (label + color map for all `PropertyDisposition` values)
+- `supabase/migrations/<ts>_d2d_convert.sql`
 
-### 5. Cleanup / out of scope
+Edited:
+- `src/pages/DoorToDoor.tsx` — accept optional `?lat&lng&propertyId` search params to auto-focus a pin.
 
-- No Supabase Edge Function deployed (the export's `log-training-session` becomes the server fn above).
-- No changes to `src/integrations/supabase/*` generated files.
-- `quote_leads` integration is stubbed, not implemented.
+Untouched:
+- All 30 existing D2D components, hooks, and the map itself.
 
-### Technical notes
-
-- Stack: TanStack Start file-based routes (`src/routes/_app.*`) + TanStack Query loader pattern. No React Router DOM, no `App.tsx` route table edits.
-- Auth: `requireSupabaseAuth` middleware on the server fn; browser uses the existing `@/integrations/supabase/client` import.
-- Mapbox token: reuses `/api/mapbox-token` route already in the project — no new secret needed.
-- RLS helper `auth_company_id()` already exists.
-- Realtime channels in `SessionFeed.tsx` continue to work once the publication includes the new tables.
-- Files created/edited (approx.): 1 migration, 1 server-fn file (+ helper), 1 hook, 1 route, ~19 components, 3 nav files. Total ~26 files.
-
-### Open follow-ups (after this port)
-
-- Wire `quote_leads` integration into the stubbed tabs when that table exists.
-- Decide whether to add per-company leaderboard ranking (server fn aggregating `door_to_door_stats` joined to `profiles`).
-- Decide if `field_sessions.storm_event_id` should reference an existing storm table or stay free-form.
+## Out of scope (call out if you want them)
+- Bulk export of dispositions to CSV
+- Reassigning dispositions to other reps
+- Server-side pagination (only needed past ~1k pins per user)

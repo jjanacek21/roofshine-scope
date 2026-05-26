@@ -3085,6 +3085,8 @@ export type Database = {
       property_dispositions: {
         Row: {
           address: string | null
+          converted_at: string | null
+          converted_job_id: string | null
           created_at: string | null
           current_disposition:
             | Database["public"]["Enums"]["door_disposition"]
@@ -3115,6 +3117,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          converted_at?: string | null
+          converted_job_id?: string | null
           created_at?: string | null
           current_disposition?:
             | Database["public"]["Enums"]["door_disposition"]
@@ -3145,6 +3149,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          converted_at?: string | null
+          converted_job_id?: string | null
           created_at?: string | null
           current_disposition?:
             | Database["public"]["Enums"]["door_disposition"]
@@ -3173,7 +3179,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "property_dispositions_converted_job_id_fkey"
+            columns: ["converted_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       property_notes: {
         Row: {
