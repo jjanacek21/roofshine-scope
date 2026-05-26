@@ -81,6 +81,7 @@ function DispositionsPage() {
           "id, lat, lng, address, disposition, customer_name, customer_phone, customer_email, notes, priority, tags, updated_at, created_at, converted_job_id",
         )
         .eq("user_id", user!.id)
+        .neq("disposition", "not_contacted")
         .order("updated_at", { ascending: false })
         .limit(1000);
       if (error) throw error;
