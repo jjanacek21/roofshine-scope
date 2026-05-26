@@ -28,6 +28,7 @@ export const convertDispositionToJob = createServerFn({ method: "POST" })
     if (profErr || !profile?.company_id) {
       throw new Error("You must belong to a company to convert a disposition into a job.");
     }
+    const companyId: string = profile.company_id;
 
     // 3. Collect related notes & photos for transfer summary
     const [{ data: notes }, { data: photos }] = await Promise.all([
@@ -60,7 +61,7 @@ export const convertDispositionToJob = createServerFn({ method: "POST" })
     const { data: job, error: jobErr } = await supabase
       .from("jobs")
       .insert({
-        company_id: profile.company_id,
+        company_id: companyId,
         name: jobName,
         property_address: disp.address ?? null,
         status: "lead",
@@ -74,7 +75,7 @@ export const convertDispositionToJob = createServerFn({ method: "POST" })
     if (photos && photos.length) {
       const photoRows = photos.map((p) => ({
         job_id: job.id,
-        company_id: profile.company_id,
+        company_id: companyId,
         uploaded_by: userId,
         storage_path: p.photo_url,
         caption: p.caption ?? null,

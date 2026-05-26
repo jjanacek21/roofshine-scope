@@ -31,8 +31,15 @@ interface SelectedProperty {
   notes?: string;
 }
 
-export default function DoorToDoor() {
+interface DoorToDoorProps {
+  focusLat?: number;
+  focusLng?: number;
+  focusPropertyId?: string;
+}
+
+export default function DoorToDoor({ focusLat, focusLng, focusPropertyId }: DoorToDoorProps = {}) {
   const navigate = useNavigate();
+  
   
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
