@@ -123,6 +123,31 @@ export default function DoorToDoor({ focusLat, focusLng, focusPropertyId }: Door
     checkAuth();
   }, [navigate]);
 
+  // When deep-linked from Dispositions list, open the property side panel
+  useEffect(() => {
+    if (!userId || focusLat == null || focusLng == null) return;
+    (async () => {
+      const { data } = await supabase
+        .from('property_dispositions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('lat', focusLat)
+        .eq('lng', focusLng)
+        .maybeSingle();
+      setSelectedProperty({
+        lat: focusLat,
+        lng: focusLng,
+        address: data?.address ?? undefined,
+        disposition: (data?.disposition as PropertyDisposition) ?? 'not_contacted',
+        customerName: data?.customer_name ?? undefined,
+        customerPhone: data?.customer_phone ?? undefined,
+        customerEmail: data?.customer_email ?? undefined,
+        notes: data?.notes ?? undefined,
+      });
+      setIsPanelOpen(true);
+    })();
+  }, [userId, focusLat, focusLng, focusPropertyId]);
+
   // Update route in DB
   useEffect(() => {
     if (activeSession && route.length > 0) {
