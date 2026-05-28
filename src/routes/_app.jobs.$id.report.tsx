@@ -678,9 +678,21 @@ function H2({ children }: { children: React.ReactNode }) {
 }
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-neutral-200 p-2">
-      <div className="text-[9px] font-semibold uppercase tracking-wider text-neutral-500">{label}</div>
-      <div className="font-mono-num text-base font-bold text-neutral-900">{value}</div>
+    <div
+      style={{
+        border: "1px solid #e5e5e5",
+        borderRadius: 8,
+        padding: "8px 10px",
+        background: "#fafafa",
+        minWidth: 0,
+      }}
+    >
+      <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "#737373" }}>
+        {label}
+      </div>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 700, color: "#0a0a0a", marginTop: 2 }}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -701,9 +713,9 @@ function CoverSection({ ctx }: { ctx: RenderCtx }) {
     <>
       <div className="flex items-start justify-between">
         {company?.logo_url ? (
-          <img src={company.logo_url} alt={company.name ?? "Logo"} className="h-16 w-auto object-contain" crossOrigin="anonymous" />
+          <img src={company.logo_url} alt={company.name ?? "Logo"} className="h-14 w-auto object-contain" crossOrigin="anonymous" />
         ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded-lg text-xl font-extrabold text-white" style={{ background: "linear-gradient(135deg, #1e90ff, #0c5fb3)" }}>
+          <div className="flex h-14 w-14 items-center justify-center rounded-lg text-xl font-extrabold text-white" style={{ background: "linear-gradient(135deg, #1e90ff, #0c5fb3)" }}>
             {company?.name?.[0] ?? "B"}
           </div>
         )}
@@ -712,33 +724,50 @@ function CoverSection({ ctx }: { ctx: RenderCtx }) {
           <div>{new Date().toLocaleDateString()}</div>
         </div>
       </div>
-      <h1 className="mt-6 text-3xl font-extrabold text-neutral-900">{job.job_type ?? "Construction"} Proposal</h1>
-      <p className="mt-1 text-lg italic text-neutral-600">Prepared for {client?.name ?? "Client"}</p>
-      <div className="my-5 h-1.5 rounded-full" style={{ background: "linear-gradient(90deg, #000, #1e90ff)" }} />
-      {heroPhotoUrl && <img src={heroPhotoUrl} alt="" className="h-40 w-full rounded-xl object-cover" crossOrigin="anonymous" />}
-      <div className="mt-5 grid grid-cols-2 gap-4 text-[13px]">
+      <h1 className="mt-5 text-3xl font-extrabold text-neutral-900">{job.job_type ?? "Construction"} Proposal</h1>
+      <p className="mt-1 text-base italic text-neutral-600">Prepared for {client?.name ?? "Client"}</p>
+      <div className="my-4 h-1 rounded-full" style={{ background: "linear-gradient(90deg, #000, #1e90ff)" }} />
+
+      {heroPhotoUrl && (
+        <img
+          src={heroPhotoUrl}
+          alt=""
+          crossOrigin="anonymous"
+          style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 10 }}
+        />
+      )}
+
+      <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, fontSize: 13 }}>
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Property</div>
-          <div className="text-neutral-800">{job.property_address ?? "—"}</div>
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "#737373" }}>Property</div>
+          <div style={{ color: "#171717", marginTop: 2 }}>{job.property_address ?? "—"}</div>
         </div>
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Scope</div>
-          <div className="text-neutral-800">
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "#737373" }}>Scope</div>
+          <div style={{ color: "#171717", marginTop: 2 }}>
             {measurement?.squares ? `${Number(measurement.squares).toFixed(1)} SQ · ` : ""}
             {job.primary_trade ? getTradeLabel(job.primary_trade) : "—"}
           </div>
         </div>
       </div>
+
       {rep && (
-        <div className="mt-6 flex items-center gap-3 rounded-lg border border-neutral-200 p-3">
-          {rep.avatar_url && <img src={rep.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" crossOrigin="anonymous" />}
-          <div className="flex-1">
-            <div className="text-[10px] uppercase tracking-wider text-neutral-500">Your representative</div>
-            <div className="text-[13px] font-semibold text-neutral-900">
+        <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 12, border: "1px solid #e5e5e5", borderRadius: 10, padding: 12 }}>
+          {rep.avatar_url && (
+            <img
+              src={rep.avatar_url}
+              alt=""
+              crossOrigin="anonymous"
+              style={{ height: 48, width: 48, borderRadius: 999, objectFit: "cover", flexShrink: 0 }}
+            />
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", color: "#737373" }}>Your representative</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#0a0a0a" }}>
               {[rep.first_name, rep.last_name].filter(Boolean).join(" ")}{rep.title ? ` · ${rep.title}` : ""}
             </div>
-            <div className="font-mono-num text-[11px] text-neutral-600">
-              {rep.mobile_phone ?? rep.office_phone ?? ""} {rep.email ? ` · ${rep.email}` : ""}
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#525252" }}>
+              {rep.mobile_phone ?? rep.office_phone ?? ""}{rep.email ? ` · ${rep.email}` : ""}
             </div>
           </div>
         </div>
@@ -802,19 +831,33 @@ function DamageSection({ ctx }: { ctx: RenderCtx }) {
 function MeasurementSection({ ctx }: { ctx: RenderCtx }) {
   const { section, measurement, staticMapUrl } = ctx;
   if (!measurement) return (<><H2>{section.title}</H2><p className="text-[13px] text-neutral-500">No measurement on file.</p></>);
+  const stats: Array<[string, string]> = [
+    ["Squares", Number(measurement.squares ?? 0).toFixed(1)],
+    ["Area SF", Number(measurement.total_area_sqft ?? 0).toFixed(0)],
+    ["Eaves LF", Number(measurement.eaves_lf ?? 0).toFixed(0)],
+    ["Ridges LF", Number(measurement.ridges_lf ?? 0).toFixed(0)],
+    ["Hips LF", Number(measurement.hips_lf ?? 0).toFixed(0)],
+    ["Valleys LF", Number(measurement.valleys_lf ?? 0).toFixed(0)],
+    ["Rakes LF", Number(measurement.rakes_lf ?? 0).toFixed(0)],
+    ["Pitch", String(measurement.predominant_pitch ?? "—")],
+  ];
   return (
     <>
       <H2>{section.title}</H2>
-      {staticMapUrl && <img src={staticMapUrl} alt="" className="h-40 w-full rounded-lg object-cover" crossOrigin="anonymous" />}
-      <div className="mt-4 grid grid-cols-2 gap-3 text-[12px] sm:grid-cols-4">
-        <Stat label="Squares" value={Number(measurement.squares ?? 0).toFixed(1)} />
-        <Stat label="Area SF" value={Number(measurement.total_area_sqft ?? 0).toFixed(0)} />
-        <Stat label="Eaves" value={Number(measurement.eaves_lf ?? 0).toFixed(0)} />
-        <Stat label="Ridges" value={Number(measurement.ridges_lf ?? 0).toFixed(0)} />
-        <Stat label="Hips" value={Number(measurement.hips_lf ?? 0).toFixed(0)} />
-        <Stat label="Valleys" value={Number(measurement.valleys_lf ?? 0).toFixed(0)} />
-        <Stat label="Rakes" value={Number(measurement.rakes_lf ?? 0).toFixed(0)} />
-        <Stat label="Pitch" value={measurement.predominant_pitch ?? "—"} />
+      <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+        {staticMapUrl && (
+          <img
+            src={staticMapUrl}
+            alt=""
+            crossOrigin="anonymous"
+            style={{ width: 280, height: 200, objectFit: "cover", borderRadius: 8, flexShrink: 0 }}
+          />
+        )}
+        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 8 }}>
+          {stats.map(([label, value]) => (
+            <Stat key={label} label={label} value={value} />
+          ))}
+        </div>
       </div>
     </>
   );
@@ -886,12 +929,21 @@ function PhotosSection({ ctx }: { ctx: RenderCtx }) {
   return (
     <>
       <H2>{section.title}</H2>
-      <div className="grid grid-cols-2 gap-3">
-        {photos.slice(0, 8).map((p: any) => (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 10 }}>
+        {photos.slice(0, 9).map((p: any) => (
           <div key={p.id}>
-            {photoUrls[p.id] && <img src={photoUrls[p.id]} alt="" crossOrigin="anonymous" className="h-44 w-full rounded-lg object-cover" />}
-            <div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">{p.tag ?? "Untagged"}</div>
-            {p.caption && <div className="text-[11px] text-neutral-700">{p.caption}</div>}
+            {photoUrls[p.id] && (
+              <img
+                src={photoUrls[p.id]}
+                alt=""
+                crossOrigin="anonymous"
+                style={{ width: "100%", height: 110, objectFit: "cover", borderRadius: 6 }}
+              />
+            )}
+            <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "0.05em", color: "#737373", marginTop: 2 }}>
+              {p.tag ?? "Untagged"}
+            </div>
+            {p.caption && <div style={{ fontSize: 10, color: "#404040" }}>{p.caption}</div>}
           </div>
         ))}
       </div>
@@ -977,11 +1029,22 @@ function RichTextSection({ ctx }: { ctx: RenderCtx }) {
 function ImageSection({ ctx }: { ctx: RenderCtx }) {
   const { section, assetUrls } = ctx;
   const url = section.props.storagePath ? assetUrls[section.props.storagePath] : null;
+  // Cover photos / flyers / infographics shouldn't dominate the page —
+  // cap height so portrait headshots stay reasonable.
+  const isCover = section.type === "cover_photo";
+  const maxH = isCover ? 240 : 360;
   return (
     <>
       <H2>{section.title}</H2>
       {url ? (
-        <img src={url} alt={section.title} className="w-full rounded-lg object-contain" crossOrigin="anonymous" />
+        <div style={{ textAlign: "center" }}>
+          <img
+            src={url}
+            alt={section.title}
+            crossOrigin="anonymous"
+            style={{ maxHeight: maxH, maxWidth: "100%", borderRadius: 8, objectFit: "contain", display: "inline-block" }}
+          />
+        </div>
       ) : (
         <div className="flex h-48 items-center justify-center rounded border border-dashed border-neutral-300 text-[12px] text-neutral-500">
           <ImageIcon className="mr-2 h-4 w-4" /> No image
