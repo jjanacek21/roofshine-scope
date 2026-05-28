@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Calculator, Home, Save, Check } from 'lucide-react';
+import { Calculator, Home, Save, Check, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
