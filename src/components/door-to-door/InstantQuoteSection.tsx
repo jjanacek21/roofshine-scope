@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Calculator, Home, Save, Check } from 'lucide-react';
+import { Calculator, Home, Save, Check, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,8 @@ interface InstantQuoteSectionProps {
 
 export function InstantQuoteSection({
   propertyId,
+  lat,
+  lng,
   initialMeasurement,
   initialSystem,
   initialTier,
@@ -41,6 +43,69 @@ export function InstantQuoteSection({
   const [system, setSystem] = useState<SystemType>(initialSystem ?? 'shingle');
   const [selectedTier, setSelectedTier] = useState<'good' | 'better' | 'best' | null>(initialTier ?? null);
   const [saving, setSaving] = useState(false);
+  const [aiMeasuring, setAiMeasuring] = useState(false);
+  const [aiSource, setAiSource] = useState<string | null>(null);
+
+  const pitchStringToBucket = (p: string | null): PitchBucket | null => {
+    if (!p) return null;
+    const rise = parseInt(p.split('/')[0] ?? '', 10);
+    if (Number.isNaN(rise)) return null;
+    if (rise <= 2) return 'flat';
+    if (rise <= 4) return 'low';
+    if (rise <= 6) return 'standard';
+    if (rise <= 8) return 'steep';
+    return 'verysteep';
+  };
+
+  const handleAiMeasure = useCallback(async () => {
+    if (lat == null || lng == null) {
+      toast.error('No coordinates on this property');
+      return;
+    }
+    setAiMeasuring(true);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const accessToken = s.session?.access_token;
+      if (!accessToken) throw new Error('Not authenticated');
+      const res = await fetch('/api/solar-roof-extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ lat, lng, property_id: propertyId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data?.error === 'no_coverage') {
+          toast.error('No aerial AI coverage here', {
+            description: 'Try entering the footprint manually.',
+          });
+        } else {
+          toast.error('AI measurement failed', { description: data?.message ?? data?.detail ?? `Status ${res.status}` });
+        }
+        return;
+      }
+      const sqft = Math.round(Number(data.total_plan_sqft ?? 0));
+      if (sqft <= 0) {
+        toast.error('AI returned no roof area');
+        return;
+      }
+      setBaseSqFt(String(sqft));
+      // Derive predominant pitch bucket from segments
+      const segs = (data.segments ?? []) as Array<{ pitch: string; plan_area_sqft: number }>;
+      const totals: Record<string, number> = {};
+      for (const seg of segs) totals[seg.pitch] = (totals[seg.pitch] ?? 0) + seg.plan_area_sqft;
+      const dominant = Object.entries(totals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+      const bucket = pitchStringToBucket(dominant);
+      if (bucket) setPitch(bucket);
+      setAiSource(`Google Solar AI · ${data.imagery_quality ?? data.used_quality ?? ''}`.trim());
+      toast.success(`Measured ${sqft.toLocaleString()} sq ft via AI`, {
+        description: dominant ? `Predominant pitch ${dominant}` : undefined,
+      });
+    } catch (e) {
+      toast.error('AI measurement failed', { description: e instanceof Error ? e.message : 'Unknown error' });
+    } finally {
+      setAiMeasuring(false);
+    }
+  }, [lat, lng, propertyId]);
 
   const baseNum = Math.max(0, parseInt(baseSqFt || '0', 10) || 0);
   const measurement = buildMeasurement(baseNum, pitch, complexity);
@@ -80,10 +145,26 @@ export function InstantQuoteSection({
       {/* Measurement input */}
       <Card className="bg-muted/30">
         <CardContent className="p-3 space-y-3">
-          <div className="flex items-center gap-2">
-            <Calculator className="w-4 h-4 text-primary" />
-            <h4 className="text-sm font-semibold">Measure & Quote</h4>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Calculator className="w-4 h-4 text-primary" />
+              <h4 className="text-sm font-semibold">Measure & Quote</h4>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleAiMeasure}
+              disabled={aiMeasuring || lat == null || lng == null}
+              className="h-7 gap-1.5 text-xs"
+            >
+              {aiMeasuring ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-primary" />}
+              {aiMeasuring ? 'Measuring…' : 'Auto-Measure with AI'}
+            </Button>
           </div>
+          {aiSource && (
+            <p className="text-[10px] text-muted-foreground -mt-1">{aiSource}</p>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
