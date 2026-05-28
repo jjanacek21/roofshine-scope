@@ -805,7 +805,7 @@ function MeasurementSection({ ctx }: { ctx: RenderCtx }) {
   return (
     <>
       <H2>{section.title}</H2>
-      {staticMapUrl && <img src={staticMapUrl} alt="" className="h-60 w-full rounded-lg object-cover" crossOrigin="anonymous" />}
+      {staticMapUrl && <img src={staticMapUrl} alt="" className="h-40 w-full rounded-lg object-cover" crossOrigin="anonymous" />}
       <div className="mt-4 grid grid-cols-2 gap-3 text-[12px] sm:grid-cols-4">
         <Stat label="Squares" value={Number(measurement.squares ?? 0).toFixed(1)} />
         <Stat label="Area SF" value={Number(measurement.total_area_sqft ?? 0).toFixed(0)} />
