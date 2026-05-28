@@ -14,6 +14,8 @@ interface DoorToDoorMapProps {
   onPropertyClick?: (property: { lat: number; lng: number; address?: string; existingData?: PropertyData }) => void;
   isSessionActive: boolean;
   onBoundsChange?: (bounds: { north: number; south: number; east: number; west: number }) => void;
+  focusLat?: number;
+  focusLng?: number;
 }
 
 import { useMapboxToken } from "@/hooks/useMapboxToken";
@@ -28,7 +30,9 @@ export function DoorToDoorMap({
   onMapClick,
   onPropertyClick,
   isSessionActive,
-  onBoundsChange
+  onBoundsChange,
+  focusLat,
+  focusLng,
 }: DoorToDoorMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
