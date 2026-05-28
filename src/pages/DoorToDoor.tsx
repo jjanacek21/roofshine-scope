@@ -463,6 +463,8 @@ export default function DoorToDoor({ focusLat, focusLng, focusPropertyId }: Door
         onPropertyClick={handlePropertyClick}
         isSessionActive={!!activeSession}
         onBoundsChange={handleBoundsChange}
+        focusLat={focusLat}
+        focusLng={focusLng}
       />
 
       {/* Session Controls */}
