@@ -275,6 +275,18 @@ export function DoorToDoorMap({
     });
   }, [position]);
 
+  // Fly to focused property when deep-linked from Dispositions list
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    if (focusLat == null || focusLng == null) return;
+    map.current.flyTo({
+      center: [focusLng, focusLat],
+      zoom: 19,
+      duration: 1200,
+      essential: true,
+    });
+  }, [focusLat, focusLng, mapLoaded]);
+
   // Update route line
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
