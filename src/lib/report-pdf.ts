@@ -28,9 +28,13 @@ export async function renderSectionsToPdf(
   const pageWidth = 612; // letter pt
   const pageHeight = 792;
   const margin = 24;
+  const gap = 12; // gap between stacked sections
   const contentWidth = pageWidth - margin * 2;
   const contentHeight = pageHeight - margin * 2;
   const pageMap: Array<{ pageIndex: number; sectionEl: HTMLElement; canvasW: number; canvasH: number; drawW: number; drawH: number; x: number; y: number }> = [];
+
+  let currentPage = doc.addPage([pageWidth, pageHeight]);
+  let cursorY = margin; // distance from top of page already consumed
 
   for (const el of sections) {
     const canvas = await html2canvas(el, {
@@ -43,10 +47,23 @@ export async function renderSectionsToPdf(
     const ratio = canvas.height / canvas.width;
     let drawW = contentWidth;
     let drawH = drawW * ratio;
+    // If the section taller than a full page, scale it down to fit one page
     if (drawH > contentHeight) {
       drawH = contentHeight;
       drawW = drawH / ratio;
     }
+
+    const remaining = pageHeight - margin - cursorY;
+    const needsGap = cursorY > margin;
+    const required = drawH + (needsGap ? gap : 0);
+    if (required > remaining) {
+      // Start a new page
+      currentPage = doc.addPage([pageWidth, pageHeight]);
+      cursorY = margin;
+    } else if (needsGap) {
+      cursorY += gap;
+    }
+
     const imgBytes = await new Promise<Uint8Array>((res) =>
       canvas.toBlob(
         (b) => b!.arrayBuffer().then((ab) => res(new Uint8Array(ab))),
@@ -55,15 +72,25 @@ export async function renderSectionsToPdf(
       ),
     );
     const img = await doc.embedJpg(imgBytes);
-    const page = doc.addPage([pageWidth, pageHeight]);
     const x = (pageWidth - drawW) / 2;
-    const y = pageHeight - margin - drawH;
-    page.drawImage(img, { x, y, width: drawW, height: drawH });
-    pageMap.push({ pageIndex: doc.getPageCount() - 1, sectionEl: el, canvasW: canvas.width, canvasH: canvas.height, drawW, drawH, x, y });
+    const y = pageHeight - cursorY - drawH; // pdf-lib origin is bottom-left
+    currentPage.drawImage(img, { x, y, width: drawW, height: drawH });
+    pageMap.push({
+      pageIndex: doc.getPageCount() - 1,
+      sectionEl: el,
+      canvasW: canvas.width,
+      canvasH: canvas.height,
+      drawW,
+      drawH,
+      x,
+      y,
+    });
+    cursorY += drawH;
   }
 
   return { doc, pageMap };
 }
+
 
 /**
  * Append a RichMedia annotation that plays a video inline (Acrobat &
