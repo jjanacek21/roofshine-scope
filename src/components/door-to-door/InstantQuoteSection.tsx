@@ -30,6 +30,8 @@ interface InstantQuoteSectionProps {
 
 export function InstantQuoteSection({
   propertyId,
+  lat,
+  lng,
   initialMeasurement,
   initialSystem,
   initialTier,
@@ -41,6 +43,69 @@ export function InstantQuoteSection({
   const [system, setSystem] = useState<SystemType>(initialSystem ?? 'shingle');
   const [selectedTier, setSelectedTier] = useState<'good' | 'better' | 'best' | null>(initialTier ?? null);
   const [saving, setSaving] = useState(false);
+  const [aiMeasuring, setAiMeasuring] = useState(false);
+  const [aiSource, setAiSource] = useState<string | null>(null);
+
+  const pitchStringToBucket = (p: string | null): PitchBucket | null => {
+    if (!p) return null;
+    const rise = parseInt(p.split('/')[0] ?? '', 10);
+    if (Number.isNaN(rise)) return null;
+    if (rise <= 2) return 'flat';
+    if (rise <= 4) return 'low';
+    if (rise <= 6) return 'standard';
+    if (rise <= 8) return 'steep';
+    return 'verysteep';
+  };
+
+  const handleAiMeasure = useCallback(async () => {
+    if (lat == null || lng == null) {
+      toast.error('No coordinates on this property');
+      return;
+    }
+    setAiMeasuring(true);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const accessToken = s.session?.access_token;
+      if (!accessToken) throw new Error('Not authenticated');
+      const res = await fetch('/api/solar-roof-extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ lat, lng, property_id: propertyId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data?.error === 'no_coverage') {
+          toast.error('No aerial AI coverage here', {
+            description: 'Try entering the footprint manually.',
+          });
+        } else {
+          toast.error('AI measurement failed', { description: data?.message ?? data?.detail ?? `Status ${res.status}` });
+        }
+        return;
+      }
+      const sqft = Math.round(Number(data.total_plan_sqft ?? 0));
+      if (sqft <= 0) {
+        toast.error('AI returned no roof area');
+        return;
+      }
+      setBaseSqFt(String(sqft));
+      // Derive predominant pitch bucket from segments
+      const segs = (data.segments ?? []) as Array<{ pitch: string; plan_area_sqft: number }>;
+      const totals: Record<string, number> = {};
+      for (const seg of segs) totals[seg.pitch] = (totals[seg.pitch] ?? 0) + seg.plan_area_sqft;
+      const dominant = Object.entries(totals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+      const bucket = pitchStringToBucket(dominant);
+      if (bucket) setPitch(bucket);
+      setAiSource(`Google Solar AI · ${data.imagery_quality ?? data.used_quality ?? ''}`.trim());
+      toast.success(`Measured ${sqft.toLocaleString()} sq ft via AI`, {
+        description: dominant ? `Predominant pitch ${dominant}` : undefined,
+      });
+    } catch (e) {
+      toast.error('AI measurement failed', { description: e instanceof Error ? e.message : 'Unknown error' });
+    } finally {
+      setAiMeasuring(false);
+    }
+  }, [lat, lng, propertyId]);
 
   const baseNum = Math.max(0, parseInt(baseSqFt || '0', 10) || 0);
   const measurement = buildMeasurement(baseNum, pitch, complexity);
