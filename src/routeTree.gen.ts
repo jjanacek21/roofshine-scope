@@ -83,6 +83,7 @@ import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
 import { Route as AppInvoicesNewRouteImport } from './routes/_app.invoices.new'
 import { Route as AppInvoicesIdRouteImport } from './routes/_app.invoices.$id'
 import { Route as AppDoorToDoorWorldRouteImport } from './routes/_app.door-to-door.world'
+import { Route as AppDoorToDoorProfileRouteImport } from './routes/_app.door-to-door.profile'
 import { Route as AppDoorToDoorDispositionsRouteImport } from './routes/_app.door-to-door.dispositions'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
@@ -466,6 +467,11 @@ const AppDoorToDoorWorldRoute = AppDoorToDoorWorldRouteImport.update({
   path: '/world',
   getParentRoute: () => AppDoorToDoorRoute,
 } as any)
+const AppDoorToDoorProfileRoute = AppDoorToDoorProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppDoorToDoorRoute,
+} as any)
 const AppDoorToDoorDispositionsRoute =
   AppDoorToDoorDispositionsRouteImport.update({
     id: '/dispositions',
@@ -580,6 +586,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
   '/door-to-door/dispositions': typeof AppDoorToDoorDispositionsRoute
+  '/door-to-door/profile': typeof AppDoorToDoorProfileRoute
   '/door-to-door/world': typeof AppDoorToDoorWorldRoute
   '/invoices/$id': typeof AppInvoicesIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
@@ -663,6 +670,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
   '/door-to-door/dispositions': typeof AppDoorToDoorDispositionsRoute
+  '/door-to-door/profile': typeof AppDoorToDoorProfileRoute
   '/door-to-door/world': typeof AppDoorToDoorWorldRoute
   '/invoices/$id': typeof AppInvoicesIdRoute
   '/invoices/new': typeof AppInvoicesNewRoute
@@ -751,6 +759,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/_app/clients/$id': typeof AppClientsIdRoute
   '/_app/door-to-door/dispositions': typeof AppDoorToDoorDispositionsRoute
+  '/_app/door-to-door/profile': typeof AppDoorToDoorProfileRoute
   '/_app/door-to-door/world': typeof AppDoorToDoorWorldRoute
   '/_app/invoices/$id': typeof AppInvoicesIdRoute
   '/_app/invoices/new': typeof AppInvoicesNewRoute
@@ -840,6 +849,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/clients/$id'
     | '/door-to-door/dispositions'
+    | '/door-to-door/profile'
     | '/door-to-door/world'
     | '/invoices/$id'
     | '/invoices/new'
@@ -923,6 +933,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/clients/$id'
     | '/door-to-door/dispositions'
+    | '/door-to-door/profile'
     | '/door-to-door/world'
     | '/invoices/$id'
     | '/invoices/new'
@@ -1010,6 +1021,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/_app/clients/$id'
     | '/_app/door-to-door/dispositions'
+    | '/_app/door-to-door/profile'
     | '/_app/door-to-door/world'
     | '/_app/invoices/$id'
     | '/_app/invoices/new'
@@ -1595,6 +1607,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDoorToDoorWorldRouteImport
       parentRoute: typeof AppDoorToDoorRoute
     }
+    '/_app/door-to-door/profile': {
+      id: '/_app/door-to-door/profile'
+      path: '/profile'
+      fullPath: '/door-to-door/profile'
+      preLoaderRoute: typeof AppDoorToDoorProfileRouteImport
+      parentRoute: typeof AppDoorToDoorRoute
+    }
     '/_app/door-to-door/dispositions': {
       id: '/_app/door-to-door/dispositions'
       path: '/dispositions'
@@ -1696,12 +1715,14 @@ const AppClientsRouteWithChildren = AppClientsRoute._addFileChildren(
 
 interface AppDoorToDoorRouteChildren {
   AppDoorToDoorDispositionsRoute: typeof AppDoorToDoorDispositionsRoute
+  AppDoorToDoorProfileRoute: typeof AppDoorToDoorProfileRoute
   AppDoorToDoorWorldRoute: typeof AppDoorToDoorWorldRoute
   AppDoorToDoorIndexRoute: typeof AppDoorToDoorIndexRoute
 }
 
 const AppDoorToDoorRouteChildren: AppDoorToDoorRouteChildren = {
   AppDoorToDoorDispositionsRoute: AppDoorToDoorDispositionsRoute,
+  AppDoorToDoorProfileRoute: AppDoorToDoorProfileRoute,
   AppDoorToDoorWorldRoute: AppDoorToDoorWorldRoute,
   AppDoorToDoorIndexRoute: AppDoorToDoorIndexRoute,
 }
@@ -1929,13 +1950,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

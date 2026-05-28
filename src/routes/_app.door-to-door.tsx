@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { DoorOpen, ListChecks } from "lucide-react";
+import { DoorOpen, ListChecks, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/door-to-door")({
@@ -9,6 +9,7 @@ export const Route = createFileRoute("/_app/door-to-door")({
 const TABS = [
   { to: "/door-to-door/world", label: "Enter World", icon: DoorOpen },
   { to: "/door-to-door/dispositions", label: "Dispositions", icon: ListChecks },
+  { to: "/door-to-door/profile", label: "Profile", icon: UserCircle2 },
 ] as const;
 
 function DoorToDoorLayout() {
