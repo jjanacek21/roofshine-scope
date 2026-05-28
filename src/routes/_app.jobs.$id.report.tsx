@@ -715,7 +715,7 @@ function CoverSection({ ctx }: { ctx: RenderCtx }) {
       <h1 className="mt-6 text-3xl font-extrabold text-neutral-900">{job.job_type ?? "Construction"} Proposal</h1>
       <p className="mt-1 text-lg italic text-neutral-600">Prepared for {client?.name ?? "Client"}</p>
       <div className="my-5 h-1.5 rounded-full" style={{ background: "linear-gradient(90deg, #000, #1e90ff)" }} />
-      {heroPhotoUrl && <img src={heroPhotoUrl} alt="" className="h-72 w-full rounded-xl object-cover" crossOrigin="anonymous" />}
+      {heroPhotoUrl && <img src={heroPhotoUrl} alt="" className="h-40 w-full rounded-xl object-cover" crossOrigin="anonymous" />}
       <div className="mt-5 grid grid-cols-2 gap-4 text-[13px]">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Property</div>
