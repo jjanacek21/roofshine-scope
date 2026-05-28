@@ -145,10 +145,26 @@ export function InstantQuoteSection({
       {/* Measurement input */}
       <Card className="bg-muted/30">
         <CardContent className="p-3 space-y-3">
-          <div className="flex items-center gap-2">
-            <Calculator className="w-4 h-4 text-primary" />
-            <h4 className="text-sm font-semibold">Measure & Quote</h4>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Calculator className="w-4 h-4 text-primary" />
+              <h4 className="text-sm font-semibold">Measure & Quote</h4>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleAiMeasure}
+              disabled={aiMeasuring || lat == null || lng == null}
+              className="h-7 gap-1.5 text-xs"
+            >
+              {aiMeasuring ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-primary" />}
+              {aiMeasuring ? 'Measuring…' : 'Auto-Measure with AI'}
+            </Button>
           </div>
+          {aiSource && (
+            <p className="text-[10px] text-muted-foreground -mt-1">{aiSource}</p>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
