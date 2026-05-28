@@ -826,6 +826,36 @@ export type Database = {
           },
         ]
       }
+      d2d_chat_messages: {
+        Row: {
+          author_id: string
+          body: string
+          company_id: string | null
+          created_at: string
+          id: string
+          scope: string
+          session_id: string | null
+        }
+        Insert: {
+          author_id: string
+          body: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          scope: string
+          session_id?: string | null
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          scope?: string
+          session_id?: string | null
+        }
+        Relationships: []
+      }
       door_knocks: {
         Row: {
           address: string | null
@@ -1130,6 +1160,103 @@ export type Database = {
           },
         ]
       }
+      feed_post_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_post_likes: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_posts: {
+        Row: {
+          author_id: string
+          body: string | null
+          comment_count: number
+          company_id: string | null
+          created_at: string
+          id: string
+          like_count: number
+          media: Json
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          author_id: string
+          body?: string | null
+          comment_count?: number
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          like_count?: number
+          media?: Json
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string | null
+          comment_count?: number
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          like_count?: number
+          media?: Json
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       field_sessions: {
         Row: {
           company_id: string | null
@@ -1202,6 +1329,33 @@ export type Database = {
           total_points_earned?: number | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          responded_at?: string | null
+          status?: string
         }
         Relationships: []
       }
@@ -3103,11 +3257,15 @@ export type Database = {
           latitude: number | null
           lng: number | null
           longitude: number | null
+          measurement: Json | null
           metadata: Json | null
           notes: string | null
           priority: string | null
           roof_condition: string | null
           roof_type: string | null
+          selected_quote: Json | null
+          selected_system_type: string | null
+          selected_tier: string | null
           status: Database["public"]["Enums"]["property_status"] | null
           storm_date: string | null
           tags: string[] | null
@@ -3135,11 +3293,15 @@ export type Database = {
           latitude?: number | null
           lng?: number | null
           longitude?: number | null
+          measurement?: Json | null
           metadata?: Json | null
           notes?: string | null
           priority?: string | null
           roof_condition?: string | null
           roof_type?: string | null
+          selected_quote?: Json | null
+          selected_system_type?: string | null
+          selected_tier?: string | null
           status?: Database["public"]["Enums"]["property_status"] | null
           storm_date?: string | null
           tags?: string[] | null
@@ -3167,11 +3329,15 @@ export type Database = {
           latitude?: number | null
           lng?: number | null
           longitude?: number | null
+          measurement?: Json | null
           metadata?: Json | null
           notes?: string | null
           priority?: string | null
           roof_condition?: string | null
           roof_type?: string | null
+          selected_quote?: Json | null
+          selected_system_type?: string | null
+          selected_tier?: string | null
           status?: Database["public"]["Enums"]["property_status"] | null
           storm_date?: string | null
           tags?: string[] | null
@@ -4443,6 +4609,36 @@ export type Database = {
           },
         ]
       }
+      user_rewards: {
+        Row: {
+          earned_at: string
+          id: string
+          points_spent: number
+          redeemed_at: string | null
+          reward_id: string | null
+          reward_name: string
+          user_id: string
+        }
+        Insert: {
+          earned_at?: string
+          id?: string
+          points_spent?: number
+          redeemed_at?: string | null
+          reward_id?: string | null
+          reward_name: string
+          user_id: string
+        }
+        Update: {
+          earned_at?: string
+          id?: string
+          points_spent?: number
+          redeemed_at?: string | null
+          reward_id?: string | null
+          reward_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       video_verifications: {
         Row: {
           created_at: string | null
@@ -4528,6 +4724,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
       auth_company_id: { Args: never; Returns: string }
       auth_tenant_id: { Args: never; Returns: string }
       create_company_as_super_admin: {
