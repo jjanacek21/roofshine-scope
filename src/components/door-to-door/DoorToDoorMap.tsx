@@ -14,6 +14,8 @@ interface DoorToDoorMapProps {
   onPropertyClick?: (property: { lat: number; lng: number; address?: string; existingData?: PropertyData }) => void;
   isSessionActive: boolean;
   onBoundsChange?: (bounds: { north: number; south: number; east: number; west: number }) => void;
+  focusLat?: number;
+  focusLng?: number;
 }
 
 import { useMapboxToken } from "@/hooks/useMapboxToken";
@@ -28,7 +30,9 @@ export function DoorToDoorMap({
   onMapClick,
   onPropertyClick,
   isSessionActive,
-  onBoundsChange
+  onBoundsChange,
+  focusLat,
+  focusLng,
 }: DoorToDoorMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -82,7 +86,9 @@ export function DoorToDoorMap({
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-streets-v12',
-      center: position ? [position.lng, position.lat] : [-80.1918, 25.7617],
+      center: focusLat != null && focusLng != null
+        ? [focusLng, focusLat]
+        : position ? [position.lng, position.lat] : [-80.1918, 25.7617],
       zoom: 18,
       pitch: 0,
     });
@@ -268,6 +274,18 @@ export function DoorToDoorMap({
       duration: 500
     });
   }, [position]);
+
+  // Fly to focused property when deep-linked from Dispositions list
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    if (focusLat == null || focusLng == null) return;
+    map.current.flyTo({
+      center: [focusLng, focusLat],
+      zoom: 19,
+      duration: 1200,
+      essential: true,
+    });
+  }, [focusLat, focusLng, mapLoaded]);
 
   // Update route line
   useEffect(() => {
