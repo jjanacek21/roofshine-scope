@@ -86,7 +86,9 @@ export function DoorToDoorMap({
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/satellite-streets-v12',
-      center: position ? [position.lng, position.lat] : [-80.1918, 25.7617],
+      center: focusLat != null && focusLng != null
+        ? [focusLng, focusLat]
+        : position ? [position.lng, position.lat] : [-80.1918, 25.7617],
       zoom: 18,
       pitch: 0,
     });
