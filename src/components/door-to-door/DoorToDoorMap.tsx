@@ -141,6 +141,26 @@ export function DoorToDoorMap({
         data: getPropertyGeoJSON()
       });
 
+      // Add building-detected pins source (one dot per building footprint)
+      map.current?.addSource('building-pins', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      // Building-detected pins (drawn below saved-disposition pins)
+      map.current?.addLayer({
+        id: 'building-pins-layer',
+        type: 'circle',
+        source: 'building-pins',
+        paint: {
+          'circle-radius': 10,
+          'circle-color': 'transparent',
+          'circle-stroke-width': 2.5,
+          'circle-stroke-color': '#f59e0b',
+          'circle-opacity': 0.95,
+        }
+      });
+
       // Add property circles layer - filled circles
       map.current?.addLayer({
         id: 'property-circles-filled',
@@ -170,6 +190,28 @@ export function DoorToDoorMap({
           'circle-opacity': 1,
         }
       });
+
+      // Click + cursor handlers for building-detected pins
+      map.current?.on('click', 'building-pins-layer', (e) => {
+        if (!e.features?.[0]) return;
+        e.originalEvent.stopPropagation();
+        const coords = (e.features[0].geometry as GeoJSON.Point).coordinates;
+        onPropertyClick?.({
+          lat: coords[1],
+          lng: coords[0],
+          address: undefined,
+          existingData: undefined,
+        });
+      });
+      map.current?.on('mouseenter', 'building-pins-layer', () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current?.on('mouseleave', 'building-pins-layer', () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+      });
+
+      // Refresh building pins on first idle
+      map.current?.once('idle', () => refreshBuildingPins());
 
       // Emit initial bounds
       emitBoundsChange();
