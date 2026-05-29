@@ -182,29 +182,12 @@ export default function DoorToDoor({ focusLat, focusLng, focusPropertyId }: Door
     return () => clearInterval(interval);
   }, [activeSession, sessionStartTime, hasSetGoals, isProgressVideoDue]);
 
-  // Handle bounds change - fetch properties and generate grid
+  // Handle bounds change - fetch existing properties only (no synthetic grid)
   const handleBoundsChange = useCallback(async (bounds: { north: number; south: number; east: number; west: number }) => {
     if (!userId) return;
+    await fetchPropertiesInBounds(bounds);
+  }, [userId, fetchPropertiesInBounds]);
 
-    // Fetch existing dispositions
-    const existingProperties = await fetchPropertiesInBounds(bounds);
-    
-    // Generate grid points for the visible area (only if we don't have many existing)
-    if ((existingProperties?.length || 0) < 50) {
-      const gridPoints = generatePropertyGrid(bounds, 0.0003); // ~30 meter spacing
-      
-      // Add grid points that don't already exist
-      const existingHashes = new Set((existingProperties || []).map(p => p.latLngHash));
-      const newPoints = gridPoints
-        .filter(p => !existingHashes.has(p.latLngHash))
-        .slice(0, 100); // Limit to 100 new points per view
-      
-      // Create placeholder properties for grid points
-      for (const point of newPoints) {
-        await setPropertyDisposition(point.lat, point.lng, 'not_contacted', {});
-      }
-    }
-  }, [userId, fetchPropertiesInBounds, generatePropertyGrid, setPropertyDisposition]);
 
   // Handle start session - start first, then show goal video
   const handleStartSession = async () => {
