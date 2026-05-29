@@ -414,7 +414,9 @@ export function DoorToDoorMap({
     if (source) {
       source.setData(getPropertyGeoJSON());
     }
-  }, [properties, mapLoaded, getPropertyGeoJSON]);
+    // Re-derive detected building pins so saved properties hide their duplicates
+    refreshBuildingPins();
+  }, [properties, mapLoaded, getPropertyGeoJSON, refreshBuildingPins]);
 
   return (
     <div className="relative w-full h-full">
