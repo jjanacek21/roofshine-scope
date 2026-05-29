@@ -262,12 +262,10 @@ export function PropertySidePanel({
               <MapPin className="w-4 h-4 text-muted-foreground mt-1 flex-shrink-0" />
               <div>
                 <p className="font-semibold text-sm leading-tight">
-                  {property.address || 'Unknown Address'}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {property.lat.toFixed(5)}, {property.lng.toFixed(5)}
+                  {property.address || resolvedAddress || 'Looking up address…'}
                 </p>
               </div>
+
             </div>
           </div>
           <Button 
