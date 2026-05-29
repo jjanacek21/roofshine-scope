@@ -85,6 +85,27 @@ export function PropertySidePanel({
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [pendingDisposition, setPendingDisposition] = useState<PropertyDisposition | null>(null);
 
+  // Reverse-geocoded address (used when property.address is missing)
+  const { data: mapboxToken } = useMapboxToken();
+  const [resolvedAddress, setResolvedAddress] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    setResolvedAddress(undefined);
+    if (!property || property.address || !mapboxToken) return;
+    let cancelled = false;
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${property.lng},${property.lat}.json?access_token=${mapboxToken}&types=address&limit=1`;
+    fetch(url)
+      .then((r) => r.ok ? r.json() : null)
+      .then((j) => {
+        if (cancelled) return;
+        const place = j?.features?.[0]?.place_name as string | undefined;
+        if (place) setResolvedAddress(place);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [property?.lat, property?.lng, property?.address, mapboxToken]);
+
+
   // Update form when property changes
   useEffect(() => {
     if (property) {
