@@ -1032,17 +1032,29 @@ function ImageSection({ ctx }: { ctx: RenderCtx }) {
   // Cover photos / flyers / infographics shouldn't dominate the page —
   // cap height so portrait headshots stay reasonable.
   const isCover = section.type === "cover_photo";
-  const maxH = isCover ? 240 : 360;
+  const isInfographic = section.type === "infographic";
+  const isFlyer = section.type === "flyer";
+  // Infographics & flyers should fill the full page width (and up to full page
+  // height) so detail stays readable. Cover photos stay capped to avoid
+  // portrait headshots dominating the first page.
+  const maxH = isCover ? 240 : isInfographic || isFlyer ? 980 : 360;
   return (
     <>
       <H2>{section.title}</H2>
       {url ? (
-        <div style={{ textAlign: "center" }}>
+        <div style={{ textAlign: "center", width: "100%" }}>
           <img
             src={url}
             alt={section.title}
             crossOrigin="anonymous"
-            style={{ maxHeight: maxH, maxWidth: "100%", borderRadius: 8, objectFit: "contain", display: "inline-block" }}
+            style={{
+              maxHeight: maxH,
+              width: isInfographic || isFlyer ? "100%" : "auto",
+              maxWidth: "100%",
+              borderRadius: 8,
+              objectFit: "contain",
+              display: "inline-block",
+            }}
           />
         </div>
       ) : (
