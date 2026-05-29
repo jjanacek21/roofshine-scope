@@ -335,7 +335,7 @@ export function DoorToDoorMap({
     map.current.on('click', (e) => {
       // Check if click was on a property circle
       const features = map.current?.queryRenderedFeatures(e.point, {
-        layers: ['property-circles-filled', 'property-circles-empty']
+        layers: ['property-circles-filled', 'property-circles-empty', 'building-pins-layer']
       });
       
       if (features && features.length > 0) return; // Click was on a circle
