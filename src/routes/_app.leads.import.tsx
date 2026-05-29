@@ -61,6 +61,98 @@ function parseAddressFull(s: string): { address: string; city?: string; state?: 
   return { address: s };
 }
 
+function cleanStr(s: string | undefined, max: number): string | null {
+  const v = (s ?? "").trim();
+  if (!v) return null;
+  return v.slice(0, max);
+}
+
+function normalizePhone(p: string | undefined): string | null {
+  if (!p) return null;
+  const digits = p.replace(/[^\d]/g, "");
+  if (digits.length < 7 || digits.length > 20) return null;
+  return digits;
+}
+
+function isValidEmail(e: string | undefined): string | null {
+  if (!e) return null;
+  const v = e.trim().toLowerCase();
+  if (v.length < 5 || v.length > 200) return null;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return null;
+  return v;
+}
+
+// Group Reonomy "contacts" rows (one row per contact) into one lead per property.
+function groupContactRows(rows: CsvRow[]): { leads: ParsedLead[]; skipped: number } {
+  const byProp = new Map<string, { lead: ParsedLead; contacts: Map<string, ParsedContact> }>();
+  let skipped = 0;
+
+  for (const r of rows) {
+    const street = (r.subject_address_line_1 || "").trim();
+    if (!street) { skipped++; continue; }
+    const city = (r.subject_address_city || "").trim();
+    const state = (r.subject_address_state || "FL").trim();
+    const zip = (r.subject_address_postal_code || "").trim();
+    const key = `${street.toLowerCase()}|${city.toLowerCase()}|${state.toLowerCase()}|${zip}`;
+
+    let bucket = byProp.get(key);
+    if (!bucket) {
+      bucket = {
+        lead: {
+          address: street.slice(0, 500),
+          city: city.slice(0, 120) || null,
+          state: state.slice(0, 40),
+          zip: zip.slice(0, 20) || null,
+          property_type: "Commercial",
+          reported_owner: cleanStr(r.reported_owner_name, 200),
+          owner: cleanStr(r.reported_owner_name, 200),
+          contacts: [],
+        },
+        contacts: new Map(),
+      };
+      byProp.set(key, bucket);
+    }
+
+    const name = cleanStr(r.contact_name, 200);
+    if (!name) continue;
+    const nameKey = name.toLowerCase();
+    let c = bucket.contacts.get(nameKey);
+    if (!c) {
+      c = {
+        name,
+        title: cleanStr(r.contact_title, 200),
+        company: cleanStr(r.contact_company_name, 200),
+        phones: [],
+        emails: [],
+      };
+      bucket.contacts.set(nameKey, c);
+    }
+    const phoneSet = new Set(c.phones ?? []);
+    const emailSet = new Set(c.emails ?? []);
+    for (let i = 1; i <= 5; i++) {
+      const p = normalizePhone(r[`contact_phone_${i}`]);
+      if (p) phoneSet.add(p);
+      const e = isValidEmail(r[`contact_email_${i}`]);
+      if (e) emailSet.add(e);
+    }
+    c.phones = Array.from(phoneSet).slice(0, 20);
+    c.emails = Array.from(emailSet).slice(0, 20);
+  }
+
+  const leads: ParsedLead[] = [];
+  for (const { lead, contacts } of byProp.values()) {
+    lead.contacts = Array.from(contacts.values()).slice(0, 20);
+    leads.push(lead);
+  }
+  return { leads, skipped };
+}
+
+function isContactsShape(rows: CsvRow[]): boolean {
+  const s = rows[0];
+  if (!s) return false;
+  return "subject_address_line_1" in s && ("contact_name" in s || "contact_phone_1" in s);
+}
+
 function mapRow(r: CsvRow): ParsedLead | null {
   // Try merged Reonomy format first
   if (r.street || r.address) {
