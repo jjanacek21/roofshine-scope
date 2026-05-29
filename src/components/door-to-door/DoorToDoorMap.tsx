@@ -77,6 +77,63 @@ export function DoorToDoorMap({
     });
   }, [onBoundsChange]);
 
+  // Compute building-detected pins from Mapbox building footprints in view.
+  // One dot per building polygon, deduped, and skipping pins already covered by a saved disposition.
+  const refreshBuildingPins = useCallback(() => {
+    if (!map.current) return;
+    const m = map.current;
+    if (m.getZoom() < 16) {
+      const src = m.getSource('building-pins') as mapboxgl.GeoJSONSource | undefined;
+      src?.setData({ type: 'FeatureCollection', features: [] });
+      return;
+    }
+
+    let feats: mapboxgl.MapboxGeoJSONFeature[] = [];
+    try {
+      feats = m.querySourceFeatures('composite', { sourceLayer: 'building' });
+    } catch {
+      return;
+    }
+
+    // Saved-property hashes to skip
+    const savedHashes = new Set(properties.map(p => p.latLngHash));
+
+    const seen = new Set<string>();
+    const features: GeoJSON.Feature[] = [];
+
+    for (const f of feats) {
+      const geom = f.geometry as GeoJSON.Geometry;
+      let ring: number[][] | null = null;
+      if (geom.type === 'Polygon') ring = geom.coordinates[0];
+      else if (geom.type === 'MultiPolygon') ring = geom.coordinates[0]?.[0] ?? null;
+      if (!ring || ring.length < 3) continue;
+
+      let sx = 0, sy = 0, n = 0;
+      for (const c of ring) { sx += c[0]; sy += c[1]; n++; }
+      const lng = sx / n;
+      const lat = sy / n;
+
+      // Dedupe ~ 11m precision (4 decimals)
+      const key = `${Math.round(lat * 10000) / 10000}_${Math.round(lng * 10000) / 10000}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      // Skip if a saved property already exists at this spot (5-decimal hash)
+      const savedKey = `${Math.round(lat * 100000) / 100000}_${Math.round(lng * 100000) / 100000}`;
+      if (savedHashes.has(savedKey)) continue;
+
+      features.push({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'Point', coordinates: [lng, lat] },
+      });
+    }
+
+    const src = m.getSource('building-pins') as mapboxgl.GeoJSONSource | undefined;
+    src?.setData({ type: 'FeatureCollection', features });
+  }, [properties]);
+
+
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || !MAPBOX_TOKEN) return;
