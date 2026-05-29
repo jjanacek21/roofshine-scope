@@ -77,8 +77,7 @@ export function DoorToDoorMap({
     });
   }, [onBoundsChange]);
 
-  // Compute building-detected pins from Mapbox building footprints in view.
-  // One dot per building polygon, deduped, and skipping pins already covered by a saved disposition.
+  const refreshBuildingPinsRef = useRef<() => void>(() => {});
   const refreshBuildingPins = useCallback(() => {
     if (!map.current) return;
     const m = map.current;
@@ -95,9 +94,7 @@ export function DoorToDoorMap({
       return;
     }
 
-    // Saved-property hashes to skip
     const savedHashes = new Set(properties.map(p => p.latLngHash));
-
     const seen = new Set<string>();
     const features: GeoJSON.Feature[] = [];
 
@@ -113,12 +110,10 @@ export function DoorToDoorMap({
       const lng = sx / n;
       const lat = sy / n;
 
-      // Dedupe ~ 11m precision (4 decimals)
       const key = `${Math.round(lat * 10000) / 10000}_${Math.round(lng * 10000) / 10000}`;
       if (seen.has(key)) continue;
       seen.add(key);
 
-      // Skip if a saved property already exists at this spot (5-decimal hash)
       const savedKey = `${Math.round(lat * 100000) / 100000}_${Math.round(lng * 100000) / 100000}`;
       if (savedHashes.has(savedKey)) continue;
 
@@ -132,6 +127,10 @@ export function DoorToDoorMap({
     const src = m.getSource('building-pins') as mapboxgl.GeoJSONSource | undefined;
     src?.setData({ type: 'FeatureCollection', features });
   }, [properties]);
+
+  useEffect(() => {
+    refreshBuildingPinsRef.current = refreshBuildingPins;
+  }, [refreshBuildingPins]);
 
 
   // Initialize map
@@ -267,17 +266,13 @@ export function DoorToDoorMap({
         if (map.current) map.current.getCanvas().style.cursor = '';
       });
 
-      // Refresh building pins on first idle
-      map.current?.once('idle', () => refreshBuildingPins());
-
-      // Emit initial bounds
+      map.current?.once('idle', () => refreshBuildingPinsRef.current());
       emitBoundsChange();
     });
 
-    // Handle map move end for bounds updates + refresh detected building pins
     map.current.on('moveend', () => {
       emitBoundsChange();
-      refreshBuildingPins();
+      refreshBuildingPinsRef.current();
     });
 
     // Handle clicks on property circles
