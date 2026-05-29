@@ -399,15 +399,24 @@ function ImportLeads() {
             <div className="flex items-center gap-2 text-sm">
               <FileText className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium text-foreground">{filename}</span>
-              <span className="text-muted-foreground">· {rows.length} rows</span>
+              <span className="text-muted-foreground">
+                · {rows.length} rows
+                {parsedPreview && parsedPreview.shape === "contacts" && (
+                  <> → {parsedPreview.leads.length} properties · {parsedPreview.contactCount} contacts</>
+                )}
+                {parsedPreview && parsedPreview.skipped > 0 && (
+                  <> · {parsedPreview.skipped} skipped</>
+                )}
+              </span>
             </div>
-            <button onClick={doImport} disabled={importMut.isPending} className="btn-brand h-8 rounded-md px-4 text-xs font-semibold disabled:opacity-40">
+            <button onClick={doImport} disabled={importMut.isPending || !parsedPreview?.leads.length} className="btn-brand h-8 rounded-md px-4 text-xs font-semibold disabled:opacity-40">
               {importMut.isPending
                 ? progress
                   ? `Importing ${progress.done}/${progress.total}…`
                   : "Importing…"
-                : `Import ${rows.length} Leads`}
+                : `Import ${parsedPreview?.leads.length ?? 0} ${parsedPreview?.shape === "contacts" ? "Properties" : "Leads"}`}
             </button>
+
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
