@@ -340,13 +340,26 @@ function ImportLeads() {
     });
   }
 
+  const parsedPreview = (() => {
+    if (rows.length === 0) return null;
+    if (isContactsShape(rows)) {
+      const { leads, skipped } = groupContactRows(rows);
+      const contactCount = leads.reduce((n, l) => n + (l.contacts?.length ?? 0), 0);
+      return { leads, skipped, contactCount, shape: "contacts" as const };
+    }
+    const leads = rows.map(mapRow).filter((r): r is ParsedLead => !!r);
+    return { leads, skipped: rows.length - leads.length, contactCount: 0, shape: "row" as const };
+  })();
+
   function doImport() {
-    const mapped = rows.map(mapRow).filter((r): r is ParsedLead => !!r);
-    if (mapped.length === 0) {
+    if (!parsedPreview || parsedPreview.leads.length === 0) {
       toast.error("No valid rows found");
       return;
     }
-    importMut.mutate(mapped);
+    if (parsedPreview.skipped > 0) {
+      toast.message(`Skipping ${parsedPreview.skipped} row${parsedPreview.skipped === 1 ? "" : "s"} with no street address`);
+    }
+    importMut.mutate(parsedPreview.leads);
   }
 
   function loadSample() {
