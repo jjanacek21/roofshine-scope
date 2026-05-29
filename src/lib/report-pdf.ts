@@ -25,6 +25,11 @@ export async function renderSectionsToPdf(
   sections: HTMLElement[],
 ): Promise<{ doc: PDFDocument; pageMap: Array<{ pageIndex: number; sectionEl: HTMLElement; canvasW: number; canvasH: number; drawW: number; drawH: number; x: number; y: number }> }> {
   const doc = await PDFDocument.create();
+  // Ensure web fonts (Archivo, JetBrains Mono) are loaded before html2canvas
+  // captures the DOM — otherwise canvas falls back to serif defaults.
+  if (typeof document !== "undefined" && (document as any).fonts?.ready) {
+    try { await (document as any).fonts.ready; } catch {}
+  }
   const pageWidth = 612; // letter pt
   const pageHeight = 792;
   const margin = 24;
