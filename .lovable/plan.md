@@ -1,55 +1,31 @@
-## Problem
+Plan to fix the Door-to-Door map pins:
 
-The Leads import says "No valid rows found" because the CSV columns are the raw Reonomy **contacts** export (`subject_address_full`, `contact_phone_1..5`, `contact_email_1..5`, multiple rows per property — one row per contact), but the parser in `src/routes/_app.leads.import.tsx` only recognizes:
+1. Restore visible property dots, but not the bad random grid
+   - Re-enable automatic map dots in a smarter way: one dot per detected/known property location, not a square coordinate grid.
+   - Do not create dozens of offset dots around the same house.
+   - Keep the orange hollow style for untouched houses/buildings, and filled disposition colors after a status is selected.
 
-- The merged Reonomy format (`street`/`address` + `contact_1_*`/`contact_2_*`/`contact_3_*`), or
-- A raw format keyed on `address_full` (not `subject_address_full`).
+2. Build pins from real map/building data instead of arbitrary coordinates
+   - Use Mapbox features in the visible map area to identify actual buildings/addresses where possible.
+   - Generate a single clickable marker centered over each detected house/building footprint.
+   - Deduplicate nearby features so one single-family house gets one dot.
+   - If a building is already saved as a disposition, keep the saved disposition and position.
 
-So every row falls through `mapRow` and returns `null`. The server-side `importLeads` is already fine — it upserts by normalized address (merges new contacts into existing properties) and accepts up to 20 contacts × 20 phones × 20 emails per lead.
+3. Support duplex / multi-unit exceptions
+   - If separate units are present as separate imported addresses or user-added records, allow more than one dot for that same building.
+   - Otherwise default to one dot per building/property.
 
-## Fix
+4. Show address, not coordinates, when clicking a dot
+   - When a pin has a saved/imported address, show that address immediately.
+   - When a pin is map-detected only, reverse-geocode the pin on click and pass that address into the disposition panel.
+   - Save the resolved address with the disposition so it stays attached next time.
 
-Teach the client-side parser the third (raw contacts) shape and group multiple contact rows into one lead per property before sending.
+5. Keep click behavior simple
+   - Clicking a dot opens the existing disposition menu/panel.
+   - Clicking blank map can still add a property only when the session is active, but the main workflow should be clicking the dot over each house/building.
 
-### 1. Detect the Reonomy contacts shape
-
-Add a third branch in `mapRow` (or a pre-step) that triggers when the row has `subject_address_line_1` or `subject_address_full` plus any `contact_name`/`contact_phone_1`/`contact_email_1`.
-
-### 2. Group by property in `doImport`
-
-Before mapping, group rows by a normalized property key:
-
-```text
-key = lower(trim(subject_address_line_1)) + "|" + city + "|" + state + "|" + zip
-```
-
-For each group:
-- Property fields come from the first row's `subject_address_line_1` / `subject_address_city` / `subject_address_state` / `subject_address_postal_code`, with `reported_owner` from `reported_owner_name`.
-- Contacts: one `ParsedContact` per row, deduped within the group by lowercased `contact_name`. Each contact collects:
-  - `phones`: non-empty values from `contact_phone_1..5`, normalized to digits-only, deduped, length 3–40.
-  - `emails`: non-empty values from `contact_email_1..5`, deduped, length 3–200.
-  - `title` from `contact_title`, `company` from `contact_company_name`.
-- Cap at 20 contacts per lead (server limit). Drop extras with a console warning.
-
-### 3. Skip rows with no street
-
-Rows where `subject_address_line_1` is blank AND `subject_address_full` has no street (e.g. just "Fl 33054") cannot be a property — skip them silently and surface a count in the toast ("1145 rows → 612 properties, 533 rows skipped (missing street)").
-
-### 4. Merge behavior on the server
-
-No server changes needed. `importLeads` already:
-- Upserts leads by normalized address (the user's existing 1258 properties will be matched and updated, not duplicated).
-- Inserts new contacts/phones/emails alongside existing ones for the same lead.
-
-So re-importing this CSV will attach the new contact rows to the properties that already exist and create new lead rows for properties not yet in the table.
-
-### 5. UI feedback
-
-- Show "N properties · M contacts" next to the file name once parsing completes, so the user can see the grouping worked before clicking Import.
-- Keep the existing batch progress and success toast.
-
-## Files to change
-
-- `src/routes/_app.leads.import.tsx` — extend `mapRow` / add a `groupContactsByProperty` helper, update `doImport`, update the preview header.
-
-No database migration, no server function change.
+Technical notes:
+- Update `src/components/door-to-door/DoorToDoorMap.tsx` to add a separate generated-building marker source/layer based on visible Mapbox data and merge it with saved `property_dispositions`.
+- Update `src/pages/DoorToDoor.tsx` so map clicks/pin clicks can pass a resolved address into `setPropertyDisposition`.
+- Keep the coordinate text removed from `PropertySidePanel`; it will continue showing address / looking up address.
+- Avoid another database cleanup unless needed; the previous empty grid records were already deleted.

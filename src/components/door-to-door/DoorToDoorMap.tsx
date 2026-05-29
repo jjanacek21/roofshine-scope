@@ -77,6 +77,63 @@ export function DoorToDoorMap({
     });
   }, [onBoundsChange]);
 
+  // Compute building-detected pins from Mapbox building footprints in view.
+  // One dot per building polygon, deduped, and skipping pins already covered by a saved disposition.
+  const refreshBuildingPins = useCallback(() => {
+    if (!map.current) return;
+    const m = map.current;
+    if (m.getZoom() < 16) {
+      const src = m.getSource('building-pins') as mapboxgl.GeoJSONSource | undefined;
+      src?.setData({ type: 'FeatureCollection', features: [] });
+      return;
+    }
+
+    let feats: mapboxgl.MapboxGeoJSONFeature[] = [];
+    try {
+      feats = m.querySourceFeatures('composite', { sourceLayer: 'building' });
+    } catch {
+      return;
+    }
+
+    // Saved-property hashes to skip
+    const savedHashes = new Set(properties.map(p => p.latLngHash));
+
+    const seen = new Set<string>();
+    const features: GeoJSON.Feature[] = [];
+
+    for (const f of feats) {
+      const geom = f.geometry as GeoJSON.Geometry;
+      let ring: number[][] | null = null;
+      if (geom.type === 'Polygon') ring = geom.coordinates[0];
+      else if (geom.type === 'MultiPolygon') ring = geom.coordinates[0]?.[0] ?? null;
+      if (!ring || ring.length < 3) continue;
+
+      let sx = 0, sy = 0, n = 0;
+      for (const c of ring) { sx += c[0]; sy += c[1]; n++; }
+      const lng = sx / n;
+      const lat = sy / n;
+
+      // Dedupe ~ 11m precision (4 decimals)
+      const key = `${Math.round(lat * 10000) / 10000}_${Math.round(lng * 10000) / 10000}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      // Skip if a saved property already exists at this spot (5-decimal hash)
+      const savedKey = `${Math.round(lat * 100000) / 100000}_${Math.round(lng * 100000) / 100000}`;
+      if (savedHashes.has(savedKey)) continue;
+
+      features.push({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'Point', coordinates: [lng, lat] },
+      });
+    }
+
+    const src = m.getSource('building-pins') as mapboxgl.GeoJSONSource | undefined;
+    src?.setData({ type: 'FeatureCollection', features });
+  }, [properties]);
+
+
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || !MAPBOX_TOKEN) return;
@@ -141,6 +198,26 @@ export function DoorToDoorMap({
         data: getPropertyGeoJSON()
       });
 
+      // Add building-detected pins source (one dot per building footprint)
+      map.current?.addSource('building-pins', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      // Building-detected pins (drawn below saved-disposition pins)
+      map.current?.addLayer({
+        id: 'building-pins-layer',
+        type: 'circle',
+        source: 'building-pins',
+        paint: {
+          'circle-radius': 10,
+          'circle-color': 'transparent',
+          'circle-stroke-width': 2.5,
+          'circle-stroke-color': '#f59e0b',
+          'circle-opacity': 0.95,
+        }
+      });
+
       // Add property circles layer - filled circles
       map.current?.addLayer({
         id: 'property-circles-filled',
@@ -171,12 +248,37 @@ export function DoorToDoorMap({
         }
       });
 
+      // Click + cursor handlers for building-detected pins
+      map.current?.on('click', 'building-pins-layer', (e) => {
+        if (!e.features?.[0]) return;
+        e.originalEvent.stopPropagation();
+        const coords = (e.features[0].geometry as GeoJSON.Point).coordinates;
+        onPropertyClick?.({
+          lat: coords[1],
+          lng: coords[0],
+          address: undefined,
+          existingData: undefined,
+        });
+      });
+      map.current?.on('mouseenter', 'building-pins-layer', () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current?.on('mouseleave', 'building-pins-layer', () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+      });
+
+      // Refresh building pins on first idle
+      map.current?.once('idle', () => refreshBuildingPins());
+
       // Emit initial bounds
       emitBoundsChange();
     });
 
-    // Handle map move end for bounds updates
-    map.current.on('moveend', emitBoundsChange);
+    // Handle map move end for bounds updates + refresh detected building pins
+    map.current.on('moveend', () => {
+      emitBoundsChange();
+      refreshBuildingPins();
+    });
 
     // Handle clicks on property circles
     map.current.on('click', 'property-circles-filled', (e) => {
@@ -233,7 +335,7 @@ export function DoorToDoorMap({
     map.current.on('click', (e) => {
       // Check if click was on a property circle
       const features = map.current?.queryRenderedFeatures(e.point, {
-        layers: ['property-circles-filled', 'property-circles-empty']
+        layers: ['property-circles-filled', 'property-circles-empty', 'building-pins-layer']
       });
       
       if (features && features.length > 0) return; // Click was on a circle
@@ -312,7 +414,9 @@ export function DoorToDoorMap({
     if (source) {
       source.setData(getPropertyGeoJSON());
     }
-  }, [properties, mapLoaded, getPropertyGeoJSON]);
+    // Re-derive detected building pins so saved properties hide their duplicates
+    refreshBuildingPins();
+  }, [properties, mapLoaded, getPropertyGeoJSON, refreshBuildingPins]);
 
   return (
     <div className="relative w-full h-full">
