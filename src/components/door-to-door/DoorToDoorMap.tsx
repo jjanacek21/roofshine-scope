@@ -274,8 +274,11 @@ export function DoorToDoorMap({
       emitBoundsChange();
     });
 
-    // Handle map move end for bounds updates
-    map.current.on('moveend', emitBoundsChange);
+    // Handle map move end for bounds updates + refresh detected building pins
+    map.current.on('moveend', () => {
+      emitBoundsChange();
+      refreshBuildingPins();
+    });
 
     // Handle clicks on property circles
     map.current.on('click', 'property-circles-filled', (e) => {
