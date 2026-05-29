@@ -15,6 +15,7 @@ import { NotesHistory } from './NotesHistory';
 import { InstantQuoteSection } from './InstantQuoteSection';
 import type { PropertyDisposition, PropertyData } from '@/hooks/usePropertyDispositions';
 import { cn } from '@/lib/utils';
+import { useMapboxToken } from '@/hooks/useMapboxToken';
 
 interface PropertySidePanelProps {
   isOpen: boolean;
