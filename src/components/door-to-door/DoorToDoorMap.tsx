@@ -266,17 +266,13 @@ export function DoorToDoorMap({
         if (map.current) map.current.getCanvas().style.cursor = '';
       });
 
-      // Refresh building pins on first idle
-      map.current?.once('idle', () => refreshBuildingPins());
-
-      // Emit initial bounds
+      map.current?.once('idle', () => refreshBuildingPinsRef.current());
       emitBoundsChange();
     });
 
-    // Handle map move end for bounds updates + refresh detected building pins
     map.current.on('moveend', () => {
       emitBoundsChange();
-      refreshBuildingPins();
+      refreshBuildingPinsRef.current();
     });
 
     // Handle clicks on property circles
