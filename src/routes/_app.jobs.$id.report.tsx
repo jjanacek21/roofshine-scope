@@ -979,9 +979,10 @@ function TermsSection({ ctx }: { ctx: RenderCtx }) {
         onChange={(e) => updateProps(section.id, { text: e.target.value })}
       />
       <div className="mt-6 grid grid-cols-2 gap-6">
-        <div><div className="border-b border-neutral-400 pb-1 text-neutral-300">·</div><div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">Customer Signature</div></div>
-        <div><div className="border-b border-neutral-400 pb-1 text-neutral-300">·</div><div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">Date</div></div>
+        <div><div style={{ borderBottom: "1px solid #525252", height: 28 }} /><div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">Customer Signature</div></div>
+        <div><div style={{ borderBottom: "1px solid #525252", height: 28 }} /><div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">Date</div></div>
       </div>
+
     </>
   );
 }
