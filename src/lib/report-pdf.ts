@@ -17,10 +17,76 @@ export type VideoEmbed = {
 };
 
 /**
+ * Inline computed styles from the live DOM onto the clone html2canvas will
+ * rasterize. Tailwind v4 utility classes (flex, grid, text-*, font-sans, etc.)
+ * don't always survive the html2canvas clone, which is why the PDF looked
+ * collapsed and serif. Locking in computed styles + replacing textareas with
+ * plain divs (so their value/placeholder actually renders) fixes both.
+ */
+function prepareCloneForRender(originalRoot: HTMLElement, clonedRoot: HTMLElement) {
+  const COPY_PROPS = [
+    "display", "position", "boxSizing",
+    "flexDirection", "flexWrap", "justifyContent", "alignItems", "alignSelf", "flex", "flexGrow", "flexShrink", "flexBasis", "gap", "rowGap", "columnGap",
+    "gridTemplateColumns", "gridTemplateRows", "gridColumn", "gridRow",
+    "width", "minWidth", "maxWidth", "height", "minHeight", "maxHeight",
+    "padding", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft",
+    "margin", "marginTop", "marginRight", "marginBottom", "marginLeft",
+    "border", "borderTop", "borderRight", "borderBottom", "borderLeft",
+    "borderColor", "borderStyle", "borderWidth", "borderRadius",
+    "background", "backgroundColor", "backgroundImage", "backgroundSize", "backgroundPosition", "backgroundRepeat",
+    "color", "opacity",
+    "fontFamily", "fontSize", "fontWeight", "fontStyle", "lineHeight", "letterSpacing", "textTransform", "textAlign", "textDecoration", "whiteSpace", "wordBreak", "overflowWrap",
+    "objectFit", "objectPosition",
+    "boxShadow",
+  ];
+
+  const walk = (orig: Element, clone: Element) => {
+    const cs = window.getComputedStyle(orig);
+    const target = clone as HTMLElement;
+    for (const p of COPY_PROPS) {
+      const v = cs.getPropertyValue(p.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase()));
+      if (v) target.style.setProperty(p.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase()), v);
+    }
+    const oc = Array.from(orig.children);
+    const cc = Array.from(clone.children);
+    for (let i = 0; i < oc.length && i < cc.length; i++) walk(oc[i], cc[i]);
+  };
+  walk(originalRoot, clonedRoot);
+
+  // Replace textareas (Executive Summary, Terms, Rich Text) with divs that
+  // actually paint their text. html2canvas treats <textarea> as an empty box.
+  const origTextareas = originalRoot.querySelectorAll("textarea");
+  const cloneTextareas = clonedRoot.querySelectorAll("textarea");
+  origTextareas.forEach((ta, i) => {
+    const cloneTa = cloneTextareas[i] as HTMLTextAreaElement | undefined;
+    if (!cloneTa || !cloneTa.parentNode) return;
+    const cs = window.getComputedStyle(ta);
+    const text = (ta as HTMLTextAreaElement).value || (ta as HTMLTextAreaElement).placeholder || "";
+    const div = clonedRoot.ownerDocument.createElement("div");
+    div.textContent = text;
+    div.style.whiteSpace = "pre-wrap";
+    div.style.fontFamily = cs.fontFamily;
+    div.style.fontSize = cs.fontSize;
+    div.style.fontWeight = cs.fontWeight;
+    div.style.lineHeight = cs.lineHeight;
+    div.style.color = cs.color;
+    div.style.width = "100%";
+    cloneTa.parentNode.replaceChild(div, cloneTa);
+  });
+
+  // Ensure the root always has a concrete sans-serif stack — guards against
+  // CSS variable resolution issues during the clone.
+  clonedRoot.style.fontFamily =
+    clonedRoot.style.fontFamily ||
+    '"Archivo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+}
+
+/**
  * Render a list of section DOM elements into a PDF (letter, portrait).
  * Returns the assembled bytes plus the pdf-lib document so callers can
  * append video annotations or merge external PDFs.
  */
+
 export async function renderSectionsToPdf(
   sections: HTMLElement[],
 ): Promise<{ doc: PDFDocument; pageMap: Array<{ pageIndex: number; sectionEl: HTMLElement; canvasW: number; canvasH: number; drawW: number; drawH: number; x: number; y: number }> }> {
