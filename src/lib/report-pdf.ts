@@ -48,7 +48,11 @@ export async function renderSectionsToPdf(
       useCORS: true,
       allowTaint: true,
       logging: false,
+      onclone: (_clonedDoc, clonedRoot) => {
+        prepareCloneForRender(el, clonedRoot as HTMLElement);
+      },
     });
+
     const ratio = canvas.height / canvas.width;
     let drawW = contentWidth;
     let drawH = drawW * ratio;
