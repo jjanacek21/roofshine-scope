@@ -901,22 +901,15 @@ function InvestmentSection({ ctx }: { ctx: RenderCtx }) {
               <Row label={`Overhead (${primaryEstimate?.overhead_pct ?? 0}%)`} value={overhead} />
               <Row label={`Profit (${primaryEstimate?.profit_pct ?? 0}%)`} value={profit} />
               <Row label={`Tax (${primaryEstimate?.tax_pct ?? 0}%)`} value={tax} />
-              <div className="mt-3 flex items-baseline justify-between border-t border-neutral-300 pt-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-700">Grand Total</span>
-                <span className="font-mono-num font-extrabold text-neutral-900" style={{ fontSize: 28 }}>
-                  ${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
             </div>
           )}
-          {!hidePricing && useManualTotal && (
-            <div className="mt-4 flex items-baseline justify-between border-t border-neutral-300 pt-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-700">Grand Total</span>
-              <span className="font-mono-num font-extrabold text-neutral-900" style={{ fontSize: 28 }}>
-                ${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-          )}
+          <div className="mt-4 flex items-baseline justify-between border-t border-neutral-300 pt-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-700">Grand Total</span>
+            <span className="font-mono-num font-extrabold text-neutral-900" style={{ fontSize: 28 }}>
+              ${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+
         </>
       )}
     </>
