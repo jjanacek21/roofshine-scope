@@ -875,19 +875,24 @@ function InvestmentSection({ ctx }: { ctx: RenderCtx }) {
           {itemsByTrade.map(([trade, items]) => (
             <div key={trade} className="mb-4">
               <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-neutral-700">{getTradeLabel(trade)}</div>
-              <table className="w-full text-[12px]">
-                <thead><tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
-                  <th className="border-b border-neutral-200 py-1.5">Item</th>
-                  {!hidePricing && (<><th className="border-b py-1.5 text-right">Qty</th><th className="border-b py-1.5">Unit</th><th className="border-b py-1.5 text-right">Price</th><th className="border-b py-1.5 text-right">Total</th></>)}
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead><tr style={{ textAlign: "left", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", color: "#737373" }}>
+                  <th style={{ borderBottom: "1px solid #e5e5e5", padding: "6px 0", textAlign: "left" }}>Item</th>
+                  {!hidePricing && (<>
+                    <th style={{ borderBottom: "1px solid #e5e5e5", padding: "6px 0", textAlign: "right", width: 60 }}>Qty</th>
+                    <th style={{ borderBottom: "1px solid #e5e5e5", padding: "6px 0", textAlign: "left", width: 60 }}>Unit</th>
+                    <th style={{ borderBottom: "1px solid #e5e5e5", padding: "6px 0", textAlign: "right", width: 80 }}>Price</th>
+                    <th style={{ borderBottom: "1px solid #e5e5e5", padding: "6px 0", textAlign: "right", width: 90 }}>Total</th>
+                  </>)}
                 </tr></thead>
                 <tbody>{items.map((it: any) => (
-                  <tr key={it.id} className="border-b border-neutral-100">
-                    <td className="py-1.5 text-neutral-800">{it.name}</td>
+                  <tr key={it.id} style={{ borderBottom: "1px solid #f5f5f5" }}>
+                    <td style={{ padding: "6px 0", color: "#262626", textAlign: "left" }}>{it.name}</td>
                     {!hidePricing && (<>
-                      <td className="py-1.5 text-right font-mono-num text-neutral-700">{Number(it.qty).toFixed(2)}</td>
-                      <td className="py-1.5 text-neutral-600">{it.unit}</td>
-                      <td className="py-1.5 text-right font-mono-num text-neutral-700">${Number(it.unit_price).toFixed(2)}</td>
-                      <td className="py-1.5 text-right font-mono-num font-semibold text-neutral-900">${(Number(it.qty) * Number(it.unit_price)).toFixed(2)}</td>
+                      <td style={{ padding: "6px 0", textAlign: "right", fontFamily: "var(--font-mono)", color: "#404040" }}>{Number(it.qty).toFixed(2)}</td>
+                      <td style={{ padding: "6px 0", color: "#525252" }}>{it.unit}</td>
+                      <td style={{ padding: "6px 0", textAlign: "right", fontFamily: "var(--font-mono)", color: "#404040" }}>${Number(it.unit_price).toFixed(2)}</td>
+                      <td style={{ padding: "6px 0", textAlign: "right", fontFamily: "var(--font-mono)", fontWeight: 600, color: "#0a0a0a" }}>${(Number(it.qty) * Number(it.unit_price)).toFixed(2)}</td>
                     </>)}
                   </tr>
                 ))}</tbody>
@@ -895,7 +900,7 @@ function InvestmentSection({ ctx }: { ctx: RenderCtx }) {
             </div>
           ))}
           {!hidePricing && !useManualTotal && (
-            <div className="mt-4 space-y-1 border-t border-neutral-300 pt-3 text-[12px]">
+            <div style={{ marginTop: 16, borderTop: "1px solid #d4d4d4", paddingTop: 12, display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
               <Row label="Subtotal" value={subtotal} />
               <Row label={`Markup (${primaryEstimate?.markup_pct ?? 0}%)`} value={markup} />
               <Row label={`Overhead (${primaryEstimate?.overhead_pct ?? 0}%)`} value={overhead} />
@@ -903,12 +908,13 @@ function InvestmentSection({ ctx }: { ctx: RenderCtx }) {
               <Row label={`Tax (${primaryEstimate?.tax_pct ?? 0}%)`} value={tax} />
             </div>
           )}
-          <div className="mt-4 flex items-baseline justify-between border-t border-neutral-300 pt-3">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-700">Grand Total</span>
-            <span className="font-mono-num font-extrabold text-neutral-900" style={{ fontSize: 28 }}>
+          <div style={{ marginTop: 16, borderTop: "1px solid #d4d4d4", paddingTop: 12, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#404040" }}>Grand Total</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontWeight: 800, color: "#0a0a0a", fontSize: 28 }}>
               ${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
+
 
         </>
       )}
@@ -979,9 +985,10 @@ function TermsSection({ ctx }: { ctx: RenderCtx }) {
         onChange={(e) => updateProps(section.id, { text: e.target.value })}
       />
       <div className="mt-6 grid grid-cols-2 gap-6">
-        <div><div className="border-b border-neutral-400 pb-1 text-neutral-300">·</div><div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">Customer Signature</div></div>
-        <div><div className="border-b border-neutral-400 pb-1 text-neutral-300">·</div><div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">Date</div></div>
+        <div><div style={{ borderBottom: "1px solid #525252", height: 28 }} /><div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">Customer Signature</div></div>
+        <div><div style={{ borderBottom: "1px solid #525252", height: 28 }} /><div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">Date</div></div>
       </div>
+
     </>
   );
 }
