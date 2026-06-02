@@ -28,7 +28,7 @@ function prepareCloneForRender(originalRoot: HTMLElement, clonedRoot: HTMLElemen
     "display", "position", "boxSizing",
     "flexDirection", "flexWrap", "justifyContent", "alignItems", "alignSelf", "flex", "flexGrow", "flexShrink", "flexBasis", "gap", "rowGap", "columnGap",
     "gridTemplateColumns", "gridTemplateRows", "gridColumn", "gridRow",
-    "width", "minWidth", "maxWidth", "height", "minHeight", "maxHeight",
+    "width", "minWidth", "maxWidth",
     "padding", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft",
     "margin", "marginTop", "marginRight", "marginBottom", "marginLeft",
     "border", "borderTop", "borderRight", "borderBottom", "borderLeft",
@@ -40,23 +40,10 @@ function prepareCloneForRender(originalRoot: HTMLElement, clonedRoot: HTMLElemen
     "boxShadow",
   ];
 
-  const walk = (orig: Element, clone: Element) => {
-    const cs = window.getComputedStyle(orig);
-    const target = clone as HTMLElement;
-    for (const p of COPY_PROPS) {
-      const v = cs.getPropertyValue(p.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase()));
-      if (v) target.style.setProperty(p.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase()), v);
-    }
-    const oc = Array.from(orig.children);
-    const cc = Array.from(clone.children);
-    for (let i = 0; i < oc.length && i < cc.length; i++) walk(oc[i], cc[i]);
-  };
-  walk(originalRoot, clonedRoot);
-
-  // Replace textareas (Executive Summary, Terms, Rich Text) with divs that
-  // actually paint their text. html2canvas treats <textarea> as an empty box.
-  const origTextareas = originalRoot.querySelectorAll("textarea");
-  const cloneTextareas = clonedRoot.querySelectorAll("textarea");
+  // Replace textareas FIRST (before walking) so the walk sees the new divs
+  // and doesn't bake textarea computed heights into the clone.
+  const origTextareas = Array.from(originalRoot.querySelectorAll("textarea"));
+  const cloneTextareas = Array.from(clonedRoot.querySelectorAll("textarea"));
   origTextareas.forEach((ta, i) => {
     const cloneTa = cloneTextareas[i] as HTMLTextAreaElement | undefined;
     if (!cloneTa || !cloneTa.parentNode) return;
@@ -74,8 +61,21 @@ function prepareCloneForRender(originalRoot: HTMLElement, clonedRoot: HTMLElemen
     cloneTa.parentNode.replaceChild(div, cloneTa);
   });
 
-  // Ensure the root always has a concrete sans-serif stack — guards against
-  // CSS variable resolution issues during the clone.
+  const walk = (orig: Element, clone: Element) => {
+    if (clone.tagName === "TEXTAREA" || orig.tagName === "TEXTAREA") return;
+    const cs = window.getComputedStyle(orig);
+    const target = clone as HTMLElement;
+    for (const p of COPY_PROPS) {
+      const kebab = p.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
+      const v = cs.getPropertyValue(kebab);
+      if (v) target.style.setProperty(kebab, v);
+    }
+    const oc = Array.from(orig.children).filter((c) => c.tagName !== "TEXTAREA");
+    const cc = Array.from(clone.children).filter((c) => c.tagName !== "TEXTAREA");
+    for (let i = 0; i < oc.length && i < cc.length; i++) walk(oc[i], cc[i]);
+  };
+  walk(originalRoot, clonedRoot);
+
   clonedRoot.style.fontFamily =
     clonedRoot.style.fontFamily ||
     '"Archivo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
@@ -120,50 +120,98 @@ export async function renderSectionsToPdf(
     });
 
     const ratio = canvas.height / canvas.width;
-    let drawW = contentWidth;
-    let drawH = drawW * ratio;
-    // If the section taller than a full page, scale it down to fit one page
-    if (drawH > contentHeight) {
-      drawH = contentHeight;
-      drawW = drawH / ratio;
-    }
+    const drawW = contentWidth;
+    const totalDrawH = drawW * ratio;
 
-    const remaining = pageHeight - margin - cursorY;
-    const needsGap = cursorY > margin;
-    const required = drawH + (needsGap ? gap : 0);
-    if (required > remaining) {
-      // Start a new page
-      currentPage = doc.addPage([pageWidth, pageHeight]);
-      cursorY = margin;
-    } else if (needsGap) {
-      cursorY += gap;
+    // If the section fits on a single page, pack it onto current page (start
+    // new page if not enough room). If it's taller than a page, slice it
+    // across multiple pages so we never leave huge whitespace.
+    if (totalDrawH <= contentHeight) {
+      const remaining = pageHeight - margin - cursorY;
+      const needsGap = cursorY > margin;
+      const required = totalDrawH + (needsGap ? gap : 0);
+      if (required > remaining) {
+        currentPage = doc.addPage([pageWidth, pageHeight]);
+        cursorY = margin;
+      } else if (needsGap) {
+        cursorY += gap;
+      }
+      const imgBytes = await canvasToJpegBytes(canvas);
+      const img = await doc.embedJpg(imgBytes);
+      const x = (pageWidth - drawW) / 2;
+      const y = pageHeight - cursorY - totalDrawH;
+      currentPage.drawImage(img, { x, y, width: drawW, height: totalDrawH });
+      pageMap.push({
+        pageIndex: doc.getPageCount() - 1,
+        sectionEl: el,
+        canvasW: canvas.width,
+        canvasH: canvas.height,
+        drawW,
+        drawH: totalDrawH,
+        x,
+        y,
+      });
+      cursorY += totalDrawH;
+    } else {
+      // Slice oversized section. Work in canvas pixel space, then re-embed
+      // each slice on its own page at full content width.
+      const pxPerPt = canvas.width / drawW;
+      const sliceHeightPt = contentHeight;
+      const sliceHeightPx = Math.floor(sliceHeightPt * pxPerPt);
+      // Start oversized sections on a fresh page
+      if (cursorY > margin) {
+        currentPage = doc.addPage([pageWidth, pageHeight]);
+        cursorY = margin;
+      }
+      let offsetPx = 0;
+      let firstSlice = true;
+      while (offsetPx < canvas.height) {
+        const thisSlicePx = Math.min(sliceHeightPx, canvas.height - offsetPx);
+        const slice = document.createElement("canvas");
+        slice.width = canvas.width;
+        slice.height = thisSlicePx;
+        const sctx = slice.getContext("2d")!;
+        sctx.fillStyle = "#ffffff";
+        sctx.fillRect(0, 0, slice.width, slice.height);
+        sctx.drawImage(canvas, 0, -offsetPx);
+        const sliceBytes = await canvasToJpegBytes(slice);
+        const sliceImg = await doc.embedJpg(sliceBytes);
+        const sliceDrawH = thisSlicePx / pxPerPt;
+        if (!firstSlice) {
+          currentPage = doc.addPage([pageWidth, pageHeight]);
+          cursorY = margin;
+        }
+        const x = (pageWidth - drawW) / 2;
+        const y = pageHeight - cursorY - sliceDrawH;
+        currentPage.drawImage(sliceImg, { x, y, width: drawW, height: sliceDrawH });
+        pageMap.push({
+          pageIndex: doc.getPageCount() - 1,
+          sectionEl: el,
+          canvasW: canvas.width,
+          canvasH: canvas.height,
+          drawW,
+          drawH: sliceDrawH,
+          x,
+          y,
+        });
+        cursorY += sliceDrawH;
+        offsetPx += thisSlicePx;
+        firstSlice = false;
+      }
     }
-
-    const imgBytes = await new Promise<Uint8Array>((res) =>
-      canvas.toBlob(
-        (b) => b!.arrayBuffer().then((ab) => res(new Uint8Array(ab))),
-        "image/jpeg",
-        0.9,
-      ),
-    );
-    const img = await doc.embedJpg(imgBytes);
-    const x = (pageWidth - drawW) / 2;
-    const y = pageHeight - cursorY - drawH; // pdf-lib origin is bottom-left
-    currentPage.drawImage(img, { x, y, width: drawW, height: drawH });
-    pageMap.push({
-      pageIndex: doc.getPageCount() - 1,
-      sectionEl: el,
-      canvasW: canvas.width,
-      canvasH: canvas.height,
-      drawW,
-      drawH,
-      x,
-      y,
-    });
-    cursorY += drawH;
   }
 
   return { doc, pageMap };
+}
+
+async function canvasToJpegBytes(canvas: HTMLCanvasElement): Promise<Uint8Array> {
+  return new Promise<Uint8Array>((res) =>
+    canvas.toBlob(
+      (b) => b!.arrayBuffer().then((ab) => res(new Uint8Array(ab))),
+      "image/jpeg",
+      0.9,
+    ),
+  );
 }
 
 

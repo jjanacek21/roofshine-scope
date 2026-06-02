@@ -778,21 +778,18 @@ function CoverSection({ ctx }: { ctx: RenderCtx }) {
 
 function ExecutiveSection({ ctx }: { ctx: RenderCtx }) {
   const { section, job, company, primaryEstimate, updateProps } = ctx;
+  const fallback = primaryEstimate?.notes ?? `${company?.name ?? "Our team"} inspected the property at ${job.property_address ?? "the address on file"} on ${new Date().toLocaleDateString()}. Based on our findings, we recommend the scope of work outlined in this proposal.`;
+  const text = section.props.text ?? "";
   return (
     <>
       <H2>{section.title}</H2>
       <textarea
         className="w-full resize-none rounded border-0 bg-transparent text-[13px] leading-relaxed text-neutral-700 outline-none focus:bg-neutral-50"
-        rows={Math.max(4, (section.props.text ?? "").split("\n").length + 1)}
-        value={section.props.text ?? ""}
-        placeholder={primaryEstimate?.notes ?? `${company?.name ?? "Our team"} inspected the property at ${job.property_address ?? "the address on file"} on ${new Date().toLocaleDateString()}. Based on our findings, we recommend the scope outlined here.`}
+        rows={Math.max(3, (text || fallback).split("\n").length + 1)}
+        value={text}
+        placeholder={fallback}
         onChange={(e) => updateProps(section.id, { text: e.target.value })}
       />
-      {!section.props.text && (
-        <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-neutral-700">
-          {primaryEstimate?.notes ?? `${company?.name ?? "Our team"} inspected the property at ${job.property_address ?? "the address on file"} on ${new Date().toLocaleDateString()}. Based on our findings, we recommend the scope of work outlined in this proposal.`}
-        </p>
-      )}
     </>
   );
 }
