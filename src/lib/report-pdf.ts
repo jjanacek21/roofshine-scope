@@ -28,7 +28,7 @@ function prepareCloneForRender(originalRoot: HTMLElement, clonedRoot: HTMLElemen
     "display", "position", "boxSizing",
     "flexDirection", "flexWrap", "justifyContent", "alignItems", "alignSelf", "flex", "flexGrow", "flexShrink", "flexBasis", "gap", "rowGap", "columnGap",
     "gridTemplateColumns", "gridTemplateRows", "gridColumn", "gridRow",
-    "width", "minWidth", "maxWidth", "height", "minHeight", "maxHeight",
+    "width", "minWidth", "maxWidth",
     "padding", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft",
     "margin", "marginTop", "marginRight", "marginBottom", "marginLeft",
     "border", "borderTop", "borderRight", "borderBottom", "borderLeft",
@@ -40,23 +40,10 @@ function prepareCloneForRender(originalRoot: HTMLElement, clonedRoot: HTMLElemen
     "boxShadow",
   ];
 
-  const walk = (orig: Element, clone: Element) => {
-    const cs = window.getComputedStyle(orig);
-    const target = clone as HTMLElement;
-    for (const p of COPY_PROPS) {
-      const v = cs.getPropertyValue(p.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase()));
-      if (v) target.style.setProperty(p.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase()), v);
-    }
-    const oc = Array.from(orig.children);
-    const cc = Array.from(clone.children);
-    for (let i = 0; i < oc.length && i < cc.length; i++) walk(oc[i], cc[i]);
-  };
-  walk(originalRoot, clonedRoot);
-
-  // Replace textareas (Executive Summary, Terms, Rich Text) with divs that
-  // actually paint their text. html2canvas treats <textarea> as an empty box.
-  const origTextareas = originalRoot.querySelectorAll("textarea");
-  const cloneTextareas = clonedRoot.querySelectorAll("textarea");
+  // Replace textareas FIRST (before walking) so the walk sees the new divs
+  // and doesn't bake textarea computed heights into the clone.
+  const origTextareas = Array.from(originalRoot.querySelectorAll("textarea"));
+  const cloneTextareas = Array.from(clonedRoot.querySelectorAll("textarea"));
   origTextareas.forEach((ta, i) => {
     const cloneTa = cloneTextareas[i] as HTMLTextAreaElement | undefined;
     if (!cloneTa || !cloneTa.parentNode) return;
@@ -74,8 +61,21 @@ function prepareCloneForRender(originalRoot: HTMLElement, clonedRoot: HTMLElemen
     cloneTa.parentNode.replaceChild(div, cloneTa);
   });
 
-  // Ensure the root always has a concrete sans-serif stack — guards against
-  // CSS variable resolution issues during the clone.
+  const walk = (orig: Element, clone: Element) => {
+    if (clone.tagName === "TEXTAREA" || orig.tagName === "TEXTAREA") return;
+    const cs = window.getComputedStyle(orig);
+    const target = clone as HTMLElement;
+    for (const p of COPY_PROPS) {
+      const kebab = p.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
+      const v = cs.getPropertyValue(kebab);
+      if (v) target.style.setProperty(kebab, v);
+    }
+    const oc = Array.from(orig.children).filter((c) => c.tagName !== "TEXTAREA");
+    const cc = Array.from(clone.children).filter((c) => c.tagName !== "TEXTAREA");
+    for (let i = 0; i < oc.length && i < cc.length; i++) walk(oc[i], cc[i]);
+  };
+  walk(originalRoot, clonedRoot);
+
   clonedRoot.style.fontFamily =
     clonedRoot.style.fontFamily ||
     '"Archivo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
