@@ -54,6 +54,7 @@ import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AppTeamRouteImport } from './routes/_app.team'
 import { Route as AppSurvivalGuideRouteImport } from './routes/_app.survival-guide'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppRoofkingRouteImport } from './routes/_app.roofking'
 import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppDoorToDoorRouteImport } from './routes/_app.door-to-door'
@@ -323,6 +324,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRoofkingRoute = AppRoofkingRouteImport.update({
+  id: '/roofking',
+  path: '/roofking',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPriceBooksRoute = AppPriceBooksRouteImport.update({
   id: '/price-books',
   path: '/price-books',
@@ -555,6 +561,7 @@ export interface FileRoutesByFullPath {
   '/door-to-door': typeof AppDoorToDoorRouteWithChildren
   '/leads': typeof AppLeadsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
+  '/roofking': typeof AppRoofkingRoute
   '/settings': typeof AppSettingsRoute
   '/survival-guide': typeof AppSurvivalGuideRoute
   '/team': typeof AppTeamRouteWithChildren
@@ -640,6 +647,7 @@ export interface FileRoutesByTo {
   '/card': typeof AppCardRoute
   '/clients': typeof AppClientsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
+  '/roofking': typeof AppRoofkingRoute
   '/settings': typeof AppSettingsRoute
   '/survival-guide': typeof AppSurvivalGuideRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -729,6 +737,7 @@ export interface FileRoutesById {
   '/_app/door-to-door': typeof AppDoorToDoorRouteWithChildren
   '/_app/leads': typeof AppLeadsRouteWithChildren
   '/_app/price-books': typeof AppPriceBooksRouteWithChildren
+  '/_app/roofking': typeof AppRoofkingRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/survival-guide': typeof AppSurvivalGuideRoute
   '/_app/team': typeof AppTeamRouteWithChildren
@@ -821,6 +830,7 @@ export interface FileRouteTypes {
     | '/door-to-door'
     | '/leads'
     | '/price-books'
+    | '/roofking'
     | '/settings'
     | '/survival-guide'
     | '/team'
@@ -906,6 +916,7 @@ export interface FileRouteTypes {
     | '/card'
     | '/clients'
     | '/price-books'
+    | '/roofking'
     | '/settings'
     | '/survival-guide'
     | '/admin/analytics'
@@ -994,6 +1005,7 @@ export interface FileRouteTypes {
     | '/_app/door-to-door'
     | '/_app/leads'
     | '/_app/price-books'
+    | '/_app/roofking'
     | '/_app/settings'
     | '/_app/survival-guide'
     | '/_app/team'
@@ -1415,6 +1427,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/roofking': {
+      id: '/_app/roofking'
+      path: '/roofking'
+      fullPath: '/roofking'
+      preLoaderRoute: typeof AppRoofkingRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/price-books': {
@@ -1840,6 +1859,7 @@ interface AppRouteChildren {
   AppDoorToDoorRoute: typeof AppDoorToDoorRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
   AppPriceBooksRoute: typeof AppPriceBooksRouteWithChildren
+  AppRoofkingRoute: typeof AppRoofkingRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSurvivalGuideRoute: typeof AppSurvivalGuideRoute
   AppTeamRoute: typeof AppTeamRouteWithChildren
@@ -1858,6 +1878,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDoorToDoorRoute: AppDoorToDoorRouteWithChildren,
   AppLeadsRoute: AppLeadsRouteWithChildren,
   AppPriceBooksRoute: AppPriceBooksRouteWithChildren,
+  AppRoofkingRoute: AppRoofkingRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSurvivalGuideRoute: AppSurvivalGuideRoute,
   AppTeamRoute: AppTeamRouteWithChildren,
