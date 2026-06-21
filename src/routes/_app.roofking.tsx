@@ -11,14 +11,19 @@ export const Route = createFileRoute("/_app/roofking")({
   component: RoofKingLayout,
 });
 
-const TABS: Array<{ to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }> = [
-  { to: "/roofking", label: "Dashboard", icon: LayoutDashboard, exact: true },
+const TABS = [
+  { to: "/roofking", label: "Dashboard", icon: LayoutDashboard },
   { to: "/roofking/customers", label: "Customers", icon: Users },
   { to: "/roofking/pipeline", label: "Pipeline", icon: KanbanSquare },
   { to: "/roofking/tickets", label: "All Tickets", icon: ListChecks },
   { to: "/roofking/forms", label: "Form Builder", icon: FileCog },
   { to: "/roofking/export", label: "Export / CRM", icon: Download },
-];
+] as const;
+
+function isTabActive(pathname: string, to: string) {
+  if (to === "/roofking") return pathname === "/roofking" || pathname === "/roofking/";
+  return pathname.startsWith(to);
+}
 
 function RoofKingLayout() {
   const { isRoofKing, companyId, loading } = useIsRoofKing();
