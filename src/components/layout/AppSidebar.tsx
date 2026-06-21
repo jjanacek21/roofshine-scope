@@ -22,6 +22,7 @@ import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
+import { useIsRoofKing } from "@/hooks/useRoofKing";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
