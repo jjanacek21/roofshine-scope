@@ -73,6 +73,26 @@ export type RKTicket = {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  invoice: RKInvoice | null;
+};
+
+export type RKInvoiceLine = {
+  desc: string;
+  qty: number;
+  price: number;
+  notes?: string;
+};
+
+export type RKInvoice = {
+  invoice_number: string;
+  issue_date: string;
+  due_date: string;
+  bill_to: { name: string; contact: string; phone: string; email: string; address: string };
+  property: { name: string; address: string };
+  description: string;
+  lines: RKInvoiceLine[];
+  tax_pct: number;
+  notes: string;
 };
 
 export type RKFormField = {
