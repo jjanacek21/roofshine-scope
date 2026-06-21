@@ -129,13 +129,7 @@ function RoofKingLayout() {
         </>
       )}
     </div>
+    </RKSearchContext.Provider>
   );
 }
 
-export type RKOutletContext = {
-  accounts: import("@/lib/roofking/types").RKAccount[];
-  properties: import("@/lib/roofking/types").RKProperty[];
-  tickets: import("@/lib/roofking/types").RKTicket[];
-  companyId: string;
-  search: string;
-};
