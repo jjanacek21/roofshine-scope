@@ -61,6 +61,7 @@ import { Route as AppDoorToDoorRouteImport } from './routes/_app.door-to-door'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCardRouteImport } from './routes/_app.card'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
+import { Route as AppRoofkingIndexRouteImport } from './routes/_app.roofking.index'
 import { Route as AppLeadsIndexRouteImport } from './routes/_app.leads.index'
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
 import { Route as AppInvoicesIndexRouteImport } from './routes/_app.invoices.index'
@@ -359,6 +360,11 @@ const AppTeamIndexRoute = AppTeamIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppTeamRoute,
 } as any)
+const AppRoofkingIndexRoute = AppRoofkingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoofkingRoute,
+} as any)
 const AppLeadsIndexRoute = AppLeadsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -561,7 +567,7 @@ export interface FileRoutesByFullPath {
   '/door-to-door': typeof AppDoorToDoorRouteWithChildren
   '/leads': typeof AppLeadsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
-  '/roofking': typeof AppRoofkingRoute
+  '/roofking': typeof AppRoofkingRouteWithChildren
   '/settings': typeof AppSettingsRoute
   '/survival-guide': typeof AppSurvivalGuideRoute
   '/team': typeof AppTeamRouteWithChildren
@@ -625,6 +631,7 @@ export interface FileRoutesByFullPath {
   '/invoices/': typeof AppInvoicesIndexRoute
   '/jobs/': typeof AppJobsIndexRoute
   '/leads/': typeof AppLeadsIndexRoute
+  '/roofking/': typeof AppRoofkingIndexRoute
   '/team/': typeof AppTeamIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
@@ -647,7 +654,6 @@ export interface FileRoutesByTo {
   '/card': typeof AppCardRoute
   '/clients': typeof AppClientsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
-  '/roofking': typeof AppRoofkingRoute
   '/settings': typeof AppSettingsRoute
   '/survival-guide': typeof AppSurvivalGuideRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -710,6 +716,7 @@ export interface FileRoutesByTo {
   '/invoices': typeof AppInvoicesIndexRoute
   '/jobs': typeof AppJobsIndexRoute
   '/leads': typeof AppLeadsIndexRoute
+  '/roofking': typeof AppRoofkingIndexRoute
   '/team': typeof AppTeamIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
@@ -737,7 +744,7 @@ export interface FileRoutesById {
   '/_app/door-to-door': typeof AppDoorToDoorRouteWithChildren
   '/_app/leads': typeof AppLeadsRouteWithChildren
   '/_app/price-books': typeof AppPriceBooksRouteWithChildren
-  '/_app/roofking': typeof AppRoofkingRoute
+  '/_app/roofking': typeof AppRoofkingRouteWithChildren
   '/_app/settings': typeof AppSettingsRoute
   '/_app/survival-guide': typeof AppSurvivalGuideRoute
   '/_app/team': typeof AppTeamRouteWithChildren
@@ -802,6 +809,7 @@ export interface FileRoutesById {
   '/_app/invoices/': typeof AppInvoicesIndexRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
   '/_app/leads/': typeof AppLeadsIndexRoute
+  '/_app/roofking/': typeof AppRoofkingIndexRoute
   '/_app/team/': typeof AppTeamIndexRoute
   '/_app/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/_app/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
@@ -894,6 +902,7 @@ export interface FileRouteTypes {
     | '/invoices/'
     | '/jobs/'
     | '/leads/'
+    | '/roofking/'
     | '/team/'
     | '/jobs/$id/contract'
     | '/jobs/$id/documents'
@@ -916,7 +925,6 @@ export interface FileRouteTypes {
     | '/card'
     | '/clients'
     | '/price-books'
-    | '/roofking'
     | '/settings'
     | '/survival-guide'
     | '/admin/analytics'
@@ -979,6 +987,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/jobs'
     | '/leads'
+    | '/roofking'
     | '/team'
     | '/jobs/$id/contract'
     | '/jobs/$id/documents'
@@ -1070,6 +1079,7 @@ export interface FileRouteTypes {
     | '/_app/invoices/'
     | '/_app/jobs/'
     | '/_app/leads/'
+    | '/_app/roofking/'
     | '/_app/team/'
     | '/_app/jobs/$id/contract'
     | '/_app/jobs/$id/documents'
@@ -1478,6 +1488,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTeamIndexRouteImport
       parentRoute: typeof AppTeamRoute
     }
+    '/_app/roofking/': {
+      id: '/_app/roofking/'
+      path: '/'
+      fullPath: '/roofking/'
+      preLoaderRoute: typeof AppRoofkingIndexRouteImport
+      parentRoute: typeof AppRoofkingRoute
+    }
     '/_app/leads/': {
       id: '/_app/leads/'
       path: '/'
@@ -1810,6 +1827,18 @@ const AppPriceBooksRouteWithChildren = AppPriceBooksRoute._addFileChildren(
   AppPriceBooksRouteChildren,
 )
 
+interface AppRoofkingRouteChildren {
+  AppRoofkingIndexRoute: typeof AppRoofkingIndexRoute
+}
+
+const AppRoofkingRouteChildren: AppRoofkingRouteChildren = {
+  AppRoofkingIndexRoute: AppRoofkingIndexRoute,
+}
+
+const AppRoofkingRouteWithChildren = AppRoofkingRoute._addFileChildren(
+  AppRoofkingRouteChildren,
+)
+
 interface AppTeamRouteChildren {
   AppTeamInvitesRoute: typeof AppTeamInvitesRoute
   AppTeamRequestsRoute: typeof AppTeamRequestsRoute
@@ -1859,7 +1888,7 @@ interface AppRouteChildren {
   AppDoorToDoorRoute: typeof AppDoorToDoorRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
   AppPriceBooksRoute: typeof AppPriceBooksRouteWithChildren
-  AppRoofkingRoute: typeof AppRoofkingRoute
+  AppRoofkingRoute: typeof AppRoofkingRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRoute
   AppSurvivalGuideRoute: typeof AppSurvivalGuideRoute
   AppTeamRoute: typeof AppTeamRouteWithChildren
@@ -1878,7 +1907,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDoorToDoorRoute: AppDoorToDoorRouteWithChildren,
   AppLeadsRoute: AppLeadsRouteWithChildren,
   AppPriceBooksRoute: AppPriceBooksRouteWithChildren,
-  AppRoofkingRoute: AppRoofkingRoute,
+  AppRoofkingRoute: AppRoofkingRouteWithChildren,
   AppSettingsRoute: AppSettingsRoute,
   AppSurvivalGuideRoute: AppSurvivalGuideRoute,
   AppTeamRoute: AppTeamRouteWithChildren,
