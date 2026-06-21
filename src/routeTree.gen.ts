@@ -72,6 +72,7 @@ import { Route as AdminCompaniesIdRouteImport } from './routes/admin.companies.$
 import { Route as AdminAssembliesImportRouteImport } from './routes/admin.assemblies.import'
 import { Route as AppTeamRequestsRouteImport } from './routes/_app.team.requests'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
+import { Route as AppRoofkingCustomersRouteImport } from './routes/_app.roofking.customers'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
 import { Route as AppLeadsWizardRouteImport } from './routes/_app.leads.wizard'
 import { Route as AppLeadsTrainingRouteImport } from './routes/_app.leads.training'
@@ -415,6 +416,11 @@ const AppTeamInvitesRoute = AppTeamInvitesRouteImport.update({
   path: '/invites',
   getParentRoute: () => AppTeamRoute,
 } as any)
+const AppRoofkingCustomersRoute = AppRoofkingCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => AppRoofkingRoute,
+} as any)
 const AppPriceBooksNewRoute = AppPriceBooksNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -621,6 +627,7 @@ export interface FileRoutesByFullPath {
   '/leads/training': typeof AppLeadsTrainingRoute
   '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
+  '/roofking/customers': typeof AppRoofkingCustomersRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -706,6 +713,7 @@ export interface FileRoutesByTo {
   '/leads/training': typeof AppLeadsTrainingRoute
   '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
+  '/roofking/customers': typeof AppRoofkingCustomersRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -799,6 +807,7 @@ export interface FileRoutesById {
   '/_app/leads/training': typeof AppLeadsTrainingRoute
   '/_app/leads/wizard': typeof AppLeadsWizardRoute
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
+  '/_app/roofking/customers': typeof AppRoofkingCustomersRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
   '/_app/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -892,6 +901,7 @@ export interface FileRouteTypes {
     | '/leads/training'
     | '/leads/wizard'
     | '/price-books/new'
+    | '/roofking/customers'
     | '/team/invites'
     | '/team/requests'
     | '/admin/assemblies/import'
@@ -977,6 +987,7 @@ export interface FileRouteTypes {
     | '/leads/training'
     | '/leads/wizard'
     | '/price-books/new'
+    | '/roofking/customers'
     | '/team/invites'
     | '/team/requests'
     | '/admin/assemblies/import'
@@ -1069,6 +1080,7 @@ export interface FileRouteTypes {
     | '/_app/leads/training'
     | '/_app/leads/wizard'
     | '/_app/price-books/new'
+    | '/_app/roofking/customers'
     | '/_app/team/invites'
     | '/_app/team/requests'
     | '/admin/assemblies/import'
@@ -1565,6 +1577,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTeamInvitesRouteImport
       parentRoute: typeof AppTeamRoute
     }
+    '/_app/roofking/customers': {
+      id: '/_app/roofking/customers'
+      path: '/customers'
+      fullPath: '/roofking/customers'
+      preLoaderRoute: typeof AppRoofkingCustomersRouteImport
+      parentRoute: typeof AppRoofkingRoute
+    }
     '/_app/price-books/new': {
       id: '/_app/price-books/new'
       path: '/new'
@@ -1828,10 +1847,12 @@ const AppPriceBooksRouteWithChildren = AppPriceBooksRoute._addFileChildren(
 )
 
 interface AppRoofkingRouteChildren {
+  AppRoofkingCustomersRoute: typeof AppRoofkingCustomersRoute
   AppRoofkingIndexRoute: typeof AppRoofkingIndexRoute
 }
 
 const AppRoofkingRouteChildren: AppRoofkingRouteChildren = {
+  AppRoofkingCustomersRoute: AppRoofkingCustomersRoute,
   AppRoofkingIndexRoute: AppRoofkingIndexRoute,
 }
 
