@@ -97,7 +97,7 @@ function RoofKingLayout() {
           {/* Mobile sub-nav */}
           <div className="mb-4 flex gap-1 overflow-x-auto lg:hidden">
             {TABS.map((t) => {
-              const active = t.exact ? location.pathname === t.to : location.pathname.startsWith(t.to);
+              const active = isTabActive(location.pathname, t.to);
               const Icon = t.icon;
               return (
                 <Link key={t.to} to={t.to} className={cn("rk-subnav-link shrink-0", active && "is-active")}>
