@@ -42,7 +42,7 @@ function RoofKingLayout() {
     if (!loading && !isRoofKing) navigate({ to: "/" });
   }, [loading, isRoofKing, navigate]);
 
-  const ctx = useMemo(() => ({ accounts, properties, tickets, companyId: companyId ?? "", search }), [accounts, properties, tickets, companyId, search]);
+
 
   if (!isRoofKing) return null;
 
