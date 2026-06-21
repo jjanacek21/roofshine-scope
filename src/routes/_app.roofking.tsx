@@ -47,6 +47,7 @@ function RoofKingLayout() {
   if (!isRoofKing) return null;
 
   return (
+    <RKSearchContext.Provider value={{ search, setSearch }}>
     <div data-rk className="rk-page-bg -mx-4 -my-4 sm:-mx-6 sm:-my-6 min-h-[calc(100vh-4rem)]">
       <div className="mx-auto flex max-w-[1500px] gap-6 px-4 py-5 sm:px-6">
         {/* Sub-nav */}
