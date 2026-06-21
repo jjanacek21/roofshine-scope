@@ -108,7 +108,8 @@ function RoofKingLayout() {
             })}
           </div>
 
-          <Outlet context={ctx} />
+          <Outlet />
+          {/* Pass search via custom event so child routes can opt-in */}
         </div>
       </div>
 
