@@ -452,6 +452,7 @@ export type Database = {
           financing_blurb: string | null
           id: string
           include_fl_code_package: boolean
+          is_roof_king: boolean
           license_numbers: string[]
           logo_url: string | null
           name: string
@@ -476,6 +477,7 @@ export type Database = {
           financing_blurb?: string | null
           id?: string
           include_fl_code_package?: boolean
+          is_roof_king?: boolean
           license_numbers?: string[]
           logo_url?: string | null
           name: string
@@ -500,6 +502,7 @@ export type Database = {
           financing_blurb?: string | null
           id?: string
           include_fl_code_package?: boolean
+          is_roof_king?: boolean
           license_numbers?: string[]
           logo_url?: string | null
           name?: string
@@ -3680,6 +3683,248 @@ export type Database = {
         }
         Relationships: []
       }
+      rk_accounts: {
+        Row: {
+          city: string | null
+          company_id: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          primary_contact: string | null
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          company_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          primary_contact?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          company_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          primary_contact?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rk_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rk_form_templates: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          fields: Json
+          id: string
+          is_custom: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          is_custom?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          is_custom?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rk_form_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rk_properties: {
+        Row: {
+          account_id: string
+          address: string | null
+          city: string | null
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          roof_type: string | null
+          state: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          account_id: string
+          address?: string | null
+          city?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          roof_type?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          account_id?: string
+          address?: string | null
+          city?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          roof_type?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rk_properties_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "rk_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rk_properties_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rk_tickets: {
+        Row: {
+          account_id: string
+          assigned_to: string | null
+          company_id: string
+          completed: boolean
+          contact: string | null
+          created_at: string
+          created_by: string | null
+          field_notes_raw: string | null
+          id: string
+          labor: Json
+          materials: Json
+          phone: string | null
+          price: number | null
+          property_id: string
+          purpose: string[]
+          report_polished: string | null
+          reported_concern: string | null
+          roof_type: string | null
+          service_date: string | null
+          status: string
+          updated_at: string
+          wo_number: number | null
+        }
+        Insert: {
+          account_id: string
+          assigned_to?: string | null
+          company_id: string
+          completed?: boolean
+          contact?: string | null
+          created_at?: string
+          created_by?: string | null
+          field_notes_raw?: string | null
+          id?: string
+          labor?: Json
+          materials?: Json
+          phone?: string | null
+          price?: number | null
+          property_id: string
+          purpose?: string[]
+          report_polished?: string | null
+          reported_concern?: string | null
+          roof_type?: string | null
+          service_date?: string | null
+          status?: string
+          updated_at?: string
+          wo_number?: number | null
+        }
+        Update: {
+          account_id?: string
+          assigned_to?: string | null
+          company_id?: string
+          completed?: boolean
+          contact?: string | null
+          created_at?: string
+          created_by?: string | null
+          field_notes_raw?: string | null
+          id?: string
+          labor?: Json
+          materials?: Json
+          phone?: string | null
+          price?: number | null
+          property_id?: string
+          purpose?: string[]
+          report_polished?: string | null
+          reported_concern?: string | null
+          roof_type?: string | null
+          service_date?: string | null
+          status?: string
+          updated_at?: string
+          wo_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rk_tickets_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "rk_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rk_tickets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rk_tickets_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "rk_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roof_edges: {
         Row: {
           created_at: string
@@ -4760,6 +5005,7 @@ export type Database = {
       }
       is_card_slug_available: { Args: { _slug: string }; Returns: boolean }
       is_company_admin: { Args: never; Returns: boolean }
+      is_roof_king_member: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       list_companies_for_signup: {
         Args: never
@@ -4812,6 +5058,7 @@ export type Database = {
         }
       }
       request_to_join_company: { Args: { _company_id: string }; Returns: Json }
+      rk_next_wo: { Args: { _company_id: string }; Returns: number }
       rollback_order_snapshot: {
         Args: { _id: string }
         Returns: {
