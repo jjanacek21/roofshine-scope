@@ -72,6 +72,7 @@ import { Route as AdminCompaniesIdRouteImport } from './routes/admin.companies.$
 import { Route as AdminAssembliesImportRouteImport } from './routes/admin.assemblies.import'
 import { Route as AppTeamRequestsRouteImport } from './routes/_app.team.requests'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
+import { Route as AppRoofkingPipelineRouteImport } from './routes/_app.roofking.pipeline'
 import { Route as AppRoofkingCustomersRouteImport } from './routes/_app.roofking.customers'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
 import { Route as AppLeadsWizardRouteImport } from './routes/_app.leads.wizard'
@@ -416,6 +417,11 @@ const AppTeamInvitesRoute = AppTeamInvitesRouteImport.update({
   path: '/invites',
   getParentRoute: () => AppTeamRoute,
 } as any)
+const AppRoofkingPipelineRoute = AppRoofkingPipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => AppRoofkingRoute,
+} as any)
 const AppRoofkingCustomersRoute = AppRoofkingCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
@@ -628,6 +634,7 @@ export interface FileRoutesByFullPath {
   '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/roofking/customers': typeof AppRoofkingCustomersRoute
+  '/roofking/pipeline': typeof AppRoofkingPipelineRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -714,6 +721,7 @@ export interface FileRoutesByTo {
   '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/roofking/customers': typeof AppRoofkingCustomersRoute
+  '/roofking/pipeline': typeof AppRoofkingPipelineRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -808,6 +816,7 @@ export interface FileRoutesById {
   '/_app/leads/wizard': typeof AppLeadsWizardRoute
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
   '/_app/roofking/customers': typeof AppRoofkingCustomersRoute
+  '/_app/roofking/pipeline': typeof AppRoofkingPipelineRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
   '/_app/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -902,6 +911,7 @@ export interface FileRouteTypes {
     | '/leads/wizard'
     | '/price-books/new'
     | '/roofking/customers'
+    | '/roofking/pipeline'
     | '/team/invites'
     | '/team/requests'
     | '/admin/assemblies/import'
@@ -988,6 +998,7 @@ export interface FileRouteTypes {
     | '/leads/wizard'
     | '/price-books/new'
     | '/roofking/customers'
+    | '/roofking/pipeline'
     | '/team/invites'
     | '/team/requests'
     | '/admin/assemblies/import'
@@ -1081,6 +1092,7 @@ export interface FileRouteTypes {
     | '/_app/leads/wizard'
     | '/_app/price-books/new'
     | '/_app/roofking/customers'
+    | '/_app/roofking/pipeline'
     | '/_app/team/invites'
     | '/_app/team/requests'
     | '/admin/assemblies/import'
@@ -1577,6 +1589,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTeamInvitesRouteImport
       parentRoute: typeof AppTeamRoute
     }
+    '/_app/roofking/pipeline': {
+      id: '/_app/roofking/pipeline'
+      path: '/pipeline'
+      fullPath: '/roofking/pipeline'
+      preLoaderRoute: typeof AppRoofkingPipelineRouteImport
+      parentRoute: typeof AppRoofkingRoute
+    }
     '/_app/roofking/customers': {
       id: '/_app/roofking/customers'
       path: '/customers'
@@ -1848,11 +1867,13 @@ const AppPriceBooksRouteWithChildren = AppPriceBooksRoute._addFileChildren(
 
 interface AppRoofkingRouteChildren {
   AppRoofkingCustomersRoute: typeof AppRoofkingCustomersRoute
+  AppRoofkingPipelineRoute: typeof AppRoofkingPipelineRoute
   AppRoofkingIndexRoute: typeof AppRoofkingIndexRoute
 }
 
 const AppRoofkingRouteChildren: AppRoofkingRouteChildren = {
   AppRoofkingCustomersRoute: AppRoofkingCustomersRoute,
+  AppRoofkingPipelineRoute: AppRoofkingPipelineRoute,
   AppRoofkingIndexRoute: AppRoofkingIndexRoute,
 }
 
