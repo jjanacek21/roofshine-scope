@@ -16,11 +16,13 @@ import {
   ChevronLeft,
   ChevronRight,
   DoorOpen,
+  Crown,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
+import { useIsRoofKing } from "@/hooks/useRoofKing";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -43,6 +45,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
+  const { isRoofKing } = useIsRoofKing();
   const [collapsed, setCollapsed] = useSidebarCollapsed();
   const isSuperAdmin = profile?.role === "super_admin";
   const isCompanyAdmin =
@@ -145,6 +148,32 @@ export function AppSidebar() {
                 link
               );
             })}
+            {isRoofKing && (() => {
+              const active = isActive("/roofking");
+              const link = (
+                <Link
+                  to="/roofking"
+                  className={cn(
+                    "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors",
+                    collapsed && "justify-center",
+                    active
+                      ? "nav-active"
+                      : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
+                  )}
+                >
+                  <Crown className="h-4 w-4 shrink-0" strokeWidth={2} style={{ color: active ? undefined : "#f0a73a" }} />
+                  {!collapsed && <span>Roof King</span>}
+                </Link>
+              );
+              return collapsed ? (
+                <Tooltip key="roofking">
+                  <TooltipTrigger asChild>{link}</TooltipTrigger>
+                  <TooltipContent side="right">Roof King</TooltipContent>
+                </Tooltip>
+              ) : (
+                <div key="roofking">{link}</div>
+              );
+            })()}
           </nav>
         </div>
 
