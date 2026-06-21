@@ -148,6 +148,32 @@ export function AppSidebar() {
                 link
               );
             })}
+            {isRoofKing && (() => {
+              const active = isActive("/roofking");
+              const link = (
+                <Link
+                  to="/roofking"
+                  className={cn(
+                    "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors",
+                    collapsed && "justify-center",
+                    active
+                      ? "nav-active"
+                      : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
+                  )}
+                >
+                  <Crown className="h-4 w-4 shrink-0" strokeWidth={2} style={{ color: active ? undefined : "#f0a73a" }} />
+                  {!collapsed && <span>Roof King</span>}
+                </Link>
+              );
+              return collapsed ? (
+                <Tooltip key="roofking">
+                  <TooltipTrigger asChild>{link}</TooltipTrigger>
+                  <TooltipContent side="right">Roof King</TooltipContent>
+                </Tooltip>
+              ) : (
+                <div key="roofking">{link}</div>
+              );
+            })()}
           </nav>
         </div>
 
