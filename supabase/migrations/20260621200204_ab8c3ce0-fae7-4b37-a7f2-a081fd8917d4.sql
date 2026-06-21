@@ -1,0 +1,1 @@
+ALTER TABLE public.rk_tickets ADD COLUMN IF NOT EXISTS invoice jsonb;
