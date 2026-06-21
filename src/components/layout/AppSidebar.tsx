@@ -45,6 +45,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
+  const { isRoofKing } = useIsRoofKing();
   const [collapsed, setCollapsed] = useSidebarCollapsed();
   const isSuperAdmin = profile?.role === "super_admin";
   const isCompanyAdmin =
