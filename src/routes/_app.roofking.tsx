@@ -61,7 +61,7 @@ function RoofKingLayout() {
           </div>
           <nav className="space-y-1">
             {TABS.map((t) => {
-              const active = t.exact ? location.pathname === t.to : location.pathname.startsWith(t.to);
+              const active = isTabActive(location.pathname, t.to);
               const Icon = t.icon;
               return (
                 <Link key={t.to} to={t.to} className={cn("rk-subnav-link", active && "is-active")}>
