@@ -1,11 +1,12 @@
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Crown, LayoutDashboard, Users, KanbanSquare, ListChecks, FileCog, Download, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
 import { AddCustomerDialog } from "@/components/roofking/CustomerDialogs";
 import { NewTicketDialog } from "@/components/roofking/NewTicketDialog";
 import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/roofking/useRKData";
+import { RKSearchContext } from "@/components/roofking/RKSearchContext";
 
 export const Route = createFileRoute("/_app/roofking")({
   component: RoofKingLayout,
