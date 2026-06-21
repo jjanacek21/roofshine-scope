@@ -57,7 +57,7 @@ export function TicketDrawer({
   const update = useMutation({
     mutationFn: async (patch: Partial<RKTicket>) => {
       if (!ticket) return;
-      const { error } = await supabase.from("rk_tickets").update(patch).eq("id", ticket.id);
+      const { error } = await supabase.from("rk_tickets").update(patch as never).eq("id", ticket.id);
       if (error) throw error;
     },
     onSuccess: () => {
