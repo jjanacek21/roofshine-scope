@@ -75,6 +75,7 @@ import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppRoofkingTicketsRouteImport } from './routes/_app.roofking.tickets'
 import { Route as AppRoofkingPipelineRouteImport } from './routes/_app.roofking.pipeline'
 import { Route as AppRoofkingFormsRouteImport } from './routes/_app.roofking.forms'
+import { Route as AppRoofkingExportRouteImport } from './routes/_app.roofking.export'
 import { Route as AppRoofkingCustomersRouteImport } from './routes/_app.roofking.customers'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
 import { Route as AppLeadsWizardRouteImport } from './routes/_app.leads.wizard'
@@ -434,6 +435,11 @@ const AppRoofkingFormsRoute = AppRoofkingFormsRouteImport.update({
   path: '/forms',
   getParentRoute: () => AppRoofkingRoute,
 } as any)
+const AppRoofkingExportRoute = AppRoofkingExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => AppRoofkingRoute,
+} as any)
 const AppRoofkingCustomersRoute = AppRoofkingCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
@@ -646,6 +652,7 @@ export interface FileRoutesByFullPath {
   '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/roofking/customers': typeof AppRoofkingCustomersRoute
+  '/roofking/export': typeof AppRoofkingExportRoute
   '/roofking/forms': typeof AppRoofkingFormsRoute
   '/roofking/pipeline': typeof AppRoofkingPipelineRoute
   '/roofking/tickets': typeof AppRoofkingTicketsRoute
@@ -735,6 +742,7 @@ export interface FileRoutesByTo {
   '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
   '/roofking/customers': typeof AppRoofkingCustomersRoute
+  '/roofking/export': typeof AppRoofkingExportRoute
   '/roofking/forms': typeof AppRoofkingFormsRoute
   '/roofking/pipeline': typeof AppRoofkingPipelineRoute
   '/roofking/tickets': typeof AppRoofkingTicketsRoute
@@ -832,6 +840,7 @@ export interface FileRoutesById {
   '/_app/leads/wizard': typeof AppLeadsWizardRoute
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
   '/_app/roofking/customers': typeof AppRoofkingCustomersRoute
+  '/_app/roofking/export': typeof AppRoofkingExportRoute
   '/_app/roofking/forms': typeof AppRoofkingFormsRoute
   '/_app/roofking/pipeline': typeof AppRoofkingPipelineRoute
   '/_app/roofking/tickets': typeof AppRoofkingTicketsRoute
@@ -929,6 +938,7 @@ export interface FileRouteTypes {
     | '/leads/wizard'
     | '/price-books/new'
     | '/roofking/customers'
+    | '/roofking/export'
     | '/roofking/forms'
     | '/roofking/pipeline'
     | '/roofking/tickets'
@@ -1018,6 +1028,7 @@ export interface FileRouteTypes {
     | '/leads/wizard'
     | '/price-books/new'
     | '/roofking/customers'
+    | '/roofking/export'
     | '/roofking/forms'
     | '/roofking/pipeline'
     | '/roofking/tickets'
@@ -1114,6 +1125,7 @@ export interface FileRouteTypes {
     | '/_app/leads/wizard'
     | '/_app/price-books/new'
     | '/_app/roofking/customers'
+    | '/_app/roofking/export'
     | '/_app/roofking/forms'
     | '/_app/roofking/pipeline'
     | '/_app/roofking/tickets'
@@ -1634,6 +1646,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRoofkingFormsRouteImport
       parentRoute: typeof AppRoofkingRoute
     }
+    '/_app/roofking/export': {
+      id: '/_app/roofking/export'
+      path: '/export'
+      fullPath: '/roofking/export'
+      preLoaderRoute: typeof AppRoofkingExportRouteImport
+      parentRoute: typeof AppRoofkingRoute
+    }
     '/_app/roofking/customers': {
       id: '/_app/roofking/customers'
       path: '/customers'
@@ -1905,6 +1924,7 @@ const AppPriceBooksRouteWithChildren = AppPriceBooksRoute._addFileChildren(
 
 interface AppRoofkingRouteChildren {
   AppRoofkingCustomersRoute: typeof AppRoofkingCustomersRoute
+  AppRoofkingExportRoute: typeof AppRoofkingExportRoute
   AppRoofkingFormsRoute: typeof AppRoofkingFormsRoute
   AppRoofkingPipelineRoute: typeof AppRoofkingPipelineRoute
   AppRoofkingTicketsRoute: typeof AppRoofkingTicketsRoute
@@ -1913,6 +1933,7 @@ interface AppRoofkingRouteChildren {
 
 const AppRoofkingRouteChildren: AppRoofkingRouteChildren = {
   AppRoofkingCustomersRoute: AppRoofkingCustomersRoute,
+  AppRoofkingExportRoute: AppRoofkingExportRoute,
   AppRoofkingFormsRoute: AppRoofkingFormsRoute,
   AppRoofkingPipelineRoute: AppRoofkingPipelineRoute,
   AppRoofkingTicketsRoute: AppRoofkingTicketsRoute,
