@@ -3839,6 +3839,7 @@ export type Database = {
           created_by: string | null
           field_notes_raw: string | null
           id: string
+          invoice: Json | null
           labor: Json
           materials: Json
           phone: string | null
@@ -3863,6 +3864,7 @@ export type Database = {
           created_by?: string | null
           field_notes_raw?: string | null
           id?: string
+          invoice?: Json | null
           labor?: Json
           materials?: Json
           phone?: string | null
@@ -3887,6 +3889,7 @@ export type Database = {
           created_by?: string | null
           field_notes_raw?: string | null
           id?: string
+          invoice?: Json | null
           labor?: Json
           materials?: Json
           phone?: string | null
