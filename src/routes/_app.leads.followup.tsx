@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Send, Mail, MessageSquare, Search, ExternalLink, Clock } from "lucide-react";
-import { listFollowUps, type FollowUpItem } from "@/server/leads.functions";
+import { listFollowUps, type FollowUpItem } from "@/lib/leads.functions";
 import { LeadDetailSheet } from "@/components/leads/LeadDetailSheet";
 import { cn } from "@/lib/utils";
 

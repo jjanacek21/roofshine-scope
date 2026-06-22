@@ -9,7 +9,7 @@ import jsPDF from "jspdf";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { useLeads } from "@/hooks/useLeads";
 import { fmtNum } from "@/lib/leads";
-import { analyzeRoofWithAI } from "@/server/lead-ai.functions";
+import { analyzeRoofWithAI } from "@/lib/lead-ai.functions";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";

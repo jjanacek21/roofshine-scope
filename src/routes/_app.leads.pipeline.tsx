@@ -6,7 +6,7 @@ import { useLeads } from "@/hooks/useLeads";
 import { LEAD_STATUSES, fmtNum, leadStatusColor, type LeadRow, type LeadStatus } from "@/lib/leads";
 import { LeadDetailSheet } from "@/components/leads/LeadDetailSheet";
 import { useServerFn } from "@tanstack/react-start";
-import { updateLeadStatus } from "@/server/leads.functions";
+import { updateLeadStatus } from "@/lib/leads.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/leads/pipeline")({

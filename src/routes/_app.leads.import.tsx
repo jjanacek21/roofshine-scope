@@ -3,7 +3,7 @@ import { useState } from "react";
 import Papa from "papaparse";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { importLeads } from "@/server/leads.functions";
+import { importLeads } from "@/lib/leads.functions";
 import { useIsCompanyAdmin, useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
