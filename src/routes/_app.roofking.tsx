@@ -1,12 +1,13 @@
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Crown, LayoutDashboard, Users, KanbanSquare, ListChecks, FileCog, Download, Plus, Search } from "lucide-react";
+import { LayoutDashboard, Users, KanbanSquare, ListChecks, FileCog, Download, Plus, Search, Target, MapPin, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
 import { AddCustomerDialog } from "@/components/roofking/CustomerDialogs";
 import { NewTicketDialog } from "@/components/roofking/NewTicketDialog";
 import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/roofking/useRKData";
 import { RKSearchContext } from "@/components/roofking/RKSearchContext";
+import { RK_BRAND } from "@/lib/roofking/brand";
 
 export const Route = createFileRoute("/_app/roofking")({
   component: RoofKingLayout,
@@ -19,6 +20,7 @@ const TABS = [
   { to: "/roofking/tickets", label: "All Tickets", icon: ListChecks },
   { to: "/roofking/forms", label: "Form Builder", icon: FileCog },
   { to: "/roofking/export", label: "Export / CRM", icon: Download },
+  { to: "/leads", label: "SPF Prospecting", icon: Target },
 ] as const;
 
 function isTabActive(pathname: string, to: string) {
@@ -52,14 +54,13 @@ function RoofKingLayout() {
       <div className="mx-auto flex max-w-[1500px] gap-6 px-4 py-5 sm:px-6">
         {/* Sub-nav */}
         <aside className="hidden w-[220px] shrink-0 lg:block">
-          <div className="rk-crown-tile mb-4 flex items-center gap-3 px-3 py-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15">
-              <Crown className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="rk-display text-[15px] leading-tight text-white">Roof King</p>
-              <p className="text-[11px] text-white/80">Service Ops</p>
-            </div>
+          <div className="rk-crown-tile mb-4 flex flex-col items-center gap-2 px-3 py-3">
+            <img
+              src={RK_BRAND.logoUrl}
+              alt="Roof King"
+              className="h-16 w-auto object-contain"
+            />
+            <p className="text-center text-[10px] uppercase tracking-wider text-white/70">{RK_BRAND.tagline}</p>
           </div>
           <nav className="space-y-1">
             {TABS.map((t) => {
@@ -73,6 +74,19 @@ function RoofKingLayout() {
               );
             })}
           </nav>
+          <div className="mt-5 rounded-lg border px-3 py-3 text-[11px] leading-snug" style={{ borderColor: "var(--rk-border)", background: "var(--rk-bg-card)", color: "var(--rk-ink-muted)" }}>
+            <div className="flex items-start gap-2">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <div>
+                <div>{RK_BRAND.address}</div>
+                <div>{RK_BRAND.cityStateZip}</div>
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <Phone className="h-3.5 w-3.5 shrink-0" />
+              <a href={`tel:${RK_BRAND.phone}`} className="font-medium" style={{ color: "var(--rk-ink)" }}>{RK_BRAND.phone}</a>
+            </div>
+          </div>
         </aside>
 
         {/* Main column */}

@@ -13,6 +13,8 @@ import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { supabase } from "@/integrations/supabase/client";
 import { analyzeRoofWithAI } from "@/server/lead-ai.functions";
 import { useCompany } from "@/hooks/useCompany";
+import { useIsRoofKing } from "@/hooks/useRoofKing";
+import { RK_BRAND } from "@/lib/roofking/brand";
 
 export const Route = createFileRoute("/_app/leads/savings")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -55,8 +57,13 @@ function SavingsReport() {
   const { data: leads = [] } = useLeads();
   const { data: mapboxToken } = useMapboxToken();
   const { data: company } = useCompany();
-  const brandName = company?.name?.toUpperCase() || "LEAD CENTER";
+  const { isRoofKing } = useIsRoofKing();
+  const brandName = isRoofKing ? RK_BRAND.name.toUpperCase() : (company?.name?.toUpperCase() || "LEAD CENTER");
+  const brandLogoUrl = isRoofKing ? RK_BRAND.logoUrl : company?.logo_url;
+  const brandPhone = isRoofKing ? RK_BRAND.phone : company?.phone;
+  const brandAddressLine = isRoofKing ? `${RK_BRAND.address}, ${RK_BRAND.cityStateZip}` : null;
   const reportRef = useRef<HTMLDivElement>(null);
+
 
   const qc = useQueryClient();
   const analyze = useServerFn(analyzeRoofWithAI);
@@ -364,19 +371,29 @@ function SavingsReport() {
         <div ref={reportRef} id="savings-report-content" className="space-y-6 rounded-xl bg-white p-6 text-slate-900 shadow-xl print:shadow-none">
           {/* Brand header */}
           <div className="-mx-6 -mt-6 mb-0">
-            <div className="flex items-center gap-3 bg-slate-900 px-6 py-5">
-              {company?.logo_url && (
-                <img
-                  src={company.logo_url}
-                  alt=""
-                  className="h-10 w-10 rounded object-cover"
-                  crossOrigin="anonymous"
-                />
-              )}
-              <div>
-                <div className="text-2xl font-bold uppercase tracking-wider text-white">{brandName}</div>
-                <div className="text-xs uppercase tracking-widest text-slate-300">Commercial Roofing Solutions</div>
+            <div className="flex items-center justify-between gap-4 bg-slate-900 px-6 py-5">
+              <div className="flex items-center gap-3">
+                {brandLogoUrl && (
+                  <img
+                    src={brandLogoUrl}
+                    alt=""
+                    className={isRoofKing ? "h-14 w-auto object-contain" : "h-10 w-10 rounded object-cover"}
+                    crossOrigin="anonymous"
+                  />
+                )}
+                <div>
+                  <div className="text-2xl font-bold uppercase tracking-wider text-white">{brandName}</div>
+                  <div className="text-xs uppercase tracking-widest text-slate-300">
+                    {isRoofKing ? RK_BRAND.tagline : "Commercial Roofing Solutions"}
+                  </div>
+                </div>
               </div>
+              {(brandAddressLine || brandPhone) && (
+                <div className="text-right text-[11px] leading-snug text-slate-200">
+                  {brandAddressLine && <div>{brandAddressLine}</div>}
+                  {brandPhone && <div className="font-mono-num text-white">{brandPhone}</div>}
+                </div>
+              )}
             </div>
             <div className="h-1 bg-emerald-500" />
             <div className="px-6 py-4 text-center">
@@ -607,8 +624,10 @@ function SavingsReport() {
             <div>
               <div className="text-sm font-bold text-slate-900">{brandName}</div>
               <div className="text-xs text-slate-600">
-                {[company?.phone, company?.email, company?.website].filter(Boolean).join(" · ") ||
-                  "Schedule a free roof assessment"}
+                {isRoofKing
+                  ? `${RK_BRAND.address}, ${RK_BRAND.cityStateZip} · ${RK_BRAND.phone}`
+                  : [company?.phone, company?.email, company?.website].filter(Boolean).join(" · ") ||
+                    "Schedule a free roof assessment"}
               </div>
             </div>
             <div className="text-xs italic text-slate-500">* Estimates for illustration only. Consult your tax advisor.</div>

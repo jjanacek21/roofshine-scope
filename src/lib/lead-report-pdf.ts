@@ -2,6 +2,7 @@
 // the lead detail sheet's "Generate report" action so the layout stays identical.
 import jsPDF from "jspdf";
 import { fmtMoney, fmtNum, type LeadRow } from "@/lib/leads";
+import { RK_BRAND } from "@/lib/roofking/brand";
 
 export interface ReportInputs {
   sqft: number;
@@ -94,9 +95,11 @@ export function project(inputs: ReportInputs): YearRow[] {
 export interface BuildReportArgs {
   inputs: ReportInputs;
   lead?: Pick<LeadRow, "address" | "city" | "state" | "zip" | "owner"> | null;
+  /** Optional Roof King logo as a data URL (PNG). When provided, drawn in the header. */
+  logoDataUrl?: string | null;
 }
 
-export function buildSavingsReportPdf({ inputs, lead }: BuildReportArgs): { doc: jsPDF; safeName: string } {
+export function buildSavingsReportPdf({ inputs, lead, logoDataUrl }: BuildReportArgs): { doc: jsPDF; safeName: string } {
   const rows = project(inputs);
   const final = rows[rows.length - 1];
   const restoreUpfront = inputs.sqft * inputs.restorePsf;
@@ -107,7 +110,29 @@ export function buildSavingsReportPdf({ inputs, lead }: BuildReportArgs): { doc:
 
   const doc = new jsPDF({ unit: "pt", format: "letter" });
   const W = doc.internal.pageSize.getWidth();
-  let y = 56;
+
+  // ---------- Roof King branded header ----------
+  doc.setFillColor(10, 25, 47);
+  doc.rect(0, 0, W, 86, "F");
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, "PNG", 40, 14, 110, 58, undefined, "FAST");
+    } catch {
+      // ignore — fall back to text
+    }
+  }
+  doc.setTextColor(255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text(RK_BRAND.name, W - 40, 32, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(RK_BRAND.address, W - 40, 48, { align: "right" });
+  doc.text(RK_BRAND.cityStateZip, W - 40, 60, { align: "right" });
+  doc.text(RK_BRAND.phone, W - 40, 72, { align: "right" });
+
+  doc.setTextColor(20);
+  let y = 120;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.text("SPF Restoration Savings Report", 56, y);
