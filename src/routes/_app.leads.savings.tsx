@@ -624,8 +624,10 @@ function SavingsReport() {
             <div>
               <div className="text-sm font-bold text-slate-900">{brandName}</div>
               <div className="text-xs text-slate-600">
-                {[company?.phone, company?.email, company?.website].filter(Boolean).join(" · ") ||
-                  "Schedule a free roof assessment"}
+                {isRoofKing
+                  ? `${RK_BRAND.address}, ${RK_BRAND.cityStateZip} · ${RK_BRAND.phone}`
+                  : [company?.phone, company?.email, company?.website].filter(Boolean).join(" · ") ||
+                    "Schedule a free roof assessment"}
               </div>
             </div>
             <div className="text-xs italic text-slate-500">* Estimates for illustration only. Consult your tax advisor.</div>
