@@ -134,7 +134,7 @@ export function TicketInvoicePanel({
     const fresh = buildSmartInvoice(ticket, account, property);
     setInv({ ...inv, bill_to: fresh.bill_to, property: fresh.property, description: fresh.description });
   }
-  function download() {
+  async function download() {
     if (!inv) return;
     downloadRKInvoicePdf(
       inv,
