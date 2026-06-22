@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { RKInvoice } from "./types";
+import { loadRKLogoDataUrl } from "./brand";
 
 function money(n: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n || 0);
@@ -11,9 +12,11 @@ export type RKInvoicePdfCompany = {
   phone: string | null;
   email: string | null;
   website: string | null;
+  address?: string | null;
+  cityStateZip?: string | null;
 };
 
-export function downloadRKInvoicePdf(
+export async function downloadRKInvoicePdf(
   invoice: RKInvoice,
   company: RKInvoicePdfCompany,
   woNumber: number | null,
@@ -25,15 +28,30 @@ export function downloadRKInvoicePdf(
 
   // Header bar
   doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, W, 90, "F");
+  doc.rect(0, 0, W, 110, "F");
+
+  const logoData = await loadRKLogoDataUrl();
+  if (logoData) {
+    try {
+      doc.addImage(logoData, "PNG", M, 18, 100, 52, undefined, "FAST");
+    } catch {
+      // ignore
+    }
+  }
   doc.setTextColor(255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
-  doc.text(company.name || "Roof King", M, 42);
+  doc.setFontSize(18);
+  doc.text(company.name || "Roof King", logoData ? M + 110 : M, 42);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  const meta = [company.phone, company.email, company.website].filter(Boolean).join("  •  ");
-  if (meta) doc.text(meta, M, 60);
+  const addrLines = [
+    company.address,
+    company.cityStateZip,
+    [company.phone, company.email, company.website].filter(Boolean).join("  •  "),
+  ].filter(Boolean);
+  addrLines.forEach((line, i) => {
+    doc.text(String(line), logoData ? M + 110 : M, 60 + i * 12);
+  });
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
@@ -43,7 +61,7 @@ export function downloadRKInvoicePdf(
   doc.text(`#${invoice.invoice_number}`, W - M, 60, { align: "right" });
   if (woNumber) doc.text(`WO-${woNumber}`, W - M, 74, { align: "right" });
 
-  y = 120;
+  y = 140;
   doc.setTextColor(15, 23, 42);
 
   // Bill To + Dates
