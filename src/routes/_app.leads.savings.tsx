@@ -57,8 +57,14 @@ function SavingsReport() {
   const { data: leads = [] } = useLeads();
   const { data: mapboxToken } = useMapboxToken();
   const { data: company } = useCompany();
-  const brandName = company?.name?.toUpperCase() || "LEAD CENTER";
+  const { data: company } = useCompany();
+  const { isRoofKing } = useIsRoofKing();
+  const brandName = isRoofKing ? RK_BRAND.name.toUpperCase() : (company?.name?.toUpperCase() || "LEAD CENTER");
+  const brandLogoUrl = isRoofKing ? RK_BRAND.logoUrl : company?.logo_url;
+  const brandPhone = isRoofKing ? RK_BRAND.phone : company?.phone;
+  const brandAddressLine = isRoofKing ? `${RK_BRAND.address}, ${RK_BRAND.cityStateZip}` : null;
   const reportRef = useRef<HTMLDivElement>(null);
+
 
   const qc = useQueryClient();
   const analyze = useServerFn(analyzeRoofWithAI);
