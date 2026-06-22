@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getMyPlaybook, setMyPlaybook } from "@/server/playbook-prefs.functions";
+import { getMyPlaybook, setMyPlaybook } from "@/lib/playbook-prefs.functions";
 import { DEFAULT_PLAYBOOK_SELECTION } from "@/lib/playbook";
 import { useAuth } from "@/hooks/useAuth";
 

@@ -8,7 +8,7 @@ import { Sparkles, MapPin, Loader2, RotateCcw, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { fmtNum, type LeadRow } from "@/lib/leads";
-import { analyzeRoofWithAI } from "@/server/lead-ai.functions";
+import { analyzeRoofWithAI } from "@/lib/lead-ai.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Pin { id: string; lat: number; lng: number; }

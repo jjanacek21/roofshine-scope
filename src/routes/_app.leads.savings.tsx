@@ -11,7 +11,7 @@ import { useLeads } from "@/hooks/useLeads";
 import { fmtMoney, fmtNum, type LeadRow } from "@/lib/leads";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { supabase } from "@/integrations/supabase/client";
-import { analyzeRoofWithAI } from "@/server/lead-ai.functions";
+import { analyzeRoofWithAI } from "@/lib/lead-ai.functions";
 import { useCompany } from "@/hooks/useCompany";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
 import { RK_BRAND } from "@/lib/roofking/brand";
