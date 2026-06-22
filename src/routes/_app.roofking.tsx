@@ -74,6 +74,19 @@ function RoofKingLayout() {
               );
             })}
           </nav>
+          <div className="mt-5 rounded-lg border px-3 py-3 text-[11px] leading-snug" style={{ borderColor: "var(--rk-border)", background: "var(--rk-bg-card)", color: "var(--rk-ink-muted)" }}>
+            <div className="flex items-start gap-2">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <div>
+                <div>{RK_BRAND.address}</div>
+                <div>{RK_BRAND.cityStateZip}</div>
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <Phone className="h-3.5 w-3.5 shrink-0" />
+              <a href={`tel:${RK_BRAND.phone}`} className="font-medium" style={{ color: "var(--rk-ink)" }}>{RK_BRAND.phone}</a>
+            </div>
+          </div>
         </aside>
 
         {/* Main column */}
