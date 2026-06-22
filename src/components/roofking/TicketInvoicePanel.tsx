@@ -136,7 +136,7 @@ export function TicketInvoicePanel({
   }
   async function download() {
     if (!inv) return;
-    downloadRKInvoicePdf(
+    await downloadRKInvoicePdf(
       inv,
       {
         name: "Roof King",
