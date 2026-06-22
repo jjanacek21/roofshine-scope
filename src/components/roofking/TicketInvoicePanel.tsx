@@ -139,10 +139,12 @@ export function TicketInvoicePanel({
     downloadRKInvoicePdf(
       inv,
       {
-        name: company?.name ?? "Roof King",
-        phone: company?.phone ?? null,
+        name: "Roof King",
+        phone: "954-782-3002",
         email: company?.email ?? null,
         website: company?.website ?? null,
+        address: "1913 NW 18th St. Suite 2",
+        cityStateZip: "Pompano Beach, FL 33069",
       },
       ticket.wo_number,
     );
