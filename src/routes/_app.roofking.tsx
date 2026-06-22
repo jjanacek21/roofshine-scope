@@ -54,14 +54,13 @@ function RoofKingLayout() {
       <div className="mx-auto flex max-w-[1500px] gap-6 px-4 py-5 sm:px-6">
         {/* Sub-nav */}
         <aside className="hidden w-[220px] shrink-0 lg:block">
-          <div className="rk-crown-tile mb-4 flex items-center gap-3 px-3 py-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15">
-              <Crown className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="rk-display text-[15px] leading-tight text-white">Roof King</p>
-              <p className="text-[11px] text-white/80">Service Ops</p>
-            </div>
+          <div className="rk-crown-tile mb-4 flex flex-col items-center gap-2 px-3 py-3">
+            <img
+              src={RK_BRAND.logoUrl}
+              alt="Roof King"
+              className="h-16 w-auto object-contain"
+            />
+            <p className="text-center text-[10px] uppercase tracking-wider text-white/70">{RK_BRAND.tagline}</p>
           </div>
           <nav className="space-y-1">
             {TABS.map((t) => {
