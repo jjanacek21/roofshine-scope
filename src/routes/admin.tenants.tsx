@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Plus, Pencil, Trash2, Link2, FileSignature } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lookupUserByEmail } from "@/server/tenant-admin.functions";
+import { lookupUserByEmail } from "@/lib/tenant-admin.functions";
 import {
   Dialog,
   DialogContent,
