@@ -1,12 +1,13 @@
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Crown, LayoutDashboard, Users, KanbanSquare, ListChecks, FileCog, Download, Plus, Search } from "lucide-react";
+import { LayoutDashboard, Users, KanbanSquare, ListChecks, FileCog, Download, Plus, Search, Target, MapPin, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
 import { AddCustomerDialog } from "@/components/roofking/CustomerDialogs";
 import { NewTicketDialog } from "@/components/roofking/NewTicketDialog";
 import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/roofking/useRKData";
 import { RKSearchContext } from "@/components/roofking/RKSearchContext";
+import { RK_BRAND } from "@/lib/roofking/brand";
 
 export const Route = createFileRoute("/_app/roofking")({
   component: RoofKingLayout,
@@ -19,6 +20,7 @@ const TABS = [
   { to: "/roofking/tickets", label: "All Tickets", icon: ListChecks },
   { to: "/roofking/forms", label: "Form Builder", icon: FileCog },
   { to: "/roofking/export", label: "Export / CRM", icon: Download },
+  { to: "/leads", label: "SPF Prospecting", icon: Target },
 ] as const;
 
 function isTabActive(pathname: string, to: string) {
