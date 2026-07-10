@@ -113,9 +113,9 @@ function JobEstimate() {
             company_id: job.company_id,
             name: "Original",
             tier: "original",
-            markup_pct: Number(company.default_markup_pct ?? 10),
-            overhead_pct: Number(company.default_overhead_pct ?? 10),
-            profit_pct: Number(company.default_profit_pct ?? 10),
+            markup_pct: Number(company.default_markup_pct ?? 0),
+            overhead_pct: Number(company.default_overhead_pct ?? 0),
+            profit_pct: Number(company.default_profit_pct ?? 0),
             tax_pct: Number(company.default_tax_rate ?? 0),
           })
           .select()
@@ -472,9 +472,9 @@ function JobEstimate() {
         company_id: job.company_id,
         name: tier.charAt(0).toUpperCase() + tier.slice(1),
         tier,
-        markup_pct: Number(company.default_markup_pct ?? 10),
-        overhead_pct: Number(company.default_overhead_pct ?? 10),
-        profit_pct: Number(company.default_profit_pct ?? 10),
+        markup_pct: Number(company.default_markup_pct ?? 0),
+        overhead_pct: Number(company.default_overhead_pct ?? 0),
+        profit_pct: Number(company.default_profit_pct ?? 0),
         tax_pct: Number(company.default_tax_rate ?? 0),
       })
       .select()
