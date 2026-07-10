@@ -146,6 +146,19 @@ export function CatalogTree({
                             {allSel ? "Clear" : "All"}
                           </button>
                         )}
+                        {mode === "add" && onAdd && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              for (const it of subItems) onAdd(it);
+                            }}
+                            className="rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:border-[var(--brand)] hover:text-[var(--brand)]"
+                            style={{ borderColor: "var(--border)" }}
+                            title={`Add all ${subItems.length} items in ${sub}`}
+                          >
+                            + Add all
+                          </button>
+                        )}
                       </div>
                       {sOpen && subItems.map((item) => {
                         const checked = selectedIds?.has(item.id) ?? false;
