@@ -1,0 +1,1 @@
+UPDATE public.companies SET logo_url = '/__l5e/assets-v1/ba68b294-8e30-46e2-ab7f-cff44dda1f4b/gcn-logo.png' WHERE id = 'dfd60203-5a0c-4d07-a437-205c651386e0';
