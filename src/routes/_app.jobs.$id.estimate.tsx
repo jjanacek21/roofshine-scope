@@ -134,6 +134,7 @@ function JobEstimate() {
   }, [job, estimates, company, jobId, qc, activeId]);
 
   const activeEstimate = estimates?.find((e) => e.id === activeId) ?? null;
+  const activeEstimateId = activeEstimate?.id ?? null;
 
   // Line items for active estimate
   const { data: items = [] } = useQuery({
@@ -183,12 +184,15 @@ function JobEstimate() {
       setUseManualTotal(Boolean(activeEstimate.use_manual_total));
       setManualTotal(Number(activeEstimate.manual_total ?? 0));
     }
-  }, [activeEstimate]);
+    // Only hydrate editable fields when switching estimates. Refetches after autosave
+    // should not overwrite the user's in-progress percentage edits or re-trigger saves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeEstimateId]);
 
   // Debounced save of estimate header (pcts + totals)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (!activeEstimate) return;
+    if (!activeEstimateId) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       const markup = (subtotal * pcts.markup_pct) / 100;
@@ -212,7 +216,7 @@ function JobEstimate() {
           tax,
           total: effectiveTotal,
         } as any)
-        .eq("id", activeEstimate.id);
+        .eq("id", activeEstimateId);
       // bump job total as the active tier price (simple)
       await supabase.from("jobs").update({ total_estimate: effectiveTotal }).eq("id", jobId);
       setSavedAt(Date.now());
@@ -222,7 +226,7 @@ function JobEstimate() {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [pcts, hidePricing, useManualTotal, manualTotal, subtotal, activeEstimate, jobId, qc]);
+  }, [pcts, hidePricing, useManualTotal, manualTotal, subtotal, activeEstimateId, jobId, qc]);
 
   // Item patch (debounced per-item)
   const itemTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
