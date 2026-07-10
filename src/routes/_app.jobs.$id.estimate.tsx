@@ -326,7 +326,6 @@ function JobEstimate() {
       return;
     }
     qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
-    setPickerOpen(false);
     toast.success(`Added ${item.code}`);
     void checkCompanion(item.category);
   };
