@@ -150,9 +150,9 @@ async function runTool(
     }
     case "auto_measure_property": {
       const jobId = String(args.job_id ?? "");
-      const { autoMeasureJobProperty } = await import("@/lib/auto-measure.functions");
+      const { runAutoMeasure } = await import("@/lib/auto-measure.functions");
       try {
-        const res = await autoMeasureJobProperty({ data: { job_id: jobId } });
+        const res = await runAutoMeasure(sb, userId, jobId);
         return { result: { ...res, action: "auto_measured_property", job_id: jobId } };
       } catch (e) {
         return { result: { error: e instanceof Error ? e.message : "Auto-measure failed" } };
