@@ -61,15 +61,19 @@ function pitchMultFromDeg(deg: number): number {
   return Math.sqrt(1 + Math.pow(rise / 12, 2));
 }
 
-export const autoMeasureJobProperty = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { job_id: string }) => input)
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const GOOGLE_KEY = process.env.GOOGLE_MAPS_API_KEY;
-    if (!GOOGLE_KEY) {
-      return { ok: false, reason: "google_key_missing" as const };
-    }
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+export type AutoMeasureResult =
+  | { ok: true; structures: number; facets: number; total_plan_sqft: number; total_actual_sqft: number; squares: number; predominant_pitch: string }
+  | { ok: false; reason: "google_key_missing" | "no_property" | "no_coordinates" | "already_measured" | "no_coverage" | "no_segments" };
+
+export async function runAutoMeasure(
+  supabase: SupabaseClient,
+  userId: string,
+  jobId: string,
+): Promise<AutoMeasureResult> {
+  const GOOGLE_KEY = process.env.GOOGLE_MAPS_API_KEY;
+  if (!GOOGLE_KEY) return { ok: false, reason: "google_key_missing" };
 
     const { data: job } = await supabase
       .from("jobs")
