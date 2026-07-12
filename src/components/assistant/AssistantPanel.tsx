@@ -238,7 +238,7 @@ export function AssistantPanel({ open, onClose, contextHint }: {
 
       {/* Composer */}
       <div className="border-t p-3" style={{ borderColor: "var(--border)" }}>
-        {voice.transcript && voice.listening && !voiceMode && (
+        {voice.transcript && voice.listening && (
           <div className="mb-2 text-[11px] italic text-muted-foreground">🎙 {voice.transcript}</div>
         )}
         <div className="flex items-end gap-2">
@@ -253,38 +253,23 @@ export function AssistantPanel({ open, onClose, contextHint }: {
               }
             }}
             rows={1}
-            placeholder={voiceMode ? "Voice mode on — just talk" : "Ask or say what to do…"}
+            placeholder={voice.listening ? "Listening — pause to send" : "Ask or tap the mic to speak…"}
             className="flex-1 resize-none rounded-lg border bg-transparent px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1"
             style={{ borderColor: "var(--border)", maxHeight: 120 }}
           />
           {voice.supported && (
-            <>
-              <button
-                type="button"
-                onClick={() => (voice.listening ? voice.stop() : voice.start())}
-                title={voice.listening ? "Stop mic" : "Push to talk"}
-                className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-lg border",
-                  voice.listening && "border-red-500 bg-red-500/10 text-red-500 animate-pulse",
-                )}
-                style={{ borderColor: voice.listening ? undefined : "var(--border)" }}
-              >
-                {voice.listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !voiceMode;
-                  setVoiceMode(next);
-                  if (next) voice.start(); else voice.stop();
-                }}
-                title="Voice mode: auto-send after silence"
-                className={cn("h-9 rounded-lg border px-2 text-[11px] font-semibold", voiceMode && "border-blue-500 bg-blue-500/10 text-blue-500")}
-                style={{ borderColor: voiceMode ? undefined : "var(--border)" }}
-              >
-                Auto
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={() => (voice.listening ? voice.stop() : voice.start())}
+              title={voice.listening ? "Stop mic" : "Tap to speak (auto-sends)"}
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-lg border",
+                voice.listening && "border-red-500 bg-red-500/10 text-red-500 animate-pulse",
+              )}
+              style={{ borderColor: voice.listening ? undefined : "var(--border)" }}
+            >
+              {voice.listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </button>
           )}
           <button
             type="button"
