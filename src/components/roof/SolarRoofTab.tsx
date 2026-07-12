@@ -1232,11 +1232,11 @@ export function SolarRoofTab({
           {pins.length === 0 ? (
             <>
               <Plus className="mr-1 inline h-3 w-3" />
-              Click <b>Measure entire property</b> above, or click anywhere on the map to add a custom pin.
+              Click <b>Measure entire property</b> above. For extra structures (shed, garage), click each one on the map first to drop a pin.
             </>
           ) : (
             <>
-              {totals.count} active facet{totals.count === 1 ? "" : "s"} · totals account for pitch and waste.
+              {totals.count} active facet{totals.count === 1 ? "" : "s"} · click empty map area to add another structure pin.
             </>
           )}
         </p>
