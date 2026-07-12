@@ -263,6 +263,15 @@ function OrderFormPage() {
           })}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={autoFillFromMeasurements}
+            disabled={autoFilling}
+            title="Populate squares, ridges, valleys, etc. from the saved roof measurement"
+            className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-semibold hover:bg-[var(--surface-hover)] disabled:opacity-50"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <Wand2 className="h-4 w-4" /> {autoFilling ? "Auto-filling…" : "Auto-fill from measurements"}
+          </button>
           <button onClick={saveSnapshot} className="inline-flex items-center gap-2 rounded-lg bg-foreground px-3 py-2 text-[13px] font-semibold text-background hover:opacity-90">
             <Save className="h-4 w-4" /> Save Snapshot
           </button>
