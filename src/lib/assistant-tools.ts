@@ -157,6 +157,21 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
   {
     type: "function",
     function: {
+      name: "auto_measure_property",
+      description:
+        "Scan the entire property with Google Solar satellite AI and save measurements for ALL structures — the main house AND any detached outbuildings (shed, garage, guest house). Creates one facet per detected roof plane with pitch and area. Call this when the user says 'measure this property', 'get roof measurements', or after creating a new job. Skips if the user has already saved a manual measurement.",
+      parameters: {
+        type: "object",
+        properties: {
+          job_id: { type: "string", description: "Job UUID" },
+        },
+        required: ["job_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "get_current_context",
       description:
         "Return what the user is currently looking at in the app (route, active job/lead if any). Call this at the start of a conversation or whenever you need situational awareness.",
