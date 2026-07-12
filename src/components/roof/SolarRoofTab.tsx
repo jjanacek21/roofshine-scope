@@ -22,7 +22,7 @@ import {
   Brain,
 } from "lucide-react";
 import type { MapboxRoofData } from "./MapboxRoofDraw";
-import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares, polygonAreaSqft } from "@/lib/roof-math";
+import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares, polygonAreaSqft, haversineFeet } from "@/lib/roof-math";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 type PinKind = "pitched" | "flat" | "ignore";
@@ -514,12 +514,12 @@ export function SolarRoofTab({
       }
       return { data, calib };
     },
-    onSuccess: ({ data, calib }) => {
+    onSuccess: async ({ data, calib }) => {
       setNoCoverage(false);
       setImageryQuality(data.imagery_quality);
       setCalibration(calib);
       // Build one pin per facet detected by Solar (so each facet is its own polygon on the map)
-      const newPins: Pin[] = data.segments.map((seg, i) => {
+      const detectedPins: Pin[] = data.segments.map((seg, i) => {
         const c = seg.center
           ? { lng: seg.center.longitude, lat: seg.center.latitude }
           : seg.ring.length
@@ -540,12 +540,43 @@ export function SolarRoofTab({
           source: "solar" as const,
         };
       });
-      setPins(newPins);
-      setActivePinId(newPins[0]?.id ?? null);
-      setShowHandoff(newPins.length > 0);
-      const facets = newPins.length;
-      const sqft = Math.round(newPins.reduce((s, p) => s + p.plan_area_sqft, 0));
-      toast.success(`Measured ${facets} facet${facets === 1 ? "" : "s"} · ${sqft.toLocaleString()} sqft total`);
+
+      // Preserve any manual pins the user dropped for OTHER structures (sheds,
+      // garages, detached buildings) — a manual pin is "extra" if it sits
+      // more than ~40 ft away from every detected facet center.
+      const existingManual = pinsStateRef.current.filter((p) => p.source === "manual");
+      const extraStructurePins = existingManual
+        .filter((p) => detectedPins.every((d) => haversineFeet({ lng: d.lng, lat: d.lat }, { lng: p.lng, lat: p.lat }) > 40))
+        .map((p, i) => ({ ...p, name: p.name || `Structure ${detectedPins.length + i + 1}` }));
+
+      const combined = [...detectedPins, ...extraStructurePins];
+      setPins(combined);
+      setActivePinId(combined[0]?.id ?? null);
+      setShowHandoff(combined.length > 0);
+
+      const facets = detectedPins.length;
+      const sqft = Math.round(detectedPins.reduce((s, p) => s + p.plan_area_sqft, 0));
+      toast.success(
+        extraStructurePins.length > 0
+          ? `Measured main structure (${facets} facet${facets === 1 ? "" : "s"} · ${sqft.toLocaleString()} sqft) — now measuring ${extraStructurePins.length} extra pin${extraStructurePins.length === 1 ? "" : "s"}…`
+          : `Measured ${facets} facet${facets === 1 ? "" : "s"} · ${sqft.toLocaleString()} sqft total`,
+      );
+
+      // Auto-measure each extra pin (shed, garage, etc.) by calling Solar at
+      // that specific location. Runs after state commits.
+      if (extraStructurePins.length > 0) {
+        setTimeout(async () => {
+          let ok = 0;
+          let fail = 0;
+          for (const pin of extraStructurePins) {
+            const res = await measurePinAt(pin);
+            if (res.ok) ok++;
+            else fail++;
+          }
+          if (fail === 0) toast.success(`All ${ok} extra structure${ok === 1 ? "" : "s"} measured`);
+          else toast.warning(`${ok} extra structure${ok === 1 ? "" : "s"} measured, ${fail} need manual outline (Draw area).`);
+        }, 100);
+      }
     },
     onError: (e) => {
       const code = (e as Error & { code?: string }).code;
@@ -726,8 +757,7 @@ export function SolarRoofTab({
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-foreground">AI Roof Measurements</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            One click measures the entire property — every facet, area, and pitch — using satellite AI.
-            Then refine on the Mapbox tab to label eaves, rakes, hips, and ridges.
+            One click measures the whole property. If there are <b>multiple structures</b> (shed, detached garage, guest house), <b>click each extra structure on the map first</b> to drop a pin — then hit Measure entire property and each pin will be measured too.
           </p>
         </div>
         <button
@@ -1202,11 +1232,11 @@ export function SolarRoofTab({
           {pins.length === 0 ? (
             <>
               <Plus className="mr-1 inline h-3 w-3" />
-              Click <b>Measure entire property</b> above, or click anywhere on the map to add a custom pin.
+              Click <b>Measure entire property</b> above. For extra structures (shed, garage), click each one on the map first to drop a pin.
             </>
           ) : (
             <>
-              {totals.count} active facet{totals.count === 1 ? "" : "s"} · totals account for pitch and waste.
+              {totals.count} active facet{totals.count === 1 ? "" : "s"} · click empty map area to add another structure pin.
             </>
           )}
         </p>
