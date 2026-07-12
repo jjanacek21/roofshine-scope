@@ -757,8 +757,7 @@ export function SolarRoofTab({
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-foreground">AI Roof Measurements</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            One click measures the entire property — every facet, area, and pitch — using satellite AI.
-            Then refine on the Mapbox tab to label eaves, rakes, hips, and ridges.
+            One click measures the whole property. If there are <b>multiple structures</b> (shed, detached garage, guest house), <b>click each extra structure on the map first</b> to drop a pin — then hit Measure entire property and each pin will be measured too.
           </p>
         </div>
         <button
