@@ -254,4 +254,11 @@ export async function runAutoMeasure(
     squares: Number(squares.toFixed(2)),
     predominant_pitch: predominant,
   };
+}
+
+export const autoMeasureJobProperty = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { job_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    return runAutoMeasure(context.supabase, context.userId, data.job_id);
   });
