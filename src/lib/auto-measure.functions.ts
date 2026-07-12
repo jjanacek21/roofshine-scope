@@ -75,12 +75,12 @@ export async function runAutoMeasure(
   const GOOGLE_KEY = process.env.GOOGLE_MAPS_API_KEY;
   if (!GOOGLE_KEY) return { ok: false, reason: "google_key_missing" };
 
-    const { data: job } = await supabase
-      .from("jobs")
-      .select("id, property_id, company_id")
-      .eq("id", data.job_id)
-      .maybeSingle();
-    if (!job?.property_id) return { ok: false, reason: "no_property" as const };
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("id, property_id, company_id")
+    .eq("id", jobId)
+    .maybeSingle();
+  if (!job?.property_id) return { ok: false, reason: "no_property" };
 
     const { data: prop } = await supabase
       .from("properties")
