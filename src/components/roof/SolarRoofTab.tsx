@@ -22,7 +22,7 @@ import {
   Brain,
 } from "lucide-react";
 import type { MapboxRoofData } from "./MapboxRoofDraw";
-import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares, polygonAreaSqft } from "@/lib/roof-math";
+import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares, polygonAreaSqft, haversineFeet } from "@/lib/roof-math";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 type PinKind = "pitched" | "flat" | "ignore";
