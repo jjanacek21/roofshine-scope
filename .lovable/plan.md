@@ -1,90 +1,118 @@
 
-# Roof King — Service Ops module
+# AI Assistant Chatbot + Order Form Auto-Populate
 
-A self-contained service-ops console for the Global Contractor Network company only. Lives at `/roofking` under the existing `_authenticated` layout, uses the existing Anthropic key via a TanStack server function, and adds its own `rk_*` tables so nothing collides with the 90+ existing tables.
+A floating AI copilot available on every page. Users type or speak; it answers navigation/how-to questions, and can execute actions in the app (create leads, jobs, estimates, order forms) via tool calls. Plus: auto-fill order form fields from saved roof measurements and estimate.
 
-## 1. Access scoping (single company only)
+## User Experience
 
-- Add a settings flag on `companies`: `is_roof_king boolean default false` (migration).
-- Mark exactly one row — the "Global Contractor Network" company — as `is_roof_king = true` via the insert tool.
-- Every `rk_*` table gets a `company_id uuid not null` column. RLS policies allow read/write only when `company_id = auth_company_id()` AND the company has `is_roof_king = true`. Super admins get full access.
-- The sidebar "Roof King" entry only renders for members of that company (checked via `useProfile` + a small `useIsRoofKing()` hook that reads the flag).
-- Route guard in `/_authenticated/roofking.tsx` redirects non-Roof-King users to `/`.
+**Floating bubble** (bottom-right, every page inside `_app`):
+- Collapsed: brand-styled circular button with mic + chat icon
+- Expanded: 400px wide chat panel with message history, mic button, text input, and a "Voice Mode" toggle
+- Voice Mode ON: mic auto-listens after each assistant reply; user talks, transcript appears live, auto-sends on pause
+- Assistant responses render markdown; tool calls render as compact "Action" cards ("Created lead for Jason Smith →" with a link to the record)
+- Follow-up questions from the AI appear in chat — user answers by voice or text
 
-## 2. Database (migration)
+**Persistence:** Save threads in Lovable Cloud (per user). This lets the assistant remember prior context ("the Jason Smith lead we just made") and keeps chat history across devices. New chat / thread list accessible from a small menu in the panel header.
 
-Tables, all with `company_id`, `created_at`, `updated_at`, RLS, GRANTs, and the company-scoped policy:
+## Capabilities (Tool Calls)
 
-- `rk_accounts` — name, primary_contact, phone, email, city.
-- `rk_properties` — account_id FK, name, address, city, state (default 'FL'), zip, roof_type.
-- `rk_tickets` — property_id, account_id, wo_number (int, per-company sequence), contact, phone, roof_type, service_date, status enum (`new|dispatched|field|ready|invoiced`), purpose text[], reported_concern, field_notes_raw, report_polished, materials jsonb, labor jsonb, price numeric, completed bool, assigned_to uuid.
-- `rk_form_templates` — name, description, fields jsonb, is_custom bool.
+The assistant uses AI SDK tool calling. Tools available:
 
-Plus:
-- Sequence helper `rk_next_wo(_company_id)` SECURITY DEFINER returning `max(wo_number)+1` (starts at 1001).
-- `updated_at` trigger reused from existing `update_updated_at_column()`.
-- Indexes on `(company_id)`, `(property_id)`, `(account_id)`, `(status)`.
-- Seed two default `rk_form_templates` rows (`is_custom=false`) for the Roof King company: "Standard Service Ticket" and "Leak Inspection".
+1. **navigate** — go to any route (`/leads`, `/jobs/:id/estimate`, etc.)
+2. **explain_feature** — return help text from a static knowledge map of app sections
+3. **create_lead** — name, address (geocoded via Mapbox), phone, email, roof type, damage notes, claim info, estimated value
+4. **update_lead** — patch a lead by id
+5. **create_job_from_lead** — convert a lead to a job
+6. **add_estimate_line_items** — voice-driven line item add (matches against `line_item_master` via existing Gemini matcher)
+7. **analyze_photos_for_estimate** — reuse existing `/api/analyze-job-photos` pipeline; user uploads photos through the chat
+8. **populate_order_form** — pull measurements + estimate for a job and write draft inputs (squares, hip/ridge LF, perimeter LF, valley LF, eave LF, rake LF, pitch)
+9. **search_leads / search_jobs** — find records by name/address for follow-up actions
+10. **request_info** — assistant asks the user for missing fields; input flows back through the same chat
 
-## 3. AI backend (TanStack, not Edge Function)
+For any mutation tool, the assistant confirms in chat ("I created lead Jason Smith at 2847 NE 2nd Ave — [Open](/leads/xxx)"). If a required field is missing, it asks in chat rather than guessing.
 
-`src/lib/roof-king-ai.functions.ts`:
-- `polishFieldNotes` — `.middleware([requireSupabaseAuth])`, input `{ ticket_id, customer, roof_type, reported_concern, raw_notes }`. Calls Anthropic `claude-sonnet-4-5-20250929` with the office-manager system prompt (Issue → Root Cause → Work Performed → Recommendations, preserve all facts, no invented pricing). Updates `report_polished` and advances status to `ready` if currently `new|dispatched|field`. Returns `{ text }`.
-- `generateFormTemplate` — input `{ prompt }`. Calls Claude, instructs JSON-only output, parses, inserts into `rk_form_templates` with `is_custom=true`, returns the saved row.
-- Both verify the caller is in the Roof King company before doing work. `ANTHROPIC_API_KEY` is read inside `.handler()` only.
+## Voice Input
 
-## 4. Routes & UI (TanStack file routes)
+Browser Web Speech API (`SpeechRecognition`):
+- Push-to-talk button + Voice Mode toggle
+- Continuous mode with interim results shown live in the composer
+- Auto-submit on 1.5s silence when Voice Mode is on
+- Graceful fallback + toast when browser doesn't support it (Safari desktop)
+- Assistant text replies can optionally speak back via `SpeechSynthesis` (toggle in panel header, off by default)
 
-All under `src/routes/_authenticated/roofking.*.tsx`:
+## Order Form Auto-Populate
 
-- `roofking.tsx` — layout: top bar (global search, `+ Customer`, `+ New Ticket`) + left sub-nav (Dashboard, Customers, Pipeline, All Tickets, Form Builder, Export/CRM) + `<Outlet />`.
-- `roofking.index.tsx` — **Dashboard**: 5 KPI cards (Customers, Buildings, Total Tickets, Ready to Invoice, In Progress = dispatched+field), Recent Activity list, Pipeline Status horizontal bars per stage.
-- `roofking.customers.tsx` — accordion of accounts → buildings → `+ Ticket`. Modals: Add Customer, Add Building.
-- `roofking.pipeline.tsx` — 5-column kanban (`@dnd-kit/core`, already in project). Drop updates `rk_tickets.status`. Click card → ticket drawer.
-- `roofking.tickets.tsx` — paginated searchable table sorted by `updated_at desc` (page size 50, virtualized with TanStack Query infinite if helpful). Status badge column.
-- `roofking.forms.tsx` — Form Builder: prompt textarea + "Generate form with AI" button → calls `generateFormTemplate`. Grid of template cards with "Use template" and "Delete" (custom only).
-- `roofking.export.tsx` — client-side CSV: `contacts.csv`, `properties.csv`, `service_tickets.csv` (UTF-8 BOM, ID-linked using `ACCT-` / `PROP-` / `TKT-` prefixed UUIDs). Buttons for each file + "Download all 3" + "Full JSON backup".
+New helper `deriveOrderFormInputs(jobId)` (server function) that:
+1. Reads latest `roof_measurements` + `roof_sections` for the job
+2. Reads active estimate line items
+3. Maps totals → template input keys used by `job_order_drafts.inputs`:
+   - `squares` = total_area / 100
+   - `hip_ridge_lf`, `ridge_lf`, `hip_lf`, `valley_lf`, `eave_lf`, `rake_lf`, `perimeter_lf`, `step_flashing_lf`, `pitch`
+4. Merges into existing draft `inputs` (never overwrites a value the user manually edited — tracked via a new `manual_input_keys` array on the draft)
 
-Shared components in `src/components/roofking/`:
-- `TicketDrawer.tsx` — slide-in right panel with Property block, Reported Concern, editable Field Notes textarea, gold "AI Polish" button, Materials & Labor editors (jsonb), Price input, status stepper (5 stages, click to set). On polish success: toast "Notes polished · moved to Ready for Invoice" and refetch.
-- `NewTicketDialog.tsx` — Building selector (grouped by account); on select, auto-fill contact/phone/roof_type from the building's most recent ticket → account fallback. Auto-WO via `rk_next_wo` RPC. Purpose multi-select chips. Reported concern textarea.
-- `AccountForm.tsx`, `PropertyForm.tsx` (react-hook-form + zod).
-- `KanbanCard.tsx`, `StatusBadge.tsx`, `KpiCard.tsx`.
+Wired in two places:
+- Auto-run on first visit to `/jobs/:id/order-form` when draft `inputs` is empty
+- "Auto-fill from measurements" button in the order-form header (always available; shows diff before applying)
+- Also callable by the assistant via `populate_order_form` tool
 
-Data hooks in `src/hooks/roofking/` wrap supabase queries with TanStack Query (`["rk", ...]` keys).
+## Technical Details
 
-## 5. Design system
+**Data model (new migration):**
+- `assistant_threads` (id, user_id, company_id, title, created_at, updated_at)
+- `assistant_messages` (id, thread_id, role, parts jsonb, tool_calls jsonb, created_at)
+- RLS: `user_id = auth.uid()` on both; standard GRANTs
+- Add `manual_input_keys text[] default '{}'` to `job_order_drafts`
 
-Adds Roof-King-specific tokens scoped under `[data-rk]` in `src/styles.css` so it doesn't override the rest of the app:
+**Backend:**
+- `src/routes/api.assistant-chat.ts` — TanStack server route, streams via AI SDK `streamText` + `toUIMessageStreamResponse`
+- Model: `google/gemini-3-flash-preview` (fast, multimodal, cheap, supports tool calling)
+- Provider: Lovable AI Gateway via existing helper (create `src/lib/ai-gateway.server.ts` if missing)
+- Tools defined in `src/lib/assistant-tools.server.ts` using AI SDK `tool()` + zod schemas; each tool uses `requireSupabaseAuth` context via a shared helper that receives the current user's Supabase client
+- `stopWhen: stepCountIs(50)` for multi-step tool loops
+- Persist final assistant message in `onFinish`
 
-```text
-bg #0c1018 · panel #151b26 · panel2 #1b2330 · line #26303f · line2 #33414f
-ink #e8edf4 · ink-muted #9aa7b8 · ink-faint #6b7888
-accent #2f81f7 · accent-light #5fa3ff · gold #f0a73a · green #2ec27e · red #f0556b
-Status: new #6b7888 · dispatched #2f81f7 · field #a06bff · ready #f0a73a · invoiced #2ec27e
-```
+**Frontend:**
+- `src/components/assistant/AssistantBubble.tsx` — floating launcher
+- `src/components/assistant/AssistantPanel.tsx` — chat UI using AI Elements (`conversation`, `message`, `prompt-input`, `tool`, `shimmer`)
+- `src/components/assistant/ThreadList.tsx` — sidebar of threads inside the panel
+- `src/hooks/useVoiceInput.ts` — Web Speech API wrapper (start/stop, interim/final transcripts, silence detection)
+- `src/hooks/useAssistantThreads.ts` — thread CRUD via server fns
+- Mount `<AssistantBubble />` in `src/routes/_app.tsx` so it appears on all authenticated pages (not on public routes, login, or /card)
+- Tool result renderer: navigation actions become clickable links (using `useNavigate`), record creations show a small card with the created entity + "Open" link
 
-Status badges = 16%-opacity tinted pill, solid-color text. Cards: 14px radius, 1px line border, panel bg. Soft radial blue/gold glows on page bg. Sidebar header tile: crown logo on blue gradient reading "Roof King / Service Ops". Buttons: primary blue gradient, gold for AI actions, ghost for panel+border. Subtle hover lift, staggered fade-in, eased drawer slide.
+**Server functions (`src/lib/assistant.functions.ts`):**
+- `listThreads`, `createThread`, `getThreadMessages`, `deleteThread`
+- `deriveOrderFormInputs(jobId)` — used by both the button and the tool
 
-Fonts: Bricolage Grotesque (headings/numbers), Hanken Grotesk (body), JetBrains Mono (WO# / counts). Loaded via `<link>` in `__root.tsx` head (per project rule, never `@import` URLs in `styles.css`).
+**Existing capability reuse:**
+- Photo → line items: existing `/api/analyze-job-photos` route
+- Address geocoding: existing Mapbox integration
+- Line item matching: existing Gemini matcher already wired in estimates
 
-## 6. Sidebar integration
+## Files to Create
 
-Add a "Roof King" item in `AppSidebar.tsx` rendered only when `useIsRoofKing()` is true, with a crown icon.
+- `supabase/migrations/*_assistant_threads.sql`
+- `src/lib/ai-gateway.server.ts` (if not already present)
+- `src/lib/assistant-tools.server.ts`
+- `src/lib/assistant.functions.ts`
+- `src/lib/order-form-derive.ts` + `src/lib/order-form-derive.functions.ts`
+- `src/routes/api.assistant-chat.ts`
+- `src/components/assistant/AssistantBubble.tsx`
+- `src/components/assistant/AssistantPanel.tsx`
+- `src/components/assistant/ThreadList.tsx`
+- `src/components/assistant/ToolResultCard.tsx`
+- `src/hooks/useVoiceInput.ts`
+- `src/hooks/useAssistantThreads.ts`
 
-## 7. Acceptance verification
+## Files to Modify
 
-- Empty DB: pages render with empty states.
-- Add customer → building → ticket round-trips through Supabase and the UI updates.
-- New Ticket auto-fills from last ticket on that building and auto-numbers WO.
-- AI Polish updates `report_polished`, flips status to `ready`, toasts.
-- Kanban drag persists status.
-- Form Builder AI returns valid JSON, persists, renders.
-- Export produces three relationally-linked CSVs that can be re-imported.
-- All Tickets paginated (50/page) — tested with seeded data.
-- Non-Roof-King company members never see the menu and `/roofking` redirects them.
+- `src/routes/_app.tsx` — mount `<AssistantBubble />`
+- `src/routes/_app.jobs.$id.order-form.tsx` — auto-fill on empty; add "Auto-fill from measurements" button
+- `src/hooks/useOrderForm.ts` — extend draft type with `manual_input_keys`
+- Install AI Elements: `bun x ai-elements@latest add conversation message prompt-input shimmer tool`
 
-## Out of scope (call out)
+## Out of Scope (can add later)
 
-- Bulk CSV importer for your existing data — schema is ready; I'll provide a SQL template after the module ships, or wire an importer in a follow-up.
-- QuickBooks API push (the "Invoiced" stage is manual for now).
+- Server-side transcription fallback for Safari desktop
+- Multi-tenant admin dashboard for assistant analytics
+- Automatic photo upload from voice ("take a picture" doesn't trigger camera — user still uploads via chat attach button)
