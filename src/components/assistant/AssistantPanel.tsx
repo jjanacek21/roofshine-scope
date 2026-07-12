@@ -131,16 +131,12 @@ export function AssistantPanel({ open, onClose, contextHint }: {
   };
 
   const voice = useVoiceInput({
-    autoSubmitSilenceMs: voiceMode ? 1500 : undefined,
+    autoSubmitSilenceMs: 1500,
     onFinal: (t) => {
-      if (voiceMode) {
-        sendMessage(t);
-      } else {
-        setInput((prev) => (prev ? prev + " " + t : t));
-      }
+      sendMessage(t);
     },
     onInterim: (t) => {
-      if (!voiceMode) setInput(t);
+      setInput(t);
     },
   });
 
