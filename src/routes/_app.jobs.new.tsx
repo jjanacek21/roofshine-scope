@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TRADES, type Trade } from "@/lib/trades";
 import { AddressAutocomplete, type AddressResult } from "@/components/maps/AddressAutocomplete";
+import { autoMeasureJobProperty } from "@/lib/auto-measure.functions";
+import { deriveOrderFormInputs } from "@/lib/assistant.functions";
 
 const searchSchema = z.object({ client_id: z.string().optional() });
 
