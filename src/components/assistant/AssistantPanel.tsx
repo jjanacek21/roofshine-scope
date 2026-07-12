@@ -40,7 +40,6 @@ export function AssistantPanel({ open, onClose, contextHint }: {
   const navigate = useNavigate();
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [input, setInput] = useState("");
-  const [voiceMode, setVoiceMode] = useState(false);
   const [sending, setSending] = useState(false);
   const [showList, setShowList] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
