@@ -2,9 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Hammer, Calculator, FileText, Package, Printer, Save, History, Lock } from "lucide-react";
+import { Hammer, Calculator, FileText, Package, Printer, Save, History, Lock, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { deriveOrderFormInputs } from "@/lib/assistant.functions";
 import {
   useMaterialCatalog,
   useMaterialCategories,
@@ -149,7 +150,11 @@ function OrderFormPage() {
 
   const update = (patch: any) => upsert.mutate(patch);
 
-  const setInput = (key: string, v: number) => update({ inputs: { ...inputs, [key]: v } });
+  const manualKeys = ((draft as any)?.manual_input_keys ?? []) as string[];
+  const setInput = (key: string, v: number) => {
+    const nextManual = manualKeys.includes(key) ? manualKeys : [...manualKeys, key];
+    update({ inputs: { ...inputs, [key]: v }, manual_input_keys: nextManual });
+  };
   const setMatOverride = (line_id: string, change: any) => {
     const others = matOverrides.filter((o) => o.line_id !== line_id);
     const cur = matOverrides.find((o) => o.line_id === line_id) ?? { line_id };
@@ -162,6 +167,31 @@ function OrderFormPage() {
   };
   const setExtras = (next: ExtraCost[]) => update({ extra_costs: next });
 
+  const [autoFilling, setAutoFilling] = useState(false);
+  const autoFillFromMeasurements = async () => {
+    setAutoFilling(true);
+    try {
+      const res = await deriveOrderFormInputs({ data: { job_id: jobId } });
+      if (!res.ok) {
+        toast.error(
+          res.reason === "no_property"
+            ? "This job has no linked property yet."
+            : "No roof measurement saved for this property yet — complete the Measure tab first.",
+        );
+        return;
+      }
+      const applied = res.applied?.length ?? 0;
+      const skipped = res.skipped?.length ?? 0;
+      toast.success(
+        `Auto-filled ${applied} field${applied === 1 ? "" : "s"}${skipped ? ` (kept ${skipped} manual value${skipped === 1 ? "" : "s"})` : ""}`,
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Auto-fill failed");
+    } finally {
+      setAutoFilling(false);
+    }
+  };
+
   // Initial: if no draft yet but templates loaded, set default template
   useEffect(() => {
     if (!draft && templates.length > 0 && !upsert.isPending) {
@@ -169,6 +199,16 @@ function OrderFormPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft, templates.length]);
+
+  // Auto-fill on first visit when inputs are empty and job has a property.
+  const draftInputCount = Object.values(inputs).filter((v) => Number(v) > 0).length;
+  useEffect(() => {
+    if (!draft || autoFilling) return;
+    if (draftInputCount > 0) return;
+    if (!job?.property_id) return;
+    autoFillFromMeasurements();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft?.id, draftInputCount, job?.property_id]);
 
   const saveSnapshot = async () => {
     if (!company?.id) return;
@@ -223,6 +263,15 @@ function OrderFormPage() {
           })}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={autoFillFromMeasurements}
+            disabled={autoFilling}
+            title="Populate squares, ridges, valleys, etc. from the saved roof measurement"
+            className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-semibold hover:bg-[var(--surface-hover)] disabled:opacity-50"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <Wand2 className="h-4 w-4" /> {autoFilling ? "Auto-filling…" : "Auto-fill from measurements"}
+          </button>
           <button onClick={saveSnapshot} className="inline-flex items-center gap-2 rounded-lg bg-foreground px-3 py-2 text-[13px] font-semibold text-background hover:opacity-90">
             <Save className="h-4 w-4" /> Save Snapshot
           </button>

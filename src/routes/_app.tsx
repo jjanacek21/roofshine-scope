@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { MobileBottomTabs } from "@/components/layout/MobileBottomTabs";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
+import { AssistantBubble } from "@/components/assistant/AssistantBubble";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -61,6 +62,7 @@ function AppLayout() {
         </main>
       </ContentArea>
       <MobileBottomTabs />
+      <AssistantBubble />
     </div>
   );
 }
