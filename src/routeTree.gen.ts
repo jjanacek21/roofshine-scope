@@ -31,6 +31,7 @@ import { Route as ApiImportAssemblyPdfRouteImport } from './routes/api.import-as
 import { Route as ApiCalibrateSolarRouteImport } from './routes/api.calibrate-solar'
 import { Route as ApiBuildRoofEstimateRouteImport } from './routes/api.build-roof-estimate'
 import { Route as ApiAutoAddPhotoSuggestionsRouteImport } from './routes/api.auto-add-photo-suggestions'
+import { Route as ApiAssistantChatRouteImport } from './routes/api.assistant-chat'
 import { Route as ApiApplyAssemblyImportRouteImport } from './routes/api.apply-assembly-import'
 import { Route as ApiAnalyzeRoofConditionRouteImport } from './routes/api.analyze-roof-condition'
 import { Route as ApiAnalyzePropertyRouteImport } from './routes/api.analyze-property'
@@ -215,6 +216,11 @@ const ApiAutoAddPhotoSuggestionsRoute =
     path: '/api/auto-add-photo-suggestions',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAssistantChatRoute = ApiAssistantChatRouteImport.update({
+  id: '/api/assistant-chat',
+  path: '/api/assistant-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiApplyAssemblyImportRoute = ApiApplyAssemblyImportRouteImport.update({
   id: '/api/apply-assembly-import',
   path: '/api/apply-assembly-import',
@@ -621,6 +627,7 @@ export interface FileRoutesByFullPath {
   '/api/analyze-property': typeof ApiAnalyzePropertyRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
   '/api/apply-assembly-import': typeof ApiApplyAssemblyImportRoute
+  '/api/assistant-chat': typeof ApiAssistantChatRoute
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
   '/api/build-roof-estimate': typeof ApiBuildRoofEstimateRoute
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
@@ -711,6 +718,7 @@ export interface FileRoutesByTo {
   '/api/analyze-property': typeof ApiAnalyzePropertyRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
   '/api/apply-assembly-import': typeof ApiApplyAssemblyImportRoute
+  '/api/assistant-chat': typeof ApiAssistantChatRoute
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
   '/api/build-roof-estimate': typeof ApiBuildRoofEstimateRoute
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
@@ -808,6 +816,7 @@ export interface FileRoutesById {
   '/api/analyze-property': typeof ApiAnalyzePropertyRoute
   '/api/analyze-roof-condition': typeof ApiAnalyzeRoofConditionRoute
   '/api/apply-assembly-import': typeof ApiApplyAssemblyImportRoute
+  '/api/assistant-chat': typeof ApiAssistantChatRoute
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
   '/api/build-roof-estimate': typeof ApiBuildRoofEstimateRoute
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
@@ -907,6 +916,7 @@ export interface FileRouteTypes {
     | '/api/analyze-property'
     | '/api/analyze-roof-condition'
     | '/api/apply-assembly-import'
+    | '/api/assistant-chat'
     | '/api/auto-add-photo-suggestions'
     | '/api/build-roof-estimate'
     | '/api/calibrate-solar'
@@ -997,6 +1007,7 @@ export interface FileRouteTypes {
     | '/api/analyze-property'
     | '/api/analyze-roof-condition'
     | '/api/apply-assembly-import'
+    | '/api/assistant-chat'
     | '/api/auto-add-photo-suggestions'
     | '/api/build-roof-estimate'
     | '/api/calibrate-solar'
@@ -1093,6 +1104,7 @@ export interface FileRouteTypes {
     | '/api/analyze-property'
     | '/api/analyze-roof-condition'
     | '/api/apply-assembly-import'
+    | '/api/assistant-chat'
     | '/api/auto-add-photo-suggestions'
     | '/api/build-roof-estimate'
     | '/api/calibrate-solar'
@@ -1166,6 +1178,7 @@ export interface RootRouteChildren {
   ApiAnalyzePropertyRoute: typeof ApiAnalyzePropertyRoute
   ApiAnalyzeRoofConditionRoute: typeof ApiAnalyzeRoofConditionRoute
   ApiApplyAssemblyImportRoute: typeof ApiApplyAssemblyImportRoute
+  ApiAssistantChatRoute: typeof ApiAssistantChatRoute
   ApiAutoAddPhotoSuggestionsRoute: typeof ApiAutoAddPhotoSuggestionsRoute
   ApiBuildRoofEstimateRoute: typeof ApiBuildRoofEstimateRoute
   ApiCalibrateSolarRoute: typeof ApiCalibrateSolarRoute
@@ -1336,6 +1349,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auto-add-photo-suggestions'
       fullPath: '/api/auto-add-photo-suggestions'
       preLoaderRoute: typeof ApiAutoAddPhotoSuggestionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/assistant-chat': {
+      id: '/api/assistant-chat'
+      path: '/api/assistant-chat'
+      fullPath: '/api/assistant-chat'
+      preLoaderRoute: typeof ApiAssistantChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/apply-assembly-import': {
@@ -2108,6 +2128,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAnalyzePropertyRoute: ApiAnalyzePropertyRoute,
   ApiAnalyzeRoofConditionRoute: ApiAnalyzeRoofConditionRoute,
   ApiApplyAssemblyImportRoute: ApiApplyAssemblyImportRoute,
+  ApiAssistantChatRoute: ApiAssistantChatRoute,
   ApiAutoAddPhotoSuggestionsRoute: ApiAutoAddPhotoSuggestionsRoute,
   ApiBuildRoofEstimateRoute: ApiBuildRoofEstimateRoute,
   ApiCalibrateSolarRoute: ApiCalibrateSolarRoute,
