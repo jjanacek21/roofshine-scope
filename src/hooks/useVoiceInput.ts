@@ -61,6 +61,15 @@ export function useVoiceInput(opts: UseVoiceInputOpts = {}) {
     const text = finalBufRef.current.trim();
     finalBufRef.current = "";
     setTranscript("");
+    stopSilenceTimer();
+    // Auto-stop mic after each utterance so it doesn't keep overwriting the
+    // input box while the user reads the reply or types a follow-up.
+    const r = recRef.current;
+    if (r) {
+      try { r.onend = null; r.stop(); } catch { /* ignore */ }
+    }
+    recRef.current = null;
+    setListening(false);
     if (text && onFinal) onFinal(text);
   }, [onFinal]);
 
