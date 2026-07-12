@@ -2,16 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 // Minimal wrapper around browser SpeechRecognition (Web Speech API).
 // Chrome/Edge on desktop + Android support this well; Safari desktop does not.
-// We surface a `supported` flag so the UI can degrade gracefully.
-
-type SR = typeof window extends { SpeechRecognition: infer T }
-  ? T
-  : any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 declare global {
   interface Window {
-    SpeechRecognition?: SR;
-    webkitSpeechRecognition?: SR;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    SpeechRecognition?: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    webkitSpeechRecognition?: any;
   }
 }
 
