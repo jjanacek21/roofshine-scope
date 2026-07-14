@@ -42,9 +42,11 @@ function StormIntelligencePage() {
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("swath_dates" as any);
-      if (error) throw error;
+      if (error) {
+        toast.error(`swath_dates: ${error.message}`);
+        throw error;
+      }
       const rows = (data ?? []) as any[];
-      // Accept either ["2026-05-20", ...] or [{event_date: "..."}]
       const list = rows
         .map((r) => (typeof r === "string" ? r : r?.event_date ?? r?.date))
         .filter(Boolean) as string[];
