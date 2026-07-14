@@ -4,7 +4,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
-import { supabase } from "@/integrations/supabase/client";
+import { stormSupabase } from "@/integrations/storm/client";
 
 type FC = { type: "FeatureCollection"; features: any[] };
 const EMPTY_FC: FC = { type: "FeatureCollection", features: [] };
@@ -16,7 +16,7 @@ interface Props {
   zoom?: number;
 }
 
-export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props) {
+export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props) {
   const { data: token, error: tokenError } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -31,7 +31,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
     enabled: !!eventDate,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("swath_geojson" as any, {
+      const { data, error } = await stormSupabase.rpc("swath_geojson" as any, {
         p_event_date: eventDate,
         p_product: "MESH_Max_1440min",
       });
@@ -47,7 +47,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
     queryKey: ["storm-wind", windHours],
     staleTime: 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("wind_geojson" as any, { p_hours: windHours });
+      const { data, error } = await stormSupabase.rpc("wind_geojson" as any, { p_hours: windHours });
       if (error) {
         toast.error(`wind_geojson: ${error.message}`);
         throw error;
@@ -60,7 +60,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
     queryKey: ["storm-territories"],
     staleTime: 60 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("territories_geojson" as any);
+      const { data, error } = await stormSupabase.rpc("territories_geojson" as any);
       if (error) {
         toast.error(`territories_geojson: ${error.message}`);
         throw error;
@@ -85,7 +85,16 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
     map.on("load", () => {
       map.addSource("territories", { type: "geojson", data: EMPTY_FC as any });
       map.addSource("hail", { type: "geojson", data: EMPTY_FC as any });
-      map.addSource("wind", { type: "geojson", data: EMPTY_FC as any });
+      // Warning polygons: unclustered
+      map.addSource("wind-warnings", { type: "geojson", data: EMPTY_FC as any });
+      // LSR points: clustered
+      map.addSource("wind-lsr", {
+        type: "geojson",
+        data: EMPTY_FC as any,
+        cluster: true,
+        clusterMaxZoom: 8,
+        clusterRadius: 50,
+      });
 
       // Territories: white 1.5px outlines
       map.addLayer({
@@ -116,19 +125,17 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
         },
       });
 
-      // Wind SVR_WARNING → blue dashed outline polygon w/ 12% fill
+      // Warning polygons (unclustered)
       map.addLayer({
         id: "wind-warning-fill",
         type: "fill",
-        source: "wind",
-        filter: ["==", ["get", "source"], "SVR_WARNING"],
+        source: "wind-warnings",
         paint: { "fill-color": "#2563eb", "fill-opacity": 0.12 },
       });
       map.addLayer({
         id: "wind-warning-line",
         type: "line",
-        source: "wind",
-        filter: ["==", ["get", "source"], "SVR_WARNING"],
+        source: "wind-warnings",
         paint: {
           "line-color": "#2563eb",
           "line-width": 1.5,
@@ -137,12 +144,51 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
         },
       });
 
-      // Wind LSR → blue circles sized by wind_mph
+      // Clustered LSR points
+      map.addLayer({
+        id: "wind-lsr-clusters",
+        type: "circle",
+        source: "wind-lsr",
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-color": [
+            "step",
+            ["get", "point_count"],
+            "#3b82f6", 25,
+            "#2563eb", 100,
+            "#1d4ed8", 500,
+            "#1e3a8a",
+          ],
+          "circle-radius": [
+            "step",
+            ["get", "point_count"],
+            14, 25,
+            18, 100,
+            24, 500,
+            30,
+          ],
+          "circle-opacity": 0.85,
+          "circle-stroke-color": "#0b1e4f",
+          "circle-stroke-width": 1.5,
+        },
+      });
+      map.addLayer({
+        id: "wind-lsr-cluster-count",
+        type: "symbol",
+        source: "wind-lsr",
+        filter: ["has", "point_count"],
+        layout: {
+          "text-field": ["get", "point_count_abbreviated"],
+          "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+          "text-size": 12,
+        },
+        paint: { "text-color": "#ffffff" },
+      });
       map.addLayer({
         id: "wind-lsr-points",
         type: "circle",
-        source: "wind",
-        filter: ["==", ["get", "source"], "LSR"],
+        source: "wind-lsr",
+        filter: ["!", ["has", "point_count"]],
         paint: {
           "circle-radius": [
             "interpolate",
@@ -183,6 +229,16 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
           )
           .addTo(map);
       });
+      map.on("click", "wind-lsr-clusters", (e) => {
+        const features = map.queryRenderedFeatures(e.point, { layers: ["wind-lsr-clusters"] });
+        const clusterId = features[0]?.properties?.cluster_id;
+        const src = map.getSource("wind-lsr") as any;
+        if (clusterId == null || !src?.getClusterExpansionZoom) return;
+        src.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
+          if (err) return;
+          map.easeTo({ center: (features[0].geometry as any).coordinates, zoom });
+        });
+      });
       map.on("click", "wind-warning-fill", (e) => {
         const f = e.features?.[0];
         if (!f) return;
@@ -194,7 +250,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
           )
           .addTo(map);
       });
-      for (const layer of ["hail-fill", "wind-lsr-points", "wind-warning-fill"]) {
+      for (const layer of ["hail-fill", "wind-lsr-points", "wind-lsr-clusters", "wind-warning-fill"]) {
         map.on("mouseenter", layer, () => (map.getCanvas().style.cursor = "pointer"));
         map.on("mouseleave", layer, () => (map.getCanvas().style.cursor = ""));
       }
@@ -202,7 +258,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
       readyRef.current = true;
       (map.getSource("territories") as mapboxgl.GeoJSONSource | undefined)?.setData(territories as any);
       (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hail as any);
-      (map.getSource("wind") as mapboxgl.GeoJSONSource | undefined)?.setData(wind as any);
+      applyWind(map, wind);
     });
 
     mapRef.current = map;
@@ -222,7 +278,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
-    (map.getSource("wind") as mapboxgl.GeoJSONSource | undefined)?.setData(wind as any);
+    applyWind(map, wind);
   }, [wind]);
   useEffect(() => {
     const map = mapRef.current;
@@ -286,7 +342,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
               className="inline-block h-3 w-3 rounded-full"
               style={{ background: "#2563eb", border: "1px solid #1e3a8a" }}
             />
-            <span>LSR gust reports</span>
+            <span>LSR gust reports (clustered)</span>
           </div>
           <div className="flex items-center gap-2">
             <span
@@ -303,4 +359,27 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
       </div>
     </div>
   );
+}
+
+function applyWind(map: mapboxgl.Map, wind: FC) {
+  const warnings: any[] = [];
+  const lsr: any[] = [];
+  for (const f of wind.features ?? []) {
+    if (f?.properties?.source === "SVR_WARNING") warnings.push(f);
+    else if (f?.properties?.source === "LSR") lsr.push(f);
+    else {
+      // Fallback: polygons → warnings, points → lsr
+      const t = f?.geometry?.type;
+      if (t === "Point" || t === "MultiPoint") lsr.push(f);
+      else warnings.push(f);
+    }
+  }
+  (map.getSource("wind-warnings") as mapboxgl.GeoJSONSource | undefined)?.setData({
+    type: "FeatureCollection",
+    features: warnings,
+  } as any);
+  (map.getSource("wind-lsr") as mapboxgl.GeoJSONSource | undefined)?.setData({
+    type: "FeatureCollection",
+    features: lsr,
+  } as any);
 }
