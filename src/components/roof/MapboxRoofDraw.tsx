@@ -191,7 +191,7 @@ export function MapboxRoofDraw({
       touchBuffer: 12,
     });
     drawRef.current = draw;
-    map.addControl(draw);
+    map.addControl(draw as unknown as mapboxgl.IControl);
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
     map.on("load", () => {
