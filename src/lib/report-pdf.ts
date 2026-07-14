@@ -79,6 +79,55 @@ function prepareCloneForRender(originalRoot: HTMLElement, clonedRoot: HTMLElemen
   clonedRoot.style.fontFamily =
     clonedRoot.style.fontFamily ||
     '"Archivo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  // The on-screen preview uses cards/shadows and editable textareas. Those can
+  // make html2canvas preserve a tall empty control/card area even when the
+  // visible content is short, which pushes the next section to a new PDF page.
+  // Flatten the export clone so each captured section is only as tall as its
+  // actual report content.
+  clonedRoot.style.height = "auto";
+  clonedRoot.style.minHeight = "0";
+  clonedRoot.style.boxShadow = "none";
+  clonedRoot.style.borderRadius = "0";
+}
+
+function trimBottomWhitespace(canvas: HTMLCanvasElement, keepPx = 48) {
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return canvas;
+
+  const { width, height } = canvas;
+  const data = ctx.getImageData(0, 0, width, height).data;
+  let lastContentY = -1;
+
+  for (let y = height - 1; y >= 0; y--) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const a = data[i + 3];
+      if (a === 0) continue;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      // Treat near-white pixels as page background. Anything darker is report
+      // content (text, rules, table lines, images, etc.).
+      if (r < 248 || g < 248 || b < 248) {
+        lastContentY = y;
+        break;
+      }
+    }
+    if (lastContentY !== -1) break;
+  }
+
+  if (lastContentY === -1) return canvas;
+  const croppedHeight = Math.min(height, Math.max(1, lastContentY + keepPx));
+  if (croppedHeight >= height - 4) return canvas;
+
+  const trimmed = document.createElement("canvas");
+  trimmed.width = width;
+  trimmed.height = croppedHeight;
+  const trimmedCtx = trimmed.getContext("2d")!;
+  trimmedCtx.fillStyle = "#ffffff";
+  trimmedCtx.fillRect(0, 0, trimmed.width, trimmed.height);
+  trimmedCtx.drawImage(canvas, 0, 0);
+  return trimmed;
 }
 
 /**
@@ -108,7 +157,7 @@ export async function renderSectionsToPdf(
   let cursorY = margin; // distance from top of page already consumed
 
   for (const el of sections) {
-    const canvas = await html2canvas(el, {
+    const rawCanvas = await html2canvas(el, {
       backgroundColor: "#ffffff",
       scale: 2,
       useCORS: true,
@@ -118,6 +167,7 @@ export async function renderSectionsToPdf(
         prepareCloneForRender(el, clonedRoot as HTMLElement);
       },
     });
+    const canvas = trimBottomWhitespace(rawCanvas);
 
     const ratio = canvas.height / canvas.width;
     const drawW = contentWidth;
