@@ -1,118 +1,54 @@
+# Storm Intelligence page
 
-# AI Assistant Chatbot + Order Form Auto-Populate
+Add a new authenticated page at `/storm-intelligence` that renders a Mapbox map showing NOAA hail swaths (gradient bands) and NWS wind gust reports / warning polygons, driven by the four existing Supabase RPCs.
 
-A floating AI copilot available on every page. Users type or speak; it answers navigation/how-to questions, and can execute actions in the app (create leads, jobs, estimates, order forms) via tool calls. Plus: auto-fill order form fields from saved roof measurements and estimate.
+## New files
 
-## User Experience
+**`src/components/storm/StormSwathMap.tsx`**
+- Props: `eventDate: string | null`, `windHours: number` (default 72), `center: [lng, lat]`, `zoom: number`
+- Uses `useMapboxToken()` (reuses `/api/mapbox-token`) — no new env var
+- Initializes `mapbox-gl` map with dark style, adds nav + scale controls
+- On load / prop change, calls:
+  - `supabase.rpc("swath_geojson", { p_event_date, p_product: "MESH_Max_1440min" })` → hail source
+  - `supabase.rpc("wind_geojson", { p_hours: windHours })` → wind source (points + polygons in one FC)
+  - `supabase.rpc("territories_geojson")` → territory outlines source
+- Layers (bottom → top):
+  1. `territories-line` — thin white outline
+  2. `hail-fill` (fill) using `["get", "color"]` from feature props; opacity 0.55
+  3. `hail-outline` (line) subtle stroke
+  4. `wind-warning-fill` filtered to Polygon/MultiPolygon geometry, red tint, low opacity, dashed outline — **never a smooth gradient**
+  5. `wind-gust-points` filtered to Point geometry, circle radius scaled by `gust_mph` prop, orange
+- Popups: click hail feature → shows `band`, `min_in`–`max_in` inches; click wind → shows `gust_mph`, `report_time`, `source`
+- Legend overlay (bottom-left): hail gradient swatches (yellow #FFD400 → orange → red → purple #7B1FA2) with inch ranges + wind marker key labeled "Gust reports & warning areas"
+- Handles empty FeatureCollections gracefully (empty state note in legend when no hail features for the date)
+- Cleanup: remove map on unmount
 
-**Floating bubble** (bottom-right, every page inside `_app`):
-- Collapsed: brand-styled circular button with mic + chat icon
-- Expanded: 400px wide chat panel with message history, mic button, text input, and a "Voice Mode" toggle
-- Voice Mode ON: mic auto-listens after each assistant reply; user talks, transcript appears live, auto-sends on pause
-- Assistant responses render markdown; tool calls render as compact "Action" cards ("Created lead for Jason Smith →" with a link to the record)
-- Follow-up questions from the AI appear in chat — user answers by voice or text
+**`src/routes/_app.storm-intelligence.tsx`**
+- Route: `createFileRoute("/_app/storm-intelligence")`
+- Head metadata: title "Storm Intelligence", description
+- Layout: full-height container (`h-[calc(100vh-var(--topbar-h))]`) with a top toolbar and the map filling the rest
+- Toolbar controls:
+  - **Date dropdown** (shadcn `Select`) — options fetched via `useQuery(['swath-dates'], () => supabase.rpc('swath_dates'))`; default = most recent date; "No swaths available" empty state
+  - **Market toggle** (shadcn `ToggleGroup`) — DFW `[-96.8, 32.78]` / South Florida `[-80.35, 26.1]`; changing it flies the map via a ref-forwarded `flyTo` (or key-based remount if simpler)
+  - **Wind window** (shadcn `Select`) — 24h / 48h / 72h (default 72)
+- Renders `<StormSwathMap eventDate={date} windHours={hours} center={center} zoom={9} />`
 
-**Persistence:** Save threads in Lovable Cloud (per user). This lets the assistant remember prior context ("the Jason Smith lead we just made") and keeps chat history across devices. New chat / thread list accessible from a small menu in the panel header.
+## Modified files
 
-## Capabilities (Tool Calls)
+**`src/components/layout/AppSidebar.tsx`**
+- Add new sidebar item "Storm Intel" with a `CloudLightning` (lucide) icon, linking to `/storm-intelligence`, placed in the main nav group
 
-The assistant uses AI SDK tool calling. Tools available:
+**`src/components/layout/MobileBottomTabs.tsx`** (only if it lists top-level pages)
+- Add the same entry if it fits the existing pattern; skip otherwise
 
-1. **navigate** — go to any route (`/leads`, `/jobs/:id/estimate`, etc.)
-2. **explain_feature** — return help text from a static knowledge map of app sections
-3. **create_lead** — name, address (geocoded via Mapbox), phone, email, roof type, damage notes, claim info, estimated value
-4. **update_lead** — patch a lead by id
-5. **create_job_from_lead** — convert a lead to a job
-6. **add_estimate_line_items** — voice-driven line item add (matches against `line_item_master` via existing Gemini matcher)
-7. **analyze_photos_for_estimate** — reuse existing `/api/analyze-job-photos` pipeline; user uploads photos through the chat
-8. **populate_order_form** — pull measurements + estimate for a job and write draft inputs (squares, hip/ridge LF, perimeter LF, valley LF, eave LF, rake LF, pitch)
-9. **search_leads / search_jobs** — find records by name/address for follow-up actions
-10. **request_info** — assistant asks the user for missing fields; input flows back through the same chat
+**`package.json`**
+- `bun add mapbox-gl @types/mapbox-gl`
 
-For any mutation tool, the assistant confirms in chat ("I created lead Jason Smith at 2847 NE 2nd Ave — [Open](/leads/xxx)"). If a required field is missing, it asks in chat rather than guessing.
+## Technical notes
 
-## Voice Input
-
-Browser Web Speech API (`SpeechRecognition`):
-- Push-to-talk button + Voice Mode toggle
-- Continuous mode with interim results shown live in the composer
-- Auto-submit on 1.5s silence when Voice Mode is on
-- Graceful fallback + toast when browser doesn't support it (Safari desktop)
-- Assistant text replies can optionally speak back via `SpeechSynthesis` (toggle in panel header, off by default)
-
-## Order Form Auto-Populate
-
-New helper `deriveOrderFormInputs(jobId)` (server function) that:
-1. Reads latest `roof_measurements` + `roof_sections` for the job
-2. Reads active estimate line items
-3. Maps totals → template input keys used by `job_order_drafts.inputs`:
-   - `squares` = total_area / 100
-   - `hip_ridge_lf`, `ridge_lf`, `hip_lf`, `valley_lf`, `eave_lf`, `rake_lf`, `perimeter_lf`, `step_flashing_lf`, `pitch`
-4. Merges into existing draft `inputs` (never overwrites a value the user manually edited — tracked via a new `manual_input_keys` array on the draft)
-
-Wired in two places:
-- Auto-run on first visit to `/jobs/:id/order-form` when draft `inputs` is empty
-- "Auto-fill from measurements" button in the order-form header (always available; shows diff before applying)
-- Also callable by the assistant via `populate_order_form` tool
-
-## Technical Details
-
-**Data model (new migration):**
-- `assistant_threads` (id, user_id, company_id, title, created_at, updated_at)
-- `assistant_messages` (id, thread_id, role, parts jsonb, tool_calls jsonb, created_at)
-- RLS: `user_id = auth.uid()` on both; standard GRANTs
-- Add `manual_input_keys text[] default '{}'` to `job_order_drafts`
-
-**Backend:**
-- `src/routes/api.assistant-chat.ts` — TanStack server route, streams via AI SDK `streamText` + `toUIMessageStreamResponse`
-- Model: `google/gemini-3-flash-preview` (fast, multimodal, cheap, supports tool calling)
-- Provider: Lovable AI Gateway via existing helper (create `src/lib/ai-gateway.server.ts` if missing)
-- Tools defined in `src/lib/assistant-tools.server.ts` using AI SDK `tool()` + zod schemas; each tool uses `requireSupabaseAuth` context via a shared helper that receives the current user's Supabase client
-- `stopWhen: stepCountIs(50)` for multi-step tool loops
-- Persist final assistant message in `onFinish`
-
-**Frontend:**
-- `src/components/assistant/AssistantBubble.tsx` — floating launcher
-- `src/components/assistant/AssistantPanel.tsx` — chat UI using AI Elements (`conversation`, `message`, `prompt-input`, `tool`, `shimmer`)
-- `src/components/assistant/ThreadList.tsx` — sidebar of threads inside the panel
-- `src/hooks/useVoiceInput.ts` — Web Speech API wrapper (start/stop, interim/final transcripts, silence detection)
-- `src/hooks/useAssistantThreads.ts` — thread CRUD via server fns
-- Mount `<AssistantBubble />` in `src/routes/_app.tsx` so it appears on all authenticated pages (not on public routes, login, or /card)
-- Tool result renderer: navigation actions become clickable links (using `useNavigate`), record creations show a small card with the created entity + "Open" link
-
-**Server functions (`src/lib/assistant.functions.ts`):**
-- `listThreads`, `createThread`, `getThreadMessages`, `deleteThread`
-- `deriveOrderFormInputs(jobId)` — used by both the button and the tool
-
-**Existing capability reuse:**
-- Photo → line items: existing `/api/analyze-job-photos` route
-- Address geocoding: existing Mapbox integration
-- Line item matching: existing Gemini matcher already wired in estimates
-
-## Files to Create
-
-- `supabase/migrations/*_assistant_threads.sql`
-- `src/lib/ai-gateway.server.ts` (if not already present)
-- `src/lib/assistant-tools.server.ts`
-- `src/lib/assistant.functions.ts`
-- `src/lib/order-form-derive.ts` + `src/lib/order-form-derive.functions.ts`
-- `src/routes/api.assistant-chat.ts`
-- `src/components/assistant/AssistantBubble.tsx`
-- `src/components/assistant/AssistantPanel.tsx`
-- `src/components/assistant/ThreadList.tsx`
-- `src/components/assistant/ToolResultCard.tsx`
-- `src/hooks/useVoiceInput.ts`
-- `src/hooks/useAssistantThreads.ts`
-
-## Files to Modify
-
-- `src/routes/_app.tsx` — mount `<AssistantBubble />`
-- `src/routes/_app.jobs.$id.order-form.tsx` — auto-fill on empty; add "Auto-fill from measurements" button
-- `src/hooks/useOrderForm.ts` — extend draft type with `manual_input_keys`
-- Install AI Elements: `bun x ai-elements@latest add conversation message prompt-input shimmer tool`
-
-## Out of Scope (can add later)
-
-- Server-side transcription fallback for Safari desktop
-- Multi-tenant admin dashboard for assistant analytics
-- Automatic photo upload from voice ("take a picture" doesn't trigger camera — user still uploads via chat attach button)
+- **No backend work**: the four RPCs (`swath_geojson`, `wind_geojson`, `territories_geojson`, `swath_dates`) and their tables are assumed to already exist and be anon-readable per the spec. If any RPC returns a permission error at runtime, that's a Supabase-side issue outside this plan's scope.
+- **Mapbox token**: served by the existing `/api/mapbox-token` server route via `useMapboxToken()`. No `VITE_MAPBOX_TOKEN` added — matches the current project convention noted in memory.
+- **Wind rendering rule**: wind data renders only as (a) circle points sized by gust, (b) polygon fills for warning areas with a distinct dashed outline. No heatmap, no interpolated gradient — labeled explicitly "Gust reports & warning areas" in the legend and popups.
+- **Hail color source of truth**: features carry their own `color` prop; layers use `["get", "color"]` so the frontend adds no color logic.
+- **Data fetching**: React Query with `staleTime: 5 * 60 * 1000` for swaths (per date) and `60 * 1000` for wind. Query keys include `eventDate` / `windHours` so switching refetches.
+- **Empty states**: if `swath_dates` returns `[]`, the date select shows a disabled "No hail data yet" option and the hail layers stay empty; wind layers still render.

@@ -54,6 +54,7 @@ import { Route as AdminAnnouncementsRouteImport } from './routes/admin.announcem
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AppTeamRouteImport } from './routes/_app.team'
 import { Route as AppSurvivalGuideRouteImport } from './routes/_app.survival-guide'
+import { Route as AppStormIntelligenceRouteImport } from './routes/_app.storm-intelligence'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppRoofkingRouteImport } from './routes/_app.roofking'
 import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
@@ -331,6 +332,11 @@ const AppSurvivalGuideRoute = AppSurvivalGuideRouteImport.update({
   path: '/survival-guide',
   getParentRoute: () => AppRoute,
 } as any)
+const AppStormIntelligenceRoute = AppStormIntelligenceRouteImport.update({
+  id: '/storm-intelligence',
+  path: '/storm-intelligence',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -605,6 +611,7 @@ export interface FileRoutesByFullPath {
   '/price-books': typeof AppPriceBooksRouteWithChildren
   '/roofking': typeof AppRoofkingRouteWithChildren
   '/settings': typeof AppSettingsRoute
+  '/storm-intelligence': typeof AppStormIntelligenceRoute
   '/survival-guide': typeof AppSurvivalGuideRoute
   '/team': typeof AppTeamRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -697,6 +704,7 @@ export interface FileRoutesByTo {
   '/clients': typeof AppClientsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
+  '/storm-intelligence': typeof AppStormIntelligenceRoute
   '/survival-guide': typeof AppSurvivalGuideRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
@@ -794,6 +802,7 @@ export interface FileRoutesById {
   '/_app/price-books': typeof AppPriceBooksRouteWithChildren
   '/_app/roofking': typeof AppRoofkingRouteWithChildren
   '/_app/settings': typeof AppSettingsRoute
+  '/_app/storm-intelligence': typeof AppStormIntelligenceRoute
   '/_app/survival-guide': typeof AppSurvivalGuideRoute
   '/_app/team': typeof AppTeamRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -894,6 +903,7 @@ export interface FileRouteTypes {
     | '/price-books'
     | '/roofking'
     | '/settings'
+    | '/storm-intelligence'
     | '/survival-guide'
     | '/team'
     | '/admin/analytics'
@@ -986,6 +996,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/price-books'
     | '/settings'
+    | '/storm-intelligence'
     | '/survival-guide'
     | '/admin/analytics'
     | '/admin/announcements'
@@ -1082,6 +1093,7 @@ export interface FileRouteTypes {
     | '/_app/price-books'
     | '/_app/roofking'
     | '/_app/settings'
+    | '/_app/storm-intelligence'
     | '/_app/survival-guide'
     | '/_app/team'
     | '/admin/analytics'
@@ -1510,6 +1522,13 @@ declare module '@tanstack/react-router' {
       path: '/survival-guide'
       fullPath: '/survival-guide'
       preLoaderRoute: typeof AppSurvivalGuideRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/storm-intelligence': {
+      id: '/_app/storm-intelligence'
+      path: '/storm-intelligence'
+      fullPath: '/storm-intelligence'
+      preLoaderRoute: typeof AppStormIntelligenceRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings': {
@@ -2015,6 +2034,7 @@ interface AppRouteChildren {
   AppPriceBooksRoute: typeof AppPriceBooksRouteWithChildren
   AppRoofkingRoute: typeof AppRoofkingRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRoute
+  AppStormIntelligenceRoute: typeof AppStormIntelligenceRoute
   AppSurvivalGuideRoute: typeof AppSurvivalGuideRoute
   AppTeamRoute: typeof AppTeamRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
@@ -2034,6 +2054,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPriceBooksRoute: AppPriceBooksRouteWithChildren,
   AppRoofkingRoute: AppRoofkingRouteWithChildren,
   AppSettingsRoute: AppSettingsRoute,
+  AppStormIntelligenceRoute: AppStormIntelligenceRoute,
   AppSurvivalGuideRoute: AppSurvivalGuideRoute,
   AppTeamRoute: AppTeamRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
@@ -2147,13 +2168,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
