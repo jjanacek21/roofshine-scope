@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CloudLightning } from "lucide-react";
 import { toast } from "sonner";
 import { StormSwathMap } from "@/components/storm/StormSwathMap";
-import { supabase } from "@/integrations/supabase/client";
+import { stormSupabase } from "@/integrations/storm/client";
 import {
   Select,
   SelectContent,
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_app/storm-intelligence")({
   head: () => ({
@@ -21,20 +21,30 @@ export const Route = createFileRoute("/_app/storm-intelligence")({
       {
         name: "description",
         content:
-          "Live hail swaths and wind gust reports mapped across your service territories.",
+          "Nationwide live hail swaths, wind gust reports, and severe thunderstorm warnings.",
       },
     ],
   }),
   component: StormIntelligencePage,
 });
 
-const MARKETS = {
+const JUMPS = {
+  usa: { label: "USA", center: [-96.5, 38.5] as [number, number], zoom: 4 },
   dfw: { label: "DFW", center: [-96.8, 32.78] as [number, number], zoom: 9 },
   sfl: { label: "South Florida", center: [-80.35, 26.1] as [number, number], zoom: 9 },
 };
 
+const WIND_OPTIONS: { label: string; hours: number }[] = [
+  { label: "Last 24h", hours: 24 },
+  { label: "Last 72h", hours: 72 },
+  { label: "Last 7 days", hours: 168 },
+  { label: "Last 30 days", hours: 720 },
+  { label: "Last 6 months", hours: 4380 },
+  { label: "Last 2 years", hours: 17520 },
+];
+
 function StormIntelligencePage() {
-  const [market, setMarket] = useState<keyof typeof MARKETS>("dfw");
+  const [view, setView] = useState<keyof typeof JUMPS>("usa");
   const [windHours, setWindHours] = useState<number>(72);
   const [eventDate, setEventDate] = useState<string | null>(null);
 
@@ -42,7 +52,7 @@ function StormIntelligencePage() {
     queryKey: ["storm-swath-dates"],
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("swath_dates" as any);
+      const { data, error } = await stormSupabase.rpc("swath_dates" as any);
       if (error) {
         toast.error(`swath_dates: ${error.message}`);
         throw error;
@@ -56,7 +66,7 @@ function StormIntelligencePage() {
   });
 
   const activeDate = useMemo(() => eventDate ?? dates[0] ?? null, [eventDate, dates]);
-  const m = MARKETS[market];
+  const v = JUMPS[view];
 
   return (
     <div className="flex h-[calc(100vh-80px)] flex-col">
@@ -99,29 +109,34 @@ function StormIntelligencePage() {
             Wind
           </label>
           <Select value={String(windHours)} onValueChange={(v) => setWindHours(Number(v))}>
-            <SelectTrigger className="h-8 w-[100px] text-xs">
+            <SelectTrigger className="h-8 w-[140px] text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="24">Last 24h</SelectItem>
-              <SelectItem value="48">Last 48h</SelectItem>
-              <SelectItem value="72">Last 72h</SelectItem>
+              {WIND_OPTIONS.map((o) => (
+                <SelectItem key={o.hours} value={String(o.hours)}>
+                  {o.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
-          <ToggleGroup
-            type="single"
-            value={market}
-            onValueChange={(v) => v && setMarket(v as keyof typeof MARKETS)}
-            className="rounded-lg border"
+          <div
+            className="flex items-center gap-1 rounded-lg border p-1"
             style={{ borderColor: "var(--border)" }}
           >
-            {Object.entries(MARKETS).map(([k, v]) => (
-              <ToggleGroupItem key={k} value={k} className="h-8 px-3 text-xs">
-                {v.label}
-              </ToggleGroupItem>
+            {Object.entries(JUMPS).map(([k, j]) => (
+              <Button
+                key={k}
+                size="sm"
+                variant={view === k ? "default" : "ghost"}
+                className="h-7 px-2 text-xs"
+                onClick={() => setView(k as keyof typeof JUMPS)}
+              >
+                {j.label}
+              </Button>
             ))}
-          </ToggleGroup>
+          </div>
         </div>
       </div>
 
@@ -129,8 +144,8 @@ function StormIntelligencePage() {
         <StormSwathMap
           eventDate={activeDate}
           windHours={windHours}
-          center={m.center}
-          zoom={m.zoom}
+          center={v.center}
+          zoom={v.zoom}
         />
       </div>
     </div>
