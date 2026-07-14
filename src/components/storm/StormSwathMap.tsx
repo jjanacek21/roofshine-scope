@@ -2,11 +2,11 @@ import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { supabase } from "@/integrations/supabase/client";
 
 type FC = { type: "FeatureCollection"; features: any[] };
-
 const EMPTY_FC: FC = { type: "FeatureCollection", features: [] };
 
 interface Props {
@@ -17,10 +17,14 @@ interface Props {
 }
 
 export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props) {
-  const { data: token } = useMapboxToken();
+  const { data: token, error: tokenError } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const readyRef = useRef(false);
+
+  useEffect(() => {
+    if (tokenError) toast.error(`Mapbox token: ${(tokenError as Error).message}`);
+  }, [tokenError]);
 
   const { data: hail = EMPTY_FC } = useQuery({
     queryKey: ["storm-swath", eventDate],
@@ -31,7 +35,10 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
         p_event_date: eventDate,
         p_product: "MESH_Max_1440min",
       });
-      if (error) throw error;
+      if (error) {
+        toast.error(`swath_geojson: ${error.message}`);
+        throw error;
+      }
       return (data as FC) ?? EMPTY_FC;
     },
   });
@@ -41,7 +48,10 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
     staleTime: 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("wind_geojson" as any, { p_hours: windHours });
-      if (error) throw error;
+      if (error) {
+        toast.error(`wind_geojson: ${error.message}`);
+        throw error;
+      }
       return (data as FC) ?? EMPTY_FC;
     },
   });
@@ -51,7 +61,10 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
     staleTime: 60 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("territories_geojson" as any);
-      if (error) throw error;
+      if (error) {
+        toast.error(`territories_geojson: ${error.message}`);
+        throw error;
+      }
       return (data as FC) ?? EMPTY_FC;
     },
   });
@@ -74,13 +87,15 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
       map.addSource("hail", { type: "geojson", data: EMPTY_FC as any });
       map.addSource("wind", { type: "geojson", data: EMPTY_FC as any });
 
+      // Territories: white 1.5px outlines
       map.addLayer({
         id: "territories-line",
         type: "line",
         source: "territories",
-        paint: { "line-color": "#ffffff", "line-width": 1.2, "line-opacity": 0.6 },
+        paint: { "line-color": "#ffffff", "line-width": 1.5, "line-opacity": 0.85 },
       });
 
+      // Hail fill from feature color
       map.addLayer({
         id: "hail-fill",
         type: "fill",
@@ -101,48 +116,50 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
         },
       });
 
+      // Wind SVR_WARNING → blue dashed outline polygon w/ 12% fill
       map.addLayer({
         id: "wind-warning-fill",
         type: "fill",
         source: "wind",
-        filter: ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false],
-        paint: { "fill-color": "#dc2626", "fill-opacity": 0.18 },
+        filter: ["==", ["get", "source"], "SVR_WARNING"],
+        paint: { "fill-color": "#2563eb", "fill-opacity": 0.12 },
       });
       map.addLayer({
         id: "wind-warning-line",
         type: "line",
         source: "wind",
-        filter: ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false],
+        filter: ["==", ["get", "source"], "SVR_WARNING"],
         paint: {
-          "line-color": "#dc2626",
-          "line-width": 1.4,
+          "line-color": "#2563eb",
+          "line-width": 1.5,
           "line-dasharray": [2, 2],
           "line-opacity": 0.9,
         },
       });
+
+      // Wind LSR → blue circles sized by wind_mph
       map.addLayer({
-        id: "wind-gust-points",
+        id: "wind-lsr-points",
         type: "circle",
         source: "wind",
-        filter: ["==", ["geometry-type"], "Point"],
+        filter: ["==", ["get", "source"], "LSR"],
         paint: {
           "circle-radius": [
             "interpolate",
             ["linear"],
-            ["coalesce", ["to-number", ["get", "gust_mph"]], 40],
+            ["coalesce", ["to-number", ["get", "wind_mph"]], 40],
             30, 3,
             60, 6,
             90, 10,
             120, 14,
           ],
-          "circle-color": "#f97316",
-          "circle-stroke-color": "#7c2d12",
+          "circle-color": "#2563eb",
+          "circle-stroke-color": "#1e3a8a",
           "circle-stroke-width": 1,
           "circle-opacity": 0.9,
         },
       });
 
-      // Popups
       const popup = new mapboxgl.Popup({ closeButton: true, closeOnClick: true });
       map.on("click", "hail-fill", (e) => {
         const f = e.features?.[0];
@@ -155,14 +172,14 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
           )
           .addTo(map);
       });
-      map.on("click", "wind-gust-points", (e) => {
+      map.on("click", "wind-lsr-points", (e) => {
         const f = e.features?.[0];
         if (!f) return;
         const p: any = f.properties ?? {};
         popup
           .setLngLat(e.lngLat)
           .setHTML(
-            `<div style="font-family:system-ui;font-size:12px"><b>Gust ${p.gust_mph ?? "?"} mph</b><br/>${p.report_time ?? ""}<br/><span style="color:#666">${p.source ?? ""}</span></div>`,
+            `<div style="font-family:system-ui;font-size:12px"><b>Gust ${p.wind_mph ?? "?"} mph</b><br/>${p.event_time ?? ""}<br/><span style="color:#666">LSR</span></div>`,
           )
           .addTo(map);
       });
@@ -173,17 +190,16 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
         popup
           .setLngLat(e.lngLat)
           .setHTML(
-            `<div style="font-family:system-ui;font-size:12px"><b>${p.event ?? "Wind warning"}</b><br/>${p.headline ?? ""}</div>`,
+            `<div style="font-family:system-ui;font-size:12px"><b>Severe T-storm Warning</b><br/>${p.headline ?? p.area ?? ""}</div>`,
           )
           .addTo(map);
       });
-      for (const layer of ["hail-fill", "wind-gust-points", "wind-warning-fill"]) {
+      for (const layer of ["hail-fill", "wind-lsr-points", "wind-warning-fill"]) {
         map.on("mouseenter", layer, () => (map.getCanvas().style.cursor = "pointer"));
         map.on("mouseleave", layer, () => (map.getCanvas().style.cursor = ""));
       }
 
       readyRef.current = true;
-      // Prime with current data
       (map.getSource("territories") as mapboxgl.GeoJSONSource | undefined)?.setData(territories as any);
       (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hail as any);
       (map.getSource("wind") as mapboxgl.GeoJSONSource | undefined)?.setData(wind as any);
@@ -198,7 +214,6 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // Sync data updates
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
@@ -215,7 +230,6 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
     (map.getSource("territories") as mapboxgl.GeoJSONSource | undefined)?.setData(territories as any);
   }, [territories]);
 
-  // Fly to new market
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -223,11 +237,11 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
   }, [center[0], center[1], zoom]);
 
   const hasHail = (hail?.features?.length ?? 0) > 0;
+  const windCount = wind?.features?.length ?? 0;
 
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
-      {/* Legend */}
       <div
         className="pointer-events-none absolute bottom-4 left-4 rounded-lg border p-3 text-[11px] shadow-lg"
         style={{
@@ -241,9 +255,10 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
         <div className="space-y-1">
           {[
             { c: "#FFD400", label: "0.75 – 1.00" },
-            { c: "#FF8C00", label: "1.00 – 1.50" },
-            { c: "#E53935", label: "1.50 – 2.00" },
-            { c: "#7B1FA2", label: "2.00+" },
+            { c: "#FFA500", label: "1.00 – 1.50" },
+            { c: "#FF4500", label: "1.50 – 2.00" },
+            { c: "#D0021B", label: "2.00 – 3.00" },
+            { c: "#7B1FA2", label: "3.00+" },
           ].map((r) => (
             <div key={r.c} className="flex items-center gap-2">
               <span
@@ -259,28 +274,30 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 9 }: Props)
             No hail features for {eventDate}
           </div>
         )}
-        <div className="mt-3 mb-1 font-semibold text-foreground">Wind</div>
+        {!eventDate && (
+          <div className="mt-2 italic" style={{ color: "var(--text-muted)" }}>
+            No hail dates yet
+          </div>
+        )}
+        <div className="mt-3 mb-1 font-semibold text-foreground">Wind ({windCount})</div>
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span
               className="inline-block h-3 w-3 rounded-full"
-              style={{ background: "#f97316", border: "1px solid #7c2d12" }}
+              style={{ background: "#2563eb", border: "1px solid #1e3a8a" }}
             />
-            <span>Gust reports (mph)</span>
+            <span>LSR gust reports</span>
           </div>
           <div className="flex items-center gap-2">
             <span
               className="inline-block h-3 w-6"
               style={{
-                background: "rgba(220,38,38,0.18)",
-                borderTop: "1.5px dashed #dc2626",
-                borderBottom: "1.5px dashed #dc2626",
+                background: "rgba(37,99,235,0.12)",
+                borderTop: "1.5px dashed #2563eb",
+                borderBottom: "1.5px dashed #2563eb",
               }}
             />
-            <span>Warning areas</span>
-          </div>
-          <div className="italic" style={{ color: "var(--text-muted)" }}>
-            Gust reports &amp; warning areas — not a swath
+            <span>Severe T-storm Warnings</span>
           </div>
         </div>
       </div>
