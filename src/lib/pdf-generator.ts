@@ -26,31 +26,61 @@ export async function generateProposalPdf({
   const contentHeight = pageHeight - margin * 2;
   const sectionGap = 12;
 
+  // Pre-render every section so we know natural heights up front, then decide
+  // layout. This lets short reports pack onto a single page instead of forcing
+  // one section per page with big empty space.
+  const rendered = await Promise.all(
+    sections.map(async (el) => {
+      const canvas = await html2canvas(el, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+      });
+      const ratio = canvas.height / canvas.width;
+      return {
+        imgData: canvas.toDataURL("image/jpeg", 0.92),
+        naturalHeight: contentWidth * ratio, // height when drawn at full content width
+      };
+    })
+  );
+
+  // If everything would fit on one page at natural width, just render it.
+  // If it's close (within 1.6x a page), scale everything uniformly so the whole
+  // report still lands on one page — matches the user asking for "print the
+  // whole report on 1 page" when sections are short.
+  const totalNatural =
+    rendered.reduce((s, r) => s + r.naturalHeight, 0) +
+    sectionGap * Math.max(0, rendered.length - 1);
+  const singlePageBudget = contentHeight;
+  const canForceOnePage = totalNatural > 0 && totalNatural <= singlePageBudget * 1.6;
+
+  const scale = canForceOnePage && totalNatural > singlePageBudget
+    ? singlePageBudget / totalNatural
+    : 1;
+  const drawWidth = contentWidth * scale;
+
   let cursorY = margin;
 
-  for (let i = 0; i < sections.length; i++) {
-    const canvas = await html2canvas(sections[i], {
-      backgroundColor: "#ffffff",
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-    });
-    const imgData = canvas.toDataURL("image/jpeg", 0.92);
-    const ratio = canvas.height / canvas.width;
-    let imgWidth = contentWidth;
-    let imgHeight = imgWidth * ratio;
+  for (let i = 0; i < rendered.length; i++) {
+    const { imgData, naturalHeight } = rendered[i];
+    let imgHeight = naturalHeight * scale;
+    let imgWidth = drawWidth;
 
-    // If section is taller than a full page, scale it down to fit one page.
+    // Safety: a single oversized section still gets shrunk to fit one page.
     if (imgHeight > contentHeight) {
+      const shrink = contentHeight / imgHeight;
       imgHeight = contentHeight;
-      imgWidth = imgHeight / ratio;
+      imgWidth = imgWidth * shrink;
     }
 
-    const remaining = pageHeight - margin - cursorY;
-    if (imgHeight > remaining && cursorY > margin) {
-      pdf.addPage();
-      cursorY = margin;
+    if (!canForceOnePage) {
+      const remaining = pageHeight - margin - cursorY;
+      if (imgHeight > remaining && cursorY > margin) {
+        pdf.addPage();
+        cursorY = margin;
+      }
     }
 
     const x = (pageWidth - imgWidth) / 2;
