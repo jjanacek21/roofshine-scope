@@ -275,10 +275,11 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
       applyWind(map, wind);
     });
 
-    mapRef.current = map;
     return () => {
       readyRef.current = false;
-      map.remove();
+      cancelAnimationFrame(rafId);
+      try { ro.disconnect(); } catch {}
+      try { map.remove(); } catch {}
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
