@@ -71,16 +71,30 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
 
   // Init map
   useEffect(() => {
-    if (!token || !containerRef.current || mapRef.current) return;
+    if (!token) return;
+    const container = containerRef.current;
+    if (!container) return;
+    if (mapRef.current) return;
+
     mapboxgl.accessToken = token;
     const map = new mapboxgl.Map({
-      container: containerRef.current,
+      container,
       style: "mapbox://styles/mapbox/dark-v11",
       center,
       zoom,
     });
+    mapRef.current = map;
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
     map.addControl(new mapboxgl.ScaleControl({ unit: "imperial" }), "bottom-right");
+
+    // Resize once the container has laid out, and observe further size changes.
+    const ro = new ResizeObserver(() => {
+      try { map.resize(); } catch {}
+    });
+    ro.observe(container);
+    const rafId = requestAnimationFrame(() => {
+      try { map.resize(); } catch {}
+    });
 
     map.on("load", () => {
       map.addSource("territories", { type: "geojson", data: EMPTY_FC as any });
