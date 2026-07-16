@@ -1,50 +1,40 @@
-## Goal
+## Plan
 
-Make `src/components/storm/StormSwathMap.tsx` self-healing so the map never gets stuck as a black canvas. No visual, data, or RPC changes.
+1. **Replace quick-jump controls with address search**
+   - Remove the USA / DFW / South Florida toggle buttons from the Storm Intelligence toolbar.
+   - Add the existing address autocomplete search to the toolbar.
+   - When an address is selected, fly the map directly to that location at house-level zoom and drop a marker.
+   - Keep manual map movement working normally after search.
 
-## Refactor
+2. **Use fixed data windows requested**
+   - Wind: always load the last 2 years of wind data and filter to numeric gust reports over 60 MPH.
+   - Hail: load hail swaths for dates in the last 60 days.
+   - Remove the user-facing wind duration dropdown and single event-date dropdown from this view.
 
-Restructure the map init effect around a single `initMap()` function plus an idempotent `setupLayers(map)` so every recovery path takes the exact same setup route.
+3. **Click a house / point for local storm history**
+   - When the user clicks the searched house marker or any map point, evaluate that lat/lng against the loaded storm layers.
+   - Show a popup with:
+     - Hail dates and hail-size bands from the last 60 days that intersect the clicked point.
+     - Wind gust reports over 60 MPH from the last 2 years near the clicked point, showing `wind_mph + " mph gust"`.
+   - If no matching records are found, show a concise “No matching hail or 60+ MPH wind found here” message in the popup.
 
-### 1. Init guard
-- Keep `mapRef` as the single source of truth (no `useState` for the map).
-- `initMap()` early-returns if `mapRef.current` is not null.
-- Effect cleanup: `map.remove(); mapRef.current = null; readyRef.current = false; setStyleReady(false);` so StrictMode's double mount re-inits cleanly.
+4. **Make map loading self-healing without changing visual styling**
+   - Keep one guarded Mapbox instance: only create when `mapRef.current` is null.
+   - Cleanup always removes the map and clears `mapRef.current` for reliable StrictMode remounts.
+   - Keep the 8-second load watchdog; if load does not fire, remove and retry once, then show a reload overlay.
+   - Keep all sources/layers/popups/data restoration in one idempotent setup function.
+   - Keep `ResizeObserver` calling `map.resize()`.
+   - Log Mapbox `error` events to `console.error`.
+   - Also fix the current `y is not defined` runtime error if it is coming from this storm map path.
 
-### 2. Load watchdog (8s, one auto-retry, then error UI)
-- Track `retryCountRef` (0 → 1 → give up).
-- On map creation start `setTimeout(8000)`.
-- On `map.on('load', …)` clear the timer.
-- On timeout: if `retryCountRef.current === 0`, `console.warn`, remove map, null the ref, bump counter, call `initMap()` again. If already retried, set `initError` state → renders overlay with message + "Reload map" button that resets `retryCountRef` and calls `initMap()`.
+5. **Verify behavior**
+   - On the preview storm page, confirm the map does not remain a black canvas.
+   - Search an address and confirm the map flies to the house marker.
+   - Click the marker/map point and confirm hail + 60+ MPH wind popup results render from the loaded data.
 
-### 3. WebGL context recovery
-- After `map.load`, attach `canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); … })`.
-- Handler: remove the map, null the ref, call `initMap()`. `setupLayers` re-adds everything from the current refs (`hailRef`, `windRef`, `terrRef`), so state fully restores.
-- Also handle `webglcontextrestored` as a no-op safety net (we already re-created).
+## Technical notes
 
-### 4. Idempotent `setupLayers(map)`
-- Extract the entire `map.on('load', …)` body (sources, layers, click/hover handlers, popup, `readyRef.current = true`, applying data from refs, `setStyleReady(true)`) into `function setupLayers(map)`.
-- Before adding each source/layer, check `map.getSource(id)` / `map.getLayer(id)` and skip if present — safe for repeated calls.
-- The load handler and every re-init path call `setupLayers(map)` from `map.on('load')` — never directly — so style is always ready first.
-
-### 5. Resize safety
-- Keep existing `ResizeObserver` on the container, calling `map.resize()`. Ensure it's disconnected on cleanup and re-attached inside `initMap()` (so re-created instances also get it). Track the observer in a ref for cleanup.
-
-### 6. Error logging
-- `map.on('error', (e) => console.error('[StormMap] map error:', e?.error ?? e));` inside `initMap()`, before `load`.
-
-## Overlay behavior (visual reuses existing overlay pattern)
-
-- Existing "Loading basemap…" overlay stays exactly as-is.
-- New `initError` state renders the same overlay pill styling with red text + a small `Button` labeled "Reload map" that: `setInitError(null); retryCountRef.current = 0; initMap();`.
-- No new colors, fonts, or layout changes.
-
-## Non-goals
-
-- No changes to hail/wind/territories RPC calls, query keys, staleTime.
-- No changes to legend, popup HTML, layer paint properties, auto-pan logic, or the quick-jump `flyTo` effect.
-- No changes outside `StormSwathMap.tsx`.
-
-## Verification
-
-After implementation, load the published `/storm-intelligence` preview via Playwright, confirm the basemap streets render, then simulate context loss with `map.getCanvas().getContext('webgl2').getExtension('WEBGL_lose_context').loseContext()` in devtools console and confirm the map self-recovers with swaths still visible.
+- This will mainly touch `src/routes/_app.storm-intelligence.tsx` and `src/components/storm/StormSwathMap.tsx`.
+- I will reuse the existing Mapbox-backed `AddressAutocomplete` component rather than adding a new geocoder.
+- For point-in-polygon / distance calculations, I’ll use small local helper functions unless a suitable dependency already exists, to avoid unnecessary package changes.
+- I will not change the existing storm RPC names or visual layer styling unless required to support the new 60-day / 2-year behavior.

@@ -9,23 +9,37 @@ import { stormSupabase } from "@/integrations/storm/client";
 
 type FC = { type: "FeatureCollection"; features: any[] };
 const EMPTY_FC: FC = { type: "FeatureCollection", features: [] };
+const HAIL_DAYS = 60;
+const WIND_HOURS = 17_520;
+const WIND_MIN_MPH = 60;
+const PROPERTY_WIND_RADIUS_MILES = 0.5;
+
+type SearchPoint = {
+  lng: number;
+  lat: number;
+  label: string;
+};
 
 interface Props {
-  eventDate: string | null;
-  windHours: number;
   center: [number, number];
   zoom?: number;
+  searchedPoint?: SearchPoint | null;
 }
 
-export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props) {
+export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props) {
   const { data: token, error: tokenError } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const popupRef = useRef<mapboxgl.Popup | null>(null);
   const readyRef = useRef(false);
   const hailRef = useRef<FC>(EMPTY_FC);
   const windRef = useRef<FC>(EMPTY_FC);
   const terrRef = useRef<FC>(EMPTY_FC);
-  const eventDateRef = useRef<string | null>(null);
+  const centerRef = useRef(center);
+  const zoomRef = useRef(zoom);
+  const searchedPointRef = useRef<SearchPoint | null>(searchedPoint);
+  const openPropertyPopupRef = useRef<((lng: number, lat: number, label?: string) => void) | null>(null);
   const [styleReady, setStyleReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const retryCountRef = useRef(0);
@@ -33,39 +47,71 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
   const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initMapRef = useRef<(() => void) | null>(null);
 
-  useEffect(() => { eventDateRef.current = eventDate; }, [eventDate]);
+  useEffect(() => {
+    centerRef.current = center;
+    zoomRef.current = zoom;
+  }, [center, zoom]);
 
   useEffect(() => {
     if (tokenError) toast.error(`Mapbox token: ${(tokenError as Error).message}`);
   }, [tokenError]);
 
-  const { data: hail = EMPTY_FC, isFetching: hailLoading } = useQuery({
-    queryKey: ["storm-swath", eventDate],
-    enabled: !!eventDate,
+  const { data: hailDates = [], isFetching: datesLoading } = useQuery({
+    queryKey: ["storm-swath-dates"],
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await stormSupabase.rpc("swath_geojson" as any, {
-        p_event_date: eventDate,
-        p_product: "MESH_Max_1440min",
-      });
+      const { data, error } = await stormSupabase.rpc("swath_dates" as any);
       if (error) {
-        toast.error(`swath_geojson: ${error.message}`);
+        toast.error(`swath_dates: ${error.message}`);
         throw error;
       }
-      return (data as FC) ?? EMPTY_FC;
+      const rows = (data ?? []) as any[];
+      const list = rows
+        .map((r) => (typeof r === "string" ? r : r?.event_date ?? r?.date))
+        .filter(Boolean) as string[];
+      return filterRecentDates(list, HAIL_DAYS);
+    },
+  });
+
+  const { data: hail = EMPTY_FC, isFetching: hailLoading } = useQuery({
+    queryKey: ["storm-swath-last-days", HAIL_DAYS, hailDates.join("|")],
+    enabled: hailDates.length > 0,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const featureGroups = await Promise.all(
+        hailDates.map(async (eventDate: string) => {
+          const { data, error } = await stormSupabase.rpc("swath_geojson" as any, {
+            p_event_date: eventDate,
+            p_product: "MESH_Max_1440min",
+          });
+          if (error) {
+            toast.error(`swath_geojson: ${error.message}`);
+            throw error;
+          }
+          const fc = (data as FC) ?? EMPTY_FC;
+          return (fc.features ?? []).map((feature) => ({
+            ...feature,
+            properties: {
+              ...(feature.properties ?? {}),
+              event_date: feature.properties?.event_date ?? eventDate,
+            },
+          }));
+        }),
+      );
+      return { type: "FeatureCollection", features: featureGroups.flat().filter(hasUsableGeometry) } as FC;
     },
   });
 
   const { data: wind = EMPTY_FC, isFetching: windLoading } = useQuery({
-    queryKey: ["storm-wind", windHours],
+    queryKey: ["storm-wind", WIND_HOURS, "gte", WIND_MIN_MPH],
     staleTime: 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await stormSupabase.rpc("wind_geojson" as any, { p_hours: windHours });
+      const { data, error } = await stormSupabase.rpc("wind_geojson" as any, { p_hours: WIND_HOURS });
       if (error) {
         toast.error(`wind_geojson: ${error.message}`);
         throw error;
       }
-      return (data as FC) ?? EMPTY_FC;
+      return filterWindOverMph((data as FC) ?? EMPTY_FC, WIND_MIN_MPH);
     },
   });
 
@@ -82,6 +128,33 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
     },
   });
 
+  openPropertyPopupRef.current = (lng: number, lat: number, label?: string) => {
+    const map = mapRef.current;
+    if (!map) return;
+    popupRef.current?.remove();
+    popupRef.current = new mapboxgl.Popup({ closeButton: true, closeOnClick: true })
+      .setLngLat([lng, lat])
+      .setHTML(buildPropertyPopupHtml(lng, lat, label, hailRef.current, windRef.current))
+      .addTo(map);
+  };
+
+  const syncSearchMarker = (map: mapboxgl.Map | null = mapRef.current) => {
+    markerRef.current?.remove();
+    markerRef.current = null;
+    const point = searchedPointRef.current;
+    if (!map || !point) return;
+
+    const marker = new mapboxgl.Marker({ color: "#3b82f6" })
+      .setLngLat([point.lng, point.lat])
+      .addTo(map);
+    marker.getElement().setAttribute("aria-label", "Selected address");
+    marker.getElement().addEventListener("click", (event) => {
+      event.stopPropagation();
+      openPropertyPopupRef.current?.(point.lng, point.lat, point.label);
+    });
+    markerRef.current = marker;
+  };
+
   // Init map (self-healing)
   useEffect(() => {
     if (!token) return;
@@ -95,6 +168,10 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
       }
       try { roRef.current?.disconnect(); } catch {}
       roRef.current = null;
+      markerRef.current?.remove();
+      markerRef.current = null;
+      popupRef.current?.remove();
+      popupRef.current = null;
       const m = mapRef.current;
       if (m) {
         try { m.remove(); } catch {}
@@ -231,11 +308,11 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
         const f = e.features?.[0];
         if (!f) return;
         const p: any = f.properties ?? {};
-        const dateStr = p.event_date ?? eventDateRef.current ?? "";
+        const dateStr = p.event_date ?? "";
         popup
           .setLngLat(e.lngLat)
           .setHTML(
-            `<div style="font-family:system-ui;font-size:12px;line-height:1.4"><b>Hail band ${p.band ?? ""}</b><br/>${p.min_in ?? "?"}–${p.max_in ?? "?"} in${dateStr ? `<br/><span style="opacity:0.7">${dateStr}</span>` : ""}</div>`,
+            `<div style="font-family:system-ui;font-size:12px;line-height:1.4"><b>Hail band ${escapeHtml(p.band ?? "")}</b><br/>${escapeHtml(p.min_in ?? "?")}–${escapeHtml(p.max_in ?? "?")} in${dateStr ? `<br/><span style="opacity:0.7">${escapeHtml(dateStr)}</span>` : ""}</div>`,
           )
           .addTo(map);
       });
@@ -247,7 +324,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
         popup
           .setLngLat(e.lngLat)
           .setHTML(
-            `<div style="font-family:system-ui;font-size:12px;line-height:1.4"><b>${mph}</b>${p.event_time ? `<br/><span style="opacity:0.7">${p.event_time}</span>` : ""}<br/><span style="opacity:0.6">LSR</span></div>`,
+            `<div style="font-family:system-ui;font-size:12px;line-height:1.4"><b>${escapeHtml(mph)}</b>${p.event_time ? `<br/><span style="opacity:0.7">${escapeHtml(p.event_time)}</span>` : ""}<br/><span style="opacity:0.6">LSR</span></div>`,
           )
           .addTo(map);
       });
@@ -256,9 +333,9 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
         const clusterId = features[0]?.properties?.cluster_id;
         const src = map.getSource("wind-lsr") as any;
         if (clusterId == null || !src?.getClusterExpansionZoom) return;
-        src.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
+        src.getClusterExpansionZoom(clusterId, (err: any, clusterZoom: number) => {
           if (err) return;
-          map.easeTo({ center: (features[0].geometry as any).coordinates, zoom });
+          map.easeTo({ center: (features[0].geometry as any).coordinates, zoom: clusterZoom });
         });
       });
       map.on("click", "wind-warning-fill", (e) => {
@@ -271,9 +348,16 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
         popup
           .setLngLat(e.lngLat)
           .setHTML(
-            `<div style="font-family:system-ui;font-size:12px;line-height:1.4"><b>Severe T-storm Warning</b><br/>${mphLine}${p.headline ? `<br/><span style="opacity:0.85">${p.headline}</span>` : ""}${p.event_time ? `<br/><span style="opacity:0.6">${p.event_time}</span>` : ""}</div>`,
+            `<div style="font-family:system-ui;font-size:12px;line-height:1.4"><b>Severe T-storm Warning</b><br/>${escapeHtml(mphLine)}${p.headline ? `<br/><span style="opacity:0.85">${escapeHtml(p.headline)}</span>` : ""}${p.event_time ? `<br/><span style="opacity:0.6">${escapeHtml(p.event_time)}</span>` : ""}</div>`,
           )
           .addTo(map);
+      });
+      map.on("click", (e) => {
+        const hits = map.queryRenderedFeatures(e.point, {
+          layers: ["hail-fill", "wind-lsr-points", "wind-lsr-clusters", "wind-warning-fill"],
+        });
+        if (hits.length > 0) return;
+        openPropertyPopupRef.current?.(e.lngLat.lng, e.lngLat.lat);
       });
       for (const layer of ["hail-fill", "wind-lsr-points", "wind-lsr-clusters", "wind-warning-fill"]) {
         map.on("mouseenter", layer, () => (map.getCanvas().style.cursor = "pointer"));
@@ -284,6 +368,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
       (map.getSource("territories") as mapboxgl.GeoJSONSource | undefined)?.setData(terrRef.current as any);
       (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hailRef.current as any);
       applyWind(map, windRef.current);
+      syncSearchMarker(map);
       setStyleReady(true);
     };
 
@@ -298,8 +383,8 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
         map = new mapboxgl.Map({
           container: c,
           style: "mapbox://styles/mapbox/dark-v11",
-          center,
-          zoom,
+          center: centerRef.current,
+          zoom: zoomRef.current,
         });
       } catch (err) {
         console.error("[StormMap] failed to construct map:", err);
@@ -377,20 +462,15 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
     (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hail as any);
-    if (!eventDate) return;
-    const bounds = computeBounds(hail);
-    if (bounds) {
-      map.fitBounds(bounds, { padding: 40, maxZoom: 8, duration: 900, essential: true });
-    } else {
-      toast("No hail recorded for this date");
-    }
-  }, [hail, eventDate]);
+  }, [hail]);
+
   useEffect(() => {
     windRef.current = wind;
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
     applyWind(map, wind);
   }, [wind]);
+
   useEffect(() => {
     terrRef.current = territories;
     const map = mapRef.current;
@@ -399,14 +479,22 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
   }, [territories]);
 
   useEffect(() => {
+    searchedPointRef.current = searchedPoint;
     const map = mapRef.current;
-    if (!map) return;
+    syncSearchMarker(map);
+    if (!map || !searchedPoint) return;
+    map.flyTo({ center: [searchedPoint.lng, searchedPoint.lat], zoom, essential: true });
+  }, [searchedPoint, zoom]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || searchedPoint) return;
     map.flyTo({ center, zoom, essential: true });
-  }, [center[0], center[1], zoom]);
+  }, [center, zoom, searchedPoint]);
 
   const hasHail = (hail?.features?.length ?? 0) > 0;
   const windCount = wind?.features?.length ?? 0;
-  const dataLoading = hailLoading || windLoading || terrLoading;
+  const dataLoading = datesLoading || hailLoading || windLoading || terrLoading;
   const showOverlay = !token || !styleReady || dataLoading;
   const overlayLabel = !token
     ? "Authorizing map…"
@@ -490,17 +578,12 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
             </div>
           ))}
         </div>
-        {!hasHail && eventDate && (
+        {!hasHail && (
           <div className="mt-2 italic" style={{ color: "var(--text-muted)" }}>
-            No hail features for {eventDate}
+            No hail features in last {HAIL_DAYS} days
           </div>
         )}
-        {!eventDate && (
-          <div className="mt-2 italic" style={{ color: "var(--text-muted)" }}>
-            No hail dates yet
-          </div>
-        )}
-        <div className="mt-3 mb-1 font-semibold text-foreground">Wind ({windCount})</div>
+        <div className="mt-3 mb-1 font-semibold text-foreground">Wind {WIND_MIN_MPH}+ MPH ({windCount})</div>
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span
@@ -549,24 +632,146 @@ function applyWind(map: mapboxgl.Map, wind: FC) {
   } as any);
 }
 
-function computeBounds(fc: FC): [[number, number], [number, number]] | null {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  const visit = (coords: any) => {
-    if (typeof coords[0] === "number") {
-      const [x, y] = coords;
-      if (x < minX) minX = x;
-      if (y < minY) minY = y;
-      if (x > maxX) maxX = x;
-      if (y > maxY) maxY = y;
-    } else {
-      for (const c of coords) visit(c);
-    }
+function filterRecentDates(dates: string[], days: number) {
+  const cutoff = new Date();
+  cutoff.setUTCHours(0, 0, 0, 0);
+  cutoff.setUTCDate(cutoff.getUTCDate() - days);
+  return dates
+    .filter((date) => {
+      const parsed = parseDateOnly(date);
+      return parsed ? parsed >= cutoff : false;
+    })
+    .sort()
+    .reverse();
+}
+
+function filterWindOverMph(fc: FC, minMph: number): FC {
+  return {
+    type: "FeatureCollection",
+    features: (fc.features ?? []).filter((feature) => {
+      if (!hasUsableGeometry(feature)) return false;
+      const mph = Number(feature?.properties?.wind_mph);
+      return Number.isFinite(mph) && mph >= minMph;
+    }),
   };
-  for (const f of fc.features ?? []) {
-    const g = f?.geometry;
-    if (!g?.coordinates) continue;
-    visit(g.coordinates);
+}
+
+function buildPropertyPopupHtml(lng: number, lat: number, label: string | undefined, hail: FC, wind: FC) {
+  const hailHits = (hail.features ?? [])
+    .filter((feature) => geometryContainsPoint(feature.geometry, lng, lat))
+    .map((feature) => feature.properties ?? {})
+    .sort((a, b) => String(b.event_date ?? "").localeCompare(String(a.event_date ?? "")));
+
+  const windHits = (wind.features ?? [])
+    .filter((feature) => windFeatureMatchesPoint(feature, lng, lat))
+    .map((feature) => feature.properties ?? {})
+    .sort((a, b) => String(b.event_time ?? b.event_date ?? "").localeCompare(String(a.event_time ?? a.event_date ?? "")))
+    .slice(0, 12);
+
+  const hailRows = hailHits.length > 0
+    ? hailHits.slice(0, 12).map((p) => {
+      const size = p.min_in != null && p.max_in != null
+        ? `${p.min_in}–${p.max_in} in`
+        : p.band ?? "Hail swath";
+      return `<li><b>${escapeHtml(p.event_date ?? "Recent hail")}</b>: ${escapeHtml(size)}</li>`;
+    }).join("")
+    : `<li style="opacity:0.7">No hail swaths intersect this point in the last ${HAIL_DAYS} days.</li>`;
+
+  const windRows = windHits.length > 0
+    ? windHits.map((p) => {
+      const time = p.event_time ?? p.event_date ?? "Recent wind";
+      const headline = p.headline ? ` — ${p.headline}` : "";
+      return `<li><b>${escapeHtml(p.wind_mph)} mph gust</b><br/><span style="opacity:0.72">${escapeHtml(time)}${escapeHtml(headline)}</span></li>`;
+    }).join("")
+    : `<li style="opacity:0.7">No ${WIND_MIN_MPH}+ MPH wind reports found within ${PROPERTY_WIND_RADIUS_MILES} mi.</li>`;
+
+  const empty = hailHits.length === 0 && windHits.length === 0
+    ? `<div style="margin-top:8px;border-top:1px solid rgba(148,163,184,0.25);padding-top:8px;color:#94a3b8">No matching hail or ${WIND_MIN_MPH}+ MPH wind found here.</div>`
+    : "";
+
+  return `
+    <div style="font-family:system-ui;font-size:12px;line-height:1.4;max-width:290px">
+      <b>${escapeHtml(label ?? "Selected location")}</b>
+      <div style="opacity:0.62;margin-top:2px">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
+      <div style="margin-top:10px;font-weight:700">Hail — last ${HAIL_DAYS} days</div>
+      <ul style="margin:4px 0 0 16px;padding:0">${hailRows}</ul>
+      <div style="margin-top:10px;font-weight:700">Wind — last 2 years</div>
+      <ul style="margin:4px 0 0 16px;padding:0">${windRows}</ul>
+      ${empty}
+    </div>
+  `;
+}
+
+function windFeatureMatchesPoint(feature: any, lng: number, lat: number) {
+  const geometry = feature?.geometry;
+  if (!geometry) return false;
+  if (geometry.type === "Point") {
+    return haversineMiles(lng, lat, geometry.coordinates?.[0], geometry.coordinates?.[1]) <= PROPERTY_WIND_RADIUS_MILES;
   }
-  if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY)) return null;
-  return [[minX, minY], [maxX, maxY]];
+  if (geometry.type === "MultiPoint") {
+    return (geometry.coordinates ?? []).some((coord: any) => haversineMiles(lng, lat, coord?.[0], coord?.[1]) <= PROPERTY_WIND_RADIUS_MILES);
+  }
+  return geometryContainsPoint(geometry, lng, lat);
+}
+
+function geometryContainsPoint(geometry: any, lng: number, lat: number): boolean {
+  if (!geometry?.coordinates) return false;
+  if (geometry.type === "Polygon") return polygonContainsPoint(geometry.coordinates, lng, lat);
+  if (geometry.type === "MultiPolygon") {
+    return geometry.coordinates.some((polygon: any) => polygonContainsPoint(polygon, lng, lat));
+  }
+  return false;
+}
+
+function polygonContainsPoint(rings: any[], lng: number, lat: number) {
+  if (!rings?.[0] || !ringContainsPoint(rings[0], lng, lat)) return false;
+  for (let i = 1; i < rings.length; i += 1) {
+    if (ringContainsPoint(rings[i], lng, lat)) return false;
+  }
+  return true;
+}
+
+function ringContainsPoint(ring: any[], lng: number, lat: number) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const xi = Number(ring[i]?.[0]);
+    const yi = Number(ring[i]?.[1]);
+    const xj = Number(ring[j]?.[0]);
+    const yj = Number(ring[j]?.[1]);
+    if (![xi, yi, xj, yj].every(Number.isFinite)) continue;
+    const intersects = yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function haversineMiles(lng1: number, lat1: number, lng2: number, lat2: number) {
+  if (![lng1, lat1, lng2, lat2].every(Number.isFinite)) return Infinity;
+  const toRad = (n: number) => (n * Math.PI) / 180;
+  const earthMiles = 3958.8;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * earthMiles * Math.asin(Math.sqrt(a));
+}
+
+function parseDateOnly(date: string) {
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(date)
+    ? new Date(`${date}T00:00:00Z`)
+    : new Date(date);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function hasUsableGeometry(feature: any) {
+  return !!feature?.geometry?.type && feature.geometry.coordinates != null;
+}
+
+function escapeHtml(value: unknown) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
