@@ -450,3 +450,25 @@ function applyWind(map: mapboxgl.Map, wind: FC) {
     features: lsr,
   } as any);
 }
+
+function computeBounds(fc: FC): [[number, number], [number, number]] | null {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const visit = (coords: any) => {
+    if (typeof coords[0] === "number") {
+      const [x, y] = coords;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    } else {
+      for (const c of coords) visit(c);
+    }
+  };
+  for (const f of fc.features ?? []) {
+    const g = f?.geometry;
+    if (!g?.coordinates) continue;
+    visit(g.coordinates);
+  }
+  if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY)) return null;
+  return [[minX, minY], [maxX, maxY]];
+}
