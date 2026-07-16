@@ -227,10 +227,11 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
         const f = e.features?.[0];
         if (!f) return;
         const p: any = f.properties ?? {};
+        const dateStr = p.event_date ?? eventDate ?? "";
         popup
           .setLngLat(e.lngLat)
           .setHTML(
-            `<div style="font-family:system-ui;font-size:12px"><b>Hail band ${p.band ?? ""}</b><br/>${p.min_in ?? "?"}–${p.max_in ?? "?"} in</div>`,
+            `<div style="font-family:system-ui;font-size:12px;line-height:1.4"><b>Hail band ${p.band ?? ""}</b><br/>${p.min_in ?? "?"}–${p.max_in ?? "?"} in${dateStr ? `<br/><span style="opacity:0.7">${dateStr}</span>` : ""}</div>`,
           )
           .addTo(map);
       });

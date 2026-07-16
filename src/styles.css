@@ -467,3 +467,18 @@
 }
 [data-rk] .rk-subnav-link:hover { background: var(--rk-panel-2); color: var(--rk-ink); }
 [data-rk] .rk-subnav-link.is-active { background: var(--rk-panel-2); color: var(--rk-ink); border: 1px solid var(--rk-line-2); }
+
+/* Mapbox popup — dark theme override */
+.mapboxgl-popup-content {
+  background: hsl(222 15% 12%);
+  color: hsl(0 0% 95%);
+  border: 1px solid hsl(222 10% 25%);
+  border-radius: 8px;
+}
+.mapboxgl-popup-tip {
+  border-top-color: hsl(222 15% 12%) !important;
+  border-bottom-color: hsl(222 15% 12%) !important;
+}
+.mapboxgl-popup-close-button {
+  color: hsl(0 0% 70%);
+}
