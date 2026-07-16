@@ -22,7 +22,13 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const readyRef = useRef(false);
+  const hailRef = useRef<FC>(EMPTY_FC);
+  const windRef = useRef<FC>(EMPTY_FC);
+  const terrRef = useRef<FC>(EMPTY_FC);
+  const eventDateRef = useRef<string | null>(null);
   const [styleReady, setStyleReady] = useState(false);
+
+  useEffect(() => { eventDateRef.current = eventDate; }, [eventDate]);
 
   useEffect(() => {
     if (tokenError) toast.error(`Mapbox token: ${(tokenError as Error).message}`);
@@ -227,7 +233,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
         const f = e.features?.[0];
         if (!f) return;
         const p: any = f.properties ?? {};
-        const dateStr = p.event_date ?? eventDate ?? "";
+        const dateStr = p.event_date ?? eventDateRef.current ?? "";
         popup
           .setLngLat(e.lngLat)
           .setHTML(
@@ -239,10 +245,11 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
         const f = e.features?.[0];
         if (!f) return;
         const p: any = f.properties ?? {};
+        const mph = p.wind_mph != null ? `${p.wind_mph} mph gust` : "Gust report";
         popup
           .setLngLat(e.lngLat)
           .setHTML(
-            `<div style="font-family:system-ui;font-size:12px"><b>Gust ${p.wind_mph ?? "?"} mph</b><br/>${p.event_time ?? ""}<br/><span style="color:#666">LSR</span></div>`,
+            `<div style="font-family:system-ui;font-size:12px;line-height:1.4"><b>${mph}</b>${p.event_time ? `<br/><span style="opacity:0.7">${p.event_time}</span>` : ""}<br/><span style="opacity:0.6">LSR</span></div>`,
           )
           .addTo(map);
       });
@@ -260,10 +267,13 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
         const f = e.features?.[0];
         if (!f) return;
         const p: any = f.properties ?? {};
+        const mphLine = p.wind_mph != null
+          ? `${p.wind_mph} mph gust reported`
+          : "Capable of 58+ mph winds";
         popup
           .setLngLat(e.lngLat)
           .setHTML(
-            `<div style="font-family:system-ui;font-size:12px"><b>Severe T-storm Warning</b><br/>${p.headline ?? p.area ?? ""}</div>`,
+            `<div style="font-family:system-ui;font-size:12px;line-height:1.4"><b>Severe T-storm Warning</b><br/>${mphLine}${p.headline ? `<br/><span style="opacity:0.85">${p.headline}</span>` : ""}${p.event_time ? `<br/><span style="opacity:0.6">${p.event_time}</span>` : ""}</div>`,
           )
           .addTo(map);
       });
@@ -273,10 +283,12 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
       }
 
       readyRef.current = true;
+      // Apply latest data from refs (not closure) to survive races where
+      // queries resolve before "load" fires.
+      (map.getSource("territories") as mapboxgl.GeoJSONSource | undefined)?.setData(terrRef.current as any);
+      (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hailRef.current as any);
+      applyWind(map, windRef.current);
       setStyleReady(true);
-      (map.getSource("territories") as mapboxgl.GeoJSONSource | undefined)?.setData(territories as any);
-      (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hail as any);
-      applyWind(map, wind);
     });
 
     return () => {
@@ -291,16 +303,19 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
   }, [token]);
 
   useEffect(() => {
+    hailRef.current = hail;
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
     (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hail as any);
   }, [hail]);
   useEffect(() => {
+    windRef.current = wind;
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
     applyWind(map, wind);
   }, [wind]);
   useEffect(() => {
+    terrRef.current = territories;
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
     (map.getSource("territories") as mapboxgl.GeoJSONSource | undefined)?.setData(territories as any);
