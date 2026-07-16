@@ -307,7 +307,14 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
     (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hail as any);
-  }, [hail]);
+    if (!eventDate) return;
+    const bounds = computeBounds(hail);
+    if (bounds) {
+      map.fitBounds(bounds, { padding: 40, maxZoom: 8, duration: 900, essential: true });
+    } else {
+      toast("No hail recorded for this date");
+    }
+  }, [hail, eventDate]);
   useEffect(() => {
     windRef.current = wind;
     const map = mapRef.current;
