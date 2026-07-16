@@ -22,6 +22,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const readyRef = useRef(false);
+  const [styleReady, setStyleReady] = useState(false);
 
   useEffect(() => {
     if (tokenError) toast.error(`Mapbox token: ${(tokenError as Error).message}`);
