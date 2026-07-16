@@ -82,11 +82,6 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
     },
   });
 
-  // Init map
-  useEffect(() => {
-    if (!token) return;
-    const container = containerRef.current;
-    if (!container) return;
   // Init map (self-healing)
   useEffect(() => {
     if (!token) return;
