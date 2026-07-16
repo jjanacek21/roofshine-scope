@@ -15,6 +15,32 @@ const WIND_MIN_MPH = 60;
 const PROPERTY_WIND_RADIUS_MILES = 0.5;
 const HAIL_LOAD_CONCURRENCY = 4;
 const HAIL_DATE_TIMEOUT_MS = 8_000;
+const MAP_READY_TIMEOUT_MS = 2_500;
+
+const SAFE_BASE_STYLE = {
+  version: 8,
+  sources: {
+    "osm-raster": {
+      type: "raster",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      attribution: "© OpenStreetMap contributors",
+    },
+  },
+  layers: [
+    {
+      id: "osm-raster",
+      type: "raster",
+      source: "osm-raster",
+      paint: {
+        "raster-brightness-min": 0.08,
+        "raster-brightness-max": 0.58,
+        "raster-saturation": -0.65,
+        "raster-contrast": 0.15,
+      },
+    },
+  ],
+} as const;
 
 type SearchPoint = {
   lng: number;
@@ -47,6 +73,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const retryCountRef = useRef(0);
   const roRef = useRef<ResizeObserver | null>(null);
   const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const readyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initMapRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -149,6 +176,10 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         clearTimeout(watchdogRef.current);
         watchdogRef.current = null;
       }
+      if (readyTimerRef.current) {
+        clearTimeout(readyTimerRef.current);
+        readyTimerRef.current = null;
+      }
       try { roRef.current?.disconnect(); } catch {}
       roRef.current = null;
       markerRef.current?.remove();
@@ -165,6 +196,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     };
 
     const setupLayers = (map: mapboxgl.Map) => {
+      if (readyRef.current) return;
       const addSrc = (id: string, cfg: any) => {
         if (!map.getSource(id)) map.addSource(id, cfg);
       };
@@ -363,9 +395,10 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       try {
         map = new mapboxgl.Map({
           container: c,
-          style: "mapbox://styles/mapbox/dark-v11",
+          style: SAFE_BASE_STYLE as any,
           center: centerRef.current,
           zoom: zoomRef.current,
+          attributionControl: true,
         });
       } catch (err) {
         console.error("[StormMap] failed to construct map:", err);
@@ -389,6 +422,35 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         console.error("[StormMap] map error:", e?.error ?? e);
       });
 
+      const markReady = () => {
+        if (readyTimerRef.current) {
+          clearTimeout(readyTimerRef.current);
+          readyTimerRef.current = null;
+        }
+        if (watchdogRef.current) {
+          clearTimeout(watchdogRef.current);
+          watchdogRef.current = null;
+        }
+        try {
+          setupLayers(map);
+        } catch (err) {
+          console.error("[StormMap] setupLayers failed:", err);
+          setInitError("Map failed to load");
+        }
+      };
+
+      const scheduleReadyFallback = () => {
+        if (readyTimerRef.current || readyRef.current) return;
+        readyTimerRef.current = setTimeout(() => {
+          if (readyRef.current) return;
+          try {
+            if (map.isStyleLoaded() || map.loaded()) markReady();
+          } catch (err) {
+            console.error("[StormMap] readiness fallback failed:", err);
+          }
+        }, MAP_READY_TIMEOUT_MS);
+      };
+
       watchdogRef.current = setTimeout(() => {
         if (readyRef.current) return;
         if (retryCountRef.current === 0) {
@@ -403,17 +465,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         }
       }, 8000);
 
-      map.on("load", () => {
-        if (watchdogRef.current) {
-          clearTimeout(watchdogRef.current);
-          watchdogRef.current = null;
-        }
-        try {
-          setupLayers(map);
-        } catch (err) {
-          console.error("[StormMap] setupLayers failed:", err);
-        }
-
+      const attachWebglRecovery = () => {
         const canvas = map.getCanvas();
         const onLost = (ev: Event) => {
           ev.preventDefault();
@@ -425,6 +477,22 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         canvas.addEventListener("webglcontextrestored", () => {
           console.warn("[StormMap] WebGL context restored");
         });
+      };
+
+      map.once("style.load", markReady);
+      map.once("load", markReady);
+      map.once("idle", markReady);
+      map.on("styledata", scheduleReadyFallback);
+      attachWebglRecovery();
+
+      requestAnimationFrame(() => {
+        try {
+          if (map.isStyleLoaded() || map.loaded()) markReady();
+          else scheduleReadyFallback();
+        } catch (err) {
+          console.error("[StormMap] initial readiness check failed:", err);
+          scheduleReadyFallback();
+        }
       });
     };
 
