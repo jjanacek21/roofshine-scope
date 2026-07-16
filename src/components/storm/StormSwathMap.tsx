@@ -45,7 +45,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
     },
   });
 
-  const { data: wind = EMPTY_FC } = useQuery({
+  const { data: wind = EMPTY_FC, isFetching: windLoading } = useQuery({
     queryKey: ["storm-wind", windHours],
     staleTime: 60 * 1000,
     queryFn: async () => {
