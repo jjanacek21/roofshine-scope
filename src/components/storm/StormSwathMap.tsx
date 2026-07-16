@@ -78,26 +78,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     enabled: hailDates.length > 0,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const featureGroups = await Promise.all(
-        hailDates.map(async (eventDate: string) => {
-          const { data, error } = await stormSupabase.rpc("swath_geojson" as any, {
-            p_event_date: eventDate,
-            p_product: "MESH_Max_1440min",
-          });
-          if (error) {
-            toast.error(`swath_geojson: ${error.message}`);
-            throw error;
-          }
-          const fc = (data as FC) ?? EMPTY_FC;
-          return (fc.features ?? []).map((feature) => ({
-            ...feature,
-            properties: {
-              ...(feature.properties ?? {}),
-              event_date: feature.properties?.event_date ?? eventDate,
-            },
-          }));
-        }),
-      );
+      const featureGroups = await loadHailFeatureGroups(hailDates);
       return { type: "FeatureCollection", features: featureGroups.flat().filter(hasUsableGeometry) } as FC;
     },
   });
@@ -652,6 +633,37 @@ function filterWindOverMph(fc: FC, minMph: number): FC {
       return Number.isFinite(mph) && mph >= minMph;
     }),
   };
+}
+
+async function loadHailFeatureGroups(hailDates: string[]) {
+  const groups: any[][] = [];
+  let failures = 0;
+
+  for (const eventDate of hailDates) {
+    const { data, error } = await stormSupabase.rpc("swath_geojson" as any, {
+      p_event_date: eventDate,
+      p_product: "MESH_Max_1440min",
+    });
+    if (error) {
+      failures += 1;
+      console.error(`[StormMap] swath_geojson failed for ${eventDate}:`, error);
+      continue;
+    }
+    const fc = (data as FC) ?? EMPTY_FC;
+    groups.push((fc.features ?? []).map((feature) => ({
+      ...feature,
+      properties: {
+        ...(feature.properties ?? {}),
+        event_date: feature.properties?.event_date ?? eventDate,
+      },
+    })));
+  }
+
+  if (failures > 0) {
+    toast.error(`Skipped ${failures} slow hail date${failures === 1 ? "" : "s"}`);
+  }
+
+  return groups;
 }
 
 function buildPropertyPopupHtml(lng: number, lat: number, label: string | undefined, hail: FC, wind: FC) {
