@@ -17,6 +17,23 @@ const HAIL_LOAD_CONCURRENCY = 4;
 const HAIL_DATE_TIMEOUT_MS = 8_000;
 const MAP_READY_TIMEOUT_MS = 2_500;
 
+// Severity thresholds for "bad storm" highlighting
+const BAD_HAIL_IN = 2.0;
+const BAD_WIND_MPH = 75;
+
+type RangeKey = "24h" | "72h" | "1w" | "1mo" | "3mo" | "6mo" | "1y" | "2y";
+const RANGE_OPTIONS: { key: RangeKey; label: string; hours: number }[] = [
+  { key: "24h", label: "24 hours", hours: 24 },
+  { key: "72h", label: "72 hours", hours: 72 },
+  { key: "1w", label: "1 week", hours: 24 * 7 },
+  { key: "1mo", label: "1 month", hours: 24 * 30 },
+  { key: "3mo", label: "3 months", hours: 24 * 90 },
+  { key: "6mo", label: "6 months", hours: 24 * 180 },
+  { key: "1y", label: "1 year", hours: 24 * 365 },
+  { key: "2y", label: "2 years", hours: 24 * 730 },
+];
+const rangeHours = (k: RangeKey) => RANGE_OPTIONS.find((r) => r.key === k)?.hours ?? 24 * 730;
+
 const SAFE_BASE_STYLE = {
   version: 8,
   sources: {
