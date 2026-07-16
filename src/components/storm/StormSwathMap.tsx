@@ -58,7 +58,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
     },
   });
 
-  const { data: territories = EMPTY_FC } = useQuery({
+  const { data: territories = EMPTY_FC, isFetching: terrLoading } = useQuery({
     queryKey: ["storm-territories"],
     staleTime: 60 * 60 * 1000,
     queryFn: async () => {
