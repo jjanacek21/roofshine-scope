@@ -259,10 +259,33 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         },
       });
       addLyr({
+        id: "hail-bad-outline",
+        type: "line",
+        source: "hail",
+        filter: [">=", ["coalesce", ["to-number", ["get", "max_in"]], 0], BAD_HAIL_IN],
+        paint: {
+          "line-color": "#ff2d55",
+          "line-width": 2.5,
+          "line-opacity": 0.95,
+          "line-blur": 0.5,
+        },
+      });
+      addLyr({
         id: "wind-warning-fill",
         type: "fill",
         source: "wind-warnings",
         paint: { "fill-color": "#2563eb", "fill-opacity": 0.12 },
+      });
+      addLyr({
+        id: "wind-warning-line",
+        type: "line",
+        source: "wind-warnings",
+        paint: {
+          "line-color": "#2563eb",
+          "line-width": 1.5,
+          "line-dasharray": [2, 2],
+          "line-opacity": 0.9,
+        },
       });
       addLyr({
         id: "wind-warning-line",
