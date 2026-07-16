@@ -27,6 +27,11 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
   const terrRef = useRef<FC>(EMPTY_FC);
   const eventDateRef = useRef<string | null>(null);
   const [styleReady, setStyleReady] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
+  const retryCountRef = useRef(0);
+  const roRef = useRef<ResizeObserver | null>(null);
+  const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initMapRef = useRef<(() => void) | null>(null);
 
   useEffect(() => { eventDateRef.current = eventDate; }, [eventDate]);
 
