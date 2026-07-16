@@ -618,6 +618,49 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
+      <div
+        className="absolute top-4 left-4 z-10 flex flex-col gap-2 rounded-lg border p-3 text-[11px] shadow-lg"
+        style={{
+          borderColor: "var(--border)",
+          backgroundColor: "rgba(10,10,11,0.85)",
+          color: "var(--text-dim)",
+          minWidth: 180,
+        }}
+      >
+        <label className="font-semibold text-foreground" htmlFor="storm-range">
+          Time range
+        </label>
+        <select
+          id="storm-range"
+          value={rangeKey}
+          onChange={(e) => setRangeKey(e.target.value as RangeKey)}
+          className="rounded-md border bg-transparent px-2 py-1 text-xs"
+          style={{ borderColor: "var(--border)", color: "var(--text)" }}
+        >
+          {RANGE_OPTIONS.map((r) => (
+            <option key={r.key} value={r.key} style={{ background: "#0a0a0b" }}>
+              Last {r.label}
+            </option>
+          ))}
+        </select>
+        <div className="flex items-center justify-between gap-2 pt-1" style={{ borderTop: "1px solid var(--border)" }}>
+          <span>Hail swaths</span>
+          <span className="font-mono text-foreground">{filteredHailCount}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span>Wind {WIND_MIN_MPH}+ mph</span>
+          <span className="font-mono text-foreground">{filteredWindCount}</span>
+        </div>
+        {(badHailCount + badWindCount) > 0 && (
+          <div
+            className="flex items-center justify-between gap-2 rounded-md px-2 py-1"
+            style={{ background: "rgba(255,45,85,0.12)", color: "#ff2d55" }}
+          >
+            <span className="font-semibold">⚠ Severe storms</span>
+            <span className="font-mono">{badHailCount + badWindCount}</span>
+          </div>
+        )}
+      </div>
       {initError ? (
         <div
           className="absolute inset-0 z-20 flex items-center justify-center"
