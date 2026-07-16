@@ -307,7 +307,14 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
     (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hail as any);
-  }, [hail]);
+    if (!eventDate) return;
+    const bounds = computeBounds(hail);
+    if (bounds) {
+      map.fitBounds(bounds, { padding: 40, maxZoom: 8, duration: 900, essential: true });
+    } else {
+      toast("No hail recorded for this date");
+    }
+  }, [hail, eventDate]);
   useEffect(() => {
     windRef.current = wind;
     const map = mapRef.current;
@@ -442,4 +449,26 @@ function applyWind(map: mapboxgl.Map, wind: FC) {
     type: "FeatureCollection",
     features: lsr,
   } as any);
+}
+
+function computeBounds(fc: FC): [[number, number], [number, number]] | null {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const visit = (coords: any) => {
+    if (typeof coords[0] === "number") {
+      const [x, y] = coords;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    } else {
+      for (const c of coords) visit(c);
+    }
+  };
+  for (const f of fc.features ?? []) {
+    const g = f?.geometry;
+    if (!g?.coordinates) continue;
+    visit(g.coordinates);
+  }
+  if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY)) return null;
+  return [[minX, minY], [maxX, maxY]];
 }
