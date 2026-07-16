@@ -17,6 +17,23 @@ const HAIL_LOAD_CONCURRENCY = 4;
 const HAIL_DATE_TIMEOUT_MS = 8_000;
 const MAP_READY_TIMEOUT_MS = 2_500;
 
+// Severity thresholds for "bad storm" highlighting
+const BAD_HAIL_IN = 2.0;
+const BAD_WIND_MPH = 75;
+
+type RangeKey = "24h" | "72h" | "1w" | "1mo" | "3mo" | "6mo" | "1y" | "2y";
+const RANGE_OPTIONS: { key: RangeKey; label: string; hours: number }[] = [
+  { key: "24h", label: "24 hours", hours: 24 },
+  { key: "72h", label: "72 hours", hours: 72 },
+  { key: "1w", label: "1 week", hours: 24 * 7 },
+  { key: "1mo", label: "1 month", hours: 24 * 30 },
+  { key: "3mo", label: "3 months", hours: 24 * 90 },
+  { key: "6mo", label: "6 months", hours: 24 * 180 },
+  { key: "1y", label: "1 year", hours: 24 * 365 },
+  { key: "2y", label: "2 years", hours: 24 * 730 },
+];
+const rangeHours = (k: RangeKey) => RANGE_OPTIONS.find((r) => r.key === k)?.hours ?? 24 * 730;
+
 const SAFE_BASE_STYLE = {
   version: 8,
   sources: {
@@ -70,6 +87,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const openPropertyPopupRef = useRef<((lng: number, lat: number, label?: string) => void) | null>(null);
   const [styleReady, setStyleReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  const [rangeKey, setRangeKey] = useState<RangeKey>("2y");
   const retryCountRef = useRef(0);
   const roRef = useRef<ResizeObserver | null>(null);
   const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -241,6 +259,18 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         },
       });
       addLyr({
+        id: "hail-bad-outline",
+        type: "line",
+        source: "hail",
+        filter: [">=", ["coalesce", ["to-number", ["get", "max_in"]], 0], BAD_HAIL_IN],
+        paint: {
+          "line-color": "#ff2d55",
+          "line-width": 2.5,
+          "line-opacity": 0.95,
+          "line-blur": 0.5,
+        },
+      });
+      addLyr({
         id: "wind-warning-fill",
         type: "fill",
         source: "wind-warnings",
@@ -315,6 +345,32 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           "circle-opacity": 0.9,
         },
       });
+      addLyr({
+        id: "wind-lsr-bad-halo",
+        type: "circle",
+        source: "wind-lsr",
+        filter: [
+          "all",
+          ["!", ["has", "point_count"]],
+          [">=", ["coalesce", ["to-number", ["get", "wind_mph"]], 0], BAD_WIND_MPH],
+        ],
+        paint: {
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["coalesce", ["to-number", ["get", "wind_mph"]], 75],
+            75, 12,
+            100, 18,
+            130, 26,
+          ],
+          "circle-color": "#ff2d55",
+          "circle-opacity": 0.28,
+          "circle-stroke-color": "#ff2d55",
+          "circle-stroke-width": 2,
+          "circle-stroke-opacity": 0.9,
+        },
+      });
+
 
       const popup = new mapboxgl.Popup({ closeButton: true, closeOnClick: true });
       map.on("click", "hail-fill", (e) => {
@@ -505,18 +561,20 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   }, [token]);
 
   useEffect(() => {
-    hailRef.current = hail;
+    const filtered = filterHailByHours(hail, rangeHours(rangeKey));
+    hailRef.current = filtered;
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
-    (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hail as any);
-  }, [hail]);
+    (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(filtered as any);
+  }, [hail, rangeKey]);
 
   useEffect(() => {
-    windRef.current = wind;
+    const filtered = filterWindByHours(wind, rangeHours(rangeKey));
+    windRef.current = filtered;
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
-    applyWind(map, wind);
-  }, [wind]);
+    applyWind(map, filtered);
+  }, [wind, rangeKey]);
 
   useEffect(() => {
     terrRef.current = territories;
@@ -539,8 +597,16 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     map.flyTo({ center, zoom, essential: true });
   }, [center, zoom, searchedPoint]);
 
-  const hasHail = (hail?.features?.length ?? 0) > 0;
-  const windCount = wind?.features?.length ?? 0;
+  const filteredHailCount = hailRef.current?.features?.length ?? 0;
+  const filteredWindCount = windRef.current?.features?.length ?? 0;
+  const badHailCount = (hailRef.current?.features ?? []).filter(
+    (f: any) => Number(f?.properties?.max_in) >= BAD_HAIL_IN,
+  ).length;
+  const badWindCount = (windRef.current?.features ?? []).filter(
+    (f: any) => Number(f?.properties?.wind_mph) >= BAD_WIND_MPH,
+  ).length;
+  const hasHail = filteredHailCount > 0;
+  const windCount = filteredWindCount;
   const dataLoading = datesLoading || hailLoading || windLoading || terrLoading;
   const showOverlay = !token || !styleReady || dataLoading;
   const overlayLabel = !token
@@ -552,6 +618,49 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
+      <div
+        className="absolute top-4 left-4 z-10 flex flex-col gap-2 rounded-lg border p-3 text-[11px] shadow-lg"
+        style={{
+          borderColor: "var(--border)",
+          backgroundColor: "rgba(10,10,11,0.85)",
+          color: "var(--text-dim)",
+          minWidth: 180,
+        }}
+      >
+        <label className="font-semibold text-foreground" htmlFor="storm-range">
+          Time range
+        </label>
+        <select
+          id="storm-range"
+          value={rangeKey}
+          onChange={(e) => setRangeKey(e.target.value as RangeKey)}
+          className="rounded-md border bg-transparent px-2 py-1 text-xs"
+          style={{ borderColor: "var(--border)", color: "var(--text)" }}
+        >
+          {RANGE_OPTIONS.map((r) => (
+            <option key={r.key} value={r.key} style={{ background: "#0a0a0b" }}>
+              Last {r.label}
+            </option>
+          ))}
+        </select>
+        <div className="flex items-center justify-between gap-2 pt-1" style={{ borderTop: "1px solid var(--border)" }}>
+          <span>Hail swaths</span>
+          <span className="font-mono text-foreground">{filteredHailCount}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span>Wind {WIND_MIN_MPH}+ mph</span>
+          <span className="font-mono text-foreground">{filteredWindCount}</span>
+        </div>
+        {(badHailCount + badWindCount) > 0 && (
+          <div
+            className="flex items-center justify-between gap-2 rounded-md px-2 py-1"
+            style={{ background: "rgba(255,45,85,0.12)", color: "#ff2d55" }}
+          >
+            <span className="font-semibold">⚠ Severe storms</span>
+            <span className="font-mono">{badHailCount + badWindCount}</span>
+          </div>
+        )}
+      </div>
       {initError ? (
         <div
           className="absolute inset-0 z-20 flex items-center justify-center"
@@ -650,6 +759,13 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
             />
             <span>Severe T-storm Warnings</span>
           </div>
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-block h-3 w-6 rounded-sm"
+              style={{ background: "transparent", border: "2px solid #ff2d55" }}
+            />
+            <span>Severe storm ({BAD_HAIL_IN}+ in hail / {BAD_WIND_MPH}+ mph)</span>
+          </div>
         </div>
       </div>
     </div>
@@ -702,6 +818,40 @@ function filterWindOverMph(fc: FC, minMph: number): FC {
     }),
   };
 }
+
+function featureTimestamp(feature: any): number | null {
+  const p = feature?.properties ?? {};
+  const raw = p.event_time ?? p.event_date ?? p.time ?? p.date ?? null;
+  if (!raw) return null;
+  const d = typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw)
+    ? new Date(`${raw}T00:00:00Z`)
+    : new Date(raw);
+  const t = d.getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+function filterHailByHours(fc: FC, hours: number): FC {
+  const cutoff = Date.now() - hours * 3600_000;
+  return {
+    type: "FeatureCollection",
+    features: (fc.features ?? []).filter((f) => {
+      const t = featureTimestamp(f);
+      return t == null ? true : t >= cutoff;
+    }),
+  };
+}
+
+function filterWindByHours(fc: FC, hours: number): FC {
+  const cutoff = Date.now() - hours * 3600_000;
+  return {
+    type: "FeatureCollection",
+    features: (fc.features ?? []).filter((f) => {
+      const t = featureTimestamp(f);
+      return t == null ? true : t >= cutoff;
+    }),
+  };
+}
+
 
 async function loadHailFeatureGroups(hailDates: string[]) {
   const groups: any[][] = [];
