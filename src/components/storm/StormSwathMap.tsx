@@ -345,6 +345,32 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           "circle-opacity": 0.9,
         },
       });
+      addLyr({
+        id: "wind-lsr-bad-halo",
+        type: "circle",
+        source: "wind-lsr",
+        filter: [
+          "all",
+          ["!", ["has", "point_count"]],
+          [">=", ["coalesce", ["to-number", ["get", "wind_mph"]], 0], BAD_WIND_MPH],
+        ],
+        paint: {
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["coalesce", ["to-number", ["get", "wind_mph"]], 75],
+            75, 12,
+            100, 18,
+            130, 26,
+          ],
+          "circle-color": "#ff2d55",
+          "circle-opacity": 0.28,
+          "circle-stroke-color": "#ff2d55",
+          "circle-stroke-width": 2,
+          "circle-stroke-opacity": 0.9,
+        },
+      });
+
 
       const popup = new mapboxgl.Popup({ closeButton: true, closeOnClick: true });
       map.on("click", "hail-fill", (e) => {
