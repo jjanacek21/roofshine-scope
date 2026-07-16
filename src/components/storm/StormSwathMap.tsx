@@ -87,6 +87,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const openPropertyPopupRef = useRef<((lng: number, lat: number, label?: string) => void) | null>(null);
   const [styleReady, setStyleReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  const [rangeKey, setRangeKey] = useState<RangeKey>("2y");
   const retryCountRef = useRef(0);
   const roRef = useRef<ResizeObserver | null>(null);
   const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
