@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { stormSupabase } from "@/integrations/storm/client";
@@ -21,12 +22,13 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const readyRef = useRef(false);
+  const [styleReady, setStyleReady] = useState(false);
 
   useEffect(() => {
     if (tokenError) toast.error(`Mapbox token: ${(tokenError as Error).message}`);
   }, [tokenError]);
 
-  const { data: hail = EMPTY_FC } = useQuery({
+  const { data: hail = EMPTY_FC, isFetching: hailLoading } = useQuery({
     queryKey: ["storm-swath", eventDate],
     enabled: !!eventDate,
     staleTime: 5 * 60 * 1000,
@@ -43,7 +45,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
     },
   });
 
-  const { data: wind = EMPTY_FC } = useQuery({
+  const { data: wind = EMPTY_FC, isFetching: windLoading } = useQuery({
     queryKey: ["storm-wind", windHours],
     staleTime: 60 * 1000,
     queryFn: async () => {
@@ -56,7 +58,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
     },
   });
 
-  const { data: territories = EMPTY_FC } = useQuery({
+  const { data: territories = EMPTY_FC, isFetching: terrLoading } = useQuery({
     queryKey: ["storm-territories"],
     staleTime: 60 * 60 * 1000,
     queryFn: async () => {
@@ -270,6 +272,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
       }
 
       readyRef.current = true;
+      setStyleReady(true);
       (map.getSource("territories") as mapboxgl.GeoJSONSource | undefined)?.setData(territories as any);
       (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hail as any);
       applyWind(map, wind);
@@ -277,6 +280,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
 
     return () => {
       readyRef.current = false;
+      setStyleReady(false);
       cancelAnimationFrame(rafId);
       try { ro.disconnect(); } catch {}
       try { map.remove(); } catch {}
@@ -309,10 +313,35 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
 
   const hasHail = (hail?.features?.length ?? 0) > 0;
   const windCount = wind?.features?.length ?? 0;
+  const dataLoading = hailLoading || windLoading || terrLoading;
+  const showOverlay = !token || !styleReady || dataLoading;
+  const overlayLabel = !token
+    ? "Authorizing map…"
+    : !styleReady
+      ? "Loading basemap…"
+      : "Loading storm layers…";
 
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
+      {showOverlay && (
+        <div
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+          style={{ backgroundColor: !styleReady ? "rgba(10,10,11,0.85)" : "transparent" }}
+        >
+          <div
+            className="pointer-events-none flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-lg"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "rgba(10,10,11,0.9)",
+              color: "var(--text-dim)",
+            }}
+          >
+            <Loader2 className="h-4 w-4 animate-spin" style={{ color: "var(--brand)" }} />
+            {overlayLabel}
+          </div>
+        </div>
+      )}
       <div
         className="pointer-events-none absolute bottom-4 left-4 rounded-lg border p-3 text-[11px] shadow-lg"
         style={{
