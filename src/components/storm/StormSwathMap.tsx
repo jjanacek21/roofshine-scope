@@ -280,6 +280,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
 
     return () => {
       readyRef.current = false;
+      setStyleReady(false);
       cancelAnimationFrame(rafId);
       try { ro.disconnect(); } catch {}
       try { map.remove(); } catch {}
