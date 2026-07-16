@@ -353,10 +353,8 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           .addTo(map);
       });
       map.on("click", (e) => {
-        const hits = map.queryRenderedFeatures(e.point, {
-          layers: ["hail-fill", "wind-lsr-points", "wind-lsr-clusters", "wind-warning-fill"],
-        });
-        if (hits.length > 0) return;
+        const clusterHits = map.queryRenderedFeatures(e.point, { layers: ["wind-lsr-clusters"] });
+        if (clusterHits.length > 0) return;
         openPropertyPopupRef.current?.(e.lngLat.lng, e.lngLat.lat);
       });
       for (const layer of ["hail-fill", "wind-lsr-points", "wind-lsr-clusters", "wind-warning-fill"]) {
