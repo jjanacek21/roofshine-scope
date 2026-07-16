@@ -759,6 +759,13 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
             />
             <span>Severe T-storm Warnings</span>
           </div>
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-block h-3 w-6 rounded-sm"
+              style={{ background: "transparent", border: "2px solid #ff2d55" }}
+            />
+            <span>Severe storm ({BAD_HAIL_IN}+ in hail / {BAD_WIND_MPH}+ mph)</span>
+          </div>
         </div>
       </div>
     </div>
