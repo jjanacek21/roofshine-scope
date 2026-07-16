@@ -13,6 +13,8 @@ const HAIL_DAYS = 60;
 const WIND_HOURS = 17_520;
 const WIND_MIN_MPH = 60;
 const PROPERTY_WIND_RADIUS_MILES = 0.5;
+const HAIL_LOAD_CONCURRENCY = 4;
+const HAIL_DATE_TIMEOUT_MS = 8_000;
 
 type SearchPoint = {
   lng: number;
@@ -639,24 +641,13 @@ async function loadHailFeatureGroups(hailDates: string[]) {
   const groups: any[][] = [];
   let failures = 0;
 
-  for (const eventDate of hailDates) {
-    const { data, error } = await stormSupabase.rpc("swath_geojson" as any, {
-      p_event_date: eventDate,
-      p_product: "MESH_Max_1440min",
-    });
-    if (error) {
-      failures += 1;
-      console.error(`[StormMap] swath_geojson failed for ${eventDate}:`, error);
-      continue;
+  for (let i = 0; i < hailDates.length; i += HAIL_LOAD_CONCURRENCY) {
+    const batch = hailDates.slice(i, i + HAIL_LOAD_CONCURRENCY);
+    const results = await Promise.all(batch.map(loadHailDateFeatures));
+    for (const result of results) {
+      if (result.ok) groups.push(result.features);
+      else failures += 1;
     }
-    const fc = (data as FC) ?? EMPTY_FC;
-    groups.push((fc.features ?? []).map((feature) => ({
-      ...feature,
-      properties: {
-        ...(feature.properties ?? {}),
-        event_date: feature.properties?.event_date ?? eventDate,
-      },
-    })));
   }
 
   if (failures > 0) {
@@ -664,6 +655,53 @@ async function loadHailFeatureGroups(hailDates: string[]) {
   }
 
   return groups;
+}
+
+async function loadHailDateFeatures(eventDate: string): Promise<{ ok: true; features: any[] } | { ok: false }> {
+  try {
+    const result = await withTimeout(
+      stormSupabase.rpc("swath_geojson" as any, {
+        p_event_date: eventDate,
+        p_product: "MESH_Max_1440min",
+      }),
+      HAIL_DATE_TIMEOUT_MS,
+    );
+    const { data, error } = result as any;
+    if (error) {
+      console.error(`[StormMap] swath_geojson failed for ${eventDate}:`, error);
+      return { ok: false };
+    }
+    const fc = (data as FC) ?? EMPTY_FC;
+    return {
+      ok: true,
+      features: (fc.features ?? []).map((feature) => ({
+        ...feature,
+        properties: {
+          ...(feature.properties ?? {}),
+          event_date: feature.properties?.event_date ?? eventDate,
+        },
+      })),
+    };
+  } catch (err) {
+    console.error(`[StormMap] swath_geojson timed out for ${eventDate}:`, err);
+    return { ok: false };
+  }
+}
+
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error(`Timed out after ${timeoutMs}ms`)), timeoutMs);
+    Promise.resolve(promise).then(
+      (value) => {
+        clearTimeout(timeout);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      },
+    );
+  });
 }
 
 function buildPropertyPopupHtml(lng: number, lat: number, label: string | undefined, hail: FC, wind: FC) {
