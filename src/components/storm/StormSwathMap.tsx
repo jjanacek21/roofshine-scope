@@ -272,6 +272,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
       }
 
       readyRef.current = true;
+      setStyleReady(true);
       (map.getSource("territories") as mapboxgl.GeoJSONSource | undefined)?.setData(territories as any);
       (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hail as any);
       applyWind(map, wind);
