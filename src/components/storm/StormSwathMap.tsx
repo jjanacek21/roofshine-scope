@@ -27,6 +27,11 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
   const terrRef = useRef<FC>(EMPTY_FC);
   const eventDateRef = useRef<string | null>(null);
   const [styleReady, setStyleReady] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
+  const retryCountRef = useRef(0);
+  const roRef = useRef<ResizeObserver | null>(null);
+  const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initMapRef = useRef<(() => void) | null>(null);
 
   useEffect(() => { eventDateRef.current = eventDate; }, [eventDate]);
 
@@ -77,40 +82,40 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
     },
   });
 
-  // Init map
+  // Init map (self-healing)
   useEffect(() => {
     if (!token) return;
     const container = containerRef.current;
     if (!container) return;
-    if (mapRef.current) return;
 
-    mapboxgl.accessToken = token;
-    const map = new mapboxgl.Map({
-      container,
-      style: "mapbox://styles/mapbox/dark-v11",
-      center,
-      zoom,
-    });
-    mapRef.current = map;
-    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
-    map.addControl(new mapboxgl.ScaleControl({ unit: "imperial" }), "bottom-right");
+    const destroyMap = () => {
+      if (watchdogRef.current) {
+        clearTimeout(watchdogRef.current);
+        watchdogRef.current = null;
+      }
+      try { roRef.current?.disconnect(); } catch {}
+      roRef.current = null;
+      const m = mapRef.current;
+      if (m) {
+        try { m.remove(); } catch {}
+      }
+      mapRef.current = null;
+      readyRef.current = false;
+      setStyleReady(false);
+    };
 
-    // Resize once the container has laid out, and observe further size changes.
-    const ro = new ResizeObserver(() => {
-      try { map.resize(); } catch {}
-    });
-    ro.observe(container);
-    const rafId = requestAnimationFrame(() => {
-      try { map.resize(); } catch {}
-    });
+    const setupLayers = (map: mapboxgl.Map) => {
+      const addSrc = (id: string, cfg: any) => {
+        if (!map.getSource(id)) map.addSource(id, cfg);
+      };
+      const addLyr = (cfg: any) => {
+        if (!map.getLayer(cfg.id)) map.addLayer(cfg);
+      };
 
-    map.on("load", () => {
-      map.addSource("territories", { type: "geojson", data: EMPTY_FC as any });
-      map.addSource("hail", { type: "geojson", data: EMPTY_FC as any });
-      // Warning polygons: unclustered
-      map.addSource("wind-warnings", { type: "geojson", data: EMPTY_FC as any });
-      // LSR points: clustered
-      map.addSource("wind-lsr", {
+      addSrc("territories", { type: "geojson", data: EMPTY_FC as any });
+      addSrc("hail", { type: "geojson", data: EMPTY_FC as any });
+      addSrc("wind-warnings", { type: "geojson", data: EMPTY_FC as any });
+      addSrc("wind-lsr", {
         type: "geojson",
         data: EMPTY_FC as any,
         cluster: true,
@@ -118,16 +123,13 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
         clusterRadius: 50,
       });
 
-      // Territories: white 1.5px outlines
-      map.addLayer({
+      addLyr({
         id: "territories-line",
         type: "line",
         source: "territories",
         paint: { "line-color": "#ffffff", "line-width": 1.5, "line-opacity": 0.85 },
       });
-
-      // Hail fill from feature color
-      map.addLayer({
+      addLyr({
         id: "hail-fill",
         type: "fill",
         source: "hail",
@@ -136,7 +138,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
           "fill-opacity": 0.55,
         },
       });
-      map.addLayer({
+      addLyr({
         id: "hail-outline",
         type: "line",
         source: "hail",
@@ -146,15 +148,13 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
           "line-opacity": 0.9,
         },
       });
-
-      // Warning polygons (unclustered)
-      map.addLayer({
+      addLyr({
         id: "wind-warning-fill",
         type: "fill",
         source: "wind-warnings",
         paint: { "fill-color": "#2563eb", "fill-opacity": 0.12 },
       });
-      map.addLayer({
+      addLyr({
         id: "wind-warning-line",
         type: "line",
         source: "wind-warnings",
@@ -165,9 +165,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
           "line-opacity": 0.9,
         },
       });
-
-      // Clustered LSR points
-      map.addLayer({
+      addLyr({
         id: "wind-lsr-clusters",
         type: "circle",
         source: "wind-lsr",
@@ -194,7 +192,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
           "circle-stroke-width": 1.5,
         },
       });
-      map.addLayer({
+      addLyr({
         id: "wind-lsr-cluster-count",
         type: "symbol",
         source: "wind-lsr",
@@ -206,7 +204,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
         },
         paint: { "text-color": "#ffffff" },
       });
-      map.addLayer({
+      addLyr({
         id: "wind-lsr-points",
         type: "circle",
         source: "wind-lsr",
@@ -283,21 +281,93 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
       }
 
       readyRef.current = true;
-      // Apply latest data from refs (not closure) to survive races where
-      // queries resolve before "load" fires.
       (map.getSource("territories") as mapboxgl.GeoJSONSource | undefined)?.setData(terrRef.current as any);
       (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hailRef.current as any);
       applyWind(map, windRef.current);
       setStyleReady(true);
-    });
+    };
+
+    const initMap = () => {
+      if (mapRef.current) return;
+      const c = containerRef.current;
+      if (!c) return;
+
+      mapboxgl.accessToken = token;
+      let map: mapboxgl.Map;
+      try {
+        map = new mapboxgl.Map({
+          container: c,
+          style: "mapbox://styles/mapbox/dark-v11",
+          center,
+          zoom,
+        });
+      } catch (err) {
+        console.error("[StormMap] failed to construct map:", err);
+        setInitError("Failed to initialize map");
+        return;
+      }
+      mapRef.current = map;
+      setInitError(null);
+
+      map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
+      map.addControl(new mapboxgl.ScaleControl({ unit: "imperial" }), "bottom-right");
+
+      const ro = new ResizeObserver(() => {
+        try { map.resize(); } catch {}
+      });
+      ro.observe(c);
+      roRef.current = ro;
+      requestAnimationFrame(() => { try { map.resize(); } catch {} });
+
+      map.on("error", (e: any) => {
+        console.error("[StormMap] map error:", e?.error ?? e);
+      });
+
+      watchdogRef.current = setTimeout(() => {
+        if (readyRef.current) return;
+        if (retryCountRef.current === 0) {
+          console.warn("[StormMap] load watchdog timeout — retrying once");
+          retryCountRef.current = 1;
+          destroyMap();
+          initMap();
+        } else {
+          console.error("[StormMap] load watchdog timeout — giving up");
+          destroyMap();
+          setInitError("Map failed to load");
+        }
+      }, 8000);
+
+      map.on("load", () => {
+        if (watchdogRef.current) {
+          clearTimeout(watchdogRef.current);
+          watchdogRef.current = null;
+        }
+        try {
+          setupLayers(map);
+        } catch (err) {
+          console.error("[StormMap] setupLayers failed:", err);
+        }
+
+        const canvas = map.getCanvas();
+        const onLost = (ev: Event) => {
+          ev.preventDefault();
+          console.warn("[StormMap] WebGL context lost — re-initializing");
+          destroyMap();
+          initMap();
+        };
+        canvas.addEventListener("webglcontextlost", onLost as any, { once: true });
+        canvas.addEventListener("webglcontextrestored", () => {
+          console.warn("[StormMap] WebGL context restored");
+        });
+      });
+    };
+
+    initMapRef.current = initMap;
+    initMap();
 
     return () => {
-      readyRef.current = false;
-      setStyleReady(false);
-      cancelAnimationFrame(rafId);
-      try { ro.disconnect(); } catch {}
-      try { map.remove(); } catch {}
-      mapRef.current = null;
+      initMapRef.current = null;
+      destroyMap();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
@@ -347,7 +417,35 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
-      {showOverlay && (
+      {initError ? (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(10,10,11,0.9)" }}
+        >
+          <div
+            className="flex items-center gap-3 rounded-full border px-4 py-2 text-xs font-semibold shadow-lg"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "rgba(10,10,11,0.9)",
+              color: "#f87171",
+            }}
+          >
+            <span>{initError}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setInitError(null);
+                retryCountRef.current = 0;
+                initMapRef.current?.();
+              }}
+              className="rounded-full border px-3 py-1 text-xs font-semibold"
+              style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+            >
+              Reload map
+            </button>
+          </div>
+        </div>
+      ) : showOverlay && (
         <div
           className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
           style={{ backgroundColor: !styleReady ? "rgba(10,10,11,0.85)" : "transparent" }}
