@@ -597,8 +597,16 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     map.flyTo({ center, zoom, essential: true });
   }, [center, zoom, searchedPoint]);
 
-  const hasHail = (hail?.features?.length ?? 0) > 0;
-  const windCount = wind?.features?.length ?? 0;
+  const filteredHailCount = hailRef.current?.features?.length ?? 0;
+  const filteredWindCount = windRef.current?.features?.length ?? 0;
+  const badHailCount = (hailRef.current?.features ?? []).filter(
+    (f: any) => Number(f?.properties?.max_in) >= BAD_HAIL_IN,
+  ).length;
+  const badWindCount = (windRef.current?.features ?? []).filter(
+    (f: any) => Number(f?.properties?.wind_mph) >= BAD_WIND_MPH,
+  ).length;
+  const hasHail = filteredHailCount > 0;
+  const windCount = filteredWindCount;
   const dataLoading = datesLoading || hailLoading || windLoading || terrLoading;
   const showOverlay = !token || !styleReady || dataLoading;
   const overlayLabel = !token
