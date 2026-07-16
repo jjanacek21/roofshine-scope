@@ -288,17 +288,6 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         },
       });
       addLyr({
-        id: "wind-warning-line",
-        type: "line",
-        source: "wind-warnings",
-        paint: {
-          "line-color": "#2563eb",
-          "line-width": 1.5,
-          "line-dasharray": [2, 2],
-          "line-opacity": 0.9,
-        },
-      });
-      addLyr({
         id: "wind-lsr-clusters",
         type: "circle",
         source: "wind-lsr",
