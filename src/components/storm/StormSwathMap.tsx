@@ -286,15 +286,13 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       });
       addLyr({
         id: "wind-lsr-cluster-count",
-        type: "symbol",
+        type: "circle",
         source: "wind-lsr",
         filter: ["has", "point_count"],
-        layout: {
-          "text-field": ["get", "point_count_abbreviated"],
-          "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
-          "text-size": 12,
+        paint: {
+          "circle-radius": 0.01,
+          "circle-opacity": 0,
         },
-        paint: { "text-color": "#ffffff" },
       });
       addLyr({
         id: "wind-lsr-points",
