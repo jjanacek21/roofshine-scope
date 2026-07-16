@@ -28,7 +28,7 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
     if (tokenError) toast.error(`Mapbox token: ${(tokenError as Error).message}`);
   }, [tokenError]);
 
-  const { data: hail = EMPTY_FC } = useQuery({
+  const { data: hail = EMPTY_FC, isFetching: hailLoading } = useQuery({
     queryKey: ["storm-swath", eventDate],
     enabled: !!eventDate,
     staleTime: 5 * 60 * 1000,
