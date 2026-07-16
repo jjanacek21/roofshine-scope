@@ -313,10 +313,35 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
 
   const hasHail = (hail?.features?.length ?? 0) > 0;
   const windCount = wind?.features?.length ?? 0;
+  const dataLoading = hailLoading || windLoading || terrLoading;
+  const showOverlay = !token || !styleReady || dataLoading;
+  const overlayLabel = !token
+    ? "Authorizing map…"
+    : !styleReady
+      ? "Loading basemap…"
+      : "Loading storm layers…";
 
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
+      {showOverlay && (
+        <div
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+          style={{ backgroundColor: !styleReady ? "rgba(10,10,11,0.85)" : "transparent" }}
+        >
+          <div
+            className="pointer-events-none flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-lg"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "rgba(10,10,11,0.9)",
+              color: "var(--text-dim)",
+            }}
+          >
+            <Loader2 className="h-4 w-4 animate-spin" style={{ color: "var(--brand)" }} />
+            {overlayLabel}
+          </div>
+        </div>
+      )}
       <div
         className="pointer-events-none absolute bottom-4 left-4 rounded-lg border p-3 text-[11px] shadow-lg"
         style={{
