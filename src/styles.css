@@ -468,17 +468,33 @@
 [data-rk] .rk-subnav-link:hover { background: var(--rk-panel-2); color: var(--rk-ink); }
 [data-rk] .rk-subnav-link.is-active { background: var(--rk-panel-2); color: var(--rk-ink); border: 1px solid var(--rk-line-2); }
 
-/* Mapbox popup — dark theme override */
+/* Mapbox popup — dark theme override (mapbox-gl.css loads after styles.css, so use !important) */
 .mapboxgl-popup-content {
-  background: hsl(222 15% 12%);
-  color: hsl(0 0% 95%);
-  border: 1px solid hsl(222 10% 25%);
-  border-radius: 8px;
+  background: hsl(222 15% 12%) !important;
+  color: hsl(0 0% 95%) !important;
+  border: 1px solid hsl(222 10% 25%) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
 }
-.mapboxgl-popup-tip {
-  border-top-color: hsl(222 15% 12%) !important;
+.mapboxgl-popup-content * { color: hsl(0 0% 95%); }
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip {
   border-bottom-color: hsl(222 15% 12%) !important;
 }
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {
+  border-top-color: hsl(222 15% 12%) !important;
+}
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip { border-right-color: hsl(222 15% 12%) !important; }
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip { border-left-color: hsl(222 15% 12%) !important; }
 .mapboxgl-popup-close-button {
-  color: hsl(0 0% 70%);
+  color: hsl(0 0% 70%) !important;
+  font-size: 18px !important;
+  padding: 4px 8px !important;
+}
+.mapboxgl-popup-close-button:hover {
+  background: hsl(222 10% 20%) !important;
+  color: hsl(0 0% 95%) !important;
 }
