@@ -417,7 +417,35 @@ export function StormSwathMap({ eventDate, windHours, center, zoom = 4 }: Props)
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
-      {showOverlay && (
+      {initError ? (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(10,10,11,0.9)" }}
+        >
+          <div
+            className="flex items-center gap-3 rounded-full border px-4 py-2 text-xs font-semibold shadow-lg"
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "rgba(10,10,11,0.9)",
+              color: "#f87171",
+            }}
+          >
+            <span>{initError}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setInitError(null);
+                retryCountRef.current = 0;
+                initMapRef.current?.();
+              }}
+              className="rounded-full border px-3 py-1 text-xs font-semibold"
+              style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+            >
+              Reload map
+            </button>
+          </div>
+        </div>
+      ) : showOverlay && (
         <div
           className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
           style={{ backgroundColor: !styleReady ? "rgba(10,10,11,0.85)" : "transparent" }}
