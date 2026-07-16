@@ -723,6 +723,40 @@ function filterWindOverMph(fc: FC, minMph: number): FC {
   };
 }
 
+function featureTimestamp(feature: any): number | null {
+  const p = feature?.properties ?? {};
+  const raw = p.event_time ?? p.event_date ?? p.time ?? p.date ?? null;
+  if (!raw) return null;
+  const d = typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw)
+    ? new Date(`${raw}T00:00:00Z`)
+    : new Date(raw);
+  const t = d.getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+function filterHailByHours(fc: FC, hours: number): FC {
+  const cutoff = Date.now() - hours * 3600_000;
+  return {
+    type: "FeatureCollection",
+    features: (fc.features ?? []).filter((f) => {
+      const t = featureTimestamp(f);
+      return t == null ? true : t >= cutoff;
+    }),
+  };
+}
+
+function filterWindByHours(fc: FC, hours: number): FC {
+  const cutoff = Date.now() - hours * 3600_000;
+  return {
+    type: "FeatureCollection",
+    features: (fc.features ?? []).filter((f) => {
+      const t = featureTimestamp(f);
+      return t == null ? true : t >= cutoff;
+    }),
+  };
+}
+
+
 async function loadHailFeatureGroups(hailDates: string[]) {
   const groups: any[][] = [];
   let failures = 0;
