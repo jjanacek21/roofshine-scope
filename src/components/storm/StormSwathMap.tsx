@@ -523,18 +523,20 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   }, [token]);
 
   useEffect(() => {
-    hailRef.current = hail;
+    const filtered = filterHailByHours(hail, rangeHours(rangeKey));
+    hailRef.current = filtered;
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
-    (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(hail as any);
-  }, [hail]);
+    (map.getSource("hail") as mapboxgl.GeoJSONSource | undefined)?.setData(filtered as any);
+  }, [hail, rangeKey]);
 
   useEffect(() => {
-    windRef.current = wind;
+    const filtered = filterWindByHours(wind, rangeHours(rangeKey));
+    windRef.current = filtered;
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
-    applyWind(map, wind);
-  }, [wind]);
+    applyWind(map, filtered);
+  }, [wind, rangeKey]);
 
   useEffect(() => {
     terrRef.current = territories;
