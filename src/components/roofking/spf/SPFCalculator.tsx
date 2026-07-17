@@ -11,7 +11,7 @@ import { useHydratedSpfCatalog } from "@/lib/spf/catalog";
 
 const money = (n: number) => "$" + Math.round(n).toLocaleString();
 
-type CalcMode = "simple" | "detailed";
+type CalcMode = "quick" | "advanced";
 
 export function SPFCalculator() {
   const { ready, catalog, isLoading, error } = useHydratedSpfCatalog();
@@ -34,23 +34,13 @@ export function SPFCalculator() {
 
 function SPFCalculatorInner({ catalog }: { catalog: NonNullable<ReturnType<typeof useHydratedSpfCatalog>["catalog"]> }) {
 
-  const simpleFieldsByGroup = useMemo(() => {
-    const groups = new Map<string, typeof catalog.fieldDefaults>();
-    for (const f of catalog.fieldDefaults) {
-      if (!f.simple_mode) continue;
-      const g = groups.get(f.group_key) ?? [];
-      g.push(f);
-      groups.set(f.group_key, g);
-    }
-    return Array.from(groups.entries()).map(([k, rows]) => ({ key: k, rows: rows.sort((a, b) => a.sort_order - b.sort_order) }));
-  }, [catalog.fieldDefaults]);
 
   const [mode, setMode] = useState<CalcMode>(() => {
     if (typeof window !== "undefined") {
       const saved = window.localStorage.getItem("spf-mode");
-      if (saved === "simple" || saved === "detailed") return saved;
+      if (saved === "quick" || saved === "advanced") return saved;
     }
-    return catalog.settings.default_mode;
+    return "quick";
   });
   useEffect(() => {
     if (typeof window !== "undefined") window.localStorage.setItem("spf-mode", mode);
@@ -155,7 +145,7 @@ function SPFCalculatorInner({ catalog }: { catalog: NonNullable<ReturnType<typeo
             <span className="rk-display text-lg" style={{ color: "var(--rk-gold)" }}>SPF Scope & Cost Engine</span>
           </div>
           <div className="mr-2 inline-flex overflow-hidden rounded border" style={{ borderColor: "var(--rk-line)" }}>
-            {(["simple", "detailed"] as CalcMode[]).map((m) => (
+            {(["quick", "advanced"] as CalcMode[]).map((m) => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
@@ -178,14 +168,131 @@ function SPFCalculatorInner({ catalog }: { catalog: NonNullable<ReturnType<typeo
           <button onClick={() => window.print()} className="rk-btn rk-btn-gold"><Printer className="h-3.5 w-3.5" /> Print scope</button>
         </div>
 
-        {mode === "simple" ? (
-          <SimpleForm
-            fields={fields}
-            setF={setF}
-            groups={simpleFieldsByGroup}
-          />
+        {mode === "quick" ? (
+        <>
+          <div className="rk-card p-3 text-[12px]" style={{ color: "var(--rk-ink-muted)" }}>
+            Quick estimate — just the essentials. Everything hidden uses your standard defaults. Switch to Advanced to fine-tune.
+          </div>
+
+          <Section title="1 · Project" defaultOpen>
+            <Grid>
+              <F wide label="Project name"><input className="rk-input" value={fields.p_name} onChange={(e) => setF("p_name", e.target.value)} /></F>
+              <F label="Roof area (sq ft)"><input type="number" className="rk-input" value={fields.p_sqft} onChange={setNum("p_sqft")} /></F>
+              <F label="Roof geometry">
+                <Sel value={fields.p_geo} onChange={setStr("p_geo")} opts={[
+                  ["1.00", "Simple — open field, few breaks"],
+                  ["1.10", "Moderate — some curbs/offsets"],
+                  ["1.25", "Complex — heavy equipment, many levels"],
+                  ["1.45", "Extreme — congested, cut-up, low clearance"],
+                ]} />
+              </F>
+              <F label="Slope">
+                <Sel value={fields.p_slope} onChange={setStr("p_slope")} opts={[
+                  ["1.00", "Low slope (<2:12)"],
+                  ["1.08", "2:12 – 4:12"],
+                  ["1.20", ">4:12 (fall protection heavy)"],
+                ]} />
+              </F>
+            </Grid>
+          </Section>
+
+          <Section title="2 · Existing" defaultOpen>
+            <Grid>
+              <F label="Existing surface">
+                <Sel value={fields.e_surf} onChange={setStr("e_surf")} opts={[
+                  ["bur", "BUR — gravel"], ["burs", "BUR / mod bit — smooth"],
+                  ["single", "Single ply (TPO/EPDM/PVC)"], ["spf", "Existing SPF + coating"],
+                  ["metal", "Bare / rusted metal panel"], ["none", "Bare deck / new construction"],
+                ]} />
+              </F>
+              <F label="Tear-off scope">
+                <Sel value={fields.e_tear} onChange={setStr("e_tear")} opts={[
+                  ["0", "None — recover in place"], ["0.15", "Partial — 15% wet area"],
+                  ["0.30", "Partial — 30% wet area"], ["1", "Full tear-off to deck"],
+                ]} />
+              </F>
+            </Grid>
+          </Section>
+
+          <Section title="3 · Access" defaultOpen>
+            <Grid>
+              <F label="Roof height (ft)"><input type="number" className="rk-input" value={fields.a_ht} onChange={setNum("a_ht")} /></F>
+              <F label="Access method">
+                <Sel value={fields.a_method} onChange={setStr("a_method")} opts={[
+                  ["0", "Interior stair / existing hoist"], ["1", "Ladder + material conveyor"],
+                  ["2", "Scissor lift"], ["3", "Boom lift / telehandler"],
+                  ["4", "Crane pick"], ["5", "Rooftop rig placement (crane set)"],
+                ]} />
+              </F>
+            </Grid>
+          </Section>
+
+          <Section title="4 · Foam" defaultOpen>
+            <Grid>
+              <F label="Foam in scope">
+                <Sel value={fields.f_on} onChange={setStr("f_on")} opts={[["1", "Yes — SPF applied"], ["0", "No — coating restoration only"]]} />
+              </F>
+              <F label="Average thickness (in)"><input type="number" step="0.1" className="rk-input" value={fields.f_thick} onChange={setNum("f_thick")} /></F>
+            </Grid>
+          </Section>
+
+          <Section title="5 · Coating stack" defaultOpen>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[960px] text-xs">
+                <thead>
+                  <tr className="text-left" style={{ color: "var(--rk-ink-faint)" }}>
+                    <th className="w-8"></th>
+                    <th className="py-2">Product</th><th>Applied to</th><th>Amount</th><th>Method</th>
+                    <th>Mils</th><th>Solids %</th><th>$/gal</th><th>Waste %</th>
+                    <th className="text-right">Area</th><th className="text-right">Gal</th><th className="text-right">Cost</th>
+                    <th className="w-8"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {layers.map((L, i) => {
+                    const b = result.layerBreakdown[i];
+                    const wasteVal = L[9] == null ? defWaste(L[5], L[3], parseFloat(fields.f_tex)) : L[9];
+                    const amtDis = L[3] === "field" || L[3] === "details";
+                    return (
+                      <tr key={i} className={"border-t " + (L[0] ? "" : "opacity-40")} style={{ borderColor: "var(--rk-line)" }}>
+                        <td className="py-1"><input type="checkbox" checked={!!L[0]} onChange={(e) => updateLayer(i, { on: e.target.checked ? 1 : 0 })} /></td>
+                        <td><Sel value={String(L[1])} onChange={(e) => updateLayer(i, { pi: parseInt(e.target.value) })} opts={PRODUCTS.map((p, j) => [String(j), p[0]])} /></td>
+                        <td><Sel value={L[3]} onChange={(e) => updateLayer(i, { scope: e.target.value as ScopeKey })} opts={(Object.keys(SCOPES) as ScopeKey[]).map((k) => [k, SCOPES[k]])} /></td>
+                        <td><input type="number" disabled={amtDis} className="rk-input" value={L[4]} onChange={(e) => updateLayer(i, { amt: parseFloat(e.target.value) || 0 })} /></td>
+                        <td><Sel value={L[5]} onChange={(e) => updateLayer(i, { method: e.target.value as MethodKey })} opts={(Object.keys(METHODS) as MethodKey[]).map((k) => [k, METHODS[k][0]])} /></td>
+                        <td><input type="number" className="rk-input" value={L[6]} onChange={(e) => updateLayer(i, { mils: parseFloat(e.target.value) || 0 })} /></td>
+                        <td><input type="number" className="rk-input" value={L[7] ?? ""} onChange={(e) => updateLayer(i, { solids: parseFloat(e.target.value) || 0 })} /></td>
+                        <td><input type="number" className="rk-input" value={L[8] ?? ""} onChange={(e) => updateLayer(i, { cost: parseFloat(e.target.value) || 0 })} /></td>
+                        <td><input type="number" className="rk-input" value={wasteVal} onChange={(e) => updateLayer(i, { waste: parseFloat(e.target.value) || 0 })} /></td>
+                        <td className="text-right font-mono text-[11px]" style={{ color: "var(--rk-accent)" }}>{Math.round(b.area).toLocaleString()}</td>
+                        <td className="text-right font-mono text-[11px]" style={{ color: "var(--rk-accent)" }}>{L[0] ? Math.ceil(b.gal).toLocaleString() : "—"}</td>
+                        <td className="text-right font-mono text-[11px]" style={{ color: "var(--rk-accent)" }}>{L[0] ? money(b.cost) : "—"}</td>
+                        <td><button onClick={() => delLayer(i)} className="rk-btn rk-btn-ghost px-1.5 py-1"><Trash2 className="h-3 w-3" /></button></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button onClick={addLayer} className="rk-btn rk-btn-ghost"><Plus className="h-3.5 w-3.5" /> Add layer</button>
+              <button onClick={() => setLayers(stackFromPreset("sil2"))} className="rk-btn rk-btn-ghost">Silicone base + top</button>
+              <button onClick={() => setLayers(stackFromPreset("acr2"))} className="rk-btn rk-btn-ghost">Acrylic base + HS top</button>
+              <button onClick={() => setLayers(stackFromPreset("rust"))} className="rk-btn rk-btn-ghost">Rust primer + acrylic</button>
+              <button onClick={() => setLayers(stackFromPreset("sil1"))} className="rk-btn rk-btn-ghost">Single-coat silicone</button>
+              <button onClick={() => setLayers(stackFromPreset("pu"))} className="rk-btn rk-btn-ghost">Polyurethane base + aliphatic</button>
+            </div>
+          </Section>
+
+          <Section title="10 · Markup" defaultOpen>
+            <Grid>
+              <F label="Target gross margin % (of sell)"><input type="number" step="0.1" className="rk-input" value={fields.m_margin} onChange={setNum("m_margin")} /></F>
+            </Grid>
+          </Section>
+        </>
         ) : (
         <>
+
 
 
         {/* 1 PROJECT */}
@@ -716,54 +823,4 @@ function Kpi({ label, value }: { label: string; value: string }) {
   );
 }
 
-const GROUP_LABELS: Record<string, string> = {
-  project: "Project", existing: "Existing conditions", access: "Access", foam: "Foam",
-  reinf: "Reinforcement", labor: "Labor", equip: "Equipment", soft: "Soft costs", markup: "Markup",
-};
-
-function SimpleForm({
-  fields, setF, groups,
-}: {
-  fields: SpfFields;
-  setF: <K extends keyof SpfFields>(k: K, v: SpfFields[K]) => void;
-  groups: { key: string; rows: { field_key: string; label: string; group_key: string; value_text: string }[] }[];
-}) {
-  if (!groups.length) {
-    return (
-      <div className="rk-card p-6 text-sm" style={{ color: "var(--rk-ink-faint)" }}>
-        No fields configured for Simple mode. An admin can flag fields for Simple mode at Admin → SPF Calculator → Field defaults.
-      </div>
-    );
-  }
-  const currentValue = (key: string): string | number => {
-    const v = (fields as unknown as Record<string, unknown>)[key];
-    return v == null ? "" : (v as string | number);
-  };
-  const isNumeric = (key: string) => typeof (fields as unknown as Record<string, unknown>)[key] === "number";
-  return (
-    <div className="space-y-3">
-      {groups.map((g) => (
-        <Section key={g.key} title={GROUP_LABELS[g.key] ?? g.key} defaultOpen>
-          <Grid>
-            {g.rows.map((r) => (
-              <F key={r.field_key} label={r.label}>
-                <input
-                  className="rk-input"
-                  type={isNumeric(r.field_key) ? "number" : "text"}
-                  value={String(currentValue(r.field_key))}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    const next = isNumeric(r.field_key) ? (parseFloat(raw) || 0) : raw;
-                    setF(r.field_key as keyof SpfFields, next as SpfFields[keyof SpfFields]);
-                  }}
-                />
-              </F>
-            ))}
-          </Grid>
-        </Section>
-      ))}
-      <Note>Simple mode shows only fields flagged by an admin. All hidden fields use their saved defaults; totals stay accurate.</Note>
-    </div>
-  );
-}
 
