@@ -4606,6 +4606,219 @@ export type Database = {
         }
         Relationships: []
       }
+      spf_calc_settings: {
+        Row: {
+          default_mode: string
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          default_mode?: string
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          default_mode?: string
+          id?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      spf_details: {
+        Row: {
+          active: boolean
+          created_at: string
+          default_qty: number
+          id: string
+          label: string
+          sort_order: number
+          unit: string
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          default_qty?: number
+          id?: string
+          label: string
+          sort_order?: number
+          unit: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          default_qty?: number
+          id?: string
+          label?: string
+          sort_order?: number
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      spf_field_defaults: {
+        Row: {
+          field_key: string
+          group_key: string
+          label: string
+          simple_mode: boolean
+          sort_order: number
+          updated_at: string
+          value_text: string
+        }
+        Insert: {
+          field_key: string
+          group_key: string
+          label: string
+          simple_mode?: boolean
+          sort_order?: number
+          updated_at?: string
+          value_text: string
+        }
+        Update: {
+          field_key?: string
+          group_key?: string
+          label?: string
+          simple_mode?: boolean
+          sort_order?: number
+          updated_at?: string
+          value_text?: string
+        }
+        Relationships: []
+      }
+      spf_products: {
+        Row: {
+          active: boolean
+          cost_per_gal: number
+          created_at: string
+          default_method: string
+          default_mils: number
+          id: string
+          name: string
+          role: string
+          solids_pct: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          cost_per_gal: number
+          created_at?: string
+          default_method: string
+          default_mils: number
+          id?: string
+          name: string
+          role: string
+          solids_pct: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          cost_per_gal?: number
+          created_at?: string
+          default_method?: string
+          default_mils?: number
+          id?: string
+          name?: string
+          role?: string
+          solids_pct?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      spf_stack_layers: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          method: string
+          mils: number
+          on_by_default: boolean
+          product_id: string
+          scope: string
+          sort_order: number
+          stack_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method: string
+          mils: number
+          on_by_default?: boolean
+          product_id: string
+          scope: string
+          sort_order?: number
+          stack_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string
+          mils?: number
+          on_by_default?: boolean
+          product_id?: string
+          scope?: string
+          sort_order?: number
+          stack_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spf_stack_layers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "spf_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spf_stack_layers_stack_id_fkey"
+            columns: ["stack_id"]
+            isOneToOne: false
+            referencedRelation: "spf_stacks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spf_stacks: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       storm_events: {
         Row: {
           affected_area: string

@@ -1,61 +1,53 @@
 ## Goal
 
-Add an "SPF Calculator" tab inside the existing Roof King section that runs the SPF Scope & Cost Engine natively (React + Tailwind), themed to match Roof King. All math and data tables are ported verbatim from the uploaded HTML — no formula changes.
+Move the SPF Calculator's hardcoded data (products, details, stacks, field defaults) into the database, add an admin backend under `/admin` to manage it, and add a Simple / Detailed toggle whose visible fields are admin-configurable.
 
-## Files
+Prices remain **global** (single master library owned by Roof King / Global Contractor Network admins). Every company using the calculator reads the same catalog.
 
-**New**
-- `src/lib/spf/data.ts` — exports `PRODUCTS`, `METHODS`, `SCOPES`, `STACKS`, `DETAILS_SEED`, `FIELD_DEFAULTS` (every default value copied verbatim from the HTML `id` inputs/selects).
-- `src/lib/spf/engine.ts` — pure functions ported verbatim:
-  - `heightFactor`, `hoseFactor`, `accessFactor`
-  - `defWaste(method, scope, foamTex)`
-  - `newLayer`, `stackFromPreset`
-  - `detailArea(details)`, `detailTotal(details)`
-  - `calc(fields, layers, details)` → returns `{ sqft, sq, bf, sets, gal, days, coatDays, laborFactor, materials, tax, removal, fieldLabor, equipment, details, soft, gl, cont, oh, permit, commission, finance, bondC, sell, totalCost, gp, layerRows, seamArea, rustArea, foamOn, totMils, groups, flags, breakdown }`
-  - `buildScope(calcOut, fields, details)` → returns the plain-text scope (same 8-section format).
-- `src/lib/spf/presets.ts` — the 4 presets (`recover`, `tearoff`, `metal`, `restore`) with the same field overrides + stack keys.
-- `src/routes/_app.roofking.spf.tsx` — new route `/roofking/spf`, mounted under the existing Roof King layout so the sub-nav, top bar, and theme carry over automatically.
-- `src/components/roofking/spf/SPFCalculator.tsx` — the page component; state via `useState` + `useMemo(calc)`.
-- `src/components/roofking/spf/sections/` — one file per section (`ProjectSection`, `ExistingSection`, `AccessSection`, `FoamSection`, `CoatingStackSection`, `DetailsSection`, `LaborSection`, `EquipmentSection`, `SoftCostsSection`, `MarkupsSection`) — mirrors the 10 collapsible panels in the source.
-- `src/components/roofking/spf/ResultsRail.tsx` — sticky sell price card, KPIs, stacked bar, legend, flags, cost breakdown list, scope <pre>, Copy/Print/Export/Import buttons.
+## What to build
 
-**Edited**
-- `src/routes/_app.roofking.tsx` — add one entry to `TABS`: `{ to: "/roofking/spf", label: "SPF Calculator", icon: Calculator }` (Lucide `Calculator`). No other changes.
+### 1. Database (single migration)
 
-**Not touched:** `_app.tsx`, main `AppSidebar`, any non-Roof King code. GCN branding elsewhere is unaffected.
+New tables in `public`, all admin-writable, all readable by any authenticated user:
 
-## UI mapping (no visual regression from source)
+- `spf_products` — name, solids_pct, cost_per_gal, default_mils, default_method, role, sort_order, active
+- `spf_details` — label, unit (`ea|lf|ls`), default_qty, unit_cost, sort_order, active
+- `spf_stacks` — key, label, sort_order, active
+- `spf_stack_layers` — stack_id fk, product_id fk, scope, amount, method, mils, sort_order
+- `spf_field_defaults` — one row per field key (`p_sqft`, `m_margin`, …) with `value_text`, `label`, `group` (project/existing/access/foam/…), `simple_mode` bool, `sort_order`
+- `spf_calc_settings` — singleton row: default simple/detailed mode, any global toggles
 
-- Reuse existing Roof King tokens (`rk-card`, `rk-input`, `rk-btn`, `rk-subnav-link`, `--rk-*` colors) so it inherits the dark theme; keep the source's amber accent for the sell-price big number and section rules.
-- Two-column layout on ≥1150px (`grid-cols-[minmax(0,1fr)_400px]`), single column below — same breakpoint as source.
-- Each section is a `<details>` (native collapse) styled with an amber left-rule to match `details.sec` in the source. Same open-by-default set (Project, Foam, Coating stack, Markups).
-- Coating stack renders as an editable table with the same 13 columns (checkbox, product, applied-to, amount, method, mils, solids, $/gal, waste, area, gal, cost, delete).
-- Details section renders the DETAILS array as an editable table with `+ Add custom detail line`.
-- Rail card: big amber `Sell price`, 8 KPIs (`$/sq ft`, `$/square`, `Total cost`, `Gross profit`, `Crew days`, `Board feet`, `Foam sets`, `Coating gal`), stacked bar, legend, flags list, itemized breakdown, scope `<pre>` with Copy button. Print button uses `window.print()` with the same print CSS overrides.
+Grants + RLS: `SELECT` for `authenticated`; `INSERT/UPDATE/DELETE` gated by `is_super_admin()` (or existing admin helper). Seed with the current contents of `src/lib/spf/data.ts` verbatim so nothing changes on day one.
 
-## Math correctness
+### 2. Data loading refactor
 
-`engine.ts` is a straight TypeScript port of the `calc()` function (lines 549–726) and `buildScope()` (lines 728–796). Constants preserved exactly:
-- Coating gallons: `area * mils / (1604 * solids/100) * (1 + waste/100)`
-- Sell solve: `k = 1 - (mgn + comm + fin + bond + permitPct)`, `sell = (cost + permitFlatOnly) / k`, permit re-solve when floor kicks in.
-- Foam sets: `ceil(bf * (1 + waste/100) * amb / yield)`
-- `laborFactor = geo * slope * heightFactor * hoseFactor * accessFactor * occ * shift`
-- `defWaste = foamTex(if spray) + methodExtra + (10 if seams/details)`
-- All 15 flag rules preserved verbatim.
+- New `src/lib/spf/catalog.functions.ts` — `getSpfCatalog()` server fn returns `{ products, details, stacks, fieldDefaults, settings }`.
+- `SPFCalculator.tsx` fetches via `useSuspenseQuery`; keep current in-memory shape by mapping DB rows into the existing `Product`/`Detail`/`StackTemplate` tuples so `engine.ts` and `presets.ts` stay untouched.
+- Presets keep referencing product indexes; resolve by product id server-side so reorders don't break them.
 
-Unit test (out of scope for this PR unless requested): feed the source's default inputs through `calc()` and assert the same sell price the HTML shows on first load.
+### 3. Admin backend — `/admin/spf`
 
-## IO
+New route `src/routes/admin.spf.tsx` (gated by existing admin layout). Four tabs:
 
-- Export → downloads JSON `{ fields, layers, details }` matching the source's schema exactly, so exports are interchangeable with the standalone HTML.
-- Import → hidden file input, same parse-and-set behavior.
-- Presets buttons in the header row of the calculator page (Recover / Tear-off / Metal / Coating restore) call `loadPreset(key)` which merges field overrides then loads the matching stack.
+- **Products** — table + inline edit dialog (name, solids%, $/gal, mils, method, role, active).
+- **Details catalog** — table + edit dialog (label, unit, default qty, unit-cost, active).
+- **Stacks** — list of presets; each opens a layer editor (add/remove layers, pick product, scope, amount, method, mils).
+- **Field defaults & modes** — grouped list of every field with: default value, "show in Simple mode" toggle, label override.
 
-## Access
+All mutations go through admin-only server fns in `src/lib/spf/catalog-admin.functions.ts` using `requireSupabaseAuth` + role check, then `supabaseAdmin` for writes.
 
-The route is nested under `_app.roofking` so the existing `useIsRoofKing` gate in the layout applies — non-Roof-King companies can't reach it and won't see the tab.
+### 4. Simple / Detailed toggle in the calculator
+
+- Toggle in the SPF Calculator header: **Simple | Detailed** (default from `spf_calc_settings`, persisted per user in `localStorage`).
+- Detailed = current 10-panel UI (unchanged).
+- Simple = renders only fields whose `simple_mode = true` in `spf_field_defaults`, grouped by section; sections with zero visible fields are hidden. Engine still runs on the full field set (hidden fields use their defaults), so totals stay accurate.
+
+### 5. Nav
+
+Add "SPF Calculator" entry to the admin sidebar (`src/components/layout/AppSidebar.tsx`, admin section) linking to `/admin/spf`.
 
 ## Out of scope
 
-- No database persistence, no server function, no cross-linking to jobs/estimates (can be added in a follow-up if requested).
-- No changes to GCN branding, sidebars outside Roof King, or any other routes.
+- Per-company overrides (explicitly global per your answer).
+- Changes to engine math, presets math, or the Roof King → SPF Calculator route.
+- Materials/labor pricing outside the SPF calculator (existing Master Catalog / labor-rates tabs handle those for the wider app).
