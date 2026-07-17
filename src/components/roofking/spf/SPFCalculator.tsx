@@ -34,16 +34,6 @@ export function SPFCalculator() {
 
 function SPFCalculatorInner({ catalog }: { catalog: NonNullable<ReturnType<typeof useHydratedSpfCatalog>["catalog"]> }) {
 
-  const simpleFieldsByGroup = useMemo(() => {
-    const groups = new Map<string, typeof catalog.fieldDefaults>();
-    for (const f of catalog.fieldDefaults) {
-      if (!f.simple_mode) continue;
-      const g = groups.get(f.group_key) ?? [];
-      g.push(f);
-      groups.set(f.group_key, g);
-    }
-    return Array.from(groups.entries()).map(([k, rows]) => ({ key: k, rows: rows.sort((a, b) => a.sort_order - b.sort_order) }));
-  }, [catalog.fieldDefaults]);
 
   const [mode, setMode] = useState<CalcMode>(() => {
     if (typeof window !== "undefined") {
