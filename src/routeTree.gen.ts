@@ -75,6 +75,7 @@ import { Route as AdminAssembliesImportRouteImport } from './routes/admin.assemb
 import { Route as AppTeamRequestsRouteImport } from './routes/_app.team.requests'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppRoofkingTicketsRouteImport } from './routes/_app.roofking.tickets'
+import { Route as AppRoofkingSpfRouteImport } from './routes/_app.roofking.spf'
 import { Route as AppRoofkingPipelineRouteImport } from './routes/_app.roofking.pipeline'
 import { Route as AppRoofkingFormsRouteImport } from './routes/_app.roofking.forms'
 import { Route as AppRoofkingExportRouteImport } from './routes/_app.roofking.export'
@@ -437,6 +438,11 @@ const AppRoofkingTicketsRoute = AppRoofkingTicketsRouteImport.update({
   path: '/tickets',
   getParentRoute: () => AppRoofkingRoute,
 } as any)
+const AppRoofkingSpfRoute = AppRoofkingSpfRouteImport.update({
+  id: '/spf',
+  path: '/spf',
+  getParentRoute: () => AppRoofkingRoute,
+} as any)
 const AppRoofkingPipelineRoute = AppRoofkingPipelineRouteImport.update({
   id: '/pipeline',
   path: '/pipeline',
@@ -669,6 +675,7 @@ export interface FileRoutesByFullPath {
   '/roofking/export': typeof AppRoofkingExportRoute
   '/roofking/forms': typeof AppRoofkingFormsRoute
   '/roofking/pipeline': typeof AppRoofkingPipelineRoute
+  '/roofking/spf': typeof AppRoofkingSpfRoute
   '/roofking/tickets': typeof AppRoofkingTicketsRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/team/requests': typeof AppTeamRequestsRoute
@@ -761,6 +768,7 @@ export interface FileRoutesByTo {
   '/roofking/export': typeof AppRoofkingExportRoute
   '/roofking/forms': typeof AppRoofkingFormsRoute
   '/roofking/pipeline': typeof AppRoofkingPipelineRoute
+  '/roofking/spf': typeof AppRoofkingSpfRoute
   '/roofking/tickets': typeof AppRoofkingTicketsRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/team/requests': typeof AppTeamRequestsRoute
@@ -861,6 +869,7 @@ export interface FileRoutesById {
   '/_app/roofking/export': typeof AppRoofkingExportRoute
   '/_app/roofking/forms': typeof AppRoofkingFormsRoute
   '/_app/roofking/pipeline': typeof AppRoofkingPipelineRoute
+  '/_app/roofking/spf': typeof AppRoofkingSpfRoute
   '/_app/roofking/tickets': typeof AppRoofkingTicketsRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
   '/_app/team/requests': typeof AppTeamRequestsRoute
@@ -961,6 +970,7 @@ export interface FileRouteTypes {
     | '/roofking/export'
     | '/roofking/forms'
     | '/roofking/pipeline'
+    | '/roofking/spf'
     | '/roofking/tickets'
     | '/team/invites'
     | '/team/requests'
@@ -1053,6 +1063,7 @@ export interface FileRouteTypes {
     | '/roofking/export'
     | '/roofking/forms'
     | '/roofking/pipeline'
+    | '/roofking/spf'
     | '/roofking/tickets'
     | '/team/invites'
     | '/team/requests'
@@ -1152,6 +1163,7 @@ export interface FileRouteTypes {
     | '/_app/roofking/export'
     | '/_app/roofking/forms'
     | '/_app/roofking/pipeline'
+    | '/_app/roofking/spf'
     | '/_app/roofking/tickets'
     | '/_app/team/invites'
     | '/_app/team/requests'
@@ -1671,6 +1683,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRoofkingTicketsRouteImport
       parentRoute: typeof AppRoofkingRoute
     }
+    '/_app/roofking/spf': {
+      id: '/_app/roofking/spf'
+      path: '/spf'
+      fullPath: '/roofking/spf'
+      preLoaderRoute: typeof AppRoofkingSpfRouteImport
+      parentRoute: typeof AppRoofkingRoute
+    }
     '/_app/roofking/pipeline': {
       id: '/_app/roofking/pipeline'
       path: '/pipeline'
@@ -1966,6 +1985,7 @@ interface AppRoofkingRouteChildren {
   AppRoofkingExportRoute: typeof AppRoofkingExportRoute
   AppRoofkingFormsRoute: typeof AppRoofkingFormsRoute
   AppRoofkingPipelineRoute: typeof AppRoofkingPipelineRoute
+  AppRoofkingSpfRoute: typeof AppRoofkingSpfRoute
   AppRoofkingTicketsRoute: typeof AppRoofkingTicketsRoute
   AppRoofkingIndexRoute: typeof AppRoofkingIndexRoute
 }
@@ -1975,6 +1995,7 @@ const AppRoofkingRouteChildren: AppRoofkingRouteChildren = {
   AppRoofkingExportRoute: AppRoofkingExportRoute,
   AppRoofkingFormsRoute: AppRoofkingFormsRoute,
   AppRoofkingPipelineRoute: AppRoofkingPipelineRoute,
+  AppRoofkingSpfRoute: AppRoofkingSpfRoute,
   AppRoofkingTicketsRoute: AppRoofkingTicketsRoute,
   AppRoofkingIndexRoute: AppRoofkingIndexRoute,
 }
@@ -2168,13 +2189,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
