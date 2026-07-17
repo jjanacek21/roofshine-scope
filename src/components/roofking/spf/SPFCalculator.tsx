@@ -1,16 +1,62 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Trash2, Plus, Printer, Copy, Download, Upload } from "lucide-react";
+import { Trash2, Plus, Printer, Copy, Download, Upload, Loader2 } from "lucide-react";
 import {
   PRODUCTS, METHODS, SCOPES, DETAILS_SEED, FIELD_DEFAULTS,
   type Layer, type Detail, type SpfFields, type MethodKey, type ScopeKey,
 } from "@/lib/spf/data";
 import { calc, buildScope, newLayer, stackFromPreset, defWaste } from "@/lib/spf/engine";
 import { PRESETS, type PresetKey } from "@/lib/spf/presets";
+import { useHydratedSpfCatalog } from "@/lib/spf/catalog";
 
 const money = (n: number) => "$" + Math.round(n).toLocaleString();
 
+type CalcMode = "simple" | "detailed";
+
 export function SPFCalculator() {
+  const { ready, catalog, isLoading, error } = useHydratedSpfCatalog();
+  if (error) {
+    return (
+      <div className="rk-card p-6 text-sm" style={{ color: "var(--rk-red)" }}>
+        Failed to load SPF catalog: {(error as Error).message}
+      </div>
+    );
+  }
+  if (!ready || isLoading || !catalog) {
+    return (
+      <div className="rk-card flex items-center gap-3 p-6 text-sm" style={{ color: "var(--rk-ink-faint)" }}>
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading SPF catalog…
+      </div>
+    );
+  }
+  return <SPFCalculatorInner catalog={catalog} />;
+}
+
+function SPFCalculatorInner({ catalog }: { catalog: NonNullable<ReturnType<typeof useHydratedSpfCatalog>["catalog"]> }) {
+
+  const simpleFieldsByGroup = useMemo(() => {
+    const groups = new Map<string, typeof catalog.fieldDefaults>();
+    for (const f of catalog.fieldDefaults) {
+      if (!f.simple_mode) continue;
+      const g = groups.get(f.group_key) ?? [];
+      g.push(f);
+      groups.set(f.group_key, g);
+    }
+    return Array.from(groups.entries()).map(([k, rows]) => ({ key: k, rows: rows.sort((a, b) => a.sort_order - b.sort_order) }));
+  }, [catalog.fieldDefaults]);
+
+  const [mode, setMode] = useState<CalcMode>(() => {
+    if (typeof window !== "undefined") {
+      const saved = window.localStorage.getItem("spf-mode");
+      if (saved === "simple" || saved === "detailed") return saved;
+    }
+    return catalog.settings.default_mode;
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") window.localStorage.setItem("spf-mode", mode);
+  }, [mode]);
+
+
   const [fields, setFields] = useState<SpfFields>({ ...FIELD_DEFAULTS });
   const [layers, setLayers] = useState<Layer[]>(() => stackFromPreset("sil2"));
   const [details, setDetails] = useState<Detail[]>(() => DETAILS_SEED.map((d) => [...d] as Detail));
@@ -108,6 +154,21 @@ export function SPFCalculator() {
             </span>
             <span className="rk-display text-lg" style={{ color: "var(--rk-gold)" }}>SPF Scope & Cost Engine</span>
           </div>
+          <div className="mr-2 inline-flex overflow-hidden rounded border" style={{ borderColor: "var(--rk-line)" }}>
+            {(["simple", "detailed"] as CalcMode[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
+                style={{
+                  background: mode === m ? "var(--rk-gold)" : "transparent",
+                  color: mode === m ? "#111" : "var(--rk-ink-muted)",
+                }}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
           {(Object.keys(PRESETS) as PresetKey[]).map((k) => (
             <button key={k} onClick={() => loadPreset(k)} className="rk-btn rk-btn-ghost">{PRESETS[k].label}</button>
           ))}
@@ -116,6 +177,16 @@ export function SPFCalculator() {
           <input ref={importRef} type="file" accept=".json" hidden onChange={onImportFile} />
           <button onClick={() => window.print()} className="rk-btn rk-btn-gold"><Printer className="h-3.5 w-3.5" /> Print scope</button>
         </div>
+
+        {mode === "simple" ? (
+          <SimpleForm
+            fields={fields}
+            setF={setF}
+            groups={simpleFieldsByGroup}
+          />
+        ) : (
+        <>
+
 
         {/* 1 PROJECT */}
         <Section title="1 · Project" sub="Identity & area" defaultOpen>
@@ -449,7 +520,10 @@ export function SPFCalculator() {
           </Grid>
           <Note>Margin, commission, permit %, bond and financing are all percentages <em>of sell price</em>, so they're solved together instead of stacked on cost. That's the difference between a 28% margin and thinking you have one.</Note>
         </Section>
+        </>
+        )}
       </div>
+
 
       {/* RAIL */}
       <ResultsRail result={result} fields={fields} details={details} scopeText={scopeText} onCopyScope={copyScope} />
@@ -641,3 +715,55 @@ function Kpi({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+const GROUP_LABELS: Record<string, string> = {
+  project: "Project", existing: "Existing conditions", access: "Access", foam: "Foam",
+  reinf: "Reinforcement", labor: "Labor", equip: "Equipment", soft: "Soft costs", markup: "Markup",
+};
+
+function SimpleForm({
+  fields, setF, groups,
+}: {
+  fields: SpfFields;
+  setF: <K extends keyof SpfFields>(k: K, v: SpfFields[K]) => void;
+  groups: { key: string; rows: { field_key: string; label: string; group_key: string; value_text: string }[] }[];
+}) {
+  if (!groups.length) {
+    return (
+      <div className="rk-card p-6 text-sm" style={{ color: "var(--rk-ink-faint)" }}>
+        No fields configured for Simple mode. An admin can flag fields for Simple mode at Admin → SPF Calculator → Field defaults.
+      </div>
+    );
+  }
+  const currentValue = (key: string): string | number => {
+    const v = (fields as unknown as Record<string, unknown>)[key];
+    return v == null ? "" : (v as string | number);
+  };
+  const isNumeric = (key: string) => typeof (fields as unknown as Record<string, unknown>)[key] === "number";
+  return (
+    <div className="space-y-3">
+      {groups.map((g) => (
+        <Section key={g.key} title={GROUP_LABELS[g.key] ?? g.key} defaultOpen>
+          <Grid>
+            {g.rows.map((r) => (
+              <F key={r.field_key} label={r.label}>
+                <input
+                  className="rk-input"
+                  type={isNumeric(r.field_key) ? "number" : "text"}
+                  value={String(currentValue(r.field_key))}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const next = isNumeric(r.field_key) ? (parseFloat(raw) || 0) : raw;
+                    setF(r.field_key as keyof SpfFields, next as SpfFields[keyof SpfFields]);
+                  }}
+                />
+              </F>
+            ))}
+          </Grid>
+        </Section>
+      ))}
+      <Note>Simple mode shows only fields flagged by an admin. All hidden fields use their saved defaults; totals stay accurate.</Note>
+    </div>
+  );
+}
+

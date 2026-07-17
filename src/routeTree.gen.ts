@@ -40,6 +40,7 @@ import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTrainingRouteImport } from './routes/admin.training'
 import { Route as AdminTenantsRouteImport } from './routes/admin.tenants'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
+import { Route as AdminSpfRouteImport } from './routes/admin.spf'
 import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
 import { Route as AdminPriceBooksRouteImport } from './routes/admin.price-books'
 import { Route as AdminMembershipsRouteImport } from './routes/admin.memberships'
@@ -261,6 +262,11 @@ const AdminTenantsRoute = AdminTenantsRouteImport.update({
 const AdminSupportRoute = AdminSupportRouteImport.update({
   id: '/support',
   path: '/support',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSpfRoute = AdminSpfRouteImport.update({
+  id: '/spf',
+  path: '/spf',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminReviewsRoute = AdminReviewsRouteImport.update({
@@ -632,6 +638,7 @@ export interface FileRoutesByFullPath {
   '/admin/memberships': typeof AdminMembershipsRoute
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
+  '/admin/spf': typeof AdminSpfRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/tenants': typeof AdminTenantsRoute
   '/admin/training': typeof AdminTrainingRoute
@@ -725,6 +732,7 @@ export interface FileRoutesByTo {
   '/admin/memberships': typeof AdminMembershipsRoute
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
+  '/admin/spf': typeof AdminSpfRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/tenants': typeof AdminTenantsRoute
   '/admin/training': typeof AdminTrainingRoute
@@ -825,6 +833,7 @@ export interface FileRoutesById {
   '/admin/memberships': typeof AdminMembershipsRoute
   '/admin/price-books': typeof AdminPriceBooksRouteWithChildren
   '/admin/reviews': typeof AdminReviewsRoute
+  '/admin/spf': typeof AdminSpfRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/tenants': typeof AdminTenantsRoute
   '/admin/training': typeof AdminTrainingRoute
@@ -927,6 +936,7 @@ export interface FileRouteTypes {
     | '/admin/memberships'
     | '/admin/price-books'
     | '/admin/reviews'
+    | '/admin/spf'
     | '/admin/support'
     | '/admin/tenants'
     | '/admin/training'
@@ -1020,6 +1030,7 @@ export interface FileRouteTypes {
     | '/admin/memberships'
     | '/admin/price-books'
     | '/admin/reviews'
+    | '/admin/spf'
     | '/admin/support'
     | '/admin/tenants'
     | '/admin/training'
@@ -1119,6 +1130,7 @@ export interface FileRouteTypes {
     | '/admin/memberships'
     | '/admin/price-books'
     | '/admin/reviews'
+    | '/admin/spf'
     | '/admin/support'
     | '/admin/tenants'
     | '/admin/training'
@@ -1436,6 +1448,13 @@ declare module '@tanstack/react-router' {
       path: '/support'
       fullPath: '/admin/support'
       preLoaderRoute: typeof AdminSupportRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/spf': {
+      id: '/admin/spf'
+      path: '/spf'
+      fullPath: '/admin/spf'
+      preLoaderRoute: typeof AdminSpfRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/reviews': {
@@ -2126,6 +2145,7 @@ interface AdminRouteChildren {
   AdminMembershipsRoute: typeof AdminMembershipsRoute
   AdminPriceBooksRoute: typeof AdminPriceBooksRouteWithChildren
   AdminReviewsRoute: typeof AdminReviewsRoute
+  AdminSpfRoute: typeof AdminSpfRoute
   AdminSupportRoute: typeof AdminSupportRoute
   AdminTenantsRoute: typeof AdminTenantsRoute
   AdminTrainingRoute: typeof AdminTrainingRoute
@@ -2147,6 +2167,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMembershipsRoute: AdminMembershipsRoute,
   AdminPriceBooksRoute: AdminPriceBooksRouteWithChildren,
   AdminReviewsRoute: AdminReviewsRoute,
+  AdminSpfRoute: AdminSpfRoute,
   AdminSupportRoute: AdminSupportRoute,
   AdminTenantsRoute: AdminTenantsRoute,
   AdminTrainingRoute: AdminTrainingRoute,

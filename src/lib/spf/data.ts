@@ -1,4 +1,7 @@
 // Verbatim data tables from SPF Scope & Cost Engine HTML source.
+// PRODUCTS / DETAILS_SEED / STACKS / FIELD_DEFAULTS are seeded from the admin
+// backend at runtime via hydrateCatalog(). The arrays below are the fallback
+// used before the DB fetch resolves and match the DB seed exactly.
 
 // [name, solids%, $/gal, default mils, default method, role]
 export type Product = [string, number, number, number, MethodKey, ProductRole];
@@ -238,3 +241,28 @@ export const WAR_LABELS: Record<string, string> = {
   "0.18": "15-yr NDL",
   "0.26": "20-yr NDL",
 };
+
+// ---------- Runtime hydration from admin catalog (DB) ----------
+// Mutate the arrays/objects in place so existing `import { PRODUCTS }` bindings
+// see the fresh data without any refactor across engine.ts and presets.ts.
+export function hydrateCatalog(next: {
+  products?: Product[];
+  details?: Detail[];
+  stacks?: Record<string, StackTemplate>;
+  fieldDefaults?: Partial<SpfFields>;
+}) {
+  if (next.products && next.products.length) {
+    PRODUCTS.splice(0, PRODUCTS.length, ...next.products);
+  }
+  if (next.details) {
+    DETAILS_SEED.splice(0, DETAILS_SEED.length, ...next.details);
+  }
+  if (next.stacks) {
+    for (const k of Object.keys(STACKS)) delete (STACKS as Record<string, StackTemplate>)[k];
+    Object.assign(STACKS, next.stacks);
+  }
+  if (next.fieldDefaults) {
+    Object.assign(FIELD_DEFAULTS, next.fieldDefaults);
+  }
+}
+
