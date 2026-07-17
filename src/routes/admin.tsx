@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-rout
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Users, Building2, Megaphone, Mail, FileText, Brain, Star, CreditCard, Flag, BarChart3, LifeBuoy, ScrollText, ArrowLeft, Library, Ruler, Menu, FileSignature } from "lucide-react";
+import { Shield, Users, Building2, Megaphone, Mail, FileText, Brain, Star, CreditCard, Flag, BarChart3, LifeBuoy, ScrollText, ArrowLeft, Library, Ruler, Menu, FileSignature, Flame } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/admin")({
