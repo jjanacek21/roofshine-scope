@@ -155,7 +155,7 @@ function SPFCalculatorInner({ catalog }: { catalog: NonNullable<ReturnType<typeo
             <span className="rk-display text-lg" style={{ color: "var(--rk-gold)" }}>SPF Scope & Cost Engine</span>
           </div>
           <div className="mr-2 inline-flex overflow-hidden rounded border" style={{ borderColor: "var(--rk-line)" }}>
-            {(["simple", "detailed"] as CalcMode[]).map((m) => (
+            {(["quick", "advanced"] as CalcMode[]).map((m) => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
