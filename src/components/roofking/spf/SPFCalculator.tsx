@@ -11,7 +11,7 @@ import { useHydratedSpfCatalog } from "@/lib/spf/catalog";
 
 const money = (n: number) => "$" + Math.round(n).toLocaleString();
 
-type CalcMode = "simple" | "detailed";
+type CalcMode = "quick" | "advanced";
 
 export function SPFCalculator() {
   const { ready, catalog, isLoading, error } = useHydratedSpfCatalog();
