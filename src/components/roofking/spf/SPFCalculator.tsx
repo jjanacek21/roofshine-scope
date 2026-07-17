@@ -48,9 +48,9 @@ function SPFCalculatorInner({ catalog }: { catalog: NonNullable<ReturnType<typeo
   const [mode, setMode] = useState<CalcMode>(() => {
     if (typeof window !== "undefined") {
       const saved = window.localStorage.getItem("spf-mode");
-      if (saved === "simple" || saved === "detailed") return saved;
+      if (saved === "quick" || saved === "advanced") return saved;
     }
-    return catalog.settings.default_mode;
+    return "quick";
   });
   useEffect(() => {
     if (typeof window !== "undefined") window.localStorage.setItem("spf-mode", mode);
