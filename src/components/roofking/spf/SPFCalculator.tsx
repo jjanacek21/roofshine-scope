@@ -284,7 +284,7 @@ function SPFCalculatorInner({ catalog }: { catalog: NonNullable<ReturnType<typeo
             </div>
           </Section>
 
-          <Section title="10 · Markup" defaultOpen>
+          <Section title="6 · Markup" defaultOpen>
             <Grid>
               <F label="Target gross margin % (of sell)"><input type="number" step="0.1" className="rk-input" value={fields.m_margin} onChange={setNum("m_margin")} /></F>
             </Grid>
