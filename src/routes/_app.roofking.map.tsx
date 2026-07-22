@@ -308,6 +308,9 @@ function RoofKingMap() {
         cluster: true,
         clusterMaxZoom: 15,
         clusterRadius: 44,
+        clusterProperties: {
+          ticket_sum: ["+", ["get", "ticketCount"]],
+        },
       });
 
       map.addLayer({
@@ -316,8 +319,8 @@ function RoofKingMap() {
         source: "rk-service-tickets",
         filter: ["has", "point_count"],
         paint: {
-          "circle-color": ["step", ["get", "point_count"], "#2f80ed", 10, "#f39c2d", 25, "#8b5cf6"],
-          "circle-radius": ["step", ["get", "point_count"], 18, 10, 23, 25, 29],
+          "circle-color": ["step", ["get", "ticket_sum"], "#2f80ed", 10, "#f39c2d", 25, "#8b5cf6"],
+          "circle-radius": ["step", ["get", "ticket_sum"], 18, 10, 23, 25, 29],
           "circle-stroke-width": 3,
           "circle-stroke-color": "#ffffff",
           "circle-opacity": 0.96,
@@ -330,7 +333,7 @@ function RoofKingMap() {
         source: "rk-service-tickets",
         filter: ["has", "point_count"],
         layout: {
-          "text-field": ["get", "point_count_abbreviated"],
+          "text-field": ["to-string", ["get", "ticket_sum"]],
           "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
           "text-size": 12,
         },
