@@ -1106,6 +1106,9 @@ export function SolarRoofTab({
           >
             Imagery: {imageryQuality}
           </div>
+        )}
+
+
 
         {/* Rotate & align controls — bottom-right */}
         <div
