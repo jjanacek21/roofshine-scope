@@ -184,6 +184,56 @@ export function SolarRoofTab({
   useEffect(() => { drawingPinIdRef.current = drawingPinId; }, [drawingPinId]);
   useEffect(() => { drawPointsRef.current = drawPoints; }, [drawPoints]);
 
+  // Hydrate pins from an existing google_solar auto-measurement so the highlight
+  // overlay appears when the user opens the tab after AI has already scanned.
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (!propertyId || hydratedRef.current) return;
+    hydratedRef.current = true;
+    (async () => {
+      const { data: m } = await supabase
+        .from("roof_measurements")
+        .select("id, source, ai_analysis")
+        .eq("property_id", propertyId)
+        .maybeSingle();
+      if (!m) return;
+      const { data: sections } = await supabase
+        .from("roof_sections")
+        .select("name, pitch, plan_area_sqft, polygon_geojson")
+        .eq("measurement_id", m.id)
+        .order("sort_order", { ascending: true });
+      if (!sections || sections.length === 0) return;
+      // Only hydrate if user hasn't already interacted (still empty).
+      setPins((existing) => {
+        if (existing.length > 0) return existing;
+        const seeded: Pin[] = [];
+        for (const s of sections) {
+          const ring: number[][] | undefined =
+            (s.polygon_geojson as { coordinates?: number[][][] } | null)?.coordinates?.[0];
+          if (!ring || ring.length < 3) continue;
+          const [cLng, cLat] = ringCentroid(ring);
+          const pitch = (s.pitch as string) || "6/12";
+          const kind: PinKind = pitch === "0/12" ? "flat" : "pitched";
+          seeded.push({
+            id: rid(),
+            name: (s.name as string) || `Structure ${seeded.length + 1}`,
+            kind,
+            pitch,
+            plan_area_sqft: Number(s.plan_area_sqft) || 0,
+            lng: cLng,
+            lat: cLat,
+            ring,
+            facets: [{ ring, pitch, plan_area_sqft: Number(s.plan_area_sqft) || 0, pitch_degrees: 0 }],
+            source: "solar",
+          });
+        }
+        if (seeded.length === 0) return existing;
+        toast.success(`Loaded ${seeded.length} AI-measured facet${seeded.length === 1 ? "" : "s"}`);
+        return seeded;
+      });
+    })();
+  }, [propertyId]);
+
   // Init map
   useEffect(() => {
     if (!token || !containerRef.current || mapRef.current) return;
