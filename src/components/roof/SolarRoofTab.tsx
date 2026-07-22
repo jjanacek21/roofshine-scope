@@ -1321,6 +1321,45 @@ export function SolarRoofTab({
                   <Pencil className="h-3.5 w-3.5" /> Draw area on map
                 </button>
               )}
+              {editingVerticesPinId === activePin.id ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setEditingVerticesPinId(null);
+                      toast.success("Vertex edits kept — save to train the AI");
+                    }}
+                    className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5"
+                    style={{ borderColor: "#facc15" }}
+                  >
+                    <Check className="h-3.5 w-3.5 text-[#facc15]" /> Finish editing corners
+                  </button>
+                  <button
+                    onClick={() => saveVertexCorrections(activePin)}
+                    className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5"
+                    style={{ borderColor: "var(--border)" }}
+                    title="Save this correction so the AI improves edge detection"
+                  >
+                    <Brain className="h-3.5 w-3.5 text-violet-400" /> Save to AI training
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    setEditingVerticesPinId(activePin.id);
+                    zoomToPin(activePin);
+                    toast.info("Drag the yellow corner handles to align with the roof edges");
+                  }}
+                  disabled={
+                    !(activePin.facets && activePin.facets.length > 0) &&
+                    !(activePin.ring && activePin.ring.length >= 3)
+                  }
+                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5 disabled:opacity-40"
+                  style={{ borderColor: "var(--border)" }}
+                  title="Zoom in and drag facet corners to match roof edges"
+                >
+                  <Pencil className="h-3.5 w-3.5 text-[#facc15]" /> Edit corners &amp; zoom in
+                </button>
+              )}
               {(activePin.plan_area_sqft || 0) === 0 && (
                 <span className="inline-flex items-center gap-1 text-[11px] text-amber-500">
                   <AlertCircle className="h-3 w-3" /> Not yet measured
