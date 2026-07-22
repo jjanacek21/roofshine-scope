@@ -1,32 +1,47 @@
 ## Goal
-Add a "Map" tab to the Roof King section that plots every service ticket as a pin on a satellite map, colored by status, so you can see at a glance where the work is concentrated.
+Make the Roof King service-ticket map behave like a proper zoomable service map:
+- Zoomed out: show clustered bubbles with the number of tickets/properties in that area.
+- Zooming in: clusters break apart into pins.
+- Street/house zoom: pins sit directly over the actual property, not offshore or in the wrong city.
 
-## What it looks like
-- New sub-nav item in Roof King: **Map** (globe/map-pin icon), sits between "All Tickets" and "SPF Calculator".
-- Full-height split view (same feel as `/leads/map`):
-  - Left: Mapbox satellite-streets map, one pin per ticket at the property's address.
-  - Right: filter/legend sidebar with ticket count, status legend, time filter (All / 30d / 90d / 1y), and a "Geocode N missing" button when properties lack coordinates.
-- Pins colored by `RK_STATUS_COLORS` (new/dispatched/field/ready/invoiced).
-- Click a pin → popup with WO#, customer, building, service date, status, price, and a "Open ticket" button that opens the existing `TicketDrawer`.
-- Multiple tickets at the same property cluster into one pin with a count badge; clicking expands a list.
-- Empty-state card when no tickets have coordinates yet, with a one-click Geocode action.
+## What I confirmed
+- The map is currently rendering one custom marker per property/ticket group, so zoomed-out markers overlap instead of clustering cleanly.
+- The database has coordinates for most properties, but some saved coordinates are clearly wrong because earlier geocoding accepted incomplete addresses like `2570 and 2580`, `PH 10`, `Bldg 2`, or bare unit/building text.
+- There are 280 properties with coordinates; 39 are outside the South Florida bounding area, including several bad matches in Orlando, Puerto Rico, North Dakota, Michigan, etc.
 
-## Data / backend
-`rk_properties` doesn't currently store coordinates, so tickets can't be plotted. One small migration:
-- Add `lat double precision` and `lng double precision` columns to `rk_properties`.
-- No policy changes (existing RLS already covers the table).
+## Implementation plan
+1. **Replace manual marker rendering with Mapbox clustering**
+   - Build a GeoJSON source from the filtered tickets/properties.
+   - Enable Mapbox `cluster: true`.
+   - Show numbered cluster circles when zoomed out.
+   - Show individual status-colored property pins when zoomed in.
+   - Clicking a cluster zooms into that area.
+   - Clicking a pin opens the existing ticket popup.
 
-Geocoding uses the same pattern as `/leads/map`: browser calls Mapbox Geocoding API with the token from `useMapboxToken`, batched at concurrency 5, writes `lat`/`lng` back to `rk_properties`. Runs on-demand from the sidebar button (not automatically). Also auto-geocodes when a new property is created via `AddCustomerDialog` / `NewTicketDialog` in a follow-up (optional; can be added later).
+2. **Stop showing obviously bad coordinates as valid pins**
+   - Exclude coordinates that are outside a reasonable Florida/service-area sanity check unless the address itself clearly belongs outside South Florida.
+   - This prevents bad geocodes from appearing offshore or in unrelated cities.
 
-## Files to add / change
-- **Migration**: add `lat`, `lng` columns to `rk_properties`.
-- **New**: `src/routes/_app.roofking.map.tsx` — the map page (mirrors `_app.leads.map.tsx` structure but sourced from RK tickets + properties, and reuses `TicketDrawer`).
-- **Edit**: `src/lib/roofking/types.ts` — add optional `lat`/`lng` on `RKProperty`.
-- **Edit**: `src/routes/_app.roofking.tsx` — add the new "Map" tab entry to `TABS`.
+3. **Tighten the re-geocoding action**
+   - Only geocode addresses with a real street/address signal.
+   - Use the property city/state/zip to bias results.
+   - Reject low-confidence or out-of-area results.
+   - Add a safer “fix bad pins” path that re-geocodes rows with suspicious coordinates.
 
-Nothing else in the Roof King section changes. GCN branding, estimates, reports, and the rest of the app are untouched.
+4. **Improve the sidebar feedback**
+   - Show counts for:
+     - tickets shown
+     - properties shown
+     - properties skipped because coordinates are missing or suspicious
+   - Keep the re-geocode button, but make its result clearer.
 
-## Out of scope (call out if you want them)
-- Heatmap / density overlay (pins + clustering only for now).
-- Automatic geocoding of every new property on creation.
-- Drawing service territories on the map.
+5. **Verify in preview**
+   - Open `/roofking/map`.
+   - Confirm clusters appear when zoomed out.
+   - Confirm clusters split into property pins when zooming in.
+   - Confirm popups still list tickets for the clicked property.
+
+## Technical notes
+- Main file to update: `src/routes/_app.roofking.map.tsx`.
+- This should be a frontend map rendering/data-validation change, with no schema changes required.
+- If needed after the UI fix, I can run a separate approved data cleanup to clear/re-geocode the already-bad coordinates.
