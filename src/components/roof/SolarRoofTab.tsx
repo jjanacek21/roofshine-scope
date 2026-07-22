@@ -184,6 +184,49 @@ export function SolarRoofTab({
   useEffect(() => { drawingPinIdRef.current = drawingPinId; }, [drawingPinId]);
   useEffect(() => { drawPointsRef.current = drawPoints; }, [drawPoints]);
 
+  // Rotation + vertex-edit state
+  const [bearing, setBearing] = useState(0);
+  const [editingVerticesPinId, setEditingVerticesPinId] = useState<string | null>(null);
+  const editingVerticesPinIdRef = useRef<string | null>(null);
+  const vertexMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  useEffect(() => { editingVerticesPinIdRef.current = editingVerticesPinId; }, [editingVerticesPinId]);
+
+  function rotate(delta: number) {
+    const map = mapRef.current;
+    if (!map) return;
+    map.easeTo({ bearing: map.getBearing() + delta, duration: 180 });
+  }
+  function resetBearing() {
+    mapRef.current?.easeTo({ bearing: 0, duration: 220 });
+  }
+  function zoomToPin(pin: Pin) {
+    const map = mapRef.current;
+    if (!map) return;
+    map.easeTo({ center: [pin.lng, pin.lat], zoom: Math.max(map.getZoom(), 21), duration: 350 });
+  }
+
+  async function saveVertexCorrections(pin: Pin) {
+    try {
+      const facets = pin.facets ?? [];
+      const { data: s } = await supabase.auth.getSession();
+      const userId = s.session?.user.id ?? null;
+      const { error } = await supabase.from("training_examples").insert({
+        address: `${pin.lat.toFixed(6)}, ${pin.lng.toFixed(6)}`,
+        lat: pin.lat,
+        lng: pin.lng,
+        source: "vertex_edit",
+        ground_truth: { facets, total_plan_sqft: pin.plan_area_sqft, pin_name: pin.name, pitch: pin.pitch, kind: pin.kind },
+        solar_response: {},
+        notes: "User-corrected facet vertices from Solar tab",
+        created_by: userId,
+      });
+      if (error) throw error;
+      toast.success("Correction saved — AI training center will use it");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't save correction");
+    }
+  }
+
   // Hydrate pins from an existing google_solar auto-measurement so the highlight
   // overlay appears when the user opens the tab after AI has already scanned.
   const hydratedRef = useRef(false);
@@ -253,6 +296,7 @@ export function SolarRoofTab({
         setDrawPoints(next);
         return;
       }
+      if (editingVerticesPinIdRef.current) return; // don't add pins while editing vertices
       const newPin: Pin = {
         id: rid(),
         name: `Structure ${pinsStateRef.current.length + 1}`,
@@ -266,6 +310,8 @@ export function SolarRoofTab({
       setPins((p) => [...p, newPin]);
       setActivePinId(newPin.id);
     });
+
+    map.on("rotate", () => setBearing(map.getBearing()));
 
     map.on("load", () => {
       // In-progress draw layer
@@ -518,6 +564,76 @@ export function SolarRoofTab({
       }
     });
   }, [pins]);
+
+  // Vertex-edit mode: render draggable corner handles for the active pin's facets
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    // Clear previous handles
+    vertexMarkersRef.current.forEach((m) => m.remove());
+    vertexMarkersRef.current = [];
+    if (!editingVerticesPinId) return;
+    const pin = pins.find((p) => p.id === editingVerticesPinId);
+    if (!pin) return;
+    const facets =
+      pin.facets && pin.facets.length > 0
+        ? pin.facets
+        : pin.ring && pin.ring.length >= 3
+          ? [{ ring: pin.ring, pitch: pin.pitch, plan_area_sqft: pin.plan_area_sqft, pitch_degrees: 0 }]
+          : [];
+    facets.forEach((f, fi) => {
+      const isClosed =
+        f.ring.length > 1 &&
+        f.ring[0][0] === f.ring[f.ring.length - 1][0] &&
+        f.ring[0][1] === f.ring[f.ring.length - 1][1];
+      const n = isClosed ? f.ring.length - 1 : f.ring.length;
+      for (let vi = 0; vi < n; vi++) {
+        const el = document.createElement("div");
+        el.style.cssText =
+          "width:14px;height:14px;border-radius:50%;background:#facc15;border:2px solid #0a0a0a;box-shadow:0 1px 3px rgba(0,0,0,.6);cursor:grab;";
+        const marker = new mapboxgl.Marker({ element: el, draggable: true })
+          .setLngLat(f.ring[vi] as [number, number])
+          .addTo(map);
+        marker.on("dragend", () => {
+          const ll = marker.getLngLat();
+          setPins((prev) =>
+            prev.map((p) => {
+              if (p.id !== editingVerticesPinId) return p;
+              const cur =
+                p.facets && p.facets.length > 0
+                  ? p.facets
+                  : p.ring && p.ring.length >= 3
+                    ? [{ ring: p.ring, pitch: p.pitch, plan_area_sqft: p.plan_area_sqft, pitch_degrees: 0 }]
+                    : [];
+              const nextFacets = cur.map((ff, ii) => {
+                if (ii !== fi) return ff;
+                const newRing = ff.ring.map((pt, i) => (i === vi ? [ll.lng, ll.lat] : pt.slice()));
+                const closed =
+                  ff.ring.length > 1 &&
+                  ff.ring[0][0] === ff.ring[ff.ring.length - 1][0] &&
+                  ff.ring[0][1] === ff.ring[ff.ring.length - 1][1];
+                if (closed && vi === 0) newRing[newRing.length - 1] = [ll.lng, ll.lat];
+                return { ...ff, ring: newRing, plan_area_sqft: polygonAreaSqft(newRing) };
+              });
+              const total = nextFacets.reduce((s, ff) => s + ff.plan_area_sqft, 0);
+              return {
+                ...p,
+                facets: nextFacets,
+                ring: nextFacets[fi]?.ring ?? p.ring,
+                plan_area_sqft: Math.round(total),
+              };
+            }),
+          );
+        });
+        vertexMarkersRef.current.push(marker);
+      }
+    });
+    return () => {
+      vertexMarkersRef.current.forEach((m) => m.remove());
+      vertexMarkersRef.current = [];
+    };
+  }, [editingVerticesPinId, pins]);
+
 
   /**
    * Detect ALL structures at the property — one pin per detected facet.
@@ -992,6 +1108,61 @@ export function SolarRoofTab({
           </div>
         )}
 
+
+
+        {/* Rotate & align controls — bottom-right */}
+        <div
+          className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-md border px-2 py-1.5 backdrop-blur"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "color-mix(in oklab, var(--bg-card) 90%, transparent)",
+          }}
+        >
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rotate</span>
+          <button
+            onClick={() => rotate(-10)}
+            title="Rotate 10° left"
+            className="rounded border px-1.5 py-0.5 text-[11px] font-semibold text-foreground hover:bg-white/5"
+            style={{ borderColor: "var(--border)" }}
+          >
+            −10°
+          </button>
+          <button
+            onClick={() => rotate(-1)}
+            title="Rotate 1° left"
+            className="rounded border px-1.5 py-0.5 text-[11px] font-semibold text-foreground hover:bg-white/5"
+            style={{ borderColor: "var(--border)" }}
+          >
+            −1°
+          </button>
+          <button
+            onClick={resetBearing}
+            title="Reset rotation"
+            className="font-mono-num min-w-[3.5rem] rounded border px-1.5 py-0.5 text-center text-[11px] font-semibold text-foreground hover:bg-white/5"
+            style={{ borderColor: "var(--border)" }}
+          >
+            {Math.round(bearing)}°
+          </button>
+          <button
+            onClick={() => rotate(1)}
+            title="Rotate 1° right"
+            className="rounded border px-1.5 py-0.5 text-[11px] font-semibold text-foreground hover:bg-white/5"
+            style={{ borderColor: "var(--border)" }}
+          >
+            +1°
+          </button>
+          <button
+            onClick={() => rotate(10)}
+            title="Rotate 10° right"
+            className="rounded border px-1.5 py-0.5 text-[11px] font-semibold text-foreground hover:bg-white/5"
+            style={{ borderColor: "var(--border)" }}
+          >
+            +10°
+          </button>
+        </div>
+
+
+
         {/* Overlay legend (bottom-left of map) */}
         {pins.length > 0 && (
           <div
@@ -1148,6 +1319,45 @@ export function SolarRoofTab({
                   style={{ borderColor: "var(--border)" }}
                 >
                   <Pencil className="h-3.5 w-3.5" /> Draw area on map
+                </button>
+              )}
+              {editingVerticesPinId === activePin.id ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setEditingVerticesPinId(null);
+                      toast.success("Vertex edits kept — save to train the AI");
+                    }}
+                    className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5"
+                    style={{ borderColor: "#facc15" }}
+                  >
+                    <Check className="h-3.5 w-3.5 text-[#facc15]" /> Finish editing corners
+                  </button>
+                  <button
+                    onClick={() => saveVertexCorrections(activePin)}
+                    className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5"
+                    style={{ borderColor: "var(--border)" }}
+                    title="Save this correction so the AI improves edge detection"
+                  >
+                    <Brain className="h-3.5 w-3.5 text-violet-400" /> Save to AI training
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    setEditingVerticesPinId(activePin.id);
+                    zoomToPin(activePin);
+                    toast.info("Drag the yellow corner handles to align with the roof edges");
+                  }}
+                  disabled={
+                    !(activePin.facets && activePin.facets.length > 0) &&
+                    !(activePin.ring && activePin.ring.length >= 3)
+                  }
+                  className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5 disabled:opacity-40"
+                  style={{ borderColor: "var(--border)" }}
+                  title="Zoom in and drag facet corners to match roof edges"
+                >
+                  <Pencil className="h-3.5 w-3.5 text-[#facc15]" /> Edit corners &amp; zoom in
                 </button>
               )}
               {(activePin.plan_area_sqft || 0) === 0 && (
