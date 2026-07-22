@@ -130,13 +130,14 @@ function RoofKingMap() {
           .join(", ");
         try {
           const params = new URLSearchParams({
-            access_token: token,
+            access_token: token!,
             country: "us",
             limit: "1",
             types: "address",
             autocomplete: "false",
             proximity: `${PROX_LNG},${PROX_LAT}`,
           });
+
           const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?${params}`;
           const res = await fetch(url);
           const json = await res.json();
