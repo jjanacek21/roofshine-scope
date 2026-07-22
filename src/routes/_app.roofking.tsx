@@ -18,6 +18,7 @@ const TABS = [
   { to: "/roofking/customers", label: "Customers", icon: Users },
   { to: "/roofking/pipeline", label: "Pipeline", icon: KanbanSquare },
   { to: "/roofking/tickets", label: "All Tickets", icon: ListChecks },
+  { to: "/roofking/map", label: "Map", icon: MapIcon },
   { to: "/roofking/spf", label: "SPF Calculator", icon: Calculator },
   { to: "/roofking/forms", label: "Form Builder", icon: FileCog },
   { to: "/roofking/export", label: "Export / CRM", icon: Download },
