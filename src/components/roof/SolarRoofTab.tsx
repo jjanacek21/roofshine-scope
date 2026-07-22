@@ -296,6 +296,7 @@ export function SolarRoofTab({
         setDrawPoints(next);
         return;
       }
+      if (editingVerticesPinIdRef.current) return; // don't add pins while editing vertices
       const newPin: Pin = {
         id: rid(),
         name: `Structure ${pinsStateRef.current.length + 1}`,
@@ -309,6 +310,8 @@ export function SolarRoofTab({
       setPins((p) => [...p, newPin]);
       setActivePinId(newPin.id);
     });
+
+    map.on("rotate", () => setBearing(map.getBearing()));
 
     map.on("load", () => {
       // In-progress draw layer
