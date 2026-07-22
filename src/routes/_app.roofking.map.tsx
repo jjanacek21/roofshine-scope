@@ -79,16 +79,33 @@ function RoofKingMap() {
     return Array.from(map.values());
   }, [filteredTickets, propById]);
 
+  // Detect addresses that are just a number / range with no street name — Mapbox
+  // returns garbage matches for these, so we treat them as ungeocodable.
+  function hasStreetName(addr: string | null | undefined): boolean {
+    if (!addr) return false;
+    const cleaned = addr.replace(/[#\-,.]/g, " ").trim();
+    // needs at least one word that isn't a pure number or a range like "2570"
+    return /[a-zA-Z]{3,}/.test(cleaned);
+  }
+
   const missingCount = useMemo(
-    () => properties.filter((p) => (p.lat == null || p.lng == null) && (p.address || p.city)).length,
+    () =>
+      properties.filter((p) => (p.lat == null || p.lng == null) && hasStreetName(p.address))
+        .length,
     [properties],
   );
 
+  const [regeocodeAll, setRegeocodeAll] = useState(false);
+
   async function geocodeMissing() {
     if (!token || geocoding) return;
-    const targets = properties.filter((p) => (p.lat == null || p.lng == null) && (p.address || p.city));
+    const targets = properties.filter((p) => {
+      if (!hasStreetName(p.address)) return false;
+      if (regeocodeAll) return true;
+      return p.lat == null || p.lng == null;
+    });
     if (targets.length === 0) {
-      toast.success("All properties already have coordinates.");
+      toast.success("Nothing to geocode. Properties missing a street name are skipped.");
       return;
     }
     setGeocoding(true);
@@ -96,27 +113,38 @@ function RoofKingMap() {
 
     let done = 0;
     let ok = 0;
+    let skipped = 0;
     const CONCURRENCY = 5;
     let cursor = 0;
+
+    // South Florida proximity bias so bare numbers/streets don't jump to Orlando etc.
+    const PROX_LNG = -80.15;
+    const PROX_LAT = 26.15;
 
     async function worker() {
       while (cursor < targets.length) {
         const idx = cursor++;
         const prop = targets[idx];
-        const q = [prop.address, prop.city, prop.state, prop.zip].filter(Boolean).join(", ");
-        if (!q) {
-          done++;
-          setProgress((p) => ({ ...p, done }));
-          continue;
-        }
+        const q = [prop.address, prop.city, prop.state || "FL", prop.zip, "USA"]
+          .filter(Boolean)
+          .join(", ");
         try {
-          const url =
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json` +
-            `?access_token=${token}&country=us&limit=1`;
+          const params = new URLSearchParams({
+            access_token: token!,
+            country: "us",
+            limit: "1",
+            types: "address",
+            autocomplete: "false",
+            proximity: `${PROX_LNG},${PROX_LAT}`,
+          });
+
+          const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?${params}`;
           const res = await fetch(url);
           const json = await res.json();
           const f = json?.features?.[0];
-          if (f?.center) {
+          // Require an address-level match with strong relevance; otherwise skip.
+          const isAddress = Array.isArray(f?.place_type) && f.place_type.includes("address");
+          if (f?.center && isAddress && (f.relevance ?? 0) >= 0.75) {
             const [lng, lat] = f.center;
             const { error } = await supabase.from("rk_properties").update({ lat, lng }).eq("id", prop.id);
             if (!error) {
@@ -125,9 +153,11 @@ function RoofKingMap() {
                 Array.isArray(prev) ? prev.map((row) => (row.id === prop.id ? { ...row, lat, lng } : row)) : prev,
               );
             }
+          } else {
+            skipped++;
           }
         } catch {
-          /* skip */
+          skipped++;
         }
         done++;
         setProgress({ done, total: targets.length, ok });
@@ -137,8 +167,11 @@ function RoofKingMap() {
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
     setGeocoding(false);
     qc.invalidateQueries({ queryKey: ["rk", "properties", companyId] });
-    toast.success(`Geocoded ${ok} of ${targets.length} properties.`);
+    toast.success(
+      `Geocoded ${ok} of ${targets.length}${skipped ? ` · ${skipped} low-confidence skipped` : ""}`,
+    );
   }
+
 
   // Init map once token is ready
   useEffect(() => {
@@ -244,27 +277,36 @@ function RoofKingMap() {
           <p className="text-xs" style={{ color: "var(--rk-ink-muted)" }}>
             <span className="rk-num">{shownTickets}</span> of <span className="rk-num">{totalTickets}</span> tickets shown
           </p>
-          {missingCount > 0 && (
-            <button
-              type="button"
-              onClick={geocodeMissing}
-              disabled={geocoding || !token}
-              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-semibold hover:bg-[var(--rk-panel-2)] disabled:opacity-50"
-              style={{ borderColor: "var(--rk-line)", color: "var(--rk-ink)" }}
-            >
-              {geocoding ? (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Geocoding {progress.done}/{progress.total}…
-                </>
-              ) : (
-                <>
-                  <MapPin className="h-3 w-3" />
-                  Geocode {missingCount.toLocaleString()} missing
-                </>
-              )}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={geocodeMissing}
+            disabled={geocoding || !token}
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-semibold hover:bg-[var(--rk-panel-2)] disabled:opacity-50"
+            style={{ borderColor: "var(--rk-line)", color: "var(--rk-ink)" }}
+          >
+            {geocoding ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Geocoding {progress.done}/{progress.total}…
+              </>
+            ) : (
+              <>
+                <MapPin className="h-3 w-3" />
+                {regeocodeAll
+                  ? `Re-geocode ${properties.filter((p) => hasStreetName(p.address)).length.toLocaleString()} properties`
+                  : `Geocode ${missingCount.toLocaleString()} missing`}
+              </>
+            )}
+          </button>
+          <label className="mt-2 flex cursor-pointer items-center gap-2 text-[11px]" style={{ color: "var(--rk-ink-muted)" }}>
+            <input
+              type="checkbox"
+              checked={regeocodeAll}
+              onChange={(e) => setRegeocodeAll(e.target.checked)}
+            />
+            <span>Re-geocode all (fixes wrong pins)</span>
+          </label>
+
         </div>
 
         <div className="border-b px-4 py-3" style={{ borderColor: "var(--rk-line)" }}>
