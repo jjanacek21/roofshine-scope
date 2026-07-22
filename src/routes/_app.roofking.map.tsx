@@ -277,27 +277,36 @@ function RoofKingMap() {
           <p className="text-xs" style={{ color: "var(--rk-ink-muted)" }}>
             <span className="rk-num">{shownTickets}</span> of <span className="rk-num">{totalTickets}</span> tickets shown
           </p>
-          {missingCount > 0 && (
-            <button
-              type="button"
-              onClick={geocodeMissing}
-              disabled={geocoding || !token}
-              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-semibold hover:bg-[var(--rk-panel-2)] disabled:opacity-50"
-              style={{ borderColor: "var(--rk-line)", color: "var(--rk-ink)" }}
-            >
-              {geocoding ? (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Geocoding {progress.done}/{progress.total}…
-                </>
-              ) : (
-                <>
-                  <MapPin className="h-3 w-3" />
-                  Geocode {missingCount.toLocaleString()} missing
-                </>
-              )}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={geocodeMissing}
+            disabled={geocoding || !token}
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-semibold hover:bg-[var(--rk-panel-2)] disabled:opacity-50"
+            style={{ borderColor: "var(--rk-line)", color: "var(--rk-ink)" }}
+          >
+            {geocoding ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Geocoding {progress.done}/{progress.total}…
+              </>
+            ) : (
+              <>
+                <MapPin className="h-3 w-3" />
+                {regeocodeAll
+                  ? `Re-geocode ${properties.filter((p) => hasStreetName(p.address)).length.toLocaleString()} properties`
+                  : `Geocode ${missingCount.toLocaleString()} missing`}
+              </>
+            )}
+          </button>
+          <label className="mt-2 flex cursor-pointer items-center gap-2 text-[11px]" style={{ color: "var(--rk-ink-muted)" }}>
+            <input
+              type="checkbox"
+              checked={regeocodeAll}
+              onChange={(e) => setRegeocodeAll(e.target.checked)}
+            />
+            <span>Re-geocode all (fixes wrong pins)</span>
+          </label>
+
         </div>
 
         <div className="border-b px-4 py-3" style={{ borderColor: "var(--rk-line)" }}>
