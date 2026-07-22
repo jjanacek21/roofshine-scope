@@ -3961,6 +3961,8 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
+          lat: number | null
+          lng: number | null
           name: string
           roof_type: string | null
           state: string | null
@@ -3974,6 +3976,8 @@ export type Database = {
           company_id: string
           created_at?: string
           id?: string
+          lat?: number | null
+          lng?: number | null
           name: string
           roof_type?: string | null
           state?: string | null
@@ -3987,6 +3991,8 @@ export type Database = {
           company_id?: string
           created_at?: string
           id?: string
+          lat?: number | null
+          lng?: number | null
           name?: string
           roof_type?: string | null
           state?: string | null
