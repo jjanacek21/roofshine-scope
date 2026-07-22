@@ -1,53 +1,32 @@
 ## Goal
+Add a "Map" tab to the Roof King section that plots every service ticket as a pin on a satellite map, colored by status, so you can see at a glance where the work is concentrated.
 
-Move the SPF Calculator's hardcoded data (products, details, stacks, field defaults) into the database, add an admin backend under `/admin` to manage it, and add a Simple / Detailed toggle whose visible fields are admin-configurable.
+## What it looks like
+- New sub-nav item in Roof King: **Map** (globe/map-pin icon), sits between "All Tickets" and "SPF Calculator".
+- Full-height split view (same feel as `/leads/map`):
+  - Left: Mapbox satellite-streets map, one pin per ticket at the property's address.
+  - Right: filter/legend sidebar with ticket count, status legend, time filter (All / 30d / 90d / 1y), and a "Geocode N missing" button when properties lack coordinates.
+- Pins colored by `RK_STATUS_COLORS` (new/dispatched/field/ready/invoiced).
+- Click a pin → popup with WO#, customer, building, service date, status, price, and a "Open ticket" button that opens the existing `TicketDrawer`.
+- Multiple tickets at the same property cluster into one pin with a count badge; clicking expands a list.
+- Empty-state card when no tickets have coordinates yet, with a one-click Geocode action.
 
-Prices remain **global** (single master library owned by Roof King / Global Contractor Network admins). Every company using the calculator reads the same catalog.
+## Data / backend
+`rk_properties` doesn't currently store coordinates, so tickets can't be plotted. One small migration:
+- Add `lat double precision` and `lng double precision` columns to `rk_properties`.
+- No policy changes (existing RLS already covers the table).
 
-## What to build
+Geocoding uses the same pattern as `/leads/map`: browser calls Mapbox Geocoding API with the token from `useMapboxToken`, batched at concurrency 5, writes `lat`/`lng` back to `rk_properties`. Runs on-demand from the sidebar button (not automatically). Also auto-geocodes when a new property is created via `AddCustomerDialog` / `NewTicketDialog` in a follow-up (optional; can be added later).
 
-### 1. Database (single migration)
+## Files to add / change
+- **Migration**: add `lat`, `lng` columns to `rk_properties`.
+- **New**: `src/routes/_app.roofking.map.tsx` — the map page (mirrors `_app.leads.map.tsx` structure but sourced from RK tickets + properties, and reuses `TicketDrawer`).
+- **Edit**: `src/lib/roofking/types.ts` — add optional `lat`/`lng` on `RKProperty`.
+- **Edit**: `src/routes/_app.roofking.tsx` — add the new "Map" tab entry to `TABS`.
 
-New tables in `public`, all admin-writable, all readable by any authenticated user:
+Nothing else in the Roof King section changes. GCN branding, estimates, reports, and the rest of the app are untouched.
 
-- `spf_products` — name, solids_pct, cost_per_gal, default_mils, default_method, role, sort_order, active
-- `spf_details` — label, unit (`ea|lf|ls`), default_qty, unit_cost, sort_order, active
-- `spf_stacks` — key, label, sort_order, active
-- `spf_stack_layers` — stack_id fk, product_id fk, scope, amount, method, mils, sort_order
-- `spf_field_defaults` — one row per field key (`p_sqft`, `m_margin`, …) with `value_text`, `label`, `group` (project/existing/access/foam/…), `simple_mode` bool, `sort_order`
-- `spf_calc_settings` — singleton row: default simple/detailed mode, any global toggles
-
-Grants + RLS: `SELECT` for `authenticated`; `INSERT/UPDATE/DELETE` gated by `is_super_admin()` (or existing admin helper). Seed with the current contents of `src/lib/spf/data.ts` verbatim so nothing changes on day one.
-
-### 2. Data loading refactor
-
-- New `src/lib/spf/catalog.functions.ts` — `getSpfCatalog()` server fn returns `{ products, details, stacks, fieldDefaults, settings }`.
-- `SPFCalculator.tsx` fetches via `useSuspenseQuery`; keep current in-memory shape by mapping DB rows into the existing `Product`/`Detail`/`StackTemplate` tuples so `engine.ts` and `presets.ts` stay untouched.
-- Presets keep referencing product indexes; resolve by product id server-side so reorders don't break them.
-
-### 3. Admin backend — `/admin/spf`
-
-New route `src/routes/admin.spf.tsx` (gated by existing admin layout). Four tabs:
-
-- **Products** — table + inline edit dialog (name, solids%, $/gal, mils, method, role, active).
-- **Details catalog** — table + edit dialog (label, unit, default qty, unit-cost, active).
-- **Stacks** — list of presets; each opens a layer editor (add/remove layers, pick product, scope, amount, method, mils).
-- **Field defaults & modes** — grouped list of every field with: default value, "show in Simple mode" toggle, label override.
-
-All mutations go through admin-only server fns in `src/lib/spf/catalog-admin.functions.ts` using `requireSupabaseAuth` + role check, then `supabaseAdmin` for writes.
-
-### 4. Simple / Detailed toggle in the calculator
-
-- Toggle in the SPF Calculator header: **Simple | Detailed** (default from `spf_calc_settings`, persisted per user in `localStorage`).
-- Detailed = current 10-panel UI (unchanged).
-- Simple = renders only fields whose `simple_mode = true` in `spf_field_defaults`, grouped by section; sections with zero visible fields are hidden. Engine still runs on the full field set (hidden fields use their defaults), so totals stay accurate.
-
-### 5. Nav
-
-Add "SPF Calculator" entry to the admin sidebar (`src/components/layout/AppSidebar.tsx`, admin section) linking to `/admin/spf`.
-
-## Out of scope
-
-- Per-company overrides (explicitly global per your answer).
-- Changes to engine math, presets math, or the Roof King → SPF Calculator route.
-- Materials/labor pricing outside the SPF calculator (existing Master Catalog / labor-rates tabs handle those for the wider app).
+## Out of scope (call out if you want them)
+- Heatmap / density overlay (pins + clustering only for now).
+- Automatic geocoding of every new property on creation.
+- Drawing service territories on the map.

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Users, KanbanSquare, ListChecks, FileCog, Download, Plus, Search, Target, MapPin, Phone, Calculator } from "lucide-react";
+import { LayoutDashboard, Users, KanbanSquare, ListChecks, Map as MapIcon, FileCog, Download, Plus, Search, Target, MapPin, Phone, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
 import { AddCustomerDialog } from "@/components/roofking/CustomerDialogs";
@@ -18,6 +18,7 @@ const TABS = [
   { to: "/roofking/customers", label: "Customers", icon: Users },
   { to: "/roofking/pipeline", label: "Pipeline", icon: KanbanSquare },
   { to: "/roofking/tickets", label: "All Tickets", icon: ListChecks },
+  { to: "/roofking/map", label: "Map", icon: MapIcon },
   { to: "/roofking/spf", label: "SPF Calculator", icon: Calculator },
   { to: "/roofking/forms", label: "Form Builder", icon: FileCog },
   { to: "/roofking/export", label: "Export / CRM", icon: Download },

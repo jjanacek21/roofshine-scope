@@ -46,6 +46,8 @@ export type RKProperty = {
   state: string | null;
   zip: string | null;
   roof_type: string | null;
+  lat: number | null;
+  lng: number | null;
   created_at: string;
   updated_at: string;
 };
