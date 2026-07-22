@@ -572,8 +572,8 @@ export function SolarRoofTab({
     // Clear previous handles
     vertexMarkersRef.current.forEach((m) => m.remove());
     vertexMarkersRef.current = [];
-    // Show corner handles automatically for the active pin, OR the one being edited.
-    const targetId = editingVerticesPinId ?? activePinId;
+    // Only show corner handles when the user explicitly enters edit mode.
+    const targetId = editingVerticesPinId;
     if (!targetId) return;
     const pin = pins.find((p) => p.id === targetId);
     if (!pin) return;
