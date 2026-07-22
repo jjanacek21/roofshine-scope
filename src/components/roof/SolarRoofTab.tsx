@@ -572,9 +572,12 @@ export function SolarRoofTab({
     // Clear previous handles
     vertexMarkersRef.current.forEach((m) => m.remove());
     vertexMarkersRef.current = [];
-    if (!editingVerticesPinId) return;
-    const pin = pins.find((p) => p.id === editingVerticesPinId);
+    // Show corner handles automatically for the active pin, OR the one being edited.
+    const targetId = editingVerticesPinId ?? activePinId;
+    if (!targetId) return;
+    const pin = pins.find((p) => p.id === targetId);
     if (!pin) return;
+
     const facets =
       pin.facets && pin.facets.length > 0
         ? pin.facets
@@ -598,7 +601,7 @@ export function SolarRoofTab({
           const ll = marker.getLngLat();
           setPins((prev) =>
             prev.map((p) => {
-              if (p.id !== editingVerticesPinId) return p;
+              if (p.id !== targetId) return p;
               const cur =
                 p.facets && p.facets.length > 0
                   ? p.facets
@@ -632,7 +635,7 @@ export function SolarRoofTab({
       vertexMarkersRef.current.forEach((m) => m.remove());
       vertexMarkersRef.current = [];
     };
-  }, [editingVerticesPinId, pins]);
+  }, [editingVerticesPinId, activePinId, pins]);
 
 
   /**
