@@ -184,6 +184,49 @@ export function SolarRoofTab({
   useEffect(() => { drawingPinIdRef.current = drawingPinId; }, [drawingPinId]);
   useEffect(() => { drawPointsRef.current = drawPoints; }, [drawPoints]);
 
+  // Rotation + vertex-edit state
+  const [bearing, setBearing] = useState(0);
+  const [editingVerticesPinId, setEditingVerticesPinId] = useState<string | null>(null);
+  const editingVerticesPinIdRef = useRef<string | null>(null);
+  const vertexMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  useEffect(() => { editingVerticesPinIdRef.current = editingVerticesPinId; }, [editingVerticesPinId]);
+
+  function rotate(delta: number) {
+    const map = mapRef.current;
+    if (!map) return;
+    map.easeTo({ bearing: map.getBearing() + delta, duration: 180 });
+  }
+  function resetBearing() {
+    mapRef.current?.easeTo({ bearing: 0, duration: 220 });
+  }
+  function zoomToPin(pin: Pin) {
+    const map = mapRef.current;
+    if (!map) return;
+    map.easeTo({ center: [pin.lng, pin.lat], zoom: Math.max(map.getZoom(), 21), duration: 350 });
+  }
+
+  async function saveVertexCorrections(pin: Pin) {
+    try {
+      const facets = pin.facets ?? [];
+      const { data: s } = await supabase.auth.getSession();
+      const userId = s.session?.user.id ?? null;
+      const { error } = await supabase.from("training_examples").insert({
+        address: `${pin.lat.toFixed(6)}, ${pin.lng.toFixed(6)}`,
+        lat: pin.lat,
+        lng: pin.lng,
+        source: "vertex_edit",
+        ground_truth: { facets, total_plan_sqft: pin.plan_area_sqft, pin_name: pin.name, pitch: pin.pitch, kind: pin.kind },
+        solar_response: {},
+        notes: "User-corrected facet vertices from Solar tab",
+        created_by: userId,
+      });
+      if (error) throw error;
+      toast.success("Correction saved — AI training center will use it");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't save correction");
+    }
+  }
+
   // Hydrate pins from an existing google_solar auto-measurement so the highlight
   // overlay appears when the user opens the tab after AI has already scanned.
   const hydratedRef = useRef(false);
