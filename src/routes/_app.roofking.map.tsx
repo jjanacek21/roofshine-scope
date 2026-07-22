@@ -386,7 +386,7 @@ function RoofKingMap() {
           const color = RK_STATUS_COLORS[t.status];
           return `<div data-ticket-id="${escapeHtml(t.id)}" style="cursor:pointer;padding:6px 8px;border-top:1px solid #2a2a2a;display:flex;justify-content:space-between;gap:8px;align-items:center;">
             <div style="min-width:0;">
-              <div style="font-weight:600;color:#fff;font-size:12px;">WO-${escapeHtml(t.wo_number ?? "—")} · ${escapeHtml(account?.name ?? "—")}</div>
+              <div style="font-weight:600;color:#fff;font-size:12px;">WO-${escapeHtml(t.wo_number == null ? "—" : String(t.wo_number))} · ${escapeHtml(account?.name ?? "—")}</div>
               <div style="font-size:11px;color:#9ca3af;">${escapeHtml(t.service_date ?? "No date")}${t.price != null ? ` · $${Number(t.price).toFixed(0)}` : ""}</div>
             </div>
             <span style="display:inline-block;padding:1px 6px;border-radius:9999px;background:${color};color:#fff;font-size:10px;font-weight:600;">${RK_STATUS_LABELS[t.status]}</span>
