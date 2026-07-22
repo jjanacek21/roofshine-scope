@@ -63,7 +63,7 @@ const FLORIDA_BOUNDS = {
 const SOUTH_FLORIDA_BOUNDS = {
   minLng: -80.65,
   minLat: 25.15,
-  maxLng: -79.95,
+  maxLng: -80.0,
   maxLat: 26.95,
 };
 
@@ -84,6 +84,7 @@ function hasValidCoordinate(property: RKProperty): property is RKProperty & { la
   const lng = Number(property.lng);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
   if (!isInsideBounds(lat, lng, FLORIDA_BOUNDS)) return false;
+  if (lat >= SOUTH_FLORIDA_BOUNDS.minLat && lat <= SOUTH_FLORIDA_BOUNDS.maxLat && lng > SOUTH_FLORIDA_BOUNDS.maxLng) return false;
   if (isSouthFloridaProperty(property) && !isInsideBounds(lat, lng, SOUTH_FLORIDA_BOUNDS)) return false;
   return true;
 }
