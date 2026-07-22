@@ -635,7 +635,7 @@ export function SolarRoofTab({
       vertexMarkersRef.current.forEach((m) => m.remove());
       vertexMarkersRef.current = [];
     };
-  }, [editingVerticesPinId, activePinId, pins]);
+  }, [editingVerticesPinId, pins]);
 
 
   /**
