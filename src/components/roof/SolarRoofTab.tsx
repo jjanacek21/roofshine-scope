@@ -565,6 +565,76 @@ export function SolarRoofTab({
     });
   }, [pins]);
 
+  // Vertex-edit mode: render draggable corner handles for the active pin's facets
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    // Clear previous handles
+    vertexMarkersRef.current.forEach((m) => m.remove());
+    vertexMarkersRef.current = [];
+    if (!editingVerticesPinId) return;
+    const pin = pins.find((p) => p.id === editingVerticesPinId);
+    if (!pin) return;
+    const facets =
+      pin.facets && pin.facets.length > 0
+        ? pin.facets
+        : pin.ring && pin.ring.length >= 3
+          ? [{ ring: pin.ring, pitch: pin.pitch, plan_area_sqft: pin.plan_area_sqft, pitch_degrees: 0 }]
+          : [];
+    facets.forEach((f, fi) => {
+      const isClosed =
+        f.ring.length > 1 &&
+        f.ring[0][0] === f.ring[f.ring.length - 1][0] &&
+        f.ring[0][1] === f.ring[f.ring.length - 1][1];
+      const n = isClosed ? f.ring.length - 1 : f.ring.length;
+      for (let vi = 0; vi < n; vi++) {
+        const el = document.createElement("div");
+        el.style.cssText =
+          "width:14px;height:14px;border-radius:50%;background:#facc15;border:2px solid #0a0a0a;box-shadow:0 1px 3px rgba(0,0,0,.6);cursor:grab;";
+        const marker = new mapboxgl.Marker({ element: el, draggable: true })
+          .setLngLat(f.ring[vi] as [number, number])
+          .addTo(map);
+        marker.on("dragend", () => {
+          const ll = marker.getLngLat();
+          setPins((prev) =>
+            prev.map((p) => {
+              if (p.id !== editingVerticesPinId) return p;
+              const cur =
+                p.facets && p.facets.length > 0
+                  ? p.facets
+                  : p.ring && p.ring.length >= 3
+                    ? [{ ring: p.ring, pitch: p.pitch, plan_area_sqft: p.plan_area_sqft, pitch_degrees: 0 }]
+                    : [];
+              const nextFacets = cur.map((ff, ii) => {
+                if (ii !== fi) return ff;
+                const newRing = ff.ring.map((pt, i) => (i === vi ? [ll.lng, ll.lat] : pt.slice()));
+                const closed =
+                  ff.ring.length > 1 &&
+                  ff.ring[0][0] === ff.ring[ff.ring.length - 1][0] &&
+                  ff.ring[0][1] === ff.ring[ff.ring.length - 1][1];
+                if (closed && vi === 0) newRing[newRing.length - 1] = [ll.lng, ll.lat];
+                return { ...ff, ring: newRing, plan_area_sqft: polygonAreaSqft(newRing) };
+              });
+              const total = nextFacets.reduce((s, ff) => s + ff.plan_area_sqft, 0);
+              return {
+                ...p,
+                facets: nextFacets,
+                ring: nextFacets[fi]?.ring ?? p.ring,
+                plan_area_sqft: Math.round(total),
+              };
+            }),
+          );
+        });
+        vertexMarkersRef.current.push(marker);
+      }
+    });
+    return () => {
+      vertexMarkersRef.current.forEach((m) => m.remove());
+      vertexMarkersRef.current = [];
+    };
+  }, [editingVerticesPinId, pins]);
+
+
   /**
    * Detect ALL structures at the property — one pin per detected facet.
    * This is the new primary "Measure entire property" action.
