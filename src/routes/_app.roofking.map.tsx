@@ -148,6 +148,11 @@ function RoofKingMap() {
     return map;
   }, [grouped]);
 
+  const popupDataRef = useRef({ accountById, propById, ticketsByPropertyId });
+  useEffect(() => {
+    popupDataRef.current = { accountById, propById, ticketsByPropertyId };
+  }, [accountById, propById, ticketsByPropertyId]);
+
   const mapData = useMemo<TicketFeatureCollection>(() => {
     const features = grouped
       .filter(({ property }) => hasValidCoordinate(property))
@@ -376,13 +381,14 @@ function RoofKingMap() {
         const feature = event.features?.[0];
         if (!feature || feature.geometry.type !== "Point") return;
         const properties = feature.properties as TicketFeatureProperties;
-        const pts = ticketsByPropertyId.get(properties.propertyId) ?? [];
-        const property = propById.get(properties.propertyId);
+        const { accountById: currentAccounts, propById: currentProperties, ticketsByPropertyId: currentTickets } = popupDataRef.current;
+        const pts = currentTickets.get(properties.propertyId) ?? [];
+        const property = currentProperties.get(properties.propertyId);
         if (!property) return;
         popupRef.current?.remove();
         const sorted = [...pts].sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""));
         const list = sorted.slice(0, 8).map((t) => {
-          const account = accountById.get(t.account_id);
+          const account = currentAccounts.get(t.account_id);
           const color = RK_STATUS_COLORS[t.status];
           return `<div data-ticket-id="${escapeHtml(t.id)}" style="cursor:pointer;padding:6px 8px;border-top:1px solid #2a2a2a;display:flex;justify-content:space-between;gap:8px;align-items:center;">
             <div style="min-width:0;">
@@ -426,7 +432,7 @@ function RoofKingMap() {
       map.remove();
       mapRef.current = null;
     };
-  }, [token, accountById, propById, ticketsByPropertyId]);
+  }, [token]);
 
   // Feed clustered map source whenever data changes.
   useEffect(() => {
