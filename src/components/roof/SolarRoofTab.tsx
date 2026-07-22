@@ -601,7 +601,7 @@ export function SolarRoofTab({
           const ll = marker.getLngLat();
           setPins((prev) =>
             prev.map((p) => {
-              if (p.id !== editingVerticesPinId) return p;
+              if (p.id !== targetId) return p;
               const cur =
                 p.facets && p.facets.length > 0
                   ? p.facets
