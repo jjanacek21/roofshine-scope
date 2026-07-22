@@ -16,6 +16,26 @@ export const Route = createFileRoute("/_app/roofking/map")({
   component: RoofKingMap,
 });
 
+type TicketFeatureProperties = {
+  propertyId: string;
+  propertyName: string;
+  address: string;
+  status: RKStatus;
+  color: string;
+  ticketCount: number;
+};
+
+type TicketFeature = {
+  type: "Feature";
+  geometry: { type: "Point"; coordinates: [number, number] };
+  properties: TicketFeatureProperties;
+};
+
+type TicketFeatureCollection = {
+  type: "FeatureCollection";
+  features: TicketFeature[];
+};
+
 type TimeRange = "all" | "30d" | "90d" | "1y";
 const TIME_RANGES: { value: TimeRange; label: string }[] = [
   { value: "all", label: "All time" },
@@ -33,6 +53,51 @@ function withinRange(dateStr: string | null | undefined, range: TimeRange): bool
   return now - d <= days * 24 * 60 * 60 * 1000;
 }
 
+const FLORIDA_BOUNDS = {
+  minLng: -87.8,
+  minLat: 24.3,
+  maxLng: -79.9,
+  maxLat: 31.1,
+};
+
+const SOUTH_FLORIDA_BOUNDS = {
+  minLng: -80.65,
+  minLat: 25.15,
+  maxLng: -80.0,
+  maxLat: 26.95,
+};
+
+const SOUTH_FLORIDA_CITY_RE =
+  /\b(miami|miami beach|north miami|miami gardens|hialeah|aventura|sunny isles|surfside|bal harbour|bay harbor|hollywood|hallandale|fort lauderdale|lauderdale|pompano|deerfield|boca|delray|boynton|west palm|palm beach|palm beach gardens|lake worth|jupiter)\b/i;
+
+function isInsideBounds(lat: number, lng: number, bounds: typeof FLORIDA_BOUNDS): boolean {
+  return lat >= bounds.minLat && lat <= bounds.maxLat && lng >= bounds.minLng && lng <= bounds.maxLng;
+}
+
+function isSouthFloridaProperty(property: RKProperty): boolean {
+  return SOUTH_FLORIDA_CITY_RE.test([property.name, property.address, property.city].filter(Boolean).join(" "));
+}
+
+function hasValidCoordinate(property: RKProperty): property is RKProperty & { lat: number; lng: number } {
+  if (property.lat == null || property.lng == null) return false;
+  const lat = Number(property.lat);
+  const lng = Number(property.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  if (!isInsideBounds(lat, lng, FLORIDA_BOUNDS)) return false;
+  if (lat >= SOUTH_FLORIDA_BOUNDS.minLat && lat <= SOUTH_FLORIDA_BOUNDS.maxLat && lng > SOUTH_FLORIDA_BOUNDS.maxLng) return false;
+  if (isSouthFloridaProperty(property) && !isInsideBounds(lat, lng, SOUTH_FLORIDA_BOUNDS)) return false;
+  return true;
+}
+
+function escapeHtml(value: string | null | undefined): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function RoofKingMap() {
   const { companyId } = useIsRoofKing();
   const { data: token } = useMapboxToken();
@@ -43,7 +108,6 @@ function RoofKingMap() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const [openTicket, setOpenTicket] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
@@ -62,7 +126,7 @@ function RoofKingMap() {
       if (!statusFilter[t.status]) return false;
       if (!withinRange(t.service_date ?? t.updated_at, timeRange)) return false;
       const p = propById.get(t.property_id);
-      return !!p && p.lat != null && p.lng != null;
+      return !!p && hasValidCoordinate(p);
     });
   }, [tickets, statusFilter, timeRange, propById]);
 
@@ -79,6 +143,53 @@ function RoofKingMap() {
     return Array.from(map.values());
   }, [filteredTickets, propById]);
 
+  const ticketsByPropertyId = useMemo(() => {
+    const map = new Map<string, RKTicket[]>();
+    for (const item of grouped) map.set(item.property.id, item.tickets);
+    return map;
+  }, [grouped]);
+
+  const popupDataRef = useRef({ accountById, propById, ticketsByPropertyId });
+  useEffect(() => {
+    popupDataRef.current = { accountById, propById, ticketsByPropertyId };
+  }, [accountById, propById, ticketsByPropertyId]);
+
+  const mapData = useMemo<TicketFeatureCollection>(() => {
+    const features = grouped
+      .filter(({ property }) => hasValidCoordinate(property))
+      .map(({ property, tickets: pts }) => {
+        const sorted = [...pts].sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""));
+        const top = sorted[0];
+        return {
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: [property.lng, property.lat] as [number, number] },
+          properties: {
+            propertyId: property.id,
+            propertyName: property.name ?? "Property",
+            address: [property.address, property.city, property.state].filter(Boolean).join(", "),
+            status: top.status,
+            color: RK_STATUS_COLORS[top.status] ?? "#6b7888",
+            ticketCount: pts.length,
+          },
+        };
+      });
+    return { type: "FeatureCollection", features };
+  }, [grouped]);
+
+  const skippedTicketCount = useMemo(() => {
+    return tickets.filter((t) => {
+      if (!statusFilter[t.status]) return false;
+      if (!withinRange(t.service_date ?? t.updated_at, timeRange)) return false;
+      const p = propById.get(t.property_id);
+      return !p || !hasValidCoordinate(p);
+    }).length;
+  }, [tickets, statusFilter, timeRange, propById]);
+
+  const suspiciousProperties = useMemo(
+    () => properties.filter((p) => p.lat != null && p.lng != null && !hasValidCoordinate(p)),
+    [properties],
+  );
+
   // Detect addresses that are just a number / range with no street name — Mapbox
   // returns garbage matches for these, so we treat them as ungeocodable.
   function hasStreetName(addr: string | null | undefined): boolean {
@@ -90,7 +201,7 @@ function RoofKingMap() {
 
   const missingCount = useMemo(
     () =>
-      properties.filter((p) => (p.lat == null || p.lng == null) && hasStreetName(p.address))
+      properties.filter((p) => (p.lat == null || p.lng == null || !hasValidCoordinate(p)) && hasStreetName(p.address))
         .length,
     [properties],
   );
@@ -102,7 +213,7 @@ function RoofKingMap() {
     const targets = properties.filter((p) => {
       if (!hasStreetName(p.address)) return false;
       if (regeocodeAll) return true;
-      return p.lat == null || p.lng == null;
+      return p.lat == null || p.lng == null || !hasValidCoordinate(p);
     });
     if (targets.length === 0) {
       toast.success("Nothing to geocode. Properties missing a street name are skipped.");
@@ -116,10 +227,6 @@ function RoofKingMap() {
     let skipped = 0;
     const CONCURRENCY = 5;
     let cursor = 0;
-
-    // South Florida proximity bias so bare numbers/streets don't jump to Orlando etc.
-    const PROX_LNG = -80.15;
-    const PROX_LAT = 26.15;
 
     async function worker() {
       while (cursor < targets.length) {
@@ -135,7 +242,10 @@ function RoofKingMap() {
             limit: "1",
             types: "address",
             autocomplete: "false",
-            proximity: `${PROX_LNG},${PROX_LAT}`,
+            proximity: isSouthFloridaProperty(prop) ? "-80.15,26.15" : "-81.7,27.8",
+            bbox: isSouthFloridaProperty(prop)
+              ? `${SOUTH_FLORIDA_BOUNDS.minLng},${SOUTH_FLORIDA_BOUNDS.minLat},${SOUTH_FLORIDA_BOUNDS.maxLng},${SOUTH_FLORIDA_BOUNDS.maxLat}`
+              : `${FLORIDA_BOUNDS.minLng},${FLORIDA_BOUNDS.minLat},${FLORIDA_BOUNDS.maxLng},${FLORIDA_BOUNDS.maxLat}`,
           });
 
           const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?${params}`;
@@ -146,6 +256,13 @@ function RoofKingMap() {
           const isAddress = Array.isArray(f?.place_type) && f.place_type.includes("address");
           if (f?.center && isAddress && (f.relevance ?? 0) >= 0.75) {
             const [lng, lat] = f.center;
+            const candidate = { ...prop, lat, lng };
+            if (!hasValidCoordinate(candidate)) {
+              skipped++;
+              done++;
+              setProgress({ done, total: targets.length, ok });
+              continue;
+            }
             const { error } = await supabase.from("rk_properties").update({ lat, lng }).eq("id", prop.id);
             if (!error) {
               ok++;
@@ -184,58 +301,118 @@ function RoofKingMap() {
       zoom: 3.5,
     });
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
-    mapRef.current = map;
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
-  }, [token]);
 
-  // Render pins whenever data changes
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
+    map.on("load", () => {
+      map.addSource("rk-service-tickets", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+        cluster: true,
+        clusterMaxZoom: 15,
+        clusterRadius: 44,
+        clusterProperties: {
+          ticket_sum: ["+", ["get", "ticketCount"]],
+        },
+      });
 
-    const bounds = new mapboxgl.LngLatBounds();
-    let count = 0;
+      map.addLayer({
+        id: "rk-clusters",
+        type: "circle",
+        source: "rk-service-tickets",
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-color": ["step", ["get", "ticket_sum"], "#2f80ed", 10, "#f39c2d", 25, "#8b5cf6"],
+          "circle-radius": ["step", ["get", "ticket_sum"], 18, 10, 23, 25, 29],
+          "circle-stroke-width": 3,
+          "circle-stroke-color": "#ffffff",
+          "circle-opacity": 0.96,
+        },
+      });
 
-    grouped.forEach(({ property, tickets: pts }) => {
-      if (property.lat == null || property.lng == null) return;
-      // Dominant status = most recent ticket's status
-      const sorted = [...pts].sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""));
-      const top = sorted[0];
-      const color = RK_STATUS_COLORS[top.status] ?? "#6b7888";
-      const badge = pts.length > 1 ? `<span style="position:absolute;top:-6px;right:-6px;background:#111;color:#fff;font-size:10px;font-weight:700;border-radius:9px;padding:1px 5px;border:1px solid #fff;">${pts.length}</span>` : "";
-      const el = document.createElement("div");
-      el.style.cssText = "position:relative;width:20px;height:20px;cursor:pointer;";
-      el.innerHTML = `<div style="width:20px;height:20px;border-radius:50%;border:2px solid #fff;background:${color};box-shadow:0 1px 4px rgba(0,0,0,.5);"></div>${badge}`;
-      el.onclick = () => {
+      map.addLayer({
+        id: "rk-cluster-count",
+        type: "symbol",
+        source: "rk-service-tickets",
+        filter: ["has", "point_count"],
+        layout: {
+          "text-field": ["to-string", ["get", "ticket_sum"]],
+          "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+          "text-size": 12,
+        },
+        paint: { "text-color": "#ffffff" },
+      });
+
+      map.addLayer({
+        id: "rk-unclustered-points",
+        type: "circle",
+        source: "rk-service-tickets",
+        filter: ["!", ["has", "point_count"]],
+        paint: {
+          "circle-color": ["get", "color"],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 7, 16, 11, 20, 14],
+          "circle-stroke-width": 3,
+          "circle-stroke-color": "#ffffff",
+          "circle-opacity": 0.97,
+        },
+      });
+
+      map.addLayer({
+        id: "rk-unclustered-counts",
+        type: "symbol",
+        source: "rk-service-tickets",
+        filter: ["all", ["!", ["has", "point_count"]], [">", ["get", "ticketCount"], 1]],
+        layout: {
+          "text-field": ["get", "ticketCount"],
+          "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+          "text-size": 10,
+        },
+        paint: { "text-color": "#ffffff" },
+      });
+
+      map.on("click", "rk-clusters", (event) => {
+        const features = map.queryRenderedFeatures(event.point, { layers: ["rk-clusters"] });
+        const clusterId = features[0]?.properties?.cluster_id;
+        const source = map.getSource("rk-service-tickets") as mapboxgl.GeoJSONSource | undefined;
+        if (clusterId == null || !source) return;
+        source.getClusterExpansionZoom(clusterId, (error, zoom) => {
+          if (error || zoom == null) return;
+          const geometry = features[0].geometry;
+          if (geometry.type !== "Point") return;
+          map.easeTo({ center: geometry.coordinates as [number, number], zoom });
+        });
+      });
+
+      map.on("click", "rk-unclustered-points", (event) => {
+        const feature = event.features?.[0];
+        if (!feature || feature.geometry.type !== "Point") return;
+        const properties = feature.properties as TicketFeatureProperties;
+        const { accountById: currentAccounts, propById: currentProperties, ticketsByPropertyId: currentTickets } = popupDataRef.current;
+        const pts = currentTickets.get(properties.propertyId) ?? [];
+        const property = currentProperties.get(properties.propertyId);
+        if (!property) return;
         popupRef.current?.remove();
+        const sorted = [...pts].sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""));
         const list = sorted.slice(0, 8).map((t) => {
-          const a = accountById.get(t.account_id);
-          const c = RK_STATUS_COLORS[t.status];
-          return `<div data-ticket-id="${t.id}" style="cursor:pointer;padding:6px 8px;border-top:1px solid #2a2a2a;display:flex;justify-content:space-between;gap:8px;align-items:center;">
+          const account = currentAccounts.get(t.account_id);
+          const color = RK_STATUS_COLORS[t.status];
+          return `<div data-ticket-id="${escapeHtml(t.id)}" style="cursor:pointer;padding:6px 8px;border-top:1px solid #2a2a2a;display:flex;justify-content:space-between;gap:8px;align-items:center;">
             <div style="min-width:0;">
-              <div style="font-weight:600;color:#fff;font-size:12px;">WO-${t.wo_number ?? "—"} · ${(a?.name ?? "—").replace(/</g, "&lt;")}</div>
-              <div style="font-size:11px;color:#9ca3af;">${t.service_date ?? "No date"}${t.price != null ? ` · $${Number(t.price).toFixed(0)}` : ""}</div>
+              <div style="font-weight:600;color:#fff;font-size:12px;">WO-${escapeHtml(t.wo_number == null ? "—" : String(t.wo_number))} · ${escapeHtml(account?.name ?? "—")}</div>
+              <div style="font-size:11px;color:#9ca3af;">${escapeHtml(t.service_date ?? "No date")}${t.price != null ? ` · $${Number(t.price).toFixed(0)}` : ""}</div>
             </div>
-            <span style="display:inline-block;padding:1px 6px;border-radius:9999px;background:${c};color:#fff;font-size:10px;font-weight:600;">${RK_STATUS_LABELS[t.status]}</span>
+            <span style="display:inline-block;padding:1px 6px;border-radius:9999px;background:${color};color:#fff;font-size:10px;font-weight:600;">${RK_STATUS_LABELS[t.status]}</span>
           </div>`;
         }).join("");
         const head = `<div style="padding:8px 10px;">
-          <div style="font-weight:700;color:#fff;font-size:13px;">${(property.name ?? "Property").replace(/</g, "&lt;")}</div>
-          <div style="font-size:11px;color:#9ca3af;">${[property.address, property.city, property.state].filter(Boolean).join(", ").replace(/</g, "&lt;")}</div>
+          <div style="font-weight:700;color:#fff;font-size:13px;">${escapeHtml(property.name ?? "Property")}</div>
+          <div style="font-size:11px;color:#9ca3af;">${escapeHtml([property.address, property.city, property.state].filter(Boolean).join(", "))}</div>
           <div style="font-size:11px;color:#9ca3af;margin-top:2px;">${pts.length} ticket${pts.length === 1 ? "" : "s"}</div>
         </div>`;
         const html = `<div style="background:#111;color:#fff;border-radius:8px;overflow:hidden;min-width:240px;max-width:300px;font-family:system-ui,sans-serif;">${head}${list}</div>`;
         const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, className: "rk-map-popup" })
-          .setLngLat([property.lng!, property.lat!])
+          .setLngLat(feature.geometry.coordinates as [number, number])
           .setHTML(html)
           .addTo(map);
         popupRef.current = popup;
-        // Wire clicks after mount
         setTimeout(() => {
           const node = popup.getElement();
           node?.querySelectorAll<HTMLElement>("[data-ticket-id]").forEach((row) => {
@@ -246,17 +423,37 @@ function RoofKingMap() {
             });
           });
         }, 0);
-      };
-      const marker = new mapboxgl.Marker(el).setLngLat([property.lng, property.lat]).addTo(map);
-      markersRef.current.push(marker);
-      bounds.extend([property.lng, property.lat]);
-      count++;
+      });
+
+      map.on("mouseenter", "rk-clusters", () => { map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseleave", "rk-clusters", () => { map.getCanvas().style.cursor = ""; });
+      map.on("mouseenter", "rk-unclustered-points", () => { map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseleave", "rk-unclustered-points", () => { map.getCanvas().style.cursor = ""; });
     });
 
-    if (count > 0 && !bounds.isEmpty()) {
-      map.fitBounds(bounds, { padding: 60, maxZoom: 13, duration: 600 });
-    }
-  }, [grouped, accountById]);
+    mapRef.current = map;
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, [token]);
+
+  // Feed clustered map source whenever data changes.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const applyData = () => {
+      const source = map.getSource("rk-service-tickets") as mapboxgl.GeoJSONSource | undefined;
+      if (!source) return;
+      source.setData(mapData as never);
+      if (mapData.features.length === 0) return;
+      const bounds = new mapboxgl.LngLatBounds();
+      mapData.features.forEach((feature) => bounds.extend(feature.geometry.coordinates));
+      if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 60, maxZoom: 11, duration: 600 });
+    };
+    if (map.loaded()) applyData();
+    else map.once("load", applyData);
+  }, [mapData]);
 
   const shownTickets = filteredTickets.length;
   const totalTickets = tickets.length;
@@ -277,6 +474,17 @@ function RoofKingMap() {
           <p className="text-xs" style={{ color: "var(--rk-ink-muted)" }}>
             <span className="rk-num">{shownTickets}</span> of <span className="rk-num">{totalTickets}</span> tickets shown
           </p>
+          <p className="text-[11px]" style={{ color: "var(--rk-ink-muted)" }}>
+            <span className="rk-num">{mapData.features.length}</span> mapped properties
+            {skippedTicketCount > 0 ? (
+              <> · <span className="rk-num">{skippedTicketCount}</span> tickets need better coordinates</>
+            ) : null}
+          </p>
+          {suspiciousProperties.length > 0 ? (
+            <p className="mt-1 text-[11px]" style={{ color: "var(--rk-warning, #f59e0b)" }}>
+              {suspiciousProperties.length.toLocaleString()} saved pin{suspiciousProperties.length === 1 ? "" : "s"} look off and are hidden until re-geocoded.
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={geocodeMissing}
@@ -294,7 +502,7 @@ function RoofKingMap() {
                 <MapPin className="h-3 w-3" />
                 {regeocodeAll
                   ? `Re-geocode ${properties.filter((p) => hasStreetName(p.address)).length.toLocaleString()} properties`
-                  : `Geocode ${missingCount.toLocaleString()} missing`}
+                  : `Fix ${missingCount.toLocaleString()} missing/bad pins`}
               </>
             )}
           </button>
