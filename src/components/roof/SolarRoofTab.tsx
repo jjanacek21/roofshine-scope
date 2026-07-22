@@ -1106,7 +1106,59 @@ export function SolarRoofTab({
           >
             Imagery: {imageryQuality}
           </div>
-        )}
+
+        {/* Rotate & align controls — bottom-right */}
+        <div
+          className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-md border px-2 py-1.5 backdrop-blur"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "color-mix(in oklab, var(--bg-card) 90%, transparent)",
+          }}
+        >
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rotate</span>
+          <button
+            onClick={() => rotate(-10)}
+            title="Rotate 10° left"
+            className="rounded border px-1.5 py-0.5 text-[11px] font-semibold text-foreground hover:bg-white/5"
+            style={{ borderColor: "var(--border)" }}
+          >
+            −10°
+          </button>
+          <button
+            onClick={() => rotate(-1)}
+            title="Rotate 1° left"
+            className="rounded border px-1.5 py-0.5 text-[11px] font-semibold text-foreground hover:bg-white/5"
+            style={{ borderColor: "var(--border)" }}
+          >
+            −1°
+          </button>
+          <button
+            onClick={resetBearing}
+            title="Reset rotation"
+            className="font-mono-num min-w-[3.5rem] rounded border px-1.5 py-0.5 text-center text-[11px] font-semibold text-foreground hover:bg-white/5"
+            style={{ borderColor: "var(--border)" }}
+          >
+            {Math.round(bearing)}°
+          </button>
+          <button
+            onClick={() => rotate(1)}
+            title="Rotate 1° right"
+            className="rounded border px-1.5 py-0.5 text-[11px] font-semibold text-foreground hover:bg-white/5"
+            style={{ borderColor: "var(--border)" }}
+          >
+            +1°
+          </button>
+          <button
+            onClick={() => rotate(10)}
+            title="Rotate 10° right"
+            className="rounded border px-1.5 py-0.5 text-[11px] font-semibold text-foreground hover:bg-white/5"
+            style={{ borderColor: "var(--border)" }}
+          >
+            +10°
+          </button>
+        </div>
+
+
 
         {/* Overlay legend (bottom-left of map) */}
         {pins.length > 0 && (
