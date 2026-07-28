@@ -112,6 +112,7 @@ function toCsv(rows: Record<string, any>[]) {
 export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props) {
   const { data: token, error: tokenError } = useMapboxToken();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
