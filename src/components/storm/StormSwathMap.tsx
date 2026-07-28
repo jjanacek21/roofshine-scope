@@ -5,7 +5,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Download, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
-import { stormSupabase } from "@/integrations/storm/client";
+import { stormSupabase, stormAuthedRpc } from "@/integrations/storm/client";
+import { useAuth } from "@/hooks/useAuth";
 
 type FC = { type: "FeatureCollection"; features: any[] };
 const EMPTY_FC: FC = { type: "FeatureCollection", features: [] };
@@ -215,10 +216,10 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
 
   const { data: savedRows = [], isFetching: savedLoading } = useQuery({
     queryKey: ["storm-saved-dispositions"],
-    enabled: savedOpen,
+    enabled: savedOpen && !!user,
     staleTime: 30 * 1000,
     queryFn: async () => {
-      const { data, error } = await stormSupabase.rpc("export_storm_dispositions" as any, {
+      const { data, error } = await stormAuthedRpc<Record<string, any>[]>("export_storm_dispositions", {
         p_only_storm_map: false,
       });
       if (error) {
@@ -511,7 +512,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const handleSaveLead = useCallback(async () => {
     if (!point) return;
     setSaving(true);
-    const { error } = await stormSupabase.rpc("save_storm_disposition" as any, {
+    const { error } = await stormAuthedRpc("save_storm_disposition", {
       p_lat: point.lat,
       p_lng: point.lng,
       p_address: point.label,
@@ -530,7 +531,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   }, [point, queryClient]);
 
   const handleExportCsv = useCallback(async () => {
-    const { data, error } = await stormSupabase.rpc("export_storm_dispositions" as any, {
+    const { data, error } = await stormAuthedRpc<Record<string, any>[]>("export_storm_dispositions", {
       p_only_storm_map: false,
     });
     if (error) {
@@ -712,6 +713,14 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
             </>
           )}
 
+          {!user ? (
+            <div
+              className="mt-1 rounded-md px-2 py-1.5 text-center text-[11px]"
+              style={{ background: "rgba(255,255,255,0.06)" }}
+            >
+              Sign in to save leads
+            </div>
+          ) : (
           <button
             type="button"
             onClick={handleSaveLead}
@@ -722,6 +731,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Save as storm damage lead
           </button>
+          )}
         </div>
       )}
 
@@ -737,6 +747,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         >
           <div className="flex items-center gap-2">
             <span className="flex-1 text-xs font-semibold text-foreground">Saved properties</span>
+            {user ? (
             <button
               type="button"
               onClick={handleExportCsv}
@@ -745,13 +756,19 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
             >
               <Download className="h-3 w-3" /> Export CSV
             </button>
+            ) : (
+              <span className="text-[11px] opacity-70">Sign in to save leads</span>
+            )}
           </div>
           {savedLoading && (
             <div className="flex items-center gap-2">
               <Loader2 className="h-3 w-3 animate-spin" /> Loading…
             </div>
           )}
-          {!savedLoading && savedRows.length === 0 && <div className="opacity-70">Nothing saved yet.</div>}
+          {!user && <div className="opacity-70">Sign in to save and export leads.</div>}
+          {user && !savedLoading && savedRows.length === 0 && (
+            <div className="opacity-70">Nothing saved yet.</div>
+          )}
           {savedRows.map((r, i) => (
             <div key={i} className="rounded-md px-2 py-1" style={{ background: "rgba(255,255,255,0.04)" }}>
               <div className="text-foreground">{r.address ?? r.full_address ?? "—"}</div>
