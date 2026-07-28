@@ -5724,6 +5724,28 @@ export type Database = {
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      export_storm_dispositions: {
+        Args: { p_only_storm_map?: boolean }
+        Returns: {
+          address: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          disposition: string
+          hail_dates: string
+          last_hail_date: string
+          last_wind_date: string
+          latitude: number
+          longitude: number
+          max_hail_in: number
+          max_wind_mph: number
+          notes: string
+          saved_at: string
+          status: string
+          updated_at: string
+          wind_dates: string
+        }[]
+      }
       generate_storm_swaths: {
         Args: { p_event_date: string; p_product?: string; p_simplify?: number }
         Returns: {
@@ -5964,6 +5986,58 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "job_order_drafts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_storm_disposition: {
+        Args: {
+          p_address: string
+          p_disposition?: Database["public"]["Enums"]["door_disposition"]
+          p_lat: number
+          p_lng: number
+          p_notes?: string
+          p_storm?: Json
+        }
+        Returns: {
+          address: string | null
+          converted_at: string | null
+          converted_job_id: string | null
+          created_at: string | null
+          current_disposition:
+            | Database["public"]["Enums"]["door_disposition"]
+            | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          disposition: Database["public"]["Enums"]["door_disposition"] | null
+          id: string
+          insurance_claim: boolean | null
+          last_knocked_at: string | null
+          lat: number | null
+          lat_lng_hash: string
+          latitude: number | null
+          lng: number | null
+          longitude: number | null
+          measurement: Json | null
+          metadata: Json | null
+          notes: string | null
+          priority: string | null
+          roof_condition: string | null
+          roof_type: string | null
+          selected_quote: Json | null
+          selected_system_type: string | null
+          selected_tier: string | null
+          status: Database["public"]["Enums"]["property_status"] | null
+          storm_date: string | null
+          tags: string[] | null
+          total_knocks: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "property_dispositions"
           isOneToOne: true
           isSetofReturn: false
         }
