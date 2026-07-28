@@ -5,7 +5,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Download, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
-import { stormSupabase, stormAuthedRpc } from "@/integrations/storm/client";
+import { stormSupabase } from "@/integrations/storm/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 type FC = { type: "FeatureCollection"; features: any[] };
@@ -220,7 +221,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     enabled: savedOpen && !!user,
     staleTime: 30 * 1000,
     queryFn: async () => {
-      const { data, error } = await stormAuthedRpc<Record<string, any>[]>("export_storm_dispositions", {
+      const { data, error } = await supabase.rpc("export_storm_dispositions" as any, {
         p_only_storm_map: false,
       });
       if (error) {
@@ -513,14 +514,13 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const handleSaveLead = useCallback(async () => {
     if (!point) return;
     setSaving(true);
-    const { error } = await stormAuthedRpc("save_storm_disposition", {
+    const { error } = await supabase.rpc("save_storm_disposition" as any, {
       p_lat: point.lat,
       p_lng: point.lng,
       p_address: point.label,
       p_disposition: "storm_damage",
       p_notes: null,
-      p_customer_name: null,
-      p_customer_phone: null,
+      p_storm: (report ?? {}) as any,
     });
     setSaving(false);
     if (error) {
@@ -529,10 +529,10 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     }
     toast.success("Saved as storm damage lead");
     queryClient.invalidateQueries({ queryKey: ["storm-saved-dispositions"] });
-  }, [point, queryClient]);
+  }, [point, report, queryClient]);
 
   const handleExportCsv = useCallback(async () => {
-    const { data, error } = await stormAuthedRpc<Record<string, any>[]>("export_storm_dispositions", {
+    const { data, error } = await supabase.rpc("export_storm_dispositions" as any, {
       p_only_storm_map: false,
     });
     if (error) {
