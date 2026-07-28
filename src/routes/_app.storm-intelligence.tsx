@@ -35,7 +35,7 @@ function StormIntelligencePage() {
     () => (searchedPoint ? [searchedPoint.lng, searchedPoint.lat] : DEFAULT_CENTER),
     [searchedPoint],
   );
-  const zoom = searchedPoint ? 16 : DEFAULT_ZOOM;
+  const zoom = searchedPoint ? 18 : DEFAULT_ZOOM;
 
   const handleAddressSelect = (result: AddressResult) => {
     if (result.lat == null || result.lng == null) {
