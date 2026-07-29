@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CatalogTree, type CatalogItem } from "@/components/catalog/CatalogTree";
+import { fetchAllPages } from "@/lib/fetch-all";
+
 
 export type CatalogResult = {
   id: string;
