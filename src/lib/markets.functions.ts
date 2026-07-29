@@ -85,7 +85,14 @@ export const getMarketDetail = createServerFn({ method: "GET" })
       .single();
     if (bookErr) throw bookErr;
     // The Data API caps responses at 1,000 rows — page through the whole book.
-    const prices: unknown[] = [];
+    type PriceRow = {
+      unit_price: number;
+      remove_price: number;
+      line_item_master_id: string;
+      line_item_master: { code: string; name: string; unit: string; trade: string; subgroup: string | null } | null;
+    };
+    const prices: PriceRow[] = [];
+
     for (let from = 0; ; from += 1000) {
       const { data: page, error: pErr } = await supabaseAdmin
         .from("line_item_prices")
