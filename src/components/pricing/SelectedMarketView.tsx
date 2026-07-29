@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { ChevronDown, ChevronRight, MapPin, Pencil, Search, Library } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { listMarketsPublic } from "@/lib/markets.functions";
+import { fetchAllPages } from "@/lib/fetch-all";
+
 import { TRADES, getTradeColor, getTradeLabel, type Trade } from "@/lib/trades";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -240,17 +242,20 @@ function MarketItemsTable({ marketId }: { marketId: string }) {
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["market-items", marketId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("line_item_prices")
-        .select(
-          "unit_price, remove_price, line_item_master:line_item_master_id(id, code, name, unit, trade, subgroup)",
-        )
-        .eq("price_book_id", marketId)
-        .limit(5000);
-      if (error) throw error;
-      return (data ?? []) as unknown as PriceRow[];
+      const all = await fetchAllPages<PriceRow>((from, to) =>
+        supabase
+          .from("line_item_prices")
+          .select(
+            "unit_price, remove_price, line_item_master:line_item_master_id(id, code, name, unit, trade, subgroup)",
+          )
+          .eq("price_book_id", marketId)
+          .order("line_item_master_id")
+          .range(from, to) as unknown as PromiseLike<{ data: PriceRow[] | null; error: { message: string } | null }>,
+      );
+      return all;
     },
   });
+
 
   const [search, setSearch] = useState("");
   const [openTrades, setOpenTrades] = useState<Set<string>>(new Set());
