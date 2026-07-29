@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { TRADES, getTradeColor, getTradeLabel } from "@/lib/trades";
+import { fetchAllPages } from "@/lib/fetch-all";
+
 
 type Item = {
   id: string;
@@ -32,18 +34,19 @@ export function MasterCatalogBrowser() {
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["master-catalog-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("line_item_master")
-        .select("id, code, name, unit, trade, subgroup, default_price, remove_price, replace_price")
-        .is("company_id", null)
-        .order("trade")
-        .order("subgroup")
-        .order("code");
-      if (error) throw error;
-      return (data ?? []) as Item[];
-    },
+    queryFn: async () =>
+      fetchAllPages<Item>((from, to) =>
+        supabase
+          .from("line_item_master")
+          .select("id, code, name, unit, trade, subgroup, default_price, remove_price, replace_price")
+          .is("company_id", null)
+          .order("trade")
+          .order("subgroup")
+          .order("code")
+          .range(from, to) as unknown as PromiseLike<{ data: Item[] | null; error: { message: string } | null }>,
+      ),
   });
+
 
   const tree = useMemo(() => {
     const map = new Map<string, Map<string, Item[]>>();

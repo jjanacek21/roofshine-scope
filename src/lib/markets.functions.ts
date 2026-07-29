@@ -84,13 +84,28 @@ export const getMarketDetail = createServerFn({ method: "GET" })
       .eq("id", data.id)
       .single();
     if (bookErr) throw bookErr;
-    const { data: prices, error: pErr } = await supabaseAdmin
-      .from("line_item_prices")
-      .select("unit_price, remove_price, line_item_master_id, line_item_master:line_item_master_id(code, name, unit, trade, subgroup)")
-      .eq("price_book_id", data.id)
-      .order("line_item_master_id");
-    if (pErr) throw pErr;
-    return { market: book, prices: prices ?? [] };
+    // The Data API caps responses at 1,000 rows — page through the whole book.
+    type PriceRow = {
+      unit_price: number;
+      remove_price: number;
+      line_item_master_id: string;
+      line_item_master: { code: string; name: string; unit: string; trade: string; subgroup: string | null } | null;
+    };
+    const prices: PriceRow[] = [];
+
+    for (let from = 0; ; from += 1000) {
+      const { data: page, error: pErr } = await supabaseAdmin
+        .from("line_item_prices")
+        .select("unit_price, remove_price, line_item_master_id, line_item_master:line_item_master_id(code, name, unit, trade, subgroup)")
+        .eq("price_book_id", data.id)
+        .order("line_item_master_id")
+        .range(from, from + 999);
+      if (pErr) throw pErr;
+      prices.push(...(page ?? []));
+      if ((page?.length ?? 0) < 1000) break;
+    }
+    return { market: book, prices };
+
   });
 
 /* ============================== Upsert market ============================= */

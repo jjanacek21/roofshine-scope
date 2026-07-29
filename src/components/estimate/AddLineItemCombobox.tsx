@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CatalogTree, type CatalogItem } from "@/components/catalog/CatalogTree";
+import { fetchAllPages } from "@/lib/fetch-all";
+
 
 export type CatalogResult = {
   id: string;
@@ -81,33 +83,44 @@ export function AddLineItemCombobox({
   const [q, setQ] = useState("");
 
   const { data: rows = [], isFetching } = useQuery<EnrichedRow[]>({
-    queryKey: ["catalog-all-with-price-v2", priceBookId],
+    queryKey: ["catalog-all-with-price-v3", priceBookId],
     queryFn: async () => {
-      const { data: items } = await supabase
-        .from("line_item_master")
-        .select(
-          "id, code, name, description, unit, trade, category, default_price, remove_price, replace_price, domain, subgroup",
-        )
-        .eq("status", "active")
-        .is("company_id", null)
-        .order("code");
-      if (!items?.length) return [];
+      const items = await fetchAllPages<RawRow>((from, to) =>
+        supabase
+          .from("line_item_master")
+          .select(
+            "id, code, name, description, unit, trade, category, default_price, remove_price, replace_price, domain, subgroup",
+          )
+          .eq("status", "active")
+          .is("company_id", null)
+          .order("code")
+          .range(from, to) as unknown as PromiseLike<{ data: RawRow[] | null; error: { message: string } | null }>,
+      );
+      if (!items.length) return [];
 
-      let priceMap: Record<string, number> = {};
+      // Market (price book) rows are authoritative — the whole book is fetched
+      // so nothing silently falls back to stale master defaults.
+      const priceMap = new Map<string, number>();
       if (priceBookId) {
-        const { data: prices } = await supabase
-          .from("line_item_prices")
-          .select("line_item_master_id, unit_price")
-          .eq("price_book_id", priceBookId)
-          .in("line_item_master_id", items.map((i) => i.id));
-        priceMap = Object.fromEntries((prices ?? []).map((p) => [p.line_item_master_id, Number(p.unit_price)]));
+        const prices = await fetchAllPages<{ line_item_master_id: string; unit_price: number }>((from, to) =>
+          supabase
+            .from("line_item_prices")
+            .select("line_item_master_id, unit_price")
+            .eq("price_book_id", priceBookId)
+            .order("line_item_master_id")
+            .range(from, to) as unknown as PromiseLike<{
+            data: { line_item_master_id: string; unit_price: number }[] | null;
+            error: { message: string } | null;
+          }>,
+        );
+        for (const p of prices) priceMap.set(p.line_item_master_id, Number(p.unit_price));
       }
 
-      return (items as RawRow[]).map((i) => {
+      return items.map((i) => {
         const { kind, base } = classify(i.name);
         const baseKey = [base.toLowerCase(), i.unit, i.trade, (i.subgroup ?? "").toLowerCase()].join("|");
-        const override = priceMap[i.id];
-        const effective = override != null && override > 0 ? override : coalescePrice(i);
+        const override = priceMap.get(i.id);
+        const effective = override != null ? override : coalescePrice(i);
         return {
           ...i,
           effective_price: effective,
@@ -118,6 +131,7 @@ export function AddLineItemCombobox({
       });
     },
   });
+
 
   // Build display list: merge matching Remove + Replace into synthetic R&R.
   const { displayItems, pairMap } = useMemo(() => {

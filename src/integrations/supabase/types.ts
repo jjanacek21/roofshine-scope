@@ -2782,7 +2782,22 @@ export type Database = {
           remove_price?: number
           unit_price?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "line_item_prices_line_item_master_id_fkey"
+            columns: ["line_item_master_id"]
+            isOneToOne: false
+            referencedRelation: "line_item_master"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "line_item_prices_price_book_id_fkey"
+            columns: ["price_book_id"]
+            isOneToOne: false
+            referencedRelation: "price_books"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       master_macro_items: {
         Row: {
