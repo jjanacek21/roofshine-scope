@@ -98,8 +98,8 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, planSqft]);
 
-  const measure = useMutation({
-    mutationFn: async (force = false) => {
+  const measure = useMutation<any, Error, boolean | undefined>({
+    mutationFn: async (force?: boolean) => {
       let propertyId = data?.property?.id ?? null;
       if (!propertyId) {
         const ensured: any = await ensureFn({
