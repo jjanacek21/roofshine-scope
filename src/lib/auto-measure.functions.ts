@@ -52,10 +52,6 @@ async function fetchBuilding(
   return (await r.json()) as SolarResponse;
 }
 
-function pitchStrFromDeg(deg: number): string {
-  const rise = Math.round(Math.tan((deg * Math.PI) / 180) * 12);
-  return `${Math.max(0, Math.min(12, rise))}/12`;
-}
 function pitchMultFromDeg(deg: number): number {
   const rise = Math.tan((deg * Math.PI) / 180) * 12;
   return Math.sqrt(1 + Math.pow(rise / 12, 2));
