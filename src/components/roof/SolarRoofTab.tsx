@@ -461,6 +461,8 @@ export function SolarRoofTab({
           });
         }
         if (seeded.length === 0) return existing;
+        hydratedRef.current = true;
+
         toast.success(`Loaded ${seeded.length} AI-measured facet${seeded.length === 1 ? "" : "s"}`);
         return seeded;
       });
