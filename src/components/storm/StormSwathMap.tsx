@@ -2,12 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Download, Save, X } from "lucide-react";
+import { Loader2, Download, Save, X, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { stormSupabase } from "@/integrations/storm/client";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { HOUSE_CIRCLE_MIN_ZOOM } from "@/lib/storm-config";
+import { RoofMeasureCard, type MeasureSnapshot } from "@/components/storm/RoofMeasureCard";
+import { StormMailerModal } from "@/components/storm/StormMailerModal";
+
 
 type FC = { type: "FeatureCollection"; features: any[] };
 const EMPTY_FC: FC = { type: "FeatureCollection", features: [] };
