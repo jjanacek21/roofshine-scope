@@ -120,6 +120,11 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const [point, setPoint] = useState<SearchPoint | null>(null);
   const [savedOpen, setSavedOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [measure, setMeasure] = useState<MeasureSnapshot | null>(null);
+  const [facets, setFacets] = useState<any[]>([]);
+  const [mailerOpen, setMailerOpen] = useState(false);
+
+
 
   const days = rangeDays(rangeKey);
   const hailDays = Math.min(days, HAIL_MAX_DAYS);
