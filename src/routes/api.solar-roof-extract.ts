@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import { normalizeTuning, qualityLadder } from "@/lib/measure-tuning";
-import { fitFacetsToFootprint, footprintFromSegmentBoxes } from "@/lib/roof-geometry";
+import {
+  fitFacetsToFootprint,
+  footprintFromSegmentBoxes,
+  carveFootprintByCenters,
+} from "@/lib/roof-geometry";
 import { fetchBuildingFootprint } from "@/lib/footprint.server";
 
 
@@ -359,6 +363,7 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
                   tuning,
                   footprint: fit.footprint,
                   footprint_source: footprintHit?.source ?? "solar_boxes",
+                  facet_source: carved ? "footprint_voronoi" : "footprint_faces",
                 },
               })
               .select("id")
@@ -374,6 +379,8 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
           imagery_quality: data.imageryQuality ?? success.usedQuality,
           imagery_date: data.imageryDate ?? null,
           total_plan_sqft: totalPlanSqFt,
+          pitch_estimated: pitchUnknown,
+          facet_source: carved ? "footprint_voronoi" : "footprint_faces",
           max_sunshine_hours_per_year: data.solarPotential?.maxSunshineHoursPerYear ?? 0,
           segment_count: segments.length,
           footprint: fit.footprint,
