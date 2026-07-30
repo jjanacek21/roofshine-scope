@@ -284,10 +284,92 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         minzoom: HOUSE_CIRCLE_MIN_ZOOM,
         paint: {
           "fill-color": "#38bdf8",
-          "fill-opacity": 0.18,
+          "fill-opacity": 0.1,
           "fill-outline-color": "#38bdf8",
         },
       });
+
+      // One yellow circle per detected house — same canvassing cue as D2D World.
+      addSrc("house-pins");
+      addLyr({
+        id: "house-pins-layer",
+        type: "circle",
+        source: "house-pins",
+        minzoom: HOUSE_CIRCLE_MIN_ZOOM,
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 17, 7, 20, 15],
+          "circle-color": "rgba(245,158,11,0.25)",
+          "circle-stroke-color": "#f59e0b",
+          "circle-stroke-width": 2,
+        },
+      });
+
+      const refreshHousePins = () => {
+        const src = map.getSource("house-pins") as mapboxgl.GeoJSONSource | undefined;
+        if (!src) return;
+        if (map.getZoom() < HOUSE_CIRCLE_MIN_ZOOM) {
+          src.setData(EMPTY_FC as any);
+          return;
+        }
+        let feats: any[] = [];
+        try {
+          feats = map.queryRenderedFeatures(undefined as any, { layers: ["house-footprints"] });
+        } catch {
+          feats = [];
+        }
+        const seen = new Set<string>();
+        const pins: any[] = [];
+        for (const f of feats) {
+          const geom: any = f.geometry;
+          if (!geom || (geom.type !== "Polygon" && geom.type !== "MultiPolygon")) continue;
+          const rings: number[][][] =
+            geom.type === "Polygon" ? geom.coordinates : geom.coordinates.flat();
+          let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+          for (const ring of rings) {
+            for (const [x, y] of ring) {
+              if (x < minLng) minLng = x;
+              if (x > maxLng) maxLng = x;
+              if (y < minLat) minLat = y;
+              if (y > maxLat) maxLat = y;
+            }
+          }
+          if (!Number.isFinite(minLng)) continue;
+          const cx = (minLng + maxLng) / 2;
+          const cy = (minLat + maxLat) / 2;
+          const key = `${cx.toFixed(6)},${cy.toFixed(6)}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          pins.push({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [cx, cy] },
+            properties: { bbox: JSON.stringify([minLng, minLat, maxLng, maxLat]) },
+          });
+        }
+        src.setData({ type: "FeatureCollection", features: pins } as any);
+      };
+      housePinsRef.current = refreshHousePins;
+      map.on("idle", refreshHousePins);
+
+      map.on("click", "house-pins-layer", (e) => {
+        const f = e.features?.[0];
+        if (!f) return;
+        const [lng, lat] = (f.geometry as any).coordinates as [number, number];
+        let footprint: [number, number, number, number] | null = null;
+        try {
+          footprint = JSON.parse(String((f.properties as any)?.bbox ?? "null"));
+        } catch { /* noop */ }
+        setPointRef.current?.({
+          lng,
+          lat,
+          label: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+          footprint,
+        });
+        e.preventDefault();
+      });
+      map.on("mouseenter", "house-pins-layer", () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", "house-pins-layer", () => (map.getCanvas().style.cursor = ""));
+
+
 
 
 
