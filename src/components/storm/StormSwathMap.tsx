@@ -718,7 +718,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     }
     toast.success("Saved as storm damage lead");
     queryClient.invalidateQueries({ queryKey: ["storm-saved-dispositions"] });
-  }, [point, report, queryClient]);
+  }, [point, pointLabel, report, queryClient]);
 
   const handleExportCsv = useCallback(async () => {
     const { data, error } = await supabase.rpc("export_storm_dispositions" as any, {
