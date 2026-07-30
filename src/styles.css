@@ -8,27 +8,28 @@
    GCN App — prototype tokens (verbatim from spec HTML)
    ========================================================= */
 :root {
-  /* Surfaces */
-  --bg: #0a0a0b;
-  --bg-elevated: #131316;
-  --bg-card: #1a1a1d;
-  --bg-hover: #202024;
-  --border: #27272a;
-  --border-bright: #3f3f46;
+  /* Surfaces — light theme */
+  --bg: #f6f7f9;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --bg-hover: #eceff3;
+  --border: #dfe3e8;
+  --border-bright: #c4cad2;
 
   /* Text */
-  --text: #fafafa;
-  --text-dim: #a1a1aa;
-  --text-muted: #71717a;
+  --text: #0b0b0c;
+  --text-dim: #4b5563;
+  --text-muted: #6b7280;
 
   /* Brand */
-  --brand: #1e90ff;
+  --brand: #1668d6;
   --brand-dim: #0c5fb3;
 
-  /* Chrome (silver/light, NOT dark) */
-  --chrome-1: #e8e8ea;
-  --chrome-2: #a8a8ac;
-  --chrome-3: #5a5a5e;
+  /* Chrome (silver) */
+  --chrome-1: #f2f3f5;
+  --chrome-2: #d3d6db;
+  --chrome-3: #8b9099;
+
 
   /* Accents / status */
   --accent-gold: #d4a574;
