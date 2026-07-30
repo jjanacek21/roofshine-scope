@@ -32,11 +32,12 @@
 
 
   /* Accents / status */
-  --accent-gold: #d4a574;
-  --danger: #ef4444;
-  --success: #22c55e;
-  --warning: #eab308;
-  --info: #06b6d4;
+  --accent-gold: #a97a41;
+  --danger: #dc2626;
+  --success: #15803d;
+  --warning: #b45309;
+  --info: #0369a1;
+
 
   /* Trades */
   --trade-roofing: #eab308;
