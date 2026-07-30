@@ -36,30 +36,9 @@ const WIND_BANDS: { band: string; label: string; color: string; min: number; max
   { band: "110+", label: "110+ mph", color: "#7B1FA2", min: 110.001, max: Infinity },
 ];
 
-const SAFE_BASE_STYLE = {
-  version: 8,
-  sources: {
-    "osm-raster": {
-      type: "raster",
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-      tileSize: 256,
-      attribution: "© OpenStreetMap contributors",
-    },
-  },
-  layers: [
-    {
-      id: "osm-raster",
-      type: "raster",
-      source: "osm-raster",
-      paint: {
-        "raster-brightness-min": 0.08,
-        "raster-brightness-max": 0.58,
-        "raster-saturation": -0.65,
-        "raster-contrast": 0.15,
-      },
-    },
-  ],
-} as const;
+// Satellite imagery is what canvassers need — they identify the actual roof.
+const SAFE_BASE_STYLE = "mapbox://styles/mapbox/satellite-streets-v12";
+
 
 type SearchPoint = { lng: number; lat: number; label: string };
 type Bbox = { minLon: number; minLat: number; maxLon: number; maxLat: number };
