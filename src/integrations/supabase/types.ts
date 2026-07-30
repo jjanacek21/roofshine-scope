@@ -2249,6 +2249,7 @@ export type Database = {
       }
       jobs: {
         Row: {
+          ai_measure_settings: Json | null
           assigned_to: string | null
           claim_number: string | null
           client_id: string | null
@@ -2272,6 +2273,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_measure_settings?: Json | null
           assigned_to?: string | null
           claim_number?: string | null
           client_id?: string | null
@@ -2295,6 +2297,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_measure_settings?: Json | null
           assigned_to?: string | null
           claim_number?: string | null
           client_id?: string | null
