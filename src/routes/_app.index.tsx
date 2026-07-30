@@ -103,14 +103,13 @@ function Dashboard() {
   });
 
   // Trade mix
-  const tradeMix: Record<Trade, number> = {
-    roofing: 0, exterior: 0, windows: 0, interior: 0,
-    hvac: 0, plumbing: 0, electrical: 0, mitigation: 0,
-  };
+  const tradeMix = Object.fromEntries(TRADES.map((t) => [t.value, 0])) as Record<Trade, number>;
   const activeJobs = jobs.filter((j) => j.status !== "complete");
   for (const j of activeJobs) {
-    if (j.primary_trade) tradeMix[j.primary_trade as Trade] += 1;
+    const t = j.primary_trade as Trade | null;
+    if (t && t in tradeMix) tradeMix[t] += 1;
   }
+
   const activeTradeCount = Object.values(tradeMix).filter((n) => n > 0).length;
 
   // Avg job value: avg of jobs.total_estimate over last 30 days
