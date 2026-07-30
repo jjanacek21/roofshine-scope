@@ -44,7 +44,13 @@ const WIND_BANDS: { band: string; label: string; color: string; min: number; max
 const SAFE_BASE_STYLE = "mapbox://styles/mapbox/satellite-streets-v12";
 
 
-type SearchPoint = { lng: number; lat: number; label: string };
+type SearchPoint = {
+  lng: number;
+  lat: number;
+  label: string;
+  /** Footprint bbox of the clicked house: [minLng, minLat, maxLng, maxLat]. */
+  footprint?: [number, number, number, number] | null;
+};
 type Bbox = { minLon: number; minLat: number; maxLon: number; maxLat: number };
 
 type StormReport = {
