@@ -846,12 +846,40 @@ export function SolarRoofTab({
     },
 
     onSuccess: ({ success, failed, total }) => {
-      if (total === 0) toast.info("All pins already measured");
-      else if (failed === 0) toast.success(`Measured ${success} of ${total} pins`);
+      if (total === 0) toast.info("Drop a pin on each roof you want measured first");
+      else if (failed === 0) toast.success(`Measured ${success} pinned roof${success === 1 ? "" : "s"}`);
       else toast.warning(`Measured ${success}/${total} — ${failed} need manual entry or draw`);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Bulk measure failed"),
   });
+
+  /** Wipe every saved measurement (and its facets) for this property. */
+  const clearSaved = useMutation({
+    mutationFn: async () => {
+      if (!propertyId) return 0;
+      const { data: ms } = await supabase
+        .from("roof_measurements")
+        .select("id")
+        .eq("property_id", propertyId);
+      const ids = (ms ?? []).map((m) => m.id);
+      if (ids.length > 0) {
+        // roof_sections / roof_lines / roof_edges cascade off the measurement.
+        const { error } = await supabase.from("roof_measurements").delete().in("id", ids);
+        if (error) throw error;
+      }
+      return ids.length;
+    },
+    onSuccess: (n) => {
+      setPins([]);
+      setActivePinId(null);
+      setShowHandoff(false);
+      setCalibration(null);
+      onApply({ sections: [], lines: [] });
+      toast.success(n > 0 ? "All saved measurements deleted for this address" : "No saved measurements to delete");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't clear measurements"),
+  });
+
 
   function startDraw(pinId: string) {
     setDrawingPinId(pinId);
