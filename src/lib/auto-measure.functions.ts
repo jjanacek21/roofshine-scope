@@ -90,6 +90,14 @@ export async function runAutoMeasureForProperty(
   userId: string,
   propertyId: string,
   companyId: string | null,
+  opts?: {
+    /** Measure only the building under the point — no offset probe ring. */
+    single?: boolean;
+    /** Optional footprint bbox [minLng, minLat, maxLng, maxLat] to clip facets to. */
+    footprint?: [number, number, number, number] | null;
+    /** Overwrite an existing google_solar measurement. */
+    force?: boolean;
+  },
 ): Promise<AutoMeasureResult> {
   const GOOGLE_KEY = process.env.GOOGLE_MAPS_API_KEY;
   if (!GOOGLE_KEY) return { ok: false, reason: "google_key_missing" };
@@ -108,7 +116,7 @@ export async function runAutoMeasureForProperty(
     .select("id, source")
     .eq("property_id", prop.id)
     .maybeSingle();
-  if (existing && existing.source !== "google_solar") {
+  if (existing && existing.source !== "google_solar" && !opts?.force) {
     return { ok: false, reason: "already_measured" as const };
   }
 
@@ -121,7 +129,9 @@ export async function runAutoMeasureForProperty(
   const dLat50 = 50 / M_PER_DEG_LAT;
   const dLng50 = dLat50 / Math.max(0.1, Math.cos((lat * Math.PI) / 180));
 
-  const probes: Array<{ lat: number; lng: number }> = [
+  const probes: Array<{ lat: number; lng: number }> = opts?.single
+    ? [{ lat, lng }]
+    : [
     { lat, lng },
     { lat: lat + dLat25, lng }, { lat: lat - dLat25, lng },
     { lat, lng: lng + dLng25 }, { lat, lng: lng - dLng25 },
@@ -130,6 +140,7 @@ export async function runAutoMeasureForProperty(
     { lat: lat + dLat50, lng: lng + dLng50 }, { lat: lat + dLat50, lng: lng - dLng50 },
     { lat: lat - dLat50, lng: lng + dLng50 }, { lat: lat - dLat50, lng: lng - dLng50 },
   ];
+
 
   // Fetch all probes in parallel (cheap: buildingInsights is a single GET).
   const results = await Promise.all(
@@ -159,6 +170,33 @@ export async function runAutoMeasureForProperty(
   }
 
   if (buildings.length === 0) return { ok: false, reason: "no_coverage" as const };
+
+  // Single-house mode: keep only the building nearest the clicked point, and
+  // drop any facet whose centre falls outside the clicked footprint.
+  if (opts?.single) {
+    buildings.sort(
+      (a, b) => haversineMeters(a.center, { lat, lng }) - haversineMeters(b.center, { lat, lng }),
+    );
+    buildings.splice(1);
+    const fp = opts.footprint;
+    if (fp) {
+      const [minLng, minLat, maxLng, maxLat] = fp;
+      const pad = 0.00012; // ~13 m of slack around the footprint bbox
+      const b = buildings[0];
+      const inside = b.segments.filter((s) => {
+        const c = s.center;
+        if (!c) return true;
+        return (
+          c.longitude >= minLng - pad &&
+          c.longitude <= maxLng + pad &&
+          c.latitude >= minLat - pad &&
+          c.latitude <= maxLat + pad
+        );
+      });
+      if (inside.length) b.segments = inside;
+    }
+  }
+
 
   // Build a single roof_measurements row + one roof_sections row per facet
   // across ALL detected buildings (house + shed + garage, etc.).
@@ -283,7 +321,19 @@ export const autoMeasureJobProperty = createServerFn({ method: "POST" })
  */
 export const autoMeasurePropertyRoof = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { property_id: string }) => input)
+  .inputValidator(
+    (input: {
+      property_id: string;
+      single?: boolean;
+      footprint?: [number, number, number, number] | null;
+      force?: boolean;
+    }) => input,
+  )
   .handler(async ({ data, context }) => {
-    return runAutoMeasureForProperty(context.supabase, context.userId, data.property_id, null);
+    return runAutoMeasureForProperty(context.supabase, context.userId, data.property_id, null, {
+      single: data.single,
+      footprint: data.footprint ?? null,
+      force: data.force,
+    });
+
   });

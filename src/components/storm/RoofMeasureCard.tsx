@@ -21,18 +21,21 @@ type Props = {
   lat: number;
   lng: number;
   address: string | null;
+  /** Footprint bbox of the clicked house: [minLng, minLat, maxLng, maxLat]. */
+  footprint?: [number, number, number, number] | null;
   onChange: (snap: MeasureSnapshot) => void;
   onSections: (features: any[]) => void;
 };
 
 const fmt = (n: number) => Math.round(n).toLocaleString();
 
-export function RoofMeasureCard({ lat, lng, address, onChange, onSections }: Props) {
+export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange, onSections }: Props) {
   const qc = useQueryClient();
   const key = ["storm-roof", lat.toFixed(5), lng.toFixed(5)];
 
   const measureFn = useServerFn(autoMeasurePropertyRoof);
   const ensureFn = useServerFn(ensureStormProperty);
+
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: key,
@@ -95,8 +98,8 @@ export function RoofMeasureCard({ lat, lng, address, onChange, onSections }: Pro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, planSqft]);
 
-  const measure = useMutation({
-    mutationFn: async () => {
+  const measure = useMutation<any, Error, boolean | undefined>({
+    mutationFn: async (force?: boolean) => {
       let propertyId = data?.property?.id ?? null;
       if (!propertyId) {
         const ensured: any = await ensureFn({
@@ -105,7 +108,10 @@ export function RoofMeasureCard({ lat, lng, address, onChange, onSections }: Pro
         if (!ensured?.ok) throw new Error(ensured?.error ?? "Could not save this property");
         propertyId = ensured.property.id;
       }
-      const res: any = await measureFn({ data: { property_id: propertyId! } });
+      const res: any = await measureFn({
+        data: { property_id: propertyId!, single: true, footprint, force },
+      });
+
       if (!res?.ok) {
         const reasons: Record<string, string> = {
           google_key_missing: "Measurement service is not configured.",
@@ -155,7 +161,7 @@ export function RoofMeasureCard({ lat, lng, address, onChange, onSections }: Pro
           </p>
           <button
             type="button"
-            onClick={() => measure.mutate()}
+            onClick={() => measure.mutate(false)}
             disabled={measure.isPending}
             className="flex w-full items-center justify-center gap-1.5 rounded-md px-2 py-2 text-xs font-semibold disabled:opacity-60"
             style={{ background: "var(--brand, #2563eb)", color: "#fff" }}
@@ -165,16 +171,17 @@ export function RoofMeasureCard({ lat, lng, address, onChange, onSections }: Pro
           </button>
           {measure.isPending && (
             <p className="mt-1.5 text-[10px] opacity-70">
-              Scanning the property and any detached structures — this may take a moment.
+              Measuring only the structure you selected — this may take a moment.
             </p>
           )}
+
           {measure.isError && (
             <div className="mt-2 flex items-center justify-between gap-2 text-[11px]" style={{ color: "#f87171" }}>
               <span className="flex items-center gap-1.5">
                 <AlertTriangle className="h-3 w-3" />
                 {(measure.error as Error).message}
               </span>
-              <button type="button" onClick={() => measure.mutate()} className="flex items-center gap-1 underline">
+              <button type="button" onClick={() => measure.mutate(false)} className="flex items-center gap-1 underline">
                 <RefreshCw className="h-3 w-3" /> Retry
               </button>
             </div>
@@ -212,8 +219,23 @@ export function RoofMeasureCard({ lat, lng, address, onChange, onSections }: Pro
               </p>
             </>
           )}
+          <button
+            type="button"
+            onClick={() => measure.mutate(true)}
+            disabled={measure.isPending}
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-semibold text-foreground disabled:opacity-60"
+            style={{ borderColor: "var(--border)" }}
+          >
+            {measure.isPending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3 w-3" />
+            )}
+            Re-measure this roof
+          </button>
         </div>
       )}
+
     </section>
   );
 }

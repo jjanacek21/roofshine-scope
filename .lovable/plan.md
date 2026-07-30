@@ -1,74 +1,48 @@
+## What's broken today (verified)
 
-# Storm Intelligence → Door-to-Door Canvassing + AI Mailers
+- **Storm history fails.** The app calls `storm_report_at_point(p_lat, p_lng, p_hail_days, p_wind_days, p_wind_radius_mi)`. I tested the storm database directly: the function only accepts `p_lat, p_lng` (windows are fixed server-side at 60 days hail / 730 days wind) — hence "Could not find the function ... in the schema cache". Called with two arguments it returns hail dates, sizes, wind dates and speeds correctly.
+- **No yellow house circles.** Storm Intel renders raw Mapbox building polygons as a translucent fill. Door-to-door World derives one circle marker per building footprint. Storm Intel never got that treatment.
+- **No address.** The panel shows raw lat/lng; nothing reverse-geocodes the clicked point.
+- **Measuring grabs the whole block.** `runAutoMeasureForProperty` probes the clicked point plus a ring of 12 offset points up to 50 m out and merges every building it finds (the 55-facet / 210-square result in your screenshot). Correct for "measure this property and its shed", wrong for "measure the house I clicked".
 
-Four phases. Phase 1 and 2 are the usable product; Phase 3 adds batch work; Phase 4 is schema/stub only.
+## Plan
 
-## Ground rules honored throughout
-- Storm data stays read-only through the existing storm client; that file is not touched and no migrations run against it.
-- All new tables/functions go in the main app database.
-- Every magic number lives in one new config file: `src/lib/storm-config.ts` (pitch 1.08, waste 1.12, house-circle zoom 17, hail 60 days, wind 730 days, radius 805 m, wind min 60 mph).
-- No feature currently in the storm map is removed.
+### 1. Map: house circles + correct click target
+- Add a derived building-pin layer to the storm map, mirroring door-to-door World: at zoom 17+, query rendered building footprints, compute each centroid, and draw a yellow ring per house.
+- Clicking a ring selects that house (its centroid + footprint polygon), not an arbitrary map point. Storm-swath clicks still work when you're not on a house.
+- Keep a faint footprint highlight only on the selected house.
 
----
+### 2. Property side panel (replaces the small popup)
+A right-hand panel styled like the door-to-door property panel, with sections:
+- **Address** — reverse-geocoded from Mapbox on click (street, city, state, ZIP), shown as the panel title.
+- **Storm history** — fixed by calling the RPC with `p_lat`/`p_lng` only. Lists every hail event (date, size, band) in the last 60 days and every wind event ≥60 mph in the last 2 years, newest first, with peak hail size and peak gust as headline stats. No external news sources (per your answer).
+- **Instant measurement** — single-house mode (below), showing footprint → +8% pitch → +12% waste → squares, with facets drawn on the map.
+- **Roof type** — selector saved onto the property record.
+- **Create mailer** button.
 
-## Phase 1 — Canvassing map + side panel
+### 3. Single-house measurement
+- Add a `single: true` mode to the measurement pipeline: one Google Solar probe at the selected centroid, no offset ring, no cross-building merge. If a footprint polygon is available, discard any facet whose centroid falls outside it.
+- The existing multi-structure scan stays available for job properties.
 
-**Bug fix:** "Last 24 hours" currently queries 2 days; corrected to 1, including the fallback.
+### 4. Mailer studio (rebuild of the current modal)
+A stepped builder saved to `storm_mailers`:
+1. **Content sources** — upload images, screenshots, PDFs or documents, and/or type an AI prompt/topic. Uploads go to the existing private `storm-mailer-images` bucket (extended to accept documents); PDFs and articles are parsed and fed to the AI as source material for a unique letter.
+2. **Message** — AI generates the letter from the verified storm facts + your topic/source docs. Editable afterward. Still never claims damage.
+3. **Theme & tone** — pick a visual theme (bold 3D, clean modern, premium dark, friendly) and a tone/mood from the existing list.
+4. **Signature** — personal (name / phone / email) or company (company name / email / phone), saved as a reusable default.
+5. **QR code** — optional, with a free-form target URL; rendered into the letter.
+6. **Generate** — renders a polished one-page letter with the user's company logo and brand colors at the top, storm facts, roof size, letter body, signature and QR. Saved against the address, printable/downloadable as PDF or copyable as email HTML.
 
-**Basemap:** swap the OpenStreetMap raster for Mapbox `satellite-streets-v12`, plus an explicit `mapbox.mapbox-streets-v8` vector source so building footprints are queryable by name rather than relying on style internals. Same token hook and token-error toast.
-
-**House circles:** only at zoom ≥ 17. On map idle/moveend, building polygons in view are queried, centroids computed, deduped by rounded coordinates, and drawn as a circle layer with hover state and pointer cursor. Circles for houses that already have a saved disposition are colored by that disposition.
-
-**Side panel** (new `StormPropertyPanel.tsx`, slide-over, full-width sheet on mobile), in order:
-1. Reverse-geocoded address, skeleton while loading, lat/lng fallback.
-2. Disabled "Owner details — coming soon" card, shaped for later ATTOM data.
-3. Storm history from one `storm_report_at_point` call: headline largest hail / peak wind, then hail rows (last 60 days, colored by the returned color) and wind rows (last 2 years, with MPH, source, distance), newest first. Empty result renders an explicit "no qualifying storm activity" message, and a range asking for more hail than exists says "no data for this period" rather than implying zero storms.
-4. Roof measurement card (below).
-5. Disposition buttons using the existing save function.
-6. "Create AI Mailer", disabled with a tooltip until a measurement exists.
-
-**Measurement card** (new `RoofMeasureCard.tsx`) — never automatic:
-- Existing `roof_measurements` row for the property renders instantly, no API call.
-- Otherwise a "Measure this roof" button runs the existing Google-Solar multi-structure pipeline (`runAutoMeasure`). That helper is currently job-keyed; it gets a small property-keyed entry point so the same code serves both — no second pipeline.
-- If no `properties` row exists, one is created from the geocoded address first.
-- Result persists, so a repeat click is free. Spinner with a "may take a moment" note, and a real error message plus retry on failure.
-- Measured facets draw on the map from `roof_sections.polygon_geojson` as translucent fills with bright outlines.
-
-**Pitch and waste:** computed from plan/footprint area only, compounding 1.08 then 1.12 (net 1.2096), never from the already pitch-adjusted actual columns. Plan area comes from summing `roof_sections.plan_area_sqft`. The panel shows the full breakdown: footprint → +8% pitch → +12% waste → squares.
-
----
-
-## Phase 2 — AI mailer generator
-
-**Migration** (main DB): `storm_mailer_campaigns` and `storm_mailers` exactly as specified, including the Phase-4 tracking columns added up front, indexes on `(company_id, campaign_id)` and `(company_id, lat, lng)`, grants, and RLS restricting rows to the user's company. The full storm report is frozen into the row at generation time and never re-queried.
-
-**Modal** (`StormMailerModal.tsx`), stepped: roof type (prefilled), squares (auto-filled from the 1.2096 figure, editable, marked auto-calculated), storm type (preselected hail if hail exists else wind), imagery (upload to a company-scoped storage bucket, or AI-generate a damage infographic / hail-size comparison / storm timeline built from the real dates), topic textarea, tone select (Urgent, Neighborly, Professional, Empathetic, Bold & Direct, Educational, Premium), signature radio with defaults pulled from profile/company, then Generate.
-
-**Generation:** a `generate-storm-mailer` endpoint returning `{ subject, body }`. The letter uses the real dates, sizes and square count; matches the chosen tone; and states only that a storm hit the area with a free inspection offered — it never asserts the roof is damaged. Draft appears in an editable preview pane before saving as `draft`.
-
----
-
-## Phase 3 — Bulk tagging, campaigns, one PDF
-
-- "Tag damaged houses" multi-select mode on the map with a running count and box-select.
-- Bulk generate: one set of modal answers applied across every tagged house, each pulling its own storm report and measurement, with per-house progress; a single failure does not abort the batch.
-- Campaign list view with letter counts and statuses, approve individually or in bulk.
-- Export: server-side render of all approved letters into one PDF — one letter per page, window-envelope address block, inline images, signature, plus a cover-sheet manifest of every address. Streamed to storage and returned as a signed URL; rows marked `exported`.
-
----
-
-## Phase 4 — Scaffolding only
-
-- `owner_lookups` table and an `enrich-property-owner` stub returning "not configured"; the disabled owner card reads from this table once rows exist.
-- Email tracking columns land with the Phase-2 migration; no sender is wired.
-
-Note for later: mass email with open tracking is subject to CAN-SPAM, and Florida restricts post-disaster and insurance-claim solicitation — worth clearing before the first send.
-
----
+### 5. Bulk export
+A "Mailers" drawer on the Storm Intelligence page:
+- Filter by campaign or view all saved mailers, with date-range and status filters.
+- Address list shown in order, selectable.
+- **Export all** produces a single PDF, one letter per page in list order, ready to print and stuff, plus a CSV address manifest in the same order.
 
 ## Technical notes
 
-- New files: `src/lib/storm-config.ts`, `src/components/storm/StormPropertyPanel.tsx`, `StormHouseCircles` logic module, `RoofMeasureCard.tsx`, `StormMailerModal.tsx`, `StormMailerPreview.tsx`, plus campaign route and export endpoint in Phase 3. `StormSwathMap.tsx` shrinks rather than grows.
-- Backend work uses server functions and server routes on this stack (no new Supabase edge functions).
-- One caveat on measurement storage: `roof_measurements` stores only the pitch-adjusted total, so plan area is derived by summing section `plan_area_sqft`. If a measurement predates sections, the card shows the stored total with a note instead of a fabricated footprint.
-- Loading, empty, and error states are visually distinct on every async surface; layouts are checked at phone width.
+- Storm reads stay on the storm project via `stormSupabase` (auth untouched); all writes (properties, measurements, mailers, campaigns) stay on the app database via the authenticated client.
+- Reverse geocoding uses the existing Mapbox token route; results cached per property to avoid repeat calls.
+- New columns on `storm_mailers` for theme, QR target, source-document URLs and rendered HTML; a small migration adds them plus grants stay as-is.
+- Letter rendering reuses the existing html2canvas → jsPDF pipeline used by reports, so bulk export is just page-per-letter concatenation.
+- No auto-measuring anywhere: measurement only ever runs when you press the button for the selected house.

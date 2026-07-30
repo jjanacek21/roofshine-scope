@@ -44,7 +44,13 @@ const WIND_BANDS: { band: string; label: string; color: string; min: number; max
 const SAFE_BASE_STYLE = "mapbox://styles/mapbox/satellite-streets-v12";
 
 
-type SearchPoint = { lng: number; lat: number; label: string };
+type SearchPoint = {
+  lng: number;
+  lat: number;
+  label: string;
+  /** Footprint bbox of the clicked house: [minLng, minLat, maxLng, maxLat]. */
+  footprint?: [number, number, number, number] | null;
+};
 type Bbox = { minLon: number; minLat: number; maxLon: number; maxLat: number };
 
 type StormReport = {
@@ -110,6 +116,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const readyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initMapRef = useRef<(() => void) | null>(null);
   const setPointRef = useRef<((p: SearchPoint) => void) | null>(null);
+  const housePinsRef = useRef<(() => void) | null>(null);
 
   const [styleReady, setStyleReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -189,13 +196,13 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     enabled: !!point,
     staleTime: 60 * 1000,
     queryFn: async () => {
+      // The storm database fixes the windows server-side (60d hail / 730d wind)
+      // and only accepts the two coordinates.
       const { data, error } = await stormSupabase.rpc("storm_report_at_point" as any, {
         p_lat: point!.lat,
         p_lng: point!.lng,
-        p_hail_days: 60,
-        p_wind_days: 365,
-        p_wind_radius_mi: 3,
       });
+
       if (error) {
         toast.error(`Storm report: ${error.message}`);
         throw error;
@@ -203,6 +210,37 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       return (data ?? null) as StormReport | null;
     },
   });
+
+  // Reverse-geocode the selected house so the panel shows a real street address.
+  const { data: resolvedAddress } = useQuery({
+    queryKey: ["storm-reverse-geocode", point?.lat?.toFixed(6), point?.lng?.toFixed(6)],
+    enabled: !!point && !!token,
+    staleTime: 24 * 60 * 60 * 1000,
+    queryFn: async () => {
+      const url =
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${point!.lng},${point!.lat}.json` +
+        `?types=address&limit=1&access_token=${token}`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const json = await res.json();
+      const feat = json?.features?.[0];
+      if (!feat) return null;
+      const ctx: any[] = feat.context ?? [];
+      const pick = (prefix: string) =>
+        ctx.find((c) => String(c.id ?? "").startsWith(prefix))?.text ?? null;
+      return {
+        full: String(feat.place_name ?? "").replace(/, United States$/, ""),
+        street: [feat.address, feat.text].filter(Boolean).join(" "),
+        city: pick("place"),
+        state: pick("region"),
+        zip: pick("postcode"),
+      };
+    },
+  });
+
+  const pointLabel = resolvedAddress?.full || point?.label || "";
+
+
 
   const { data: savedRows = [], isFetching: savedLoading } = useQuery({
     queryKey: ["storm-saved-dispositions"],
@@ -278,10 +316,92 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         minzoom: HOUSE_CIRCLE_MIN_ZOOM,
         paint: {
           "fill-color": "#38bdf8",
-          "fill-opacity": 0.18,
+          "fill-opacity": 0.1,
           "fill-outline-color": "#38bdf8",
         },
       });
+
+      // One yellow circle per detected house — same canvassing cue as D2D World.
+      addSrc("house-pins");
+      addLyr({
+        id: "house-pins-layer",
+        type: "circle",
+        source: "house-pins",
+        minzoom: HOUSE_CIRCLE_MIN_ZOOM,
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 17, 7, 20, 15],
+          "circle-color": "rgba(245,158,11,0.25)",
+          "circle-stroke-color": "#f59e0b",
+          "circle-stroke-width": 2,
+        },
+      });
+
+      const refreshHousePins = () => {
+        const src = map.getSource("house-pins") as mapboxgl.GeoJSONSource | undefined;
+        if (!src) return;
+        if (map.getZoom() < HOUSE_CIRCLE_MIN_ZOOM) {
+          src.setData(EMPTY_FC as any);
+          return;
+        }
+        let feats: any[] = [];
+        try {
+          feats = map.queryRenderedFeatures(undefined as any, { layers: ["house-footprints"] });
+        } catch {
+          feats = [];
+        }
+        const seen = new Set<string>();
+        const pins: any[] = [];
+        for (const f of feats) {
+          const geom: any = f.geometry;
+          if (!geom || (geom.type !== "Polygon" && geom.type !== "MultiPolygon")) continue;
+          const rings: number[][][] =
+            geom.type === "Polygon" ? geom.coordinates : geom.coordinates.flat();
+          let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+          for (const ring of rings) {
+            for (const [x, y] of ring) {
+              if (x < minLng) minLng = x;
+              if (x > maxLng) maxLng = x;
+              if (y < minLat) minLat = y;
+              if (y > maxLat) maxLat = y;
+            }
+          }
+          if (!Number.isFinite(minLng)) continue;
+          const cx = (minLng + maxLng) / 2;
+          const cy = (minLat + maxLat) / 2;
+          const key = `${cx.toFixed(6)},${cy.toFixed(6)}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          pins.push({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [cx, cy] },
+            properties: { bbox: JSON.stringify([minLng, minLat, maxLng, maxLat]) },
+          });
+        }
+        src.setData({ type: "FeatureCollection", features: pins } as any);
+      };
+      housePinsRef.current = refreshHousePins;
+      map.on("idle", refreshHousePins);
+
+      map.on("click", "house-pins-layer", (e) => {
+        const f = e.features?.[0];
+        if (!f) return;
+        const [lng, lat] = (f.geometry as any).coordinates as [number, number];
+        let footprint: [number, number, number, number] | null = null;
+        try {
+          footprint = JSON.parse(String((f.properties as any)?.bbox ?? "null"));
+        } catch { /* noop */ }
+        setPointRef.current?.({
+          lng,
+          lat,
+          label: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+          footprint,
+        });
+        e.preventDefault();
+      });
+      map.on("mouseenter", "house-pins-layer", () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", "house-pins-layer", () => (map.getCanvas().style.cursor = ""));
+
+
 
 
 
@@ -346,14 +466,39 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       }
 
       map.on("click", (e) => {
+        if (e.defaultPrevented) return; // a house circle handled it
         // A house click always wins over a swath click at canvassing zoom.
-        const houseHit =
-          map.getZoom() >= HOUSE_CIRCLE_MIN_ZOOM &&
-          map.queryRenderedFeatures(e.point, { layers: ["house-footprints"] }).length > 0;
-        if (!houseHit) {
+        const houseFeats =
+          map.getZoom() >= HOUSE_CIRCLE_MIN_ZOOM
+            ? map.queryRenderedFeatures(e.point, { layers: ["house-footprints"] })
+            : [];
+        if (houseFeats.length === 0) {
           const hits = map.queryRenderedFeatures(e.point, { layers: ["hail-fill", "wind-fill"] });
           if (hits.length > 0) return;
+        } else {
+          const geom: any = houseFeats[0].geometry;
+          const rings: number[][][] =
+            geom?.type === "Polygon" ? geom.coordinates : (geom?.coordinates ?? []).flat();
+          let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+          for (const ring of rings) {
+            for (const [x, y] of ring) {
+              if (x < minLng) minLng = x;
+              if (x > maxLng) maxLng = x;
+              if (y < minLat) minLat = y;
+              if (y > maxLat) maxLat = y;
+            }
+          }
+          if (Number.isFinite(minLng)) {
+            setPointRef.current?.({
+              lng: (minLng + maxLng) / 2,
+              lat: (minLat + maxLat) / 2,
+              label: `${((minLat + maxLat) / 2).toFixed(5)}, ${((minLng + maxLng) / 2).toFixed(5)}`,
+              footprint: [minLng, minLat, maxLng, maxLat],
+            });
+            return;
+          }
         }
+
         setPointRef.current?.({
           lng: e.lngLat.lng,
           lat: e.lngLat.lat,
@@ -561,7 +706,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     const { error } = await supabase.rpc("save_storm_disposition" as any, {
       p_lat: point.lat,
       p_lng: point.lng,
-      p_address: point.label,
+      p_address: pointLabel || point.label,
       p_disposition: "storm_damage",
       p_notes: null,
       p_storm: (report ?? {}) as any,
@@ -573,7 +718,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     }
     toast.success("Saved as storm damage lead");
     queryClient.invalidateQueries({ queryKey: ["storm-saved-dispositions"] });
-  }, [point, report, queryClient]);
+  }, [point, pointLabel, report, queryClient]);
 
   const handleExportCsv = useCallback(async () => {
     const { data, error } = await supabase.rpc("export_storm_dispositions" as any, {
@@ -701,11 +846,23 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           }}
         >
           <div className="flex items-start gap-2">
-            <div className="flex-1 text-xs font-semibold text-foreground">{point.label}</div>
+            <div className="flex-1">
+              <div className="text-xs font-semibold text-foreground">
+                {resolvedAddress?.street || pointLabel}
+              </div>
+              {resolvedAddress && (
+                <div className="text-[10px] opacity-70">
+                  {[resolvedAddress.city, resolvedAddress.state, resolvedAddress.zip]
+                    .filter(Boolean)
+                    .join(", ")}
+                </div>
+              )}
+            </div>
             <button type="button" onClick={() => setPoint(null)} aria-label="Close">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
+
 
           {reportLoading && (
             <div className="flex items-center gap-2">
@@ -763,7 +920,8 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
               key={`${point.lat.toFixed(5)},${point.lng.toFixed(5)}`}
               lat={point.lat}
               lng={point.lng}
-              address={point.label}
+              address={pointLabel}
+              footprint={point.footprint ?? null}
               onChange={setMeasure}
               onSections={setFacets}
             />
@@ -805,7 +963,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         <StormMailerModal
           open={mailerOpen}
           onClose={() => setMailerOpen(false)}
-          address={point.label}
+          address={pointLabel}
           lat={point.lat}
           lng={point.lng}
           propertyId={measure?.propertyId ?? null}
