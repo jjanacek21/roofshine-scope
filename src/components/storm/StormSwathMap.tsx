@@ -302,8 +302,26 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         });
       }
 
+      // Measured roof facets for the selected house.
+      addLyr({
+        id: "roof-facets-fill",
+        type: "fill",
+        source: "roof-facets",
+        paint: { "fill-color": ["coalesce", ["get", "color"], "#38bdf8"], "fill-opacity": 0.35 },
+      });
+      addLyr({
+        id: "roof-facets-line",
+        type: "line",
+        source: "roof-facets",
+        paint: { "line-color": "#fbbf24", "line-width": 1.5 },
+      });
+
       const popup = new mapboxgl.Popup({ closeButton: true, closeOnClick: true });
       swathPopupRef.current = popup;
+
+      map.on("mouseenter", "house-footprints", () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", "house-footprints", () => (map.getCanvas().style.cursor = ""));
+
 
       for (const layer of ["hail-fill", "wind-fill"]) {
         map.on("click", layer, (e) => {
