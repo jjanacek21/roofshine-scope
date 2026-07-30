@@ -8,34 +8,36 @@
    GCN App — prototype tokens (verbatim from spec HTML)
    ========================================================= */
 :root {
-  /* Surfaces */
-  --bg: #0a0a0b;
-  --bg-elevated: #131316;
-  --bg-card: #1a1a1d;
-  --bg-hover: #202024;
-  --border: #27272a;
-  --border-bright: #3f3f46;
+  /* Surfaces — light theme */
+  --bg: #f6f7f9;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --bg-hover: #eceff3;
+  --border: #dfe3e8;
+  --border-bright: #c4cad2;
 
   /* Text */
-  --text: #fafafa;
-  --text-dim: #a1a1aa;
-  --text-muted: #71717a;
+  --text: #0b0b0c;
+  --text-dim: #4b5563;
+  --text-muted: #6b7280;
 
   /* Brand */
-  --brand: #1e90ff;
+  --brand: #1668d6;
   --brand-dim: #0c5fb3;
 
-  /* Chrome (silver/light, NOT dark) */
-  --chrome-1: #e8e8ea;
-  --chrome-2: #a8a8ac;
-  --chrome-3: #5a5a5e;
+  /* Chrome (silver) */
+  --chrome-1: #f2f3f5;
+  --chrome-2: #d3d6db;
+  --chrome-3: #8b9099;
+
 
   /* Accents / status */
-  --accent-gold: #d4a574;
-  --danger: #ef4444;
-  --success: #22c55e;
-  --warning: #eab308;
-  --info: #06b6d4;
+  --accent-gold: #a97a41;
+  --danger: #dc2626;
+  --success: #15803d;
+  --warning: #b45309;
+  --info: #0369a1;
+
 
   /* Trades */
   --trade-roofing: #eab308;
@@ -54,9 +56,10 @@
   --radius-xl: 20px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 20px 50px rgba(15, 23, 42, 0.14);
+
 
   /* Fonts */
   --font-sans: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -72,9 +75,9 @@
   --popover-foreground: var(--text);
   --primary: var(--brand);
   --primary-foreground: #ffffff;
-  --secondary: var(--bg-elevated);
+  --secondary: #eef1f5;
   --secondary-foreground: var(--text);
-  --muted: var(--bg-card);
+  --muted: #eef1f5;
   --muted-foreground: var(--text-dim);
   --accent: var(--bg-hover);
   --accent-foreground: var(--text);
@@ -83,7 +86,7 @@
   --input: var(--border);
   --ring: var(--brand);
 
-  --sidebar: #0d0d10;
+  --sidebar: #ffffff;
   --sidebar-foreground: var(--text);
   --sidebar-primary: var(--brand);
   --sidebar-primary-foreground: #ffffff;
@@ -91,6 +94,7 @@
   --sidebar-accent-foreground: var(--text);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--brand);
+
 
   --chart-1: var(--trade-roofing);
   --chart-2: var(--trade-windows);
@@ -104,15 +108,16 @@
   --surface-hover: var(--bg-hover);
   --border-strong: var(--border-bright);
   --brand-deep: var(--brand-dim);
-  --brand-hover: #3aa0ff;
-  --gradient-brand: linear-gradient(180deg, #2aa0ff, var(--brand));
-  --gradient-brand-soft: linear-gradient(135deg, rgba(30, 144, 255, 0.18) 0%, rgba(0, 102, 214, 0.05) 100%);
+  --brand-hover: #1b78ef;
+  --gradient-brand: linear-gradient(180deg, #2a8cf0, var(--brand));
+  --gradient-brand-soft: linear-gradient(135deg, rgba(22, 104, 214, 0.12) 0%, rgba(22, 104, 214, 0.03) 100%);
   --gradient-chrome: linear-gradient(180deg, var(--chrome-1), var(--chrome-2));
-  --gradient-stat-glow: radial-gradient(circle at top right, rgba(30, 144, 255, 0.18) 0%, transparent 60%);
-  --gradient-sidebar: linear-gradient(180deg, #0d0d10 0%, #070708 100%);
+  --gradient-stat-glow: radial-gradient(circle at top right, rgba(22, 104, 214, 0.10) 0%, transparent 60%);
+  --gradient-sidebar: linear-gradient(180deg, #ffffff 0%, #f2f4f7 100%);
   --shadow-md: var(--shadow);
-  --shadow-glow: 0 4px 14px rgba(30, 144, 255, 0.3);
-  --shadow-chrome: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 4px 14px rgba(22, 104, 214, 0.22);
+  --shadow-chrome: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 1px 3px rgba(15, 23, 42, 0.14);
+
 }
 
 @theme inline {
@@ -185,6 +190,7 @@
 
   html {
     font-family: var(--font-sans);
+    font-size: 17px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background-color: var(--bg);
@@ -195,11 +201,12 @@
     color: var(--text);
     min-height: 100vh;
     background:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(30, 144, 255, 0.08), transparent),
-      radial-gradient(ellipse 60% 40% at 80% 120%, rgba(212, 165, 116, 0.04), transparent),
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(22, 104, 214, 0.07), transparent),
+      radial-gradient(ellipse 60% 40% at 80% 120%, rgba(169, 122, 65, 0.05), transparent),
       var(--bg);
     background-attachment: fixed;
   }
+
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-sans);
@@ -245,9 +252,10 @@
 .btn-chrome {
   background: linear-gradient(180deg, var(--chrome-1), var(--chrome-2));
   color: #0a0a0b;
+  border: 1px solid var(--border);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 2px 8px rgba(0, 0, 0, 0.3);
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 1px 3px rgba(15, 23, 42, 0.14);
   transition: all 0.15s ease;
 }
 .btn-chrome:hover {
@@ -268,7 +276,7 @@
 
 /* Stat card — linear gradient bg + 80x80 radial glow top-right */
 .stat-glow {
-  background: linear-gradient(135deg, var(--bg-card), #161619);
+  background: linear-gradient(135deg, #ffffff, #f4f6f9);
   border: 1px solid var(--border);
   position: relative;
   overflow: hidden;
@@ -280,14 +288,16 @@
   right: 0;
   width: 80px;
   height: 80px;
-  background: radial-gradient(circle, rgba(30, 144, 255, 0.1), transparent 70%);
+  background: radial-gradient(circle, rgba(22, 104, 214, 0.10), transparent 70%);
   pointer-events: none;
 }
 
 /* Sidebar background */
 .sidebar-bg {
-  background: linear-gradient(180deg, #0d0d10 0%, #070708 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f2f4f7 100%);
+  border-right: 1px solid var(--border);
 }
+
 
 /* Nav active state — 2px inset border + 90deg blue gradient */
 .nav-active {
