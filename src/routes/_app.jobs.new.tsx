@@ -11,8 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TRADES, type Trade } from "@/lib/trades";
 import { AddressAutocomplete, type AddressResult } from "@/components/maps/AddressAutocomplete";
-import { autoMeasureJobProperty } from "@/lib/auto-measure.functions";
-import { deriveOrderFormInputs } from "@/lib/assistant.functions";
 
 const searchSchema = z.object({ client_id: z.string().optional() });
 
@@ -176,26 +174,9 @@ function NewJobPage() {
 
       toast.success("Job created");
 
-      // Fire-and-forget: auto-scan the property with Google Solar to detect
-      // the house AND any outbuildings (shed, detached garage, guest house),
-      // then auto-fill the order form with derived measurements.
-      void (async () => {
-        try {
-          const res = await autoMeasureJobProperty({ data: { job_id: job.id } });
-          if (res.ok) {
-            toast.success(
-              `Auto-measured ${res.structures} structure${res.structures === 1 ? "" : "s"} · ${res.total_actual_sqft.toLocaleString()} sqft · ${res.squares.toFixed(1)} SQ`,
-            );
-            try { await deriveOrderFormInputs({ data: { job_id: job.id } }); } catch { /* best-effort */ }
-          } else if (res.reason === "no_coordinates") {
-            toast.info("Add property coordinates to enable auto-measurement.");
-          } else if (res.reason === "no_coverage") {
-            toast.info("No Google Solar coverage here — measure manually on the Measure tab.");
-          }
-        } catch (e) {
-          console.warn("Auto-measure failed:", e);
-        }
-      })();
+      // No automatic satellite measurement — the user drops pins and runs the
+      // AI measurement themselves on the job's Measure tab.
+
 
       navigate({ to: "/jobs/$id", params: { id: job.id } });
     } catch (e) {

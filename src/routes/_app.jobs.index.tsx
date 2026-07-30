@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useProfile, useIsCompanyAdmin } from "@/hooks/useProfile";
 import { useCompanyMembers, memberName, type CompanyMember } from "@/hooks/useCompanyMembers";
+import { Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/jobs/")({
   component: JobsKanban,
@@ -70,6 +71,34 @@ function JobsKanban() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deleteJob = useMutation({
+    mutationFn: async (id: string) => {
+      // Clean up rows that don't cascade off the job before removing it.
+      await Promise.all([
+        supabase.from("invoices").delete().eq("job_id", id),
+        supabase.from("job_reports").delete().eq("job_id", id),
+        supabase.from("generated_reports").delete().eq("job_id", id),
+        supabase.from("report_assets").delete().eq("job_id", id),
+        supabase.from("ai_measurement_runs").delete().eq("job_id", id),
+        supabase.from("job_order_history").delete().eq("job_id", id),
+        supabase.from("contracts").delete().eq("job_id", id),
+      ]);
+      const { error } = await supabase.from("jobs").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Job deleted");
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+      qc.invalidateQueries({ queryKey: ["jobs-dashboard"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function handleDelete(job: Job) {
+    if (!window.confirm(`Delete "${job.name}"? This removes its estimates, photos, documents and invoices. This cannot be undone.`)) return;
+    deleteJob.mutate(job.id);
+  }
+
   function onDragEnd(e: DragEndEvent) {
     const jobId = String(e.active.id);
     const newStatus = e.over?.id as JobStatus | undefined;
@@ -118,6 +147,7 @@ function JobsKanban() {
                 label={col.label}
                 jobs={visibleJobs.filter((j) => j.status === col.value)}
                 memberMap={memberMap}
+                onDelete={handleDelete}
               />
             ))}
           </div>
@@ -127,7 +157,7 @@ function JobsKanban() {
   );
 }
 
-function Column({ status, label, jobs, memberMap }: { status: JobStatus; label: string; jobs: Job[]; memberMap: Map<string, CompanyMember> }) {
+function Column({ status, label, jobs, memberMap, onDelete }: { status: JobStatus; label: string; jobs: Job[]; memberMap: Map<string, CompanyMember>; onDelete: (job: Job) => void }) {
   const { isOver, setNodeRef } = useDroppable({ id: status });
   const total = jobs.reduce((s, j) => s + Number(j.total_estimate ?? 0), 0);
 
@@ -156,7 +186,7 @@ function Column({ status, label, jobs, memberMap }: { status: JobStatus; label: 
       </div>
       <div className="flex-1 space-y-2 p-3">
         {jobs.map((j) => (
-          <JobCard key={j.id} job={j} memberMap={memberMap} />
+          <JobCard key={j.id} job={j} memberMap={memberMap} onDelete={onDelete} />
         ))}
         {jobs.length === 0 && (
           <p className="py-8 text-center text-xs text-muted-foreground">No jobs</p>
@@ -166,7 +196,7 @@ function Column({ status, label, jobs, memberMap }: { status: JobStatus; label: 
   );
 }
 
-function JobCard({ job, memberMap }: { job: Job; memberMap: Map<string, CompanyMember> }) {
+function JobCard({ job, memberMap, onDelete }: { job: Job; memberMap: Map<string, CompanyMember>; onDelete: (job: Job) => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: job.id });
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
@@ -206,14 +236,28 @@ function JobCard({ job, memberMap }: { job: Job; memberMap: Map<string, CompanyM
           Rep: <span className="font-semibold text-foreground/80 normal-case tracking-normal">{memberName(memberMap.get(job.assigned_to ?? job.created_by ?? ""))}</span>
         </p>
       )}
-      <Link
-        to="/jobs/$id"
-        params={{ id: job.id }}
-        onPointerDown={(e) => e.stopPropagation()}
-        className="mt-2 block text-[11px] font-semibold uppercase tracking-wider text-[var(--brand)] hover:underline"
-      >
-        Open →
-      </Link>
+      <div className="mt-2 flex items-center justify-between">
+        <Link
+          to="/jobs/$id"
+          params={{ id: job.id }}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="text-[11px] font-semibold uppercase tracking-wider text-[var(--brand)] hover:underline"
+        >
+          Open →
+        </Link>
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(job);
+          }}
+          title="Delete job"
+          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-red-500"
+        >
+          <Trash2 className="h-3 w-3" /> Delete
+        </button>
+      </div>
     </div>
   );
 }

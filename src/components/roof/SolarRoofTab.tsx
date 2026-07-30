@@ -638,126 +638,6 @@ export function SolarRoofTab({
   }, [editingVerticesPinId, pins]);
 
 
-  /**
-   * Detect ALL structures at the property — one pin per detected facet.
-   * This is the new primary "Measure entire property" action.
-   */
-  const detect = useMutation({
-    mutationFn: async () => {
-      const { data: s } = await supabase.auth.getSession();
-      const accessToken = s.session?.access_token;
-      if (!accessToken) throw new Error("Not authenticated");
-      const r = await fetch("/api/solar-roof-extract", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({ lat: center.lat, lng: center.lng, property_id: propertyId }),
-      });
-      if (!r.ok) {
-        // Try to parse structured error first
-        let parsed: { error?: string; message?: string; detail?: string } | null = null;
-        try {
-          parsed = await r.json();
-        } catch {
-          // not JSON
-        }
-        if (r.status === 404 && parsed?.error === "no_coverage") {
-          const err = new Error(parsed.message ?? "No Solar coverage at this location");
-          (err as Error & { code?: string }).code = "no_coverage";
-          throw err;
-        }
-        throw new Error(parsed?.message ?? parsed?.detail ?? `Solar API failed (${r.status})`);
-      }
-      const data = (await r.json()) as SolarResponse;
-
-      // Fire calibration in parallel (best-effort, not blocking)
-      let calib: CalibrationResponse | null = null;
-      try {
-        const cr = await fetch("/api/calibrate-solar", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-          body: JSON.stringify({ lat: center.lat, lng: center.lng, solar_response: data }),
-        });
-        if (cr.ok) calib = (await cr.json()) as CalibrationResponse;
-      } catch {
-        // calibration is best-effort
-      }
-      return { data, calib };
-    },
-    onSuccess: async ({ data, calib }) => {
-      setNoCoverage(false);
-      setImageryQuality(data.imagery_quality);
-      setCalibration(calib);
-      // Build one pin per facet detected by Solar (so each facet is its own polygon on the map)
-      const detectedPins: Pin[] = data.segments.map((seg, i) => {
-        const c = seg.center
-          ? { lng: seg.center.longitude, lat: seg.center.latitude }
-          : seg.ring.length
-            ? { lng: seg.ring[0][0], lat: seg.ring[0][1] }
-            : center;
-        // Pitch < 1/12 is effectively flat
-        const isFlat = (seg.pitch_degrees ?? 0) < 5;
-        return {
-          id: rid(),
-          name: i === 0 ? "Main roof" : `Facet ${i + 1}`,
-          kind: isFlat ? ("flat" as const) : ("pitched" as const),
-          pitch: seg.pitch || "6/12",
-          plan_area_sqft: Math.round(seg.plan_area_sqft),
-          lng: c.lng,
-          lat: c.lat,
-          ring: seg.ring,
-          facets: [{ ring: seg.ring, pitch: seg.pitch, plan_area_sqft: seg.plan_area_sqft, pitch_degrees: seg.pitch_degrees }],
-          source: "solar" as const,
-        };
-      });
-
-      // Preserve any manual pins the user dropped for OTHER structures (sheds,
-      // garages, detached buildings) — a manual pin is "extra" if it sits
-      // more than ~40 ft away from every detected facet center.
-      const existingManual = pinsStateRef.current.filter((p) => p.source === "manual");
-      const extraStructurePins = existingManual
-        .filter((p) => detectedPins.every((d) => haversineFeet({ lng: d.lng, lat: d.lat }, { lng: p.lng, lat: p.lat }) > 40))
-        .map((p, i) => ({ ...p, name: p.name || `Structure ${detectedPins.length + i + 1}` }));
-
-      const combined = [...detectedPins, ...extraStructurePins];
-      setPins(combined);
-      setActivePinId(combined[0]?.id ?? null);
-      setShowHandoff(combined.length > 0);
-
-      const facets = detectedPins.length;
-      const sqft = Math.round(detectedPins.reduce((s, p) => s + p.plan_area_sqft, 0));
-      toast.success(
-        extraStructurePins.length > 0
-          ? `Measured main structure (${facets} facet${facets === 1 ? "" : "s"} · ${sqft.toLocaleString()} sqft) — now measuring ${extraStructurePins.length} extra pin${extraStructurePins.length === 1 ? "" : "s"}…`
-          : `Measured ${facets} facet${facets === 1 ? "" : "s"} · ${sqft.toLocaleString()} sqft total`,
-      );
-
-      // Auto-measure each extra pin (shed, garage, etc.) by calling Solar at
-      // that specific location. Runs after state commits.
-      if (extraStructurePins.length > 0) {
-        setTimeout(async () => {
-          let ok = 0;
-          let fail = 0;
-          for (const pin of extraStructurePins) {
-            const res = await measurePinAt(pin);
-            if (res.ok) ok++;
-            else fail++;
-          }
-          if (fail === 0) toast.success(`All ${ok} extra structure${ok === 1 ? "" : "s"} measured`);
-          else toast.warning(`${ok} extra structure${ok === 1 ? "" : "s"} measured, ${fail} need manual outline (Draw area).`);
-        }, 100);
-      }
-    },
-    onError: (e) => {
-      const code = (e as Error & { code?: string }).code;
-      if (code === "no_coverage") {
-        setNoCoverage(true);
-        // No raw JSON toast — the inline empty state explains it.
-        return;
-      }
-      toast.error(e instanceof Error ? e.message : "Measurement failed");
-    },
-  });
-
   function updatePin(id: string, patch: Partial<Pin>) {
     setPins((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
@@ -832,7 +712,8 @@ export function SolarRoofTab({
 
   const measureAll = useMutation({
     mutationFn: async () => {
-      const targets = pins.filter((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0);
+      // Measure ONLY the structures the user pinned — nothing else on the lot.
+      const targets = pins.filter((p) => p.kind !== "ignore");
       let success = 0;
       let failed = 0;
       for (const pin of targets) {
@@ -840,15 +721,44 @@ export function SolarRoofTab({
         if (res.ok) success++;
         else failed++;
       }
+      setShowHandoff(success > 0);
       return { success, failed, total: targets.length };
     },
+
     onSuccess: ({ success, failed, total }) => {
-      if (total === 0) toast.info("All pins already measured");
-      else if (failed === 0) toast.success(`Measured ${success} of ${total} pins`);
+      if (total === 0) toast.info("Drop a pin on each roof you want measured first");
+      else if (failed === 0) toast.success(`Measured ${success} pinned roof${success === 1 ? "" : "s"}`);
       else toast.warning(`Measured ${success}/${total} — ${failed} need manual entry or draw`);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Bulk measure failed"),
   });
+
+  /** Wipe every saved measurement (and its facets) for this property. */
+  const clearSaved = useMutation({
+    mutationFn: async () => {
+      if (!propertyId) return 0;
+      const { data: ms } = await supabase
+        .from("roof_measurements")
+        .select("id")
+        .eq("property_id", propertyId);
+      const ids = (ms ?? []).map((m) => m.id);
+      if (ids.length > 0) {
+        // roof_sections / roof_lines / roof_edges cascade off the measurement.
+        const { error } = await supabase.from("roof_measurements").delete().in("id", ids);
+        if (error) throw error;
+      }
+      return ids.length;
+    },
+    onSuccess: (n) => {
+      setPins([]);
+      setActivePinId(null);
+      setShowHandoff(false);
+      setCalibration(null);
+      toast.success(n > 0 ? "All saved measurements deleted for this address" : "No saved measurements to delete");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't clear measurements"),
+  });
+
 
   function startDraw(pinId: string) {
     setDrawingPinId(pinId);
@@ -926,21 +836,35 @@ export function SolarRoofTab({
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-foreground">AI Roof Measurements</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            One click measures the whole property. If there are <b>multiple structures</b> (shed, detached garage, guest house), <b>click each extra structure on the map first</b> to drop a pin — then hit Measure entire property and each pin will be measured too.
+            Nothing is measured automatically. <b>Click on top of each roof</b> on the map to drop a pin —
+            one pin per structure (house, shed, detached garage) — then hit <b>AI measurements</b> and only
+            the pinned roofs are measured.
           </p>
         </div>
-        <button
-          onClick={() => detect.mutate()}
-          disabled={detect.isPending}
-          className="btn-brand inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-5 text-xs font-semibold disabled:opacity-40"
-        >
-          {detect.isPending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Sparkles className="h-3.5 w-3.5" />
-          )}
-          {detect.isPending ? "Measuring…" : "Measure entire property"}
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            onClick={() => clearSaved.mutate()}
+            disabled={clearSaved.isPending || !propertyId}
+            className="inline-flex h-10 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-red-500 hover:bg-red-500/10 disabled:opacity-40"
+            style={{ borderColor: "var(--border)" }}
+            title="Delete every saved measurement for this address"
+          >
+            {clearSaved.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+            Clear all measurements
+          </button>
+          <button
+            onClick={() => measureAll.mutate()}
+            disabled={measureAll.isPending || pins.filter((p) => p.kind !== "ignore").length === 0}
+            className="btn-brand inline-flex h-10 items-center gap-2 rounded-md px-5 text-xs font-semibold disabled:opacity-40"
+          >
+            {measureAll.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            {measureAll.isPending ? "Measuring…" : `AI measurements${pins.length ? ` (${pins.filter((p) => p.kind !== "ignore").length})` : ""}`}
+          </button>
+        </div>
       </div>
 
       {/* No-coverage empty state — shown when Google Solar has no building data here */}
@@ -968,12 +892,12 @@ export function SolarRoofTab({
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => detect.mutate()}
-              disabled={detect.isPending}
+              onClick={() => measureAll.mutate()}
+              disabled={measureAll.isPending}
               className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs text-foreground hover:bg-[var(--surface-hover)] disabled:opacity-40"
               style={{ borderColor: "var(--border)" }}
             >
-              {detect.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              {measureAll.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
               Try again
             </button>
             {onSwitchToMapbox && (
@@ -1096,7 +1020,7 @@ export function SolarRoofTab({
             }}
           >
             <Info className="h-3 w-3 text-muted-foreground" />
-            <span className="text-muted-foreground">Click to add a custom pin · use button above to measure whole property</span>
+            <span className="text-muted-foreground">Click each roof to drop a pin · then hit AI measurements above</span>
           </div>
         )}
         {imageryQuality && (
