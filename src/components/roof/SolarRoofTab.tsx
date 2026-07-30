@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/useProfile";
+
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { toast } from "sonner";
 import {
