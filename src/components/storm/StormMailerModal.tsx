@@ -49,7 +49,7 @@ export function StormMailerModal({
     queryFn: async () => {
       const { data } = await supabase
         .from("companies")
-        .select("name, phone, email, website, license_number, logo_url")
+        .select("name, phone, email, website, license_numbers, logo_url")
         .eq("id", profile!.company_id!)
         .maybeSingle();
       return data;
