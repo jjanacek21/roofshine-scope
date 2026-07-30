@@ -1,24 +1,22 @@
-## What's wrong
+## What I verified
 
-I verified this against the live storm data for the pin in your screenshot (Homer Glen, ~41.600, -87.940):
+- Your last AI run on this job (6024 Jacquelyn Court, today 15:28 UTC) **succeeded**: 6 facets, 3,580 sq ft, carved from the real OSM footprint. So the server geometry is fine.
+- The database has **zero saved measurements** for this property (`roof_measurements` / `roof_sections` are empty for it).
+- I loaded the page in a browser: the AI Measurements tab shows the satellite map with **no pins, no highlight, 0 sqft**.
 
-- The swath query used to paint the map (`hail_swaths_in_view`, 60 days) returns a **3in+ hail swath dated Jul 27, 2026** covering that exact point.
-- The point query used to fill the side panel (`storm_report_at_point`) returns `hail_dates: []` and `max_hail_in: null` for the same coordinates — it only finds the 70 mph wind report.
+## Root cause
 
-So the map and the panel are reading two different hail sources, and the point-level one is missing the swath coverage. That RPC lives in the external storm database (read-only from this app), so the fix belongs on the app side.
+The AI Measurements tab **never saves its results**. Facets live only in React state. The moment you switch tabs, reload, or click "Clear all measurements", they're gone — and the hydration code that restores the highlight reads from `roof_sections`, which is empty, so nothing comes back. (The one path that does save is "Apply to Mapbox tab" → Save Measurements.)
 
-## The fix
+A second, smaller issue: the hydration query uses `.maybeSingle()` on `roof_measurements` for the property. If a property ever has more than one measurement row, that call errors and hydration silently gives up.
 
-In `src/components/storm/StormSwathMap.tsx`, stop trusting `storm_report_at_point` for hail and derive the panel's hail section from the same swath data the map draws:
+## Fix
 
-1. When a point is selected, also call `hail_swaths_in_view` with a tiny bounding box (~±0.001°) around the clicked lat/lng, over the 60-day window.
-2. Build the hail list from the returned features: one entry per `event_date`, with band (`3in+`, `1.5-2in`, …), its color, and size taken from `max_in` (falling back to `min_in`, rendered as `3"+` when there is no upper bound).
-3. Merge into the report shown in the panel: use the swath-derived hail dates whenever they exist, keep `storm_report_at_point`'s hail rows as a fallback, and set `Max hail` in the header to the largest size found across both.
-4. Leave the wind section exactly as it is today — that path is returning correct data.
-5. Keep the existing loading/empty states; "No hail reported." should now only appear when neither source has anything.
+1. **Persist AI results** (`src/components/roof/SolarRoofTab.tsx`): after a pin is measured (single or "AI measurements" bulk run), upsert one `roof_measurements` row for the property with `source: 'google_solar'` and one `roof_sections` row per facet (name, pitch, plan area, polygon GeoJSON, sort order). Replace that measurement's sections on each re-run so re-measuring doesn't duplicate. "Clear all measurements" keeps working as-is.
+2. **Harden hydration**: swap `.maybeSingle()` for `order('created_at', { ascending: false }).limit(1)`, and prefer the newest `google_solar` measurement. Keep the existing rule of not clobbering pins the user has already placed in the session.
+3. **Make the overlay layers race-proof**: extract an idempotent `ensureOverlayLayers(map)` that adds the facet sources/layers if missing, and call it both on map `load` and at the top of `updateOverlays()`. Today the layers are only created in the `load` handler, so an early pin update can paint into sources that don't exist yet and never retry.
+4. **Verify**: reload the job's Measurements → AI Measurements tab in a browser, drop a pin, run AI measurements, confirm the blue facet highlight + sqft labels appear, then reload the page and confirm the highlight comes back from the database.
 
-## Technical notes
+## Not changing
 
-- Same `stormSupabase` client and RPC already used by the map layer, so no new permissions, keys, or backend changes.
-- New react-query key includes the rounded lat/lng plus the 60-day window, cached like the existing point report.
-- Storm-map "save as lead" / mailer payloads that read `max_hail_in` and `hail_dates` will pick up the corrected values automatically since they read from the merged report object.
+Geometry/Voronoi carving, tuning settings, pitch handling, and the Mapbox Draw tab stay as they are.

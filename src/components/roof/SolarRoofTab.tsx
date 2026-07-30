@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/useProfile";
+
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { toast } from "sonner";
 import {
@@ -172,6 +174,124 @@ function ringCentroid(ring: number[][]): [number, number] {
   return [x / n, y / n];
 }
 
+/**
+ * Idempotently create every source/layer the overlays rely on. Safe to call on
+ * map load, on style changes, and right before any setData() call — this is
+ * what keeps facet highlights from vanishing when data arrives before load.
+ */
+function ensureOverlayLayers(map: mapboxgl.Map) {
+  if (!map.isStyleLoaded()) return false;
+
+  if (!map.getSource("ai-draw")) {
+    map.addSource("ai-draw", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    map.addLayer({
+      id: "ai-draw-fill",
+      type: "fill",
+      source: "ai-draw",
+      paint: { "fill-color": "#3b82f6", "fill-opacity": 0.25 },
+    });
+    map.addLayer({
+      id: "ai-draw-line",
+      type: "line",
+      source: "ai-draw",
+      paint: { "line-color": "#3b82f6", "line-width": 2, "line-dasharray": [2, 2] },
+    });
+    map.addLayer({
+      id: "ai-draw-points",
+      type: "circle",
+      source: "ai-draw",
+      filter: ["==", "$type", "Point"],
+      paint: {
+        "circle-radius": 4,
+        "circle-color": "#fff",
+        "circle-stroke-color": "#3b82f6",
+        "circle-stroke-width": 2,
+      },
+    });
+  }
+
+  // Fitted building outline (dashed white guide under the facets)
+  if (!map.getSource("facet-footprint")) {
+    map.addSource("facet-footprint", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    map.addLayer({
+      id: "facet-footprint-line",
+      type: "line",
+      source: "facet-footprint",
+      paint: {
+        "line-color": "#ffffff",
+        "line-width": 1.5,
+        "line-opacity": 0.9,
+        "line-dasharray": [2, 2],
+      },
+    });
+  }
+
+  // Highlighted facet overlays — separate sources per kind for clean styling
+  for (const kind of ["pitched", "flat", "ignore"] as PinKind[]) {
+    const srcId = `facet-${kind}`;
+    if (!map.getSource(srcId)) {
+      map.addSource(srcId, {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: `${srcId}-fill`,
+        type: "fill",
+        source: srcId,
+        paint: {
+          "fill-color": FILL_COLORS[kind],
+          "fill-opacity": kind === "ignore" ? 0 : 0.32,
+        },
+      });
+      map.addLayer({
+        id: `${srcId}-line`,
+        type: "line",
+        source: srcId,
+        paint: {
+          "line-color": STROKE_COLORS[kind],
+          "line-width": 2.5,
+          "line-dasharray": kind === "ignore" ? [3, 2] : [1, 0],
+        },
+      });
+    }
+  }
+
+  // Facet labels
+  if (!map.getSource("facet-labels")) {
+    map.addSource("facet-labels", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    map.addLayer({
+      id: "facet-labels-text",
+      type: "symbol",
+      source: "facet-labels",
+      layout: {
+        "text-field": ["get", "label"],
+        "text-size": 11,
+        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+        "text-allow-overlap": false,
+        "text-anchor": "center",
+      },
+      paint: {
+        "text-color": "#ffffff",
+        "text-halo-color": "rgba(0,0,0,0.85)",
+        "text-halo-width": 1.5,
+      },
+    });
+  }
+
+  return true;
+}
+
+
+
 export function SolarRoofTab({
   center,
   propertyId,
@@ -186,6 +306,8 @@ export function SolarRoofTab({
   onSwitchToMapbox?: () => void;
 }) {
   const { data: token, isLoading: tokenLoading } = useMapboxToken();
+  const { data: profile } = useProfile();
+
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Record<string, mapboxgl.Marker>>({});
@@ -296,12 +418,15 @@ export function SolarRoofTab({
     if (!propertyId || hydratedRef.current) return;
     hydratedRef.current = true;
     (async () => {
-      const { data: m } = await supabase
+      const { data: rows } = await supabase
         .from("roof_measurements")
-        .select("id, source, ai_analysis")
+        .select("id, source, ai_analysis, created_at")
         .eq("property_id", propertyId)
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(5);
+      const m = (rows ?? []).find((r) => r.source === "google_solar") ?? (rows ?? [])[0];
       if (!m) return;
+
       const { data: sections } = await supabase
         .from("roof_sections")
         .select("name, pitch, plan_area_sqft, polygon_geojson")
@@ -378,110 +503,9 @@ export function SolarRoofTab({
 
     map.on("rotate", () => setBearing(map.getBearing()));
 
-    map.on("load", () => {
-      // In-progress draw layer
-      if (!map.getSource("ai-draw")) {
-        map.addSource("ai-draw", {
-          type: "geojson",
-          data: { type: "FeatureCollection", features: [] },
-        });
-        map.addLayer({
-          id: "ai-draw-fill",
-          type: "fill",
-          source: "ai-draw",
-          paint: { "fill-color": "#3b82f6", "fill-opacity": 0.25 },
-        });
-        map.addLayer({
-          id: "ai-draw-line",
-          type: "line",
-          source: "ai-draw",
-          paint: { "line-color": "#3b82f6", "line-width": 2, "line-dasharray": [2, 2] },
-        });
-        map.addLayer({
-          id: "ai-draw-points",
-          type: "circle",
-          source: "ai-draw",
-          filter: ["==", "$type", "Point"],
-          paint: { "circle-radius": 4, "circle-color": "#fff", "circle-stroke-color": "#3b82f6", "circle-stroke-width": 2 },
-        });
-      }
+    map.on("load", () => ensureOverlayLayers(map));
+    map.on("styledata", () => ensureOverlayLayers(map));
 
-      // Highlighted facet overlays — separate sources per kind for clean styling
-      for (const kind of ["pitched", "flat", "ignore"] as PinKind[]) {
-        const srcId = `facet-${kind}`;
-        if (!map.getSource(srcId)) {
-          map.addSource(srcId, {
-            type: "geojson",
-            data: { type: "FeatureCollection", features: [] },
-          });
-          map.addLayer({
-            id: `${srcId}-fill`,
-            type: "fill",
-            source: srcId,
-            paint: {
-              "fill-color": FILL_COLORS[kind],
-              "fill-opacity": kind === "ignore" ? 0 : 0.32,
-            },
-          });
-          map.addLayer({
-            id: `${srcId}-line`,
-            type: "line",
-            source: srcId,
-            paint: {
-              "line-color": STROKE_COLORS[kind],
-              "line-width": 2.5,
-              "line-dasharray": kind === "ignore" ? [3, 2] : [1, 0],
-            },
-          });
-        }
-      }
-
-      // Fitted building outline (dashed white guide under the facets)
-      if (!map.getSource("facet-footprint")) {
-        map.addSource("facet-footprint", {
-          type: "geojson",
-          data: { type: "FeatureCollection", features: [] },
-        });
-        map.addLayer({
-          id: "facet-footprint-line",
-          type: "line",
-          source: "facet-footprint",
-          paint: {
-            "line-color": "#ffffff",
-            "line-width": 1.5,
-            "line-opacity": 0.9,
-            "line-dasharray": [2, 2],
-          },
-        });
-      }
-
-
-
-      // Facet labels
-      if (!map.getSource("facet-labels")) {
-        map.addSource("facet-labels", {
-          type: "geojson",
-          data: { type: "FeatureCollection", features: [] },
-        });
-        map.addLayer({
-          id: "facet-labels-text",
-          type: "symbol",
-          source: "facet-labels",
-          layout: {
-            "text-field": ["get", "label"],
-            "text-size": 11,
-            "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-            "text-allow-overlap": false,
-            "text-anchor": "center",
-          },
-          paint: {
-            "text-color": "#ffffff",
-            "text-halo-color": "rgba(0,0,0,0.85)",
-            "text-halo-width": 1.5,
-          },
-        });
-      }
-    });
 
     mapRef.current = map;
     return () => {
@@ -531,6 +555,12 @@ export function SolarRoofTab({
 
     function updateOverlays() {
       if (!map) return;
+      // Layers may not exist yet if data arrived before "load" fired.
+      if (!ensureOverlayLayers(map)) {
+        map.once("idle", () => updateOverlays());
+        return;
+      }
+
       for (const kind of ["pitched", "flat", "ignore"] as PinKind[]) {
         const src = map.getSource(`facet-${kind}`) as mapboxgl.GeoJSONSource | undefined;
         if (!src) continue;
@@ -749,8 +779,14 @@ export function SolarRoofTab({
 
 
   function updatePin(id: string, patch: Partial<Pin>) {
+    // Keep the ref in sync synchronously so persistence right after a
+    // measurement sees the fresh facets instead of the previous render's pins.
+    pinsStateRef.current = pinsStateRef.current.map((x) =>
+      x.id === id ? { ...x, ...patch } : x,
+    );
     setPins((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
+
   function removePin(id: string) {
     setPins((p) => p.filter((x) => x.id !== id));
     if (activePinId === id) setActivePinId(null);
@@ -831,11 +867,121 @@ export function SolarRoofTab({
     return { ok: true };
   }
 
+  /**
+   * Persist the AI facets so the highlight survives a tab switch or reload.
+   * One roof_measurements row per property (source google_solar) + one
+   * roof_sections row per facet, replaced on every re-run.
+   */
+  async function persistPins(currentPins: Pin[]) {
+    if (!propertyId || !profile?.company_id) return;
+    const active = currentPins.filter(
+      (p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) > 0,
+    );
+    if (active.length === 0) return;
+
+    const planTotal = active.reduce((s, p) => s + (p.plan_area_sqft || 0), 0);
+    const slopedTotal = active.reduce((s, p) => {
+      const mult = p.kind === "flat" ? 1 : pitchMultiplier(p.pitch);
+      return s + (p.plan_area_sqft || 0) * mult;
+    }, 0);
+    const biggest = active.reduce((best, p) =>
+      (p.plan_area_sqft || 0) > (best.plan_area_sqft || 0) ? p : best,
+    );
+
+    const { data: m, error: mErr } = await supabase
+      .from("roof_measurements")
+      .upsert(
+        {
+          property_id: propertyId,
+          company_id: profile.company_id,
+
+          source: "google_solar" as const,
+          predominant_pitch: /^\d+\s*\/\s*\d+$/.test(biggest.pitch) ? biggest.pitch : null,
+          waste_pct: wastePct,
+          total_area_sqft: slopedTotal,
+          squares: withWaste(slopedTotal, wastePct) / 100,
+          created_by: profile?.id ?? null,
+          ai_run_id: active.find((p) => p.run_id)?.run_id ?? null,
+          ai_geometry: {
+            total_plan_sqft: planTotal,
+            facets: active.flatMap((p) =>
+              (p.facets ?? []).map((f) => ({
+                ring: f.ring,
+                pitch: f.pitch,
+                plan_area_sqft: f.plan_area_sqft,
+              })),
+            ),
+          },
+        },
+        { onConflict: "property_id" },
+      )
+      .select("id")
+      .single();
+    if (mErr) throw mErr;
+
+    await supabase.from("roof_sections").delete().eq("measurement_id", m.id);
+
+    const rows: Array<{
+      measurement_id: string;
+      name: string;
+      color: string;
+      polygon_geojson: { type: "Polygon"; coordinates: number[][][] };
+      plan_area_sqft: number;
+      pitch: string;
+      pitch_multiplier: number;
+      actual_area_sqft: number;
+      sort_order: number;
+    }> = [];
+
+    let i = 0;
+    for (const p of active) {
+      const facets =
+        p.facets && p.facets.length > 0
+          ? p.facets
+          : p.ring && p.ring.length >= 3
+            ? [
+                {
+                  ring: p.ring,
+                  pitch: p.pitch,
+                  plan_area_sqft: p.plan_area_sqft,
+                  pitch_degrees: pitchStringToDegrees(p.pitch),
+                },
+              ]
+            : [];
+      for (const f of facets) {
+        if (!f.ring || f.ring.length < 3) continue;
+        const closed =
+          f.ring[0][0] === f.ring[f.ring.length - 1][0] &&
+          f.ring[0][1] === f.ring[f.ring.length - 1][1]
+            ? f.ring
+            : [...f.ring, f.ring[0]];
+        const pitch = p.kind === "flat" ? "0/12" : f.pitch;
+        const mult = /^\d+\s*\/\s*\d+$/.test(pitch) ? pitchMultiplier(pitch) : 1;
+        rows.push({
+          measurement_id: m.id,
+          name: facets.length > 1 ? `${p.name} · facet ${i + 1}` : p.name,
+          color: SECTION_COLORS[i % SECTION_COLORS.length],
+          polygon_geojson: { type: "Polygon", coordinates: [closed] },
+          plan_area_sqft: f.plan_area_sqft,
+          pitch,
+          pitch_multiplier: mult,
+          actual_area_sqft: f.plan_area_sqft * mult,
+          sort_order: i,
+        });
+        i++;
+      }
+    }
+    if (rows.length > 0) {
+      const { error: sErr } = await supabase.from("roof_sections").insert(rows);
+      if (sErr) throw sErr;
+    }
+  }
 
   const measureOne = useMutation({
     mutationFn: async (pin: Pin) => {
       const res = await measurePinAt(pin);
       if (!res.ok) throw new Error(res.reason ?? "Measurement failed");
+      await persistPins(pinsStateRef.current);
     },
     onSuccess: () => toast.success("Measured whole structure at this pin"),
     onError: (e) =>
@@ -856,6 +1002,13 @@ export function SolarRoofTab({
         else failed++;
       }
       setShowHandoff(success > 0);
+      if (success > 0) {
+        try {
+          await persistPins(pinsStateRef.current);
+        } catch (e) {
+          console.error("persist AI measurement failed", e);
+        }
+      }
       return { success, failed, total: targets.length };
     },
 
@@ -866,6 +1019,7 @@ export function SolarRoofTab({
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Bulk measure failed"),
   });
+
 
   /** Wipe every saved measurement (and its facets) for this property. */
   const clearSaved = useMutation({
