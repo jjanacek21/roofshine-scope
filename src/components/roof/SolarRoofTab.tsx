@@ -841,7 +841,7 @@ export function SolarRoofTab({
    * roof_sections row per facet, replaced on every re-run.
    */
   async function persistPins(currentPins: Pin[]) {
-    if (!propertyId) return;
+    if (!propertyId || !profile?.company_id) return;
     const active = currentPins.filter(
       (p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) > 0,
     );
@@ -861,7 +861,8 @@ export function SolarRoofTab({
       .upsert(
         {
           property_id: propertyId,
-          company_id: profile?.company_id ?? null,
+          company_id: profile.company_id,
+
           source: "google_solar" as const,
           predominant_pitch: /^\d+\s*\/\s*\d+$/.test(biggest.pitch) ? biggest.pitch : null,
           waste_pct: wastePct,
