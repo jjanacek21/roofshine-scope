@@ -416,7 +416,7 @@ export function SolarRoofTab({
   const hydratedRef = useRef(false);
   useEffect(() => {
     if (!propertyId || hydratedRef.current) return;
-    hydratedRef.current = true;
+
     (async () => {
       const { data: rows } = await supabase
         .from("roof_measurements")
