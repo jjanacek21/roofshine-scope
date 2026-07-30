@@ -116,6 +116,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const readyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initMapRef = useRef<(() => void) | null>(null);
   const setPointRef = useRef<((p: SearchPoint) => void) | null>(null);
+  const housePinsRef = useRef<(() => void) | null>(null);
 
   const [styleReady, setStyleReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
