@@ -846,11 +846,23 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           }}
         >
           <div className="flex items-start gap-2">
-            <div className="flex-1 text-xs font-semibold text-foreground">{point.label}</div>
+            <div className="flex-1">
+              <div className="text-xs font-semibold text-foreground">
+                {resolvedAddress?.street || pointLabel}
+              </div>
+              {resolvedAddress && (
+                <div className="text-[10px] opacity-70">
+                  {[resolvedAddress.city, resolvedAddress.state, resolvedAddress.zip]
+                    .filter(Boolean)
+                    .join(", ")}
+                </div>
+              )}
+            </div>
             <button type="button" onClick={() => setPoint(null)} aria-label="Close">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
+
 
           {reportLoading && (
             <div className="flex items-center gap-2">
