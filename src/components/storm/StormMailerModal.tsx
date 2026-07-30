@@ -63,7 +63,7 @@ export function StormMailerModal({
         phone: company?.phone ?? "",
         email: company?.email ?? "",
         website: company?.website ?? "",
-        license: (company as any)?.license_number ?? "",
+        license: (company as any)?.license_numbers ?? "",
       };
     }
     return {
