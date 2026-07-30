@@ -40,6 +40,9 @@ type Pin = {
   ring?: number[][];
   /** Fitted building outline (drawn as a dashed guide). */
   footprint?: number[][];
+  /** ai_measurement_runs row this pin's geometry came from. */
+  run_id?: string | null;
+
 
   // All facets that contributed to this pin's measurement (for overlay rendering)
   facets?: Array<{ ring: number[][]; pitch: string; plan_area_sqft: number; pitch_degrees: number }>;
