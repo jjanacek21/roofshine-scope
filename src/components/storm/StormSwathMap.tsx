@@ -195,13 +195,13 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     enabled: !!point,
     staleTime: 60 * 1000,
     queryFn: async () => {
+      // The storm database fixes the windows server-side (60d hail / 730d wind)
+      // and only accepts the two coordinates.
       const { data, error } = await stormSupabase.rpc("storm_report_at_point" as any, {
         p_lat: point!.lat,
         p_lng: point!.lng,
-        p_hail_days: 60,
-        p_wind_days: 365,
-        p_wind_radius_mi: 3,
       });
+
       if (error) {
         toast.error(`Storm report: ${error.message}`);
         throw error;
