@@ -3388,7 +3388,7 @@ export type Database = {
         Row: {
           address: string
           city: string | null
-          client_id: string
+          client_id: string | null
           company_id: string
           created_at: string
           id: string
@@ -3405,7 +3405,7 @@ export type Database = {
         Insert: {
           address: string
           city?: string | null
-          client_id: string
+          client_id?: string | null
           company_id: string
           created_at?: string
           id?: string
@@ -3422,7 +3422,7 @@ export type Database = {
         Update: {
           address?: string
           city?: string | null
-          client_id?: string
+          client_id?: string | null
           company_id?: string
           created_at?: string
           id?: string
