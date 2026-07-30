@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
+import { normalizeTuning, qualityLadder } from "@/lib/measure-tuning";
 
 type SolarApiResponse = {
   solarPotential?: {
@@ -74,13 +75,20 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
         const { data: claims, error: cErr } = await supabase.auth.getClaims(token);
         if (cErr || !claims?.claims?.sub) return new Response("Unauthorized", { status: 401 });
 
-        let body: { lat?: number; lng?: number; property_id?: string; job_id?: string };
+        let body: {
+          lat?: number;
+          lng?: number;
+          property_id?: string;
+          job_id?: string;
+          tuning?: unknown;
+        };
         try {
           body = await request.json();
         } catch {
           return Response.json({ error: "Invalid JSON" }, { status: 400 });
         }
         const { lat, lng, property_id, job_id } = body;
+        const tuning = normalizeTuning(body.tuning);
         if (typeof lat !== "number" || typeof lng !== "number") {
           return Response.json({ error: "lat & lng required" }, { status: 400 });
         }
@@ -105,14 +113,14 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
         const dLat = 10 * METERS_TO_DEG_LAT;
         const dLng = dLat / Math.max(0.1, Math.cos((lat * Math.PI) / 180));
 
+        const ladder = qualityLadder(tuning.imagery_quality);
+        const offsetQuality = ladder[ladder.length - 1];
         const attempts: SolarAttempt[] = [
-          { lat, lng, quality: "HIGH" },
-          { lat, lng, quality: "MEDIUM" },
-          { lat, lng, quality: "LOW" },
-          { lat: lat + dLat, lng, quality: "MEDIUM" },
-          { lat: lat - dLat, lng, quality: "MEDIUM" },
-          { lat, lng: lng + dLng, quality: "MEDIUM" },
-          { lat, lng: lng - dLng, quality: "MEDIUM" },
+          ...ladder.map((quality) => ({ lat, lng, quality })),
+          { lat: lat + dLat, lng, quality: offsetQuality },
+          { lat: lat - dLat, lng, quality: offsetQuality },
+          { lat, lng: lng + dLng, quality: offsetQuality },
+          { lat, lng: lng - dLng, quality: offsetQuality },
         ];
 
         let success: { data: SolarApiResponse; usedQuality: string } | null = null;
@@ -178,22 +186,53 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
 
         const data = success.data;
         const sqMeterToSqFt = 10.7639;
-        const segments = (data.solarPotential?.roofSegmentStats ?? []).map((seg, i) => {
+        const M_PER_DEG_LAT = 111_320;
+        const FT_PER_M = 3.28084;
+
+        const rawSegments = data.solarPotential?.roofSegmentStats ?? [];
+        // Apply the job's edge-detection tuning: drop far-away neighbour roofs
+        // and sliver facets before building geometry.
+        const tunedSegments = rawSegments.filter((seg) => {
+          const areaSqft = (seg.stats?.areaMeters2 ?? 0) * sqMeterToSqFt;
+          if (areaSqft < tuning.min_facet_sqft) return false;
+          const c = seg.center;
+          if (!c) return true;
+          const dy = (c.latitude - lat) * M_PER_DEG_LAT;
+          const dx =
+            (c.longitude - lng) * M_PER_DEG_LAT * Math.max(0.1, Math.cos((lat * Math.PI) / 180));
+          return Math.hypot(dx, dy) * FT_PER_M <= tuning.max_facet_radius_ft;
+        });
+
+        const segments = (tunedSegments.length ? tunedSegments : rawSegments).map((seg, i) => {
           const planSqM = seg.stats?.areaMeters2 ?? 0;
           const planSqFt = planSqM * sqMeterToSqFt;
           const pitchDeg = seg.pitchDegrees ?? 0;
           const rise = Math.round(Math.tan((pitchDeg * Math.PI) / 180) * 12);
           const pitchStr = `${Math.max(0, Math.min(12, rise))}/12`;
           const bb = seg.boundingBox;
-          const ring = bb
-            ? [
-                [bb.sw.longitude, bb.sw.latitude],
-                [bb.ne.longitude, bb.sw.latitude],
-                [bb.ne.longitude, bb.ne.latitude],
-                [bb.sw.longitude, bb.ne.latitude],
-                [bb.sw.longitude, bb.sw.latitude],
-              ]
-            : [];
+          // Google returns an axis-aligned bounding box per segment, which is
+          // wider than the facet on diagonal/hipped roofs. Fit it to the
+          // reported area, then apply the job's edge-tightness setting.
+          let ring: number[][] = [];
+          if (bb) {
+            const cLat = seg.center?.latitude ?? (bb.sw.latitude + bb.ne.latitude) / 2;
+            const cLng = seg.center?.longitude ?? (bb.sw.longitude + bb.ne.longitude) / 2;
+            const mPerDegLng = M_PER_DEG_LAT * Math.max(0.1, Math.cos((cLat * Math.PI) / 180));
+            let halfLat = Math.abs(bb.ne.latitude - bb.sw.latitude) / 2;
+            let halfLng = Math.abs(bb.ne.longitude - bb.sw.longitude) / 2;
+            const boxM2 = halfLat * 2 * M_PER_DEG_LAT * (halfLng * 2 * mPerDegLng);
+            let k = tuning.edge_tightness;
+            if (boxM2 > 0 && planSqM > 0 && boxM2 > planSqM) k *= Math.sqrt(planSqM / boxM2);
+            halfLat *= k;
+            halfLng *= k;
+            ring = [
+              [cLng - halfLng, cLat - halfLat],
+              [cLng + halfLng, cLat - halfLat],
+              [cLng + halfLng, cLat + halfLat],
+              [cLng - halfLng, cLat + halfLat],
+              [cLng - halfLng, cLat - halfLat],
+            ];
+          }
           return {
             index: i,
             name: `Segment ${i + 1}`,
@@ -243,6 +282,8 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
               predominant_pitch: predominantPitch,
               segment_count: segments.length,
               segments,
+              // tuning that produced this run, for the training centre
+              
               raw_response: data as unknown as Record<string, unknown>,
             });
           } catch (err) {
