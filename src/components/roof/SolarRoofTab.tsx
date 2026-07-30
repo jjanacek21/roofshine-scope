@@ -22,6 +22,8 @@ import {
   Brain,
 } from "lucide-react";
 import type { MapboxRoofData } from "./MapboxRoofDraw";
+import { MeasureTuningPanel } from "./MeasureTuningPanel";
+import { DEFAULT_MEASURE_TUNING, normalizeTuning, type MeasureTuning } from "@/lib/measure-tuning";
 import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares, polygonAreaSqft, haversineFeet } from "@/lib/roof-math";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -150,11 +152,13 @@ function ringCentroid(ring: number[][]): [number, number] {
 export function SolarRoofTab({
   center,
   propertyId,
+  jobId,
   onApply,
   onSwitchToMapbox,
 }: {
   center: { lng: number; lat: number };
   propertyId?: string;
+  jobId?: string;
   onApply: (data: MapboxRoofData) => void;
   onSwitchToMapbox?: () => void;
 }) {
@@ -173,6 +177,39 @@ export function SolarRoofTab({
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
   const [showHandoff, setShowHandoff] = useState(false);
   const [noCoverage, setNoCoverage] = useState(false);
+
+  // Per-job AI edge-detection tuning
+  const [tuning, setTuning] = useState<MeasureTuning>({ ...DEFAULT_MEASURE_TUNING });
+  const tuningRef = useRef<MeasureTuning>(tuning);
+  useEffect(() => { tuningRef.current = tuning; }, [tuning]);
+
+  useEffect(() => {
+    if (!jobId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("jobs")
+        .select("ai_measure_settings")
+        .eq("id", jobId)
+        .maybeSingle();
+      const saved = (data as { ai_measure_settings?: unknown } | null)?.ai_measure_settings;
+      if (!cancelled && saved) setTuning(normalizeTuning(saved));
+    })();
+    return () => { cancelled = true; };
+  }, [jobId]);
+
+  const saveTuning = useMutation({
+    mutationFn: async () => {
+      if (!jobId) return;
+      const { error } = await supabase
+        .from("jobs")
+        .update({ ai_measure_settings: tuningRef.current as unknown as Record<string, number | string> })
+        .eq("id", jobId);
+      if (error) throw error;
+    },
+    onSuccess: () => toast.success("AI settings saved for this job"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't save AI settings"),
+  });
 
   // Draw-mode state
   const [drawingPinId, setDrawingPinId] = useState<string | null>(null);
@@ -674,7 +711,13 @@ export function SolarRoofTab({
     const r = await fetch("/api/solar-roof-extract", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-      body: JSON.stringify({ lat: pin.lat, lng: pin.lng }),
+      body: JSON.stringify({
+        lat: pin.lat,
+        lng: pin.lng,
+        property_id: propertyId ?? undefined,
+        job_id: jobId ?? undefined,
+        tuning: tuningRef.current,
+      }),
     });
     if (!r.ok) return { ok: false, reason: "No building data here" };
     const data = (await r.json()) as SolarResponse;
@@ -853,6 +896,17 @@ export function SolarRoofTab({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <MeasureTuningPanel
+            tuning={tuning}
+            onChange={setTuning}
+            onSave={jobId ? () => saveTuning.mutate() : undefined}
+            saving={saveTuning.isPending}
+            scopeLabel={
+              jobId
+                ? "Saved per job. Re-run AI measurements after changing."
+                : "Applies to this session. Re-run AI measurements after changing."
+            }
+          />
           <button
             onClick={() => clearSaved.mutate()}
             disabled={clearSaved.isPending || !propertyId}
