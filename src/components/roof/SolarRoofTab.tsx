@@ -886,7 +886,18 @@ export function SolarRoofTab({
 
     await supabase.from("roof_sections").delete().eq("measurement_id", m.id);
 
-    const rows: Array<Record<string, unknown>> = [];
+    const rows: Array<{
+      measurement_id: string;
+      name: string;
+      color: string;
+      polygon_geojson: { type: "Polygon"; coordinates: number[][][] };
+      plan_area_sqft: number;
+      pitch: string;
+      pitch_multiplier: number;
+      actual_area_sqft: number;
+      sort_order: number;
+    }> = [];
+
     let i = 0;
     for (const p of active) {
       const facets =
