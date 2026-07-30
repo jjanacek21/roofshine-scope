@@ -4955,6 +4955,7 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
+          doc_urls: string[]
           email_message_id: string | null
           generated_body: string | null
           generated_subject: string | null
@@ -4966,6 +4967,9 @@ export type Database = {
           opened_at: string | null
           prompt_input: string | null
           property_id: string | null
+          qr_label: string | null
+          qr_url: string | null
+          rendered_html: string | null
           roof_type: string | null
           sent_at: string | null
           signature_payload: Json | null
@@ -4974,6 +4978,7 @@ export type Database = {
           status: string
           storm_report: Json | null
           storm_type: string | null
+          theme: string
           tone: string | null
           updated_at: string
         }
@@ -4984,6 +4989,7 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by?: string | null
+          doc_urls?: string[]
           email_message_id?: string | null
           generated_body?: string | null
           generated_subject?: string | null
@@ -4995,6 +5001,9 @@ export type Database = {
           opened_at?: string | null
           prompt_input?: string | null
           property_id?: string | null
+          qr_label?: string | null
+          qr_url?: string | null
+          rendered_html?: string | null
           roof_type?: string | null
           sent_at?: string | null
           signature_payload?: Json | null
@@ -5003,6 +5012,7 @@ export type Database = {
           status?: string
           storm_report?: Json | null
           storm_type?: string | null
+          theme?: string
           tone?: string | null
           updated_at?: string
         }
@@ -5013,6 +5023,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          doc_urls?: string[]
           email_message_id?: string | null
           generated_body?: string | null
           generated_subject?: string | null
@@ -5024,6 +5035,9 @@ export type Database = {
           opened_at?: string | null
           prompt_input?: string | null
           property_id?: string | null
+          qr_label?: string | null
+          qr_url?: string | null
+          rendered_html?: string | null
           roof_type?: string | null
           sent_at?: string | null
           signature_payload?: Json | null
@@ -5032,6 +5046,7 @@ export type Database = {
           status?: string
           storm_report?: Json | null
           storm_type?: string | null
+          theme?: string
           tone?: string | null
           updated_at?: string
         }
