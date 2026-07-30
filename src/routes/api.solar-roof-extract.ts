@@ -262,21 +262,43 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
             totalPlanSqFtReported,
           );
 
-        const fit = footprintRing
-          ? fitFacetsToFootprint(
+        // Primary path: carve the REAL footprint with Voronoi cells seeded on
+        // Google's segment centres. Every facet is a clip of the true outline,
+        // so they tile the house exactly and follow its real shape/angle.
+        const carved = footprintRing
+          ? carveFootprintByCenters(
               footprintRing,
-              kept.map((s) => ({
-                azimuth_degrees: s.azimuthDegrees ?? 0,
-                pitch_degrees: s.pitchDegrees ?? 0,
-                area_m2: s.stats?.areaMeters2 ?? 0,
-              })),
-              {
-                mergeSmall: tuning.merge_small,
-                snapSquare: tuning.snap_square,
-                minFacetSqft: tuning.min_facet_sqft,
-              },
+              kept
+                .filter((s) => s.center)
+                .map((s) => ({
+                  lng: s.center!.longitude,
+                  lat: s.center!.latitude,
+                  pitch_degrees:
+                    typeof s.pitchDegrees === "number" ? s.pitchDegrees : null,
+                  azimuth_degrees: s.azimuthDegrees ?? 0,
+                  area_m2: s.stats?.areaMeters2 ?? 0,
+                })),
+              { minFacetSqft: tuning.min_facet_sqft },
             )
-          : { facets: [], footprint: [], plan_area_sqft: 0 };
+          : null;
+
+        const fit =
+          carved ??
+          (footprintRing
+            ? fitFacetsToFootprint(
+                footprintRing,
+                kept.map((s) => ({
+                  azimuth_degrees: s.azimuthDegrees ?? 0,
+                  pitch_degrees: s.pitchDegrees ?? 0,
+                  area_m2: s.stats?.areaMeters2 ?? 0,
+                })),
+                {
+                  mergeSmall: tuning.merge_small,
+                  snapSquare: tuning.snap_square,
+                  minFacetSqft: tuning.min_facet_sqft,
+                },
+              )
+            : { facets: [], footprint: [], plan_area_sqft: 0 });
 
         const segments = fit.facets.map((f, i) => ({
           index: i,
@@ -284,11 +306,13 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
           plan_area_sqft: f.plan_area_sqft,
           pitch: f.pitch,
           pitch_degrees: f.pitch_degrees,
+          pitch_known: (f as { pitch_known?: boolean }).pitch_known !== false,
           azimuth_degrees: f.azimuth_degrees,
           ring: f.ring,
           center: null as { latitude: number; longitude: number } | null,
         }));
 
+        const pitchUnknown = segments.some((s) => !s.pitch_known);
         const totalPlanSqFt = fit.plan_area_sqft || totalPlanSqFtReported;
 
 
