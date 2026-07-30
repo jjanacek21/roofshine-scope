@@ -8,19 +8,20 @@ interface Props {
   companyId: string | null;
   zip: string | null;
   jurisdiction: string | null;
+  state?: string | null;
   pricingType?: "insurance" | "retail" | null;
   value: string | null;
   onChange: (id: string | null) => void;
 }
 
-export function PriceBookPicker({ companyId, zip, jurisdiction, pricingType, value, onChange }: Props) {
+export function PriceBookPicker({ companyId, zip, jurisdiction, state, pricingType, value, onChange }: Props) {
   const [resolved, setResolved] = useState<ResolvedBook | null>(null);
   const [autoApplied, setAutoApplied] = useState(false);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const r = await resolvePriceBook({ companyId, zip, jurisdiction, pricingType });
+      const r = await resolvePriceBook({ companyId, zip, jurisdiction, state, pricingType });
       if (!alive) return;
       setResolved(r);
       if (!value && r && !autoApplied) {
@@ -29,7 +30,7 @@ export function PriceBookPicker({ companyId, zip, jurisdiction, pricingType, val
       }
     })();
     return () => { alive = false; };
-  }, [companyId, zip, jurisdiction, pricingType, value, onChange, autoApplied]);
+  }, [companyId, zip, jurisdiction, state, pricingType, value, onChange, autoApplied]);
 
   const { data: allBooks = [] } = useQuery({
     queryKey: ["picker-books", companyId],
@@ -65,7 +66,7 @@ export function PriceBookPicker({ companyId, zip, jurisdiction, pricingType, val
               <p className="text-muted-foreground">{resolved.reason}</p>
             </>
           ) : (
-            <p className="text-[var(--warning,#f59e0b)]">No price book matches this job. Pick one manually below or add a master book.</p>
+            <p className="text-muted-foreground">Pick a market below to price this job.</p>
           )}
         </div>
       </div>

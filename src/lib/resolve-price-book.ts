@@ -7,6 +7,7 @@
 //   5. Master/global default book matching jurisdiction
 //   6. Master/global default book (any)
 import { supabase } from "@/integrations/supabase/client";
+import { regionForZip } from "@/lib/price-region";
 
 export type ResolvedBook = {
   id: string;
@@ -25,10 +26,15 @@ export interface ResolveOpts {
   zip?: string | null;
   jurisdiction?: string | null;
   pricingType?: "insurance" | "retail" | null;
+  /** Two-letter state (or full name) — helps map a job to its market. */
+  state?: string | null;
 }
 
 export async function resolvePriceBook(opts: ResolveOpts): Promise<ResolvedBook | null> {
-  const { companyId, zip, jurisdiction, pricingType } = opts;
+  const { companyId, zip, jurisdiction, pricingType, state } = opts;
+
+  // Region → market book name (Illinois = Chicago, South FL = South Florida)
+  const region = regionForZip(zip, state);
 
   // Look up the company's chosen default market (if any) so it can win over
   // generic master-book fallbacks.
@@ -60,15 +66,18 @@ export async function resolvePriceBook(opts: ResolveOpts): Promise<ResolvedBook 
     const matchesZip = zip && Array.isArray(b.zip_codes) && b.zip_codes.includes(zip);
     const matchesJur = jurisdiction && b.jurisdiction && b.jurisdiction.toLowerCase() === jurisdiction.toLowerCase();
     const matchesType = pricingType ? b.pricing_type === pricingType : false;
+    const matchesRegion = !!region && b.name.trim().toLowerCase() === region.toLowerCase();
 
     let s = 0;
     let reason = "";
     if (isCompany) s += 1000;
-    if (matchesZip) { s += 500; reason = `Company book matching ZIP ${zip}`; }
-    else if (matchesJur) { s += 200; reason = `Company book matching ${jurisdiction}`; }
+    if (matchesRegion) { s += 800; reason = `${region} market pricing`; }
+    if (matchesZip) { s += 500; if (!matchesRegion) reason = `Company book matching ZIP ${zip}`; }
+    else if (matchesJur) { s += 200; if (!matchesRegion) reason = `Company book matching ${jurisdiction}`; }
     if (matchesType) s += 50;
     if (isMaster && !isCompany) {
-      if (isChosenMarket) { s += 400; reason = `Company's chosen market (${b.name})`; }
+      if (matchesRegion) { s += 600; }
+      else if (isChosenMarket) { s += 400; reason = `Company's chosen market (${b.name})`; }
       else if (matchesZip) { s += 100; reason = `Master book matching ZIP ${zip}`; }
       else if (matchesJur) { s += 50; reason = `Master book matching ${jurisdiction}`; }
       else { s += 1; reason = `Master default (${b.name})`; }
