@@ -766,7 +766,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       p_address: pointLabel || point.label,
       p_disposition: "storm_damage",
       p_notes: null,
-      p_storm: (report ?? {}) as any,
+      p_storm: (mergedReport ?? {}) as any,
     });
     setSaving(false);
     if (error) {
@@ -775,7 +775,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     }
     toast.success("Saved as storm damage lead");
     queryClient.invalidateQueries({ queryKey: ["storm-saved-dispositions"] });
-  }, [point, pointLabel, report, queryClient]);
+  }, [point, pointLabel, mergedReport, queryClient]);
 
   const handleExportCsv = useCallback(async () => {
     const { data, error } = await supabase.rpc("export_storm_dispositions" as any, {
@@ -930,16 +930,16 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           {!reportLoading && report && (
             <>
               <div className="flex gap-3 font-mono text-foreground">
-                <span>Max hail: {report.max_hail_in != null ? `${report.max_hail_in}"` : "—"}</span>
-                <span>Max wind: {report.max_wind_mph != null ? `${report.max_wind_mph} mph` : "—"}</span>
+                <span>Max hail: {mergedReport.max_hail_in != null ? `${mergedReport.max_hail_in}"` : "—"}</span>
+                <span>Max wind: {mergedReport.max_wind_mph != null ? `${mergedReport.max_wind_mph} mph` : "—"}</span>
               </div>
 
               <div>
                 <div className="mb-1 font-semibold text-foreground">Hail — last 60 days</div>
-                {(report.hail_dates ?? []).length === 0 ? (
+                {(mergedReport.hail_dates ?? []).length === 0 ? (
                   <div className="opacity-70">No hail reported.</div>
                 ) : (
-                  (report.hail_dates ?? []).map((h, i) => (
+                  (mergedReport.hail_dates ?? []).map((h, i) => (
                     <div key={i} className="flex items-center gap-2 py-[1px]">
                       <span
                         className="inline-block h-2.5 w-2.5 rounded-sm"
@@ -956,10 +956,10 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
 
               <div>
                 <div className="mb-1 font-semibold text-foreground">Wind 60+ mph — last year</div>
-                {(report.wind_dates ?? []).length === 0 ? (
+                {(mergedReport.wind_dates ?? []).length === 0 ? (
                   <div className="opacity-70">No 60+ mph winds reported.</div>
                 ) : (
-                  (report.wind_dates ?? []).map((w, i) => (
+                  (mergedReport.wind_dates ?? []).map((w, i) => (
                     <div key={i} className="flex items-center gap-2 py-[1px]">
                       <span className="flex-1">{fmtDate(w.date)}</span>
                       <span className="font-mono text-foreground">
@@ -1026,7 +1026,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           propertyId={measure?.propertyId ?? null}
           roofType={measure?.roofType ?? null}
           math={measure?.math ?? null}
-          stormReport={report ?? null}
+          stormReport={mergedReport ?? null}
         />
       )}
 
