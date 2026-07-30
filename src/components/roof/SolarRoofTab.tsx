@@ -832,7 +832,8 @@ export function SolarRoofTab({
 
   const measureAll = useMutation({
     mutationFn: async () => {
-      const targets = pins.filter((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0);
+      // Measure ONLY the structures the user pinned — nothing else on the lot.
+      const targets = pins.filter((p) => p.kind !== "ignore");
       let success = 0;
       let failed = 0;
       for (const pin of targets) {
@@ -840,8 +841,10 @@ export function SolarRoofTab({
         if (res.ok) success++;
         else failed++;
       }
+      setShowHandoff(success > 0);
       return { success, failed, total: targets.length };
     },
+
     onSuccess: ({ success, failed, total }) => {
       if (total === 0) toast.info("All pins already measured");
       else if (failed === 0) toast.success(`Measured ${success} of ${total} pins`);
