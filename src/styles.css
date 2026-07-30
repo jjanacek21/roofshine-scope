@@ -75,9 +75,9 @@
   --popover-foreground: var(--text);
   --primary: var(--brand);
   --primary-foreground: #ffffff;
-  --secondary: var(--bg-elevated);
+  --secondary: #eef1f5;
   --secondary-foreground: var(--text);
-  --muted: var(--bg-card);
+  --muted: #eef1f5;
   --muted-foreground: var(--text-dim);
   --accent: var(--bg-hover);
   --accent-foreground: var(--text);
@@ -86,7 +86,7 @@
   --input: var(--border);
   --ring: var(--brand);
 
-  --sidebar: #0d0d10;
+  --sidebar: #ffffff;
   --sidebar-foreground: var(--text);
   --sidebar-primary: var(--brand);
   --sidebar-primary-foreground: #ffffff;
@@ -94,6 +94,7 @@
   --sidebar-accent-foreground: var(--text);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--brand);
+
 
   --chart-1: var(--trade-roofing);
   --chart-2: var(--trade-windows);
