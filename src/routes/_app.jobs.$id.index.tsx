@@ -7,6 +7,7 @@ import { Mail, Phone, MapPin, Calendar, FileText } from "lucide-react";
 import { TRADES, JOB_STATUSES, type JobStatus } from "@/lib/trades";
 import { MapPreview } from "@/components/jobs/MapPreview";
 import { JobContractsList } from "@/components/contracts/JobContractsList";
+import { resolvePriceBook } from "@/lib/resolve-price-book";
 
 export const Route = createFileRoute("/_app/jobs/$id/")({
   component: JobOverview,
@@ -61,12 +62,39 @@ function JobOverview() {
     },
   });
 
+  const { data: books = [] } = useQuery({
+    queryKey: ["job-price-books"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("price_books")
+        .select("id, name, jurisdiction")
+        .eq("is_active", true)
+        .order("name");
+      return data ?? [];
+    },
+  });
+
+  // Suggest the market book for this property's ZIP/state (IL → Chicago, South FL → South Florida)
+  useEffect(() => {
+    if (!job || job.price_book_id || !job.company_id) return;
+    let alive = true;
+    (async () => {
+      const r = await resolvePriceBook({
+        companyId: job.company_id,
+        zip: (property?.zip as string | null) ?? null,
+        state: (property?.state as string | null) ?? null,
+        jurisdiction: job.jurisdiction ?? null,
+      });
+      if (alive && r) updateJob.mutate({ price_book_id: r.id });
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.id, job?.price_book_id, property?.zip, property?.state]);
+
   const updateJob = useMutation({
-    mutationFn: async (patch: {
-      status?: JobStatus;
-      primary_trade?: string | null;
-      notes?: string | null;
-    }) => {
+    mutationFn: async (patch: Record<string, unknown>) => {
       const { error } = await supabase
         .from("jobs")
         .update(patch as never)
@@ -77,6 +105,32 @@ function JobOverview() {
       qc.invalidateQueries({ queryKey: ["job", id] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
       qc.invalidateQueries({ queryKey: ["jobs-dashboard"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateProperty = useMutation({
+    mutationFn: async (patch: Record<string, unknown>) => {
+      if (!job?.property_id) throw new Error("This job has no linked property");
+      const { error } = await supabase.from("properties").update(patch as never).eq("id", job.property_id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Property updated");
+      qc.invalidateQueries({ queryKey: ["job-property", job?.property_id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateClient = useMutation({
+    mutationFn: async (patch: Record<string, unknown>) => {
+      if (!job?.client_id) throw new Error("This job has no linked client");
+      const { error } = await supabase.from("clients").update(patch as never).eq("id", job.client_id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Client updated");
+      qc.invalidateQueries({ queryKey: ["job-client", job?.client_id] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -96,31 +150,34 @@ function JobOverview() {
         {/* Client Info */}
         <Card title="Client">
           {client ? (
-            <div className="space-y-2 text-sm">
-              <Link
-                to="/clients/$id"
-                params={{ id: client.id }}
-                className="block text-base font-semibold text-foreground hover:text-[var(--brand)]"
-              >
-                {client.name}
-              </Link>
-              <div className="flex flex-col gap-1 text-[13px] text-muted-foreground">
-                {client.email && (
-                  <span className="inline-flex items-center gap-2">
-                    <Mail className="h-3.5 w-3.5" />
-                    <a href={`mailto:${client.email}`} className="hover:text-foreground">
-                      {client.email}
-                    </a>
-                  </span>
-                )}
-                {client.phone && (
-                  <span className="inline-flex items-center gap-2">
-                    <Phone className="h-3.5 w-3.5" />
-                    <a href={`tel:${client.phone}`} className="hover:text-foreground">
-                      {client.phone}
-                    </a>
-                  </span>
-                )}
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <EditableText
+                  label="Name"
+                  value={client.name ?? ""}
+                  onSave={(v) => updateClient.mutate({ name: v })}
+                />
+                <Link
+                  to="/clients/$id"
+                  params={{ id: client.id }}
+                  className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand)] hover:underline"
+                >
+                  Open
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <EditableText
+                  label="Email"
+                  icon={<Mail className="h-3 w-3" />}
+                  value={client.email ?? ""}
+                  onSave={(v) => updateClient.mutate({ email: v || null })}
+                />
+                <EditableText
+                  label="Phone"
+                  icon={<Phone className="h-3 w-3" />}
+                  value={client.phone ?? ""}
+                  onSave={(v) => updateClient.mutate({ phone: v || null })}
+                />
               </div>
             </div>
           ) : (
@@ -130,29 +187,56 @@ function JobOverview() {
 
         {/* Property Info */}
         <Card title="Property">
-          <div className="space-y-2 text-sm">
-            <p className="inline-flex items-start gap-2 text-foreground">
-              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span>{property?.address ?? job.property_address ?? "—"}</span>
-            </p>
-            {property && (property.lat != null || property.lng != null) && (
-              <p className="ml-5 font-mono-num text-[11px] text-muted-foreground">
-                {Number(property.lat).toFixed(5)}, {Number(property.lng).toFixed(5)}
-              </p>
+          <div className="space-y-3 text-sm">
+            {property ? (
+              <>
+                <EditableText
+                  label="Address"
+                  icon={<MapPin className="h-3 w-3" />}
+                  value={property.address ?? ""}
+                  onSave={(v) => updateProperty.mutate({ address: v })}
+                />
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <EditableText label="City" value={property.city ?? ""} onSave={(v) => updateProperty.mutate({ city: v || null })} />
+                  <EditableText label="State" value={property.state ?? ""} onSave={(v) => updateProperty.mutate({ state: v || null })} />
+                  <EditableText label="ZIP" value={property.zip ?? ""} onSave={(v) => updateProperty.mutate({ zip: v || null })} />
+                  <EditableText label="Type" value={property.property_type ?? ""} onSave={(v) => updateProperty.mutate({ property_type: v || null })} />
+                  <EditableText
+                    label="Year Built"
+                    value={property.year_built?.toString() ?? ""}
+                    onSave={(v) => updateProperty.mutate({ year_built: v ? Number(v) : null })}
+                  />
+                  <EditableText label="Roof Type" value={property.roof_type ?? ""} onSave={(v) => updateProperty.mutate({ roof_type: v || null })} />
+                </div>
+                {(property.lat != null || property.lng != null) && (
+                  <p className="font-mono-num text-[11px] text-muted-foreground">
+                    {Number(property.lat).toFixed(5)}, {Number(property.lng).toFixed(5)}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-muted-foreground">{job.property_address ?? "No property linked."}</p>
             )}
-            <div className="grid grid-cols-3 gap-3 pt-1 text-[12px]">
-              <Field label="Type" value={property?.property_type ?? "—"} />
-              <Field label="Year Built" value={property?.year_built?.toString() ?? "—"} />
-              <Field label="Roof Type" value={property?.roof_type ?? "—"} />
-            </div>
           </div>
         </Card>
 
         {/* Job Info */}
         <Card title="Job">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Job Number" value={job.job_number ?? "—"} mono />
-            <Field label="Job Type" value={job.job_type ?? "—"} />
+            <EditableText label="Job Name" value={job.name ?? ""} mono={false} onSave={(v) => updateJob.mutate({ name: v })} />
+            <EditableText label="Job Number" value={job.job_number ?? ""} mono onSave={(v) => updateJob.mutate({ job_number: v || null })} />
+            <div>
+              <FieldLabel>Job Type</FieldLabel>
+              <select
+                value={job.job_type ?? ""}
+                onChange={(e) => updateJob.mutate({ job_type: e.target.value || null })}
+                className="field-input mt-1 h-9 text-sm"
+              >
+                <option value="">— None —</option>
+                <option value="insurance">Insurance</option>
+                <option value="retail">Retail</option>
+              </select>
+            </div>
             <div>
               <FieldLabel>Status</FieldLabel>
               <select
@@ -171,9 +255,7 @@ function JobOverview() {
               <FieldLabel>Primary Trade</FieldLabel>
               <select
                 value={job.primary_trade ?? ""}
-                onChange={(e) =>
-                  updateJob.mutate({ primary_trade: e.target.value || null })
-                }
+                onChange={(e) => updateJob.mutate({ primary_trade: e.target.value || null })}
                 className="field-input mt-1 h-9 text-sm"
               >
                 <option value="">— None —</option>
@@ -184,9 +266,37 @@ function JobOverview() {
                 ))}
               </select>
             </div>
-            <Field label="Insurance Carrier" value={job.insurance_carrier ?? "—"} />
-            <Field label="Claim #" value={job.claim_number ?? "—"} mono />
-            <Field label="Jurisdiction" value={job.jurisdiction ?? "—"} />
+            <div>
+              <FieldLabel>Market Pricing</FieldLabel>
+              <select
+                value={job.price_book_id ?? ""}
+                onChange={(e) => updateJob.mutate({ price_book_id: e.target.value || null })}
+                className="field-input mt-1 h-9 text-sm"
+              >
+                <option value="">— None —</option>
+                {books.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <EditableText
+              label="Insurance Carrier"
+              value={job.insurance_carrier ?? ""}
+              onSave={(v) => updateJob.mutate({ insurance_carrier: v || null })}
+            />
+            <EditableText
+              label="Claim #"
+              mono
+              value={job.claim_number ?? ""}
+              onSave={(v) => updateJob.mutate({ claim_number: v || null })}
+            />
+            <EditableText
+              label="Jurisdiction"
+              value={job.jurisdiction ?? ""}
+              onSave={(v) => updateJob.mutate({ jurisdiction: v || null })}
+            />
             <Field label="Total Estimate" value={`$${Number(job.total_estimate ?? 0).toLocaleString()}`} mono />
           </div>
         </Card>
@@ -262,6 +372,45 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
     <span className="text-[11px] uppercase tracking-wider text-muted-foreground">{children}</span>
+  );
+}
+
+function EditableText({
+  label,
+  value,
+  onSave,
+  mono,
+  icon,
+}: {
+  label: string;
+  value: string;
+  onSave: (v: string) => void;
+  mono?: boolean;
+  icon?: React.ReactNode;
+}) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  return (
+    <div>
+      <FieldLabel>
+        <span className="inline-flex items-center gap-1">
+          {icon}
+          {label}
+        </span>
+      </FieldLabel>
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          if (draft.trim() !== value) onSave(draft.trim());
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        }}
+        placeholder="—"
+        className={`field-input mt-1 h-9 text-sm ${mono ? "font-mono-num" : ""}`}
+      />
+    </div>
   );
 }
 
