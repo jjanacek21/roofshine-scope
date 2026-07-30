@@ -276,3 +276,14 @@ export const autoMeasureJobProperty = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     return runAutoMeasure(context.supabase, context.userId, data.job_id);
   });
+
+/**
+ * Same pipeline, keyed on a property instead of a job. Used by the storm
+ * canvassing map so a house can be measured before it becomes a job.
+ */
+export const autoMeasurePropertyRoof = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { property_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    return runAutoMeasureForProperty(context.supabase, context.userId, data.property_id, null);
+  });
