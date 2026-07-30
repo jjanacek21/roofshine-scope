@@ -300,12 +300,15 @@ export function SolarRoofTab({
     if (!propertyId || hydratedRef.current) return;
     hydratedRef.current = true;
     (async () => {
-      const { data: m } = await supabase
+      const { data: rows } = await supabase
         .from("roof_measurements")
-        .select("id, source, ai_analysis")
+        .select("id, source, ai_analysis, created_at")
         .eq("property_id", propertyId)
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(5);
+      const m = (rows ?? []).find((r) => r.source === "google_solar") ?? (rows ?? [])[0];
       if (!m) return;
+
       const { data: sections } = await supabase
         .from("roof_sections")
         .select("name, pitch, plan_area_sqft, polygon_geojson")
