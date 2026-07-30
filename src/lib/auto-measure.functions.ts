@@ -223,7 +223,7 @@ export async function runAutoMeasureForProperty(
   // Upsert measurement
   const payload = {
     property_id: prop.id,
-    company_id: job.company_id,
+    company_id: resolvedCompanyId,
     source: "google_solar" as const,
     predominant_pitch: predominant,
     waste_pct: wastePct,
