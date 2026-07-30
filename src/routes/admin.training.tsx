@@ -35,6 +35,8 @@ function AdminTrainingCenter() {
 
   // AI runs state
   const [runs, setRuns] = useState<AIRun[]>([]);
+  /** measurement_id -> corrected total area (sqft), for AI-vs-truth deltas. */
+  const [correctedAreas, setCorrectedAreas] = useState<Record<string, number>>({});
   const [runsLoading, setRunsLoading] = useState(true);
   const [activeRun, setActiveRun] = useState<AIRun | null>(null);
   const [filter, setFilter] = useState<"pending" | "all" | "verified" | "corrected">("pending");
@@ -53,13 +55,34 @@ function AdminTrainingCenter() {
     const { data, error } = await supabase
       .from("ai_measurement_runs")
       .select(
-        "id, created_at, requested_lat, requested_lng, property_id, job_id, company_id, imagery_quality, total_plan_sqft, total_actual_sqft, predominant_pitch, segment_count, segments, review_status, reviewed_at, notes, property:properties(address), company:companies(name)"
+        "id, created_at, requested_lat, requested_lng, property_id, job_id, company_id, imagery_quality, total_plan_sqft, total_actual_sqft, predominant_pitch, segment_count, segments, review_status, reviewed_at, correction_measurement_id, notes, property:properties(address), company:companies(name)"
       )
       .eq("status", "success")
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) toast.error(error.message);
-    setRuns((data as unknown as AIRun[]) ?? []);
+    const loaded = (data as unknown as AIRun[]) ?? [];
+    setRuns(loaded);
+    const correctionIds = Array.from(
+      new Set(
+        loaded
+          .map((r) => (r as { correction_measurement_id?: string | null }).correction_measurement_id)
+          .filter((v): v is string => !!v),
+      ),
+    );
+    if (correctionIds.length > 0) {
+      const { data: ms } = await supabase
+        .from("roof_measurements")
+        .select("id, total_area_sqft")
+        .in("id", correctionIds);
+      const map: Record<string, number> = {};
+      for (const m of (ms as Array<{ id: string; total_area_sqft: number | null }>) ?? []) {
+        if (m.total_area_sqft) map[m.id] = Number(m.total_area_sqft);
+      }
+      setCorrectedAreas(map);
+    } else {
+      setCorrectedAreas({});
+    }
     setRunsLoading(false);
   };
 
@@ -181,6 +204,14 @@ function AdminTrainingCenter() {
     loadDataset();
   };
 
+  const deltaFor = (r: AIRun): number | null => {
+    const cid = (r as { correction_measurement_id?: string | null }).correction_measurement_id;
+    const truth = cid ? correctedAreas[cid] : undefined;
+    const ai = Number(r.total_actual_sqft || 0);
+    if (!truth || !ai) return null;
+    return ((ai - truth) / truth) * 100;
+  };
+
   const visibleRuns = runs.filter((r) => {
     if (filter === "all") return true;
     if (filter === "pending") return r.review_status === "pending";
@@ -233,7 +264,19 @@ function AdminTrainingCenter() {
                 {f.charAt(0).toUpperCase() + f.slice(1)}
               </button>
             ))}
-            <div className="ml-auto text-xs text-muted-foreground">{visibleRuns.length} of {runs.length}</div>
+            <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
+              {(() => {
+                const ds = runs.map(deltaFor).filter((d): d is number => d !== null);
+                if (ds.length === 0) return null;
+                const avg = ds.reduce((a, b) => a + b, 0) / ds.length;
+                return (
+                  <span className="rounded bg-muted px-2 py-1 font-mono">
+                    Avg delta {avg > 0 ? "+" : ""}{avg.toFixed(1)}% over {ds.length} corrected
+                  </span>
+                );
+              })()}
+              <span>{visibleRuns.length} of {runs.length}</span>
+            </div>
           </div>
 
           <section className="rounded-2xl border border-border bg-card">
@@ -278,6 +321,17 @@ function AdminTrainingCenter() {
                         <div className="text-[11px] uppercase tracking-wider text-muted-foreground">+15% waste</div>
                         <div className="font-mono text-sm">{Math.round(actualSqft * 1.15).toLocaleString()}</div>
                         <div className="text-[11px] text-muted-foreground">{r.segment_count} facets · {Math.round(planSqft).toLocaleString()} plan</div>
+                        {(() => {
+                          const cid = (r as { correction_measurement_id?: string | null }).correction_measurement_id;
+                          const truth = cid ? correctedAreas[cid] : undefined;
+                          const d = deltaFor(r);
+                          if (!truth || d === null) return null;
+                          return (
+                            <div className={`text-[11px] font-medium ${Math.abs(d) > 10 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                              vs {Math.round(truth).toLocaleString()} corrected · {d > 0 ? "+" : ""}{d.toFixed(1)}%
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="flex items-start justify-end md:col-span-2">
                         {r.review_status === "verified" && (
