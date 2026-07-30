@@ -616,6 +616,100 @@ export type SolarSegmentCenter = {
 export type CarvedFacet = FittedFacet & { pitch_known: boolean };
 
 /**
+ * Merge Google Solar segment centres that describe the same physical roof
+ * plane. Google emits one segment per elevation-model cluster, so dormers,
+ * vents and noise each become their own Voronoi cell. Centres within 25° of
+ * azimuth and 6° of pitch collapse into a single area-weighted centre.
+ *
+ * Never returns an empty list: if filtering removes everything, the single
+ * largest centre survives.
+ */
+export function consolidateSegmentCenters(
+  centers: SolarSegmentCenter[],
+): SolarSegmentCenter[] {
+  if (centers.length <= 1) return centers;
+
+  const AZ_TOL = 25;
+  const PITCH_TOL = 6;
+  const MIN_AREA_M2 = 3.7;
+  const MIN_AREA_FRAC = 0.03;
+
+  const totalArea = centers.reduce((s, c) => s + (c.area_m2 || 0), 0);
+  const largest = centers.reduce((a, b) => ((b.area_m2 || 0) > (a.area_m2 || 0) ? b : a));
+
+  const kept = centers.filter((c) => {
+    const a = c.area_m2 || 0;
+    if (a < MIN_AREA_M2) return false;
+    if (totalArea > 0 && a / totalArea < MIN_AREA_FRAC) return false;
+    return true;
+  });
+  if (kept.length === 0) return [largest];
+
+  const angDiff = (a: number, b: number) => {
+    const d = Math.abs(((a - b) % 360) + 360) % 360;
+    return d > 180 ? 360 - d : d;
+  };
+
+  // Largest planes seed groups first so they absorb small neighbours.
+  const sorted = [...kept].sort((a, b) => (b.area_m2 || 0) - (a.area_m2 || 0));
+  const groups: SolarSegmentCenter[][] = [];
+
+  for (const c of sorted) {
+    let placed = false;
+    for (const g of groups) {
+      const seed = g[0];
+      const pitchOk =
+        seed.pitch_degrees == null || c.pitch_degrees == null
+          ? true
+          : Math.abs(seed.pitch_degrees - c.pitch_degrees) <= PITCH_TOL;
+      if (pitchOk && angDiff(seed.azimuth_degrees, c.azimuth_degrees) <= AZ_TOL) {
+        g.push(c);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) groups.push([c]);
+  }
+
+  const merged = groups.map((g) => {
+    if (g.length === 1) return g[0];
+    const w = g.reduce((s, c) => s + Math.max(c.area_m2 || 0, 1e-6), 0);
+    const wOf = (c: SolarSegmentCenter) => Math.max(c.area_m2 || 0, 1e-6) / w;
+
+    // Circular mean so 350° and 10° average to 0°, not 180°.
+    let sx = 0;
+    let sy = 0;
+    for (const c of g) {
+      const r = (c.azimuth_degrees * Math.PI) / 180;
+      sx += Math.cos(r) * wOf(c);
+      sy += Math.sin(r) * wOf(c);
+    }
+    const az = ((Math.atan2(sy, sx) * 180) / Math.PI + 360) % 360;
+
+    const withPitch = g.filter((c) => c.pitch_degrees != null);
+    let pitch: number | null = null;
+    if (withPitch.length > 0) {
+      const pw = withPitch.reduce((s, c) => s + Math.max(c.area_m2 || 0, 1e-6), 0);
+      pitch =
+        withPitch.reduce(
+          (s, c) => s + (c.pitch_degrees as number) * Math.max(c.area_m2 || 0, 1e-6),
+          0,
+        ) / pw;
+    }
+
+    return {
+      lng: g.reduce((s, c) => s + c.lng * wOf(c), 0),
+      lat: g.reduce((s, c) => s + c.lat * wOf(c), 0),
+      azimuth_degrees: az,
+      pitch_degrees: pitch,
+      area_m2: g.reduce((s, c) => s + (c.area_m2 || 0), 0),
+    } satisfies SolarSegmentCenter;
+  });
+
+  return merged.length > 0 ? merged : [largest];
+}
+
+/**
  * Carve a building footprint into roof facets using the Google Solar segment
  * centres as Voronoi seeds. Because every facet is a clip of the real
  * footprint, the facets tile the house exactly: no gaps, no overlaps, and the

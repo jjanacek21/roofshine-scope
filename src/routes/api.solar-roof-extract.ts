@@ -5,6 +5,7 @@ import {
   fitFacetsToFootprint,
   footprintFromSegmentBoxes,
   carveFootprintByCenters,
+  consolidateSegmentCenters,
 } from "@/lib/roof-geometry";
 import { fetchBuildingFootprint } from "@/lib/footprint.server";
 
@@ -272,16 +273,18 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
         const carved = footprintRing
           ? carveFootprintByCenters(
               footprintRing,
-              kept
-                .filter((s) => s.center)
-                .map((s) => ({
-                  lng: s.center!.longitude,
-                  lat: s.center!.latitude,
-                  pitch_degrees:
-                    typeof s.pitchDegrees === "number" ? s.pitchDegrees : null,
-                  azimuth_degrees: s.azimuthDegrees ?? 0,
-                  area_m2: s.stats?.areaMeters2 ?? 0,
-                })),
+              consolidateSegmentCenters(
+                kept
+                  .filter((s) => s.center)
+                  .map((s) => ({
+                    lng: s.center!.longitude,
+                    lat: s.center!.latitude,
+                    pitch_degrees:
+                      typeof s.pitchDegrees === "number" ? s.pitchDegrees : null,
+                    azimuth_degrees: s.azimuthDegrees ?? 0,
+                    area_m2: s.stats?.areaMeters2 ?? 0,
+                  })),
+              ),
               { minFacetSqft: tuning.min_facet_sqft },
             )
           : null;
