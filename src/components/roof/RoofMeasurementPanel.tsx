@@ -161,6 +161,10 @@ export function RoofMeasurementPanel({
       const effectiveWaste = isMapbox ? wastePct : manual.waste_pct;
       const wasteMult = 1 + Number(effectiveWaste || 0) / 100;
 
+      // If this measurement started as an AI scan the user then redrew by hand,
+      // keep the AI geometry alongside it — that pair is the training signal.
+      const handoff = getMeasureHandoff(propertyId);
+
       const payload = {
         property_id: propertyId,
         company_id: profile.company_id,
@@ -179,6 +183,10 @@ export function RoofMeasurementPanel({
         step_flashing_lf: totals.step_flashing_lf,
         transition_lf: totals.transition_lf,
         created_by: profile.id,
+        ai_run_id: handoff?.run_id ?? null,
+        ai_geometry: handoff
+          ? { facets: handoff.facets, total_plan_sqft: handoff.total_plan_sqft }
+          : null,
       };
 
       const { data: m, error: mErr } = await supabase
@@ -187,6 +195,7 @@ export function RoofMeasurementPanel({
         .select()
         .single();
       if (mErr) throw mErr;
+
 
       if (isMapbox) {
         await supabase.from("roof_sections").delete().eq("measurement_id", m.id);
