@@ -99,7 +99,7 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
   }, [data, planSqft]);
 
   const measure = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (force = false) => {
       let propertyId = data?.property?.id ?? null;
       if (!propertyId) {
         const ensured: any = await ensureFn({
@@ -108,7 +108,10 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
         if (!ensured?.ok) throw new Error(ensured?.error ?? "Could not save this property");
         propertyId = ensured.property.id;
       }
-      const res: any = await measureFn({ data: { property_id: propertyId! } });
+      const res: any = await measureFn({
+        data: { property_id: propertyId!, single: true, footprint, force },
+      });
+
       if (!res?.ok) {
         const reasons: Record<string, string> = {
           google_key_missing: "Measurement service is not configured.",
