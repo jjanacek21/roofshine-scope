@@ -171,9 +171,10 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
           </button>
           {measure.isPending && (
             <p className="mt-1.5 text-[10px] opacity-70">
-              Scanning the property and any detached structures — this may take a moment.
+              Measuring only the structure you selected — this may take a moment.
             </p>
           )}
+
           {measure.isError && (
             <div className="mt-2 flex items-center justify-between gap-2 text-[11px]" style={{ color: "#f87171" }}>
               <span className="flex items-center gap-1.5">
