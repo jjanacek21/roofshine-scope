@@ -1,54 +1,58 @@
-## What's happening
+## Goal
 
-The catalog tree groups items by their `subgroup` field and dumps anything blank into "Other". Right now most of the catalog has no subgroup at all, which is why "Other" is huge:
+Replace today's 8 trades with the 15 categories you described, and re-sort every catalog item (and its sub-group) into the right home — so Interior stops holding garage doors, fencing, exterior paint, etc.
 
-- Interior: 4,173 items with no subgroup
-- Windows: 904
-- Exterior: 318
-- Roofing: 268 (this is why RFG240 3-tab, RFG300 laminated, roofers, membrane installers all sit in "Other" instead of Asphalt Shingles / Labor / Single-Ply)
-
-Only a few thousand items got subgroups during earlier imports; the big master upload came in unclassified.
-
-## The fix
-
-The item codes are standard Xactimate category codes and are extremely reliable for classification (verified against the data):
+## New top-level categories
 
 ```text
-RFG240 / RFG300 / RFG400        -> Asphalt Shingles
-RFGTILE / RFGSTIL / RFGSTL      -> Tile Roofing / Stone-Coated Steel
-RFGVENT* / RFGVFGN              -> Ventilation
-RFGPFLASH / RFGRUBPJ / RFGSPLYPJ-> Flashings
-RFGSPLY / RFGRUB / RFGADHV      -> Single-Ply Membrane
-RFGSHAKE*                       -> Wood Shakes/Shingles
-RFGSLATE                        -> Natural Slate
-RFGFLT                          -> Underlayments
-0RFG / RFG-M (hourly labor)     -> Labor
-WDA* / WDV* / WDW*              -> Aluminum / Vinyl / Wood Windows (by type: single hung, double hung, casement, slider, picture, awning)
-WDTBL* / WDTH*                  -> Window Treatments (blinds, drapery)
-WDSD*                           -> Skylights
-DOROH* / DORS* / DORR*          -> Garage & Overhead Doors
-DORX* / DORI*                   -> Exterior / Interior Doors
-PLM*                            -> Plumbing sub-groups (copper, PEX, fixtures, tubs)
-ELE* / LIT*                     -> Electrical / Lighting
-PNT* / DRY* / FCC* / CAB* ...   -> Interior sub-groups
+ROOFING              everything on/of the roof (incl. skylights, solar, roof-top HVAC curbs, roof flashing)
+ELEVATIONS           siding, soffit, fascia, gutters, window wraps, stucco, fiber cement, house wrap, masonry veneer
+EXTERIOR             fences, gates, exterior cleaning, pressure washing, decks, exterior structures
+CONCRETE / ASPHALT   flatwork, driveways, sidewalks, patios, pavers, asphalt, curbing
+PAINTING             prep, interior + exterior paint, staining (deck/fence/cabinets), epoxy floors & counters
+INTERIOR             drywall, cabinets, trim, flooring, countertops, fixtures, interior cleaning, contents
+WINDOWS / DOORS      garage doors, wood/aluminum/vinyl windows, interior & exterior doors, hardware, glazing, blinds
+PLUMBING             own category
+ELECTRICAL           own category
+HVAC                 own category
+WATER / MOLD MITIGATION  own category
+EQUIPMENT            rentals, lifts, scaffolding, machines
+LABOR                trade labor minimums, hourly contractors, time-based charges
+DEMO                 demolition, debris, dumpsters, haul-off, interior/exterior cleaning tied to demo
+MISC ITEMS           detach/reset structures, appliances, pool & screen enclosures, awnings, storm shutters
+TREE REMOVAL / LANDSCAPING  trees, landscaping, sod, sprinklers, irrigation
 ```
 
-Work to do:
+## Work to do
 
-1. Build a complete prefix -> sub-group mapping for every code prefix that currently has a blank sub-group, across all trades (roofing, exterior, windows, interior, HVAC, plumbing, electrical, mitigation). Reuse the sub-group names that already exist (e.g. "Asphalt Shingles", "Ventilation", "Flashings") so items merge into the existing groups rather than creating near-duplicates.
-2. For prefixes the mapping doesn't cover, fall back to name-keyword rules (e.g. names containing "shingle", "vent", "flashing", "drywall", "paint", "cabinet", "tub").
-3. Create any genuinely new sub-groups needed (e.g. "Garage & Overhead Doors", "Skylights", "Window Treatments", "Copper Pipe", "Light Fixtures").
-4. Apply it as a single database data-update over `line_item_master` where `company_id is null`, then verify no trade has more than a small residual "Other" bucket.
-5. Sanity-check the estimate line-item picker and the Master Catalog browser render the new groups correctly.
+**1. Extend the trade enum + app trade list**
+Add the 7 new values (`elevations`, `concrete_asphalt`, `painting`, `equipment`, `labor`, `demo`, `misc`, `landscaping`) to the `trade_type` enum via migration; keep the existing 8 values so nothing referencing them breaks. Update `src/lib/trades.ts` with the full ordered list, labels, colors and icons — that single file drives the catalog tree, master catalog, estimate picker, job trade picker, photo filters, macros and the trade-mix bar.
 
-Nothing in the app UI needs to change — the tree already reads `subgroup`.
+**2. Reclassify the catalog (data migration on `line_item_master`)**
+Rules applied in priority order, using Xactimate code prefix first, then item-name keywords:
 
-## Separate issue I noticed
+- Move all `DOR*` (garage/overhead, interior, exterior doors, hardware) out of Interior into WINDOWS/DOORS, alongside existing window sub-groups.
+- Move `FNC*`, `DEK*`, exterior structures, pressure washing/exterior cleaning into EXTERIOR.
+- Move `CON*` flatwork, asphalt, pavers, curbing into CONCRETE/ASPHALT.
+- Move all `PNT*`, staining, epoxy, and prep items — interior and exterior — into PAINTING.
+- Move siding/soffit/fascia/gutter/stucco/fiber-cement/masonry/house-wrap out of today's Exterior into ELEVATIONS.
+- Move roof-mounted items (skylights `WDSD*`, solar, roof curbs, chimney/roof flashing, roof jacks) into ROOFING regardless of their original code family.
+- Move `LND*`/tree/sod/irrigation/sprinkler items into TREE REMOVAL / LANDSCAPING.
+- Move `EQP*`/rental/lift/scaffold items into EQUIPMENT.
+- Move every hourly/labor-minimum/"…Laborer"/"…Technician" row from every trade into LABOR (roofing labor adders that price roof work stay in ROOFING).
+- Move `DMO*`, dumpsters, haul & dispose, debris into DEMO.
+- Move appliances, awnings, storm shutters, pool/screen enclosures, detach & reset structures into MISC ITEMS.
+- Plumbing, Electrical, HVAC, Mitigation keep their items; only stray rows get pulled in/out.
 
-Every item currently appears **twice** in the picker (see your screenshots: two "Roofer", two "RFG240", two "RFG300"). That's duplicate rows in `line_item_master` from the master import, not a grouping bug. Say the word and I'll dedupe those in the same pass (keeping the row that carries market prices); otherwise I'll leave the data untouched and only fix sub-groups.
+**3. Re-cut sub-groups**
+Each new category gets a clean sub-group set (e.g. WINDOWS/DOORS → Garage & Overhead Doors, Exterior Doors, Interior Doors, Door Hardware, Aluminum/Vinyl/Wood Windows by type, Glazing & Repair, Blinds & Shades, Screens; DEMO → Interior Cleaning, Exterior Cleaning, Dumpsters & Haul-Off, Demolition Labor; LABOR → per-trade minimums, hourly rates). Existing good sub-group names are reused so items merge rather than duplicate.
+
+**4. Verify**
+Query counts per category/sub-group after the migration, confirm no "Other" bucket over a small residual, and spot-check the estimate line-item picker and Master Catalog browser render the 15 categories with sensible groupings.
 
 ## Technical notes
 
-- Pure data migration on `line_item_master.subgroup`; no schema change.
-- Rules applied in priority order (exact prefix -> prefix family -> keyword -> leave as Other).
-- `line_item_prices` is untouched, so market pricing is unaffected.
+- Two migrations: (a) enum extension (enum values must be committed before use, so this runs separately), (b) the bulk `UPDATE` on `line_item_master` where `company_id is null`.
+- `line_item_prices` is untouched — market pricing is unaffected.
+- Existing jobs/photos keep their current trade values; they remain valid enum members.
+- Only `src/lib/trades.ts` changes in the frontend; all consumers read from it.

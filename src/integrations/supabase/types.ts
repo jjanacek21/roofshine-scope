@@ -6819,6 +6819,14 @@ export type Database = {
         | "plumbing"
         | "electrical"
         | "mitigation"
+        | "elevations"
+        | "concrete_asphalt"
+        | "painting"
+        | "equipment"
+        | "labor"
+        | "demo"
+        | "misc"
+        | "landscaping"
     }
     CompositeTypes: {
       geometry_dump: {
@@ -7078,6 +7086,14 @@ export const Constants = {
         "plumbing",
         "electrical",
         "mitigation",
+        "elevations",
+        "concrete_asphalt",
+        "painting",
+        "equipment",
+        "labor",
+        "demo",
+        "misc",
+        "landscaping",
       ],
     },
   },
