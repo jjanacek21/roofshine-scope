@@ -493,3 +493,145 @@ export function footprintFromSegmentBoxes(
   }
   return closeRing(rect.map(proj.from));
 }
+
+/* ------------------------------------------------------------------ */
+/* Voronoi carve — facets cut out of the real footprint                */
+/* ------------------------------------------------------------------ */
+
+export type SolarSegmentCenter = {
+  lng: number;
+  lat: number;
+  pitch_degrees: number | null;
+  azimuth_degrees: number;
+  area_m2: number;
+};
+
+export type CarvedFacet = FittedFacet & { pitch_known: boolean };
+
+/**
+ * Carve a building footprint into roof facets using the Google Solar segment
+ * centres as Voronoi seeds. Because every facet is a clip of the real
+ * footprint, the facets tile the house exactly: no gaps, no overlaps, and the
+ * geometry follows the true shape/angle of the building instead of a
+ * north-aligned bounding box.
+ *
+ * Returns null when the footprint is unusable so callers can fall back.
+ */
+export function carveFootprintByCenters(
+  footprint: number[][],
+  segments: SolarSegmentCenter[],
+  opts: { minFacetSqft?: number } = {},
+): { facets: CarvedFacet[]; footprint: number[][]; plan_area_sqft: number } | null {
+  const minFacetSqft = opts.minFacetSqft ?? 20;
+  const ringLL = openRing(footprint);
+  if (ringLL.length < 3) return null;
+
+  const oLng = ringLL.reduce((s, p) => s + p[0], 0) / ringLL.length;
+  const oLat = ringLL.reduce((s, p) => s + p[1], 0) / ringLL.length;
+  const proj = makeProjector(oLng, oLat);
+
+  const footM = simplifyRingM(toCCW(ringLL.map(proj.to)), 0.4);
+  if (footM.length < 3) return null;
+  const totalM2 = Math.abs(signedArea(footM));
+  if (totalM2 <= 0) return null;
+  const P = turf.polygon([closeRing(footM)]);
+
+  const mk = (
+    ringM: number[][],
+    pitchDeg: number | null,
+    azimuth: number,
+  ): CarvedFacet | null => {
+    const cleaned = simplifyRingM(openRing(ringM), 0.3);
+    if (cleaned.length < 3) return null;
+    const areaM2 = Math.abs(signedArea(cleaned));
+    const sqft = areaM2 * SQM_TO_SQFT;
+    if (sqft < minFacetSqft) return null;
+    const known = pitchDeg !== null && Number.isFinite(pitchDeg);
+    return {
+      ring: closeRing(cleaned.map(proj.from)),
+      plan_area_sqft: sqft,
+      pitch: known ? pitchString(pitchDeg as number) : "unknown",
+      pitch_degrees: known ? (pitchDeg as number) : 0,
+      azimuth_degrees: azimuth,
+      pitch_known: known,
+    };
+  };
+
+  const result = (facets: CarvedFacet[]) => ({
+    facets: facets.sort((a, b) => b.plan_area_sqft - a.plan_area_sqft),
+    footprint: closeRing(footM.map(proj.from)),
+    plan_area_sqft: totalM2 * SQM_TO_SQFT,
+  });
+
+  // Only seeds that actually sit on this building.
+  const inside = segments.filter((s) => {
+    if (!Number.isFinite(s.lng) || !Number.isFinite(s.lat)) return false;
+    try {
+      return turf.booleanPointInPolygon(turf.point(proj.to([s.lng, s.lat])), P);
+    } catch {
+      return false;
+    }
+  });
+
+  if (inside.length === 0) {
+    // No slope data for this building — one facet, pitch genuinely unknown
+    // unless Google gave us a dominant pitch elsewhere on the property.
+    const withPitch = segments.filter((s) => s.pitch_degrees !== null);
+    let dominant: number | null = null;
+    if (withPitch.length > 0) {
+      dominant = withPitch.reduce((best, s) =>
+        s.area_m2 > best.area_m2 ? s : best,
+      ).pitch_degrees;
+    }
+    const f = mk(footM, dominant, 0);
+    return f ? result([f]) : null;
+  }
+
+  if (inside.length === 1) {
+    const s = inside[0];
+    const f = mk(footM, s.pitch_degrees, s.azimuth_degrees);
+    return f ? result([f]) : null;
+  }
+
+  const seedPts = inside.map((s) => turf.point(proj.to([s.lng, s.lat])));
+  const bbox = turf.bbox(P) as [number, number, number, number];
+  const pad = 5; // metres of slack so edge cells stay bounded
+  let cells: Array<Feature<Polygon> | null> = [];
+  try {
+    const v = turf.voronoi(turf.featureCollection(seedPts), {
+      bbox: [bbox[0] - pad, bbox[1] - pad, bbox[2] + pad, bbox[3] + pad],
+    });
+    cells = (v.features ?? []) as Array<Feature<Polygon> | null>;
+  } catch {
+    return null;
+  }
+
+  const facets: CarvedFacet[] = [];
+  cells.forEach((cell, i) => {
+    if (!cell) return;
+    const seg = inside[i];
+    if (!seg) return;
+    let clipped: Feature<Polygon> | null = null;
+    try {
+      const res = turf.intersect(turf.featureCollection([cell, P]));
+      if (res && res.geometry.type === "Polygon") {
+        clipped = res as Feature<Polygon>;
+      } else if (res && res.geometry.type === "MultiPolygon") {
+        // keep the biggest piece
+        const parts = res.geometry.coordinates.map((c) => turf.polygon(c));
+        clipped = parts.sort(
+          (a, b) => Math.abs(signedArea(b.geometry.coordinates[0])) -
+            Math.abs(signedArea(a.geometry.coordinates[0])),
+        )[0];
+      }
+    } catch {
+      clipped = null;
+    }
+    if (!clipped) return;
+    const f = mk(clipped.geometry.coordinates[0], seg.pitch_degrees, seg.azimuth_degrees);
+    if (f) facets.push(f);
+  });
+
+  if (facets.length === 0) return null;
+  return result(facets);
+}
