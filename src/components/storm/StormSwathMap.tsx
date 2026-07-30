@@ -211,6 +211,37 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     },
   });
 
+  // Reverse-geocode the selected house so the panel shows a real street address.
+  const { data: resolvedAddress } = useQuery({
+    queryKey: ["storm-reverse-geocode", point?.lat?.toFixed(6), point?.lng?.toFixed(6)],
+    enabled: !!point && !!token,
+    staleTime: 24 * 60 * 60 * 1000,
+    queryFn: async () => {
+      const url =
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${point!.lng},${point!.lat}.json` +
+        `?types=address&limit=1&access_token=${token}`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const json = await res.json();
+      const feat = json?.features?.[0];
+      if (!feat) return null;
+      const ctx: any[] = feat.context ?? [];
+      const pick = (prefix: string) =>
+        ctx.find((c) => String(c.id ?? "").startsWith(prefix))?.text ?? null;
+      return {
+        full: String(feat.place_name ?? "").replace(/, United States$/, ""),
+        street: [feat.address, feat.text].filter(Boolean).join(" "),
+        city: pick("place"),
+        state: pick("region"),
+        zip: pick("postcode"),
+      };
+    },
+  });
+
+  const pointLabel = resolvedAddress?.full || point?.label || "";
+
+
+
   const { data: savedRows = [], isFetching: savedLoading } = useQuery({
     queryKey: ["storm-saved-dispositions"],
     enabled: savedOpen && !!user,
