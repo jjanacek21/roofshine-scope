@@ -758,6 +758,17 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
             </>
           )}
 
+          {user && (
+            <RoofMeasureCard
+              key={`${point.lat.toFixed(5)},${point.lng.toFixed(5)}`}
+              lat={point.lat}
+              lng={point.lng}
+              address={point.label}
+              onChange={setMeasure}
+              onSections={setFacets}
+            />
+          )}
+
           {!user ? (
             <div
               className="mt-1 rounded-md px-2 py-1.5 text-center text-[11px]"
@@ -766,19 +777,44 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
               Sign in to save leads
             </div>
           ) : (
-          <button
-            type="button"
-            onClick={handleSaveLead}
-            disabled={saving}
-            className="mt-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold"
-            style={{ background: "var(--brand, #2563eb)", color: "#fff" }}
-          >
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-            Save as storm damage lead
-          </button>
+            <>
+              <button
+                type="button"
+                onClick={handleSaveLead}
+                disabled={saving}
+                className="mt-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold"
+                style={{ background: "var(--brand, #2563eb)", color: "#fff" }}
+              >
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Save as storm damage lead
+              </button>
+              <button
+                type="button"
+                onClick={() => setMailerOpen(true)}
+                className="flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-semibold text-foreground"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <Mail className="h-3.5 w-3.5" /> Create mailer
+              </button>
+            </>
           )}
         </div>
       )}
+
+      {point && mailerOpen && (
+        <StormMailerModal
+          open={mailerOpen}
+          onClose={() => setMailerOpen(false)}
+          address={point.label}
+          lat={point.lat}
+          lng={point.lng}
+          propertyId={measure?.propertyId ?? null}
+          roofType={measure?.roofType ?? null}
+          math={measure?.math ?? null}
+          stormReport={report ?? null}
+        />
+      )}
+
 
       {/* Saved properties panel */}
       {savedOpen && (
