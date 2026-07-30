@@ -831,11 +831,109 @@ export function SolarRoofTab({
     return { ok: true };
   }
 
+  /**
+   * Persist the AI facets so the highlight survives a tab switch or reload.
+   * One roof_measurements row per property (source google_solar) + one
+   * roof_sections row per facet, replaced on every re-run.
+   */
+  async function persistPins(currentPins: Pin[]) {
+    if (!propertyId) return;
+    const active = currentPins.filter(
+      (p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) > 0,
+    );
+    if (active.length === 0) return;
+
+    const planTotal = active.reduce((s, p) => s + (p.plan_area_sqft || 0), 0);
+    const slopedTotal = active.reduce((s, p) => {
+      const mult = p.kind === "flat" ? 1 : pitchMultiplier(p.pitch);
+      return s + (p.plan_area_sqft || 0) * mult;
+    }, 0);
+    const biggest = active.reduce((best, p) =>
+      (p.plan_area_sqft || 0) > (best.plan_area_sqft || 0) ? p : best,
+    );
+
+    const { data: m, error: mErr } = await supabase
+      .from("roof_measurements")
+      .upsert(
+        {
+          property_id: propertyId,
+          company_id: profile?.company_id ?? null,
+          source: "google_solar" as const,
+          predominant_pitch: /^\d+\s*\/\s*\d+$/.test(biggest.pitch) ? biggest.pitch : null,
+          waste_pct: wastePct,
+          total_area_sqft: slopedTotal,
+          squares: withWaste(slopedTotal, wastePct) / 100,
+          created_by: profile?.id ?? null,
+          ai_run_id: active.find((p) => p.run_id)?.run_id ?? null,
+          ai_geometry: {
+            total_plan_sqft: planTotal,
+            facets: active.flatMap((p) =>
+              (p.facets ?? []).map((f) => ({
+                ring: f.ring,
+                pitch: f.pitch,
+                plan_area_sqft: f.plan_area_sqft,
+              })),
+            ),
+          },
+        },
+        { onConflict: "property_id" },
+      )
+      .select("id")
+      .single();
+    if (mErr) throw mErr;
+
+    await supabase.from("roof_sections").delete().eq("measurement_id", m.id);
+
+    const rows: Array<Record<string, unknown>> = [];
+    let i = 0;
+    for (const p of active) {
+      const facets =
+        p.facets && p.facets.length > 0
+          ? p.facets
+          : p.ring && p.ring.length >= 3
+            ? [
+                {
+                  ring: p.ring,
+                  pitch: p.pitch,
+                  plan_area_sqft: p.plan_area_sqft,
+                  pitch_degrees: pitchStringToDegrees(p.pitch),
+                },
+              ]
+            : [];
+      for (const f of facets) {
+        if (!f.ring || f.ring.length < 3) continue;
+        const closed =
+          f.ring[0][0] === f.ring[f.ring.length - 1][0] &&
+          f.ring[0][1] === f.ring[f.ring.length - 1][1]
+            ? f.ring
+            : [...f.ring, f.ring[0]];
+        const pitch = p.kind === "flat" ? "0/12" : f.pitch;
+        const mult = /^\d+\s*\/\s*\d+$/.test(pitch) ? pitchMultiplier(pitch) : 1;
+        rows.push({
+          measurement_id: m.id,
+          name: facets.length > 1 ? `${p.name} · facet ${i + 1}` : p.name,
+          color: SECTION_COLORS[i % SECTION_COLORS.length],
+          polygon_geojson: { type: "Polygon", coordinates: [closed] },
+          plan_area_sqft: f.plan_area_sqft,
+          pitch,
+          pitch_multiplier: mult,
+          actual_area_sqft: f.plan_area_sqft * mult,
+          sort_order: i,
+        });
+        i++;
+      }
+    }
+    if (rows.length > 0) {
+      const { error: sErr } = await supabase.from("roof_sections").insert(rows);
+      if (sErr) throw sErr;
+    }
+  }
 
   const measureOne = useMutation({
     mutationFn: async (pin: Pin) => {
       const res = await measurePinAt(pin);
       if (!res.ok) throw new Error(res.reason ?? "Measurement failed");
+      await persistPins(pinsStateRef.current);
     },
     onSuccess: () => toast.success("Measured whole structure at this pin"),
     onError: (e) =>
@@ -856,6 +954,13 @@ export function SolarRoofTab({
         else failed++;
       }
       setShowHandoff(success > 0);
+      if (success > 0) {
+        try {
+          await persistPins(pinsStateRef.current);
+        } catch (e) {
+          console.error("persist AI measurement failed", e);
+        }
+      }
       return { success, failed, total: targets.length };
     },
 
@@ -866,6 +971,7 @@ export function SolarRoofTab({
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Bulk measure failed"),
   });
+
 
   /** Wipe every saved measurement (and its facets) for this property. */
   const clearSaved = useMutation({
