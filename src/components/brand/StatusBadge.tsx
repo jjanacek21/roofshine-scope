@@ -68,11 +68,7 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const style =
-    STATUS_STYLES[status] ?? {
-      bg: "rgba(161,161,170,.15)",
-      border: "rgba(161,161,170,.2)",
-      text: "#d4d4d8",
-    };
+    STATUS_STYLES[status] ?? { ...GREEN };
   const label =
     style.label ?? status.charAt(0).toUpperCase() + status.slice(1);
 
