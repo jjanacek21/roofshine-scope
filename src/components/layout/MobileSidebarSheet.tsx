@@ -15,6 +15,9 @@ import {
   IdCard,
   Receipt,
   DoorOpen,
+  CloudLightning,
+  Crown,
+  BookOpenText,
 } from "lucide-react";
 import {
   Sheet,
@@ -25,6 +28,7 @@ import {
 import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useIsRoofKing } from "@/hooks/useRoofKing";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +38,12 @@ const WORKSPACE_NAV = [
   { to: "/leads", label: "SPF Prospecting", icon: Target, badgeKey: null },
   { to: "/clients", label: "Clients", icon: Users, badgeKey: null },
   { to: "/door-to-door", label: "Door to Door", icon: DoorOpen, badgeKey: null },
+  { to: "/storm-intelligence", label: "Storm Intel", icon: CloudLightning, badgeKey: null },
   { to: "/card", label: "My Card", icon: IdCard, badgeKey: null },
+] as const;
+
+const RESOURCES_NAV = [
+  { to: "/survival-guide", label: "Survival Guide", icon: BookOpenText },
 ] as const;
 
 const ADMIN_NAV = [
@@ -47,9 +56,11 @@ export function MobileSidebarSheet() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
+  const { isRoofKing } = useIsRoofKing();
   const isSuperAdmin = profile?.role === "super_admin";
   const isCompanyAdmin =
     profile?.role === "owner" || profile?.role === "admin" || isSuperAdmin;
+
 
   const { data: jobsCount = 0 } = useQuery({
     queryKey: ["sidebar-jobs-count"],
@@ -109,7 +120,7 @@ export function MobileSidebarSheet() {
             Workspace
           </p>
           <nav className="space-y-1">
-            {WORKSPACE_NAV.map((item) => {
+            {WORKSPACE_NAV.filter((i) => !(isRoofKing && i.to === "/leads")).map((item) => {
               const active = isActive(item.to);
               const Icon = item.icon;
               return (
@@ -137,8 +148,58 @@ export function MobileSidebarSheet() {
                 </Link>
               );
             })}
+            {isRoofKing && (
+              <Link
+                to="/roofking"
+                onClick={close}
+                className={cn(
+                  "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors",
+                  isActive("/roofking")
+                    ? "nav-active"
+                    : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
+                )}
+              >
+                <Crown
+                  className="h-4 w-4 shrink-0"
+                  strokeWidth={2}
+                  style={{ color: isActive("/roofking") ? undefined : "#f0a73a" }}
+                />
+                <span>Roof King</span>
+              </Link>
+            )}
           </nav>
         </div>
+
+        <div className="mt-2">
+          <p
+            className="px-2.5 pb-2 pt-3 text-[10px] font-semibold uppercase"
+            style={{ color: "var(--text-muted)", letterSpacing: "1.5px" }}
+          >
+            Resources
+          </p>
+          <nav className="space-y-1">
+            {RESOURCES_NAV.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={close}
+                  className={cn(
+                    "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors",
+                    isActive(item.to)
+                      ? "nav-active"
+                      : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
 
         <div className="mt-2">
           <p
