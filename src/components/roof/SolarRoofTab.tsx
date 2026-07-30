@@ -148,6 +148,15 @@ function degreesToPitchString(deg: number): string {
   return `${clamped}/12`;
 }
 
+/** Inverse of degreesToPitchString — "6/12" -> degrees. Unknown pitch -> 0. */
+function pitchStringToDegrees(pitch: string): number {
+  const m = pitch.match(/^(\d+)\s*\/\s*(\d+)$/);
+  if (!m) return 0;
+  const run = Number(m[2]);
+  if (!run) return 0;
+  return (Math.atan(Number(m[1]) / run) * 180) / Math.PI;
+}
+
 /** Centroid of a polygon ring [[lng,lat],...]. */
 function ringCentroid(ring: number[][]): [number, number] {
   if (ring.length === 0) return [0, 0];
@@ -309,8 +318,9 @@ export function SolarRoofTab({
           if (!ring || ring.length < 3) continue;
           let [cLng, cLat] = ringCentroid(ring);
           const planSqft = Number(s.plan_area_sqft) || 0;
-          const pitch = (s.pitch as string) || "6/12";
+          const pitch = (s.pitch as string) || "unknown";
           const kind: PinKind = pitch === "0/12" ? "flat" : "pitched";
+          const pitchDeg = pitchStringToDegrees(pitch);
           seeded.push({
             id: rid(),
             name: (s.name as string) || `Structure ${seeded.length + 1}`,
@@ -320,7 +330,7 @@ export function SolarRoofTab({
             lng: cLng,
             lat: cLat,
             ring,
-            facets: [{ ring, pitch, plan_area_sqft: planSqft, pitch_degrees: 0 }],
+            facets: [{ ring, pitch, plan_area_sqft: planSqft, pitch_degrees: pitchDeg }],
 
             source: "solar",
           });
@@ -356,7 +366,7 @@ export function SolarRoofTab({
         id: rid(),
         name: `Structure ${pinsStateRef.current.length + 1}`,
         kind: "pitched",
-        pitch: "6/12",
+        pitch: "unknown",
         plan_area_sqft: 0,
         lng: e.lngLat.lng,
         lat: e.lngLat.lat,
@@ -682,7 +692,7 @@ export function SolarRoofTab({
       pin.facets && pin.facets.length > 0
         ? pin.facets
         : pin.ring && pin.ring.length >= 3
-          ? [{ ring: pin.ring, pitch: pin.pitch, plan_area_sqft: pin.plan_area_sqft, pitch_degrees: 0 }]
+          ? [{ ring: pin.ring, pitch: pin.pitch, plan_area_sqft: pin.plan_area_sqft, pitch_degrees: pitchStringToDegrees(pin.pitch) }]
           : [];
     facets.forEach((f, fi) => {
       const isClosed =
@@ -706,7 +716,7 @@ export function SolarRoofTab({
                 p.facets && p.facets.length > 0
                   ? p.facets
                   : p.ring && p.ring.length >= 3
-                    ? [{ ring: p.ring, pitch: p.pitch, plan_area_sqft: p.plan_area_sqft, pitch_degrees: 0 }]
+                    ? [{ ring: p.ring, pitch: p.pitch, plan_area_sqft: p.plan_area_sqft, pitch_degrees: pitchStringToDegrees(p.pitch) }]
                     : [];
               const nextFacets = cur.map((ff, ii) => {
                 if (ii !== fi) return ff;
@@ -902,11 +912,32 @@ export function SolarRoofTab({
     }
     const ring = [...drawPoints, drawPoints[0]];
     const area = polygonAreaSqft(ring);
-    updatePin(drawingPinId, { plan_area_sqft: Math.round(area), ring, facets: [{ ring, pitch: "6/12", plan_area_sqft: area, pitch_degrees: 0 }] });
+    const drawnPin = pinsStateRef.current.find((p) => p.id === drawingPinId);
+    const drawnPitch = drawnPin?.kind === "flat" ? "0/12" : drawnPin?.pitch ?? "unknown";
+    updatePin(drawingPinId, {
+      plan_area_sqft: Math.round(area),
+      ring,
+      facets: [
+        {
+          ring,
+          pitch: drawnPitch,
+          plan_area_sqft: area,
+          pitch_degrees: pitchStringToDegrees(drawnPitch),
+        },
+      ],
+    });
     setDrawingPinId(null);
     setDrawPoints([]);
     toast.success(`Outlined ${Math.round(area).toLocaleString()} sqft`);
   }
+
+  const unknownPitchCount = useMemo(
+    () =>
+      pins.filter(
+        (p) => p.kind === "pitched" && !/^\d+\s*\/\s*\d+$/.test(p.pitch || ""),
+      ).length,
+    [pins],
+  );
 
   const totals = useMemo(() => {
     const active = pins.filter((p) => p.kind !== "ignore");
@@ -929,7 +960,8 @@ export function SolarRoofTab({
     const sections: MapboxRoofData["sections"] = [];
     let i = 0;
     for (const p of active) {
-      const facets = p.facets && p.facets.length > 0 ? p.facets : [{ ring: p.ring && p.ring.length >= 3 ? p.ring : squareRingAround(p.lng, p.lat), pitch: p.kind === "flat" ? "0/12" : p.pitch, plan_area_sqft: p.plan_area_sqft, pitch_degrees: 0 }];
+      const fallbackPitch = p.kind === "flat" ? "0/12" : p.pitch;
+      const facets = p.facets && p.facets.length > 0 ? p.facets : [{ ring: p.ring && p.ring.length >= 3 ? p.ring : squareRingAround(p.lng, p.lat), pitch: fallbackPitch, plan_area_sqft: p.plan_area_sqft, pitch_degrees: pitchStringToDegrees(fallbackPitch) }];
       for (const f of facets) {
         sections.push({
           id: `ai-${p.id}-${i}`,
@@ -1188,6 +1220,19 @@ export function SolarRoofTab({
           </div>
         )}
 
+        {unknownPitchCount > 0 && (
+          <div
+            className="absolute left-3 top-3 z-10 rounded-md border px-2.5 py-1.5 text-[11px] font-medium backdrop-blur"
+            style={{
+              borderColor: "rgba(245,158,11,0.5)",
+              backgroundColor: "color-mix(in oklab, var(--bg-card) 85%, transparent)",
+              color: "rgb(245,158,11)",
+            }}
+          >
+            {unknownPitchCount} structure{unknownPitchCount === 1 ? "" : "s"} with pitch unknown — set the pitch before trusting these squares.
+          </div>
+        )}
+
 
 
 
@@ -1348,6 +1393,7 @@ export function SolarRoofTab({
                   className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
                   style={{ borderColor: "var(--border)" }}
                 >
+                  <option value="unknown">Pitch unknown — pick one</option>
                   {PITCH_OPTIONS.map((p) => (
                     <option key={p} value={p}>
                       {p} ({pitchMultiplier(p).toFixed(3)}×)

@@ -1013,13 +1013,17 @@ export function MapboxRoofDraw({
           className="h-[600px] w-full overflow-hidden rounded-xl border"
           style={{ borderColor: "var(--border)" }}
         />
-        {/* Rotate the imagery so a diagonal roof squares up before drawing */}
+        {/* Rotates the basemap only — polygons stay locked to the roof. */}
         <div
           className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-lg border px-2 py-1.5 shadow-lg"
           style={{ borderColor: "var(--border)", backgroundColor: "rgba(10,10,11,0.85)" }}
+          title="Rotates the imagery only. Measurements stay locked to the roof."
         >
-          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Rotate
+          <span
+            className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+            title="Rotates the imagery only. Measurements stay locked to the roof."
+          >
+            Rotate view
           </span>
           <button type="button" onClick={() => rotateMap(-10)} title="Rotate 10 degrees left" className="rounded px-1.5 py-0.5 text-xs text-foreground hover:bg-[var(--bg-hover)]">-10</button>
           <button type="button" onClick={() => rotateMap(-1)} title="Rotate 1 degree left" className="rounded px-1.5 py-0.5 text-xs text-foreground hover:bg-[var(--bg-hover)]">-1</button>
