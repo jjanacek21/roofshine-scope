@@ -255,6 +255,26 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
 
       addSrc("hail-swaths");
       addSrc("wind-swaths");
+      addSrc("roof-facets");
+
+      // Building footprints — only at canvassing zoom so the view stays clean.
+      if (!map.getSource("mb-streets")) {
+        map.addSource("mb-streets", { type: "vector", url: "mapbox://mapbox.mapbox-streets-v8" });
+      }
+      addLyr({
+        id: "house-footprints",
+        type: "fill",
+        source: "mb-streets",
+        "source-layer": "building",
+        minzoom: HOUSE_CIRCLE_MIN_ZOOM,
+        paint: {
+          "fill-color": "#38bdf8",
+          "fill-opacity": 0.18,
+          "fill-outline-color": "#38bdf8",
+        },
+      });
+
+
 
       for (const key of ["hail", "wind"] as const) {
         addLyr({
