@@ -341,14 +341,21 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       }
 
       map.on("click", (e) => {
-        const hits = map.queryRenderedFeatures(e.point, { layers: ["hail-fill", "wind-fill"] });
-        if (hits.length > 0) return;
+        // A house click always wins over a swath click at canvassing zoom.
+        const houseHit =
+          map.getZoom() >= HOUSE_CIRCLE_MIN_ZOOM &&
+          map.queryRenderedFeatures(e.point, { layers: ["house-footprints"] }).length > 0;
+        if (!houseHit) {
+          const hits = map.queryRenderedFeatures(e.point, { layers: ["hail-fill", "wind-fill"] });
+          if (hits.length > 0) return;
+        }
         setPointRef.current?.({
           lng: e.lngLat.lng,
           lat: e.lngLat.lat,
           label: `${e.lngLat.lat.toFixed(5)}, ${e.lngLat.lng.toFixed(5)}`,
         });
       });
+
 
       map.on("moveend", () => publishBounds(map));
 
