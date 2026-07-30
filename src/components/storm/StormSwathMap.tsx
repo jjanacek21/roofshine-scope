@@ -927,7 +927,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
             </div>
           )}
 
-          {!reportLoading && report && (
+          {!reportLoading && mergedReport && (
             <>
               <div className="flex gap-3 font-mono text-foreground">
                 <span>Max hail: {mergedReport.max_hail_in != null ? `${mergedReport.max_hail_in}"` : "—"}</span>
