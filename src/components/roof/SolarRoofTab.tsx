@@ -186,6 +186,8 @@ export function SolarRoofTab({
   onSwitchToMapbox?: () => void;
 }) {
   const { data: token, isLoading: tokenLoading } = useMapboxToken();
+  const { data: profile } = useProfile();
+
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Record<string, mapboxgl.Marker>>({});
