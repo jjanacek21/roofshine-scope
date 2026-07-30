@@ -219,7 +219,15 @@ export async function runAutoMeasureForProperty(
 
   buildings.forEach((b, bi) => {
     const label = bi === 0 ? "House" : `Structure ${bi + 1}`;
+    // Drop stray segments that belong to a neighbouring roof.
+    const near = b.segments.filter((s) => {
+      const c = s.center;
+      if (!c) return true;
+      return haversineMeters(b.center, { lat: c.latitude, lng: c.longitude }) <= 45;
+    });
+    if (near.length) b.segments = near;
     b.segments.forEach((seg, si) => {
+
       const planM2 = seg.stats?.areaMeters2 ?? 0;
       if (planM2 <= 0 || !seg.boundingBox) return;
       const planSqFt = planM2 * SQ_M_TO_SQ_FT;
