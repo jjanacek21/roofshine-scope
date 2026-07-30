@@ -47,7 +47,7 @@ export function MeasureTuningPanel({
         >
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-              Edge detection
+              Roof fitting
             </h4>
             <button
               type="button"
@@ -64,53 +64,50 @@ export function MeasureTuningPanel({
           </p>
 
           <div className="mt-4 space-y-4">
-            <Row
-              label="Edge tightness"
-              value={`${Math.round(tuning.edge_tightness * 100)}%`}
-              hint="Lower pulls facet edges inward on overhanging or shadowed roofs; higher pushes them out."
-            >
-              <input
-                type="range"
-                min={TUNING_BOUNDS.edge_tightness.min}
-                max={TUNING_BOUNDS.edge_tightness.max}
-                step={TUNING_BOUNDS.edge_tightness.step}
-                value={tuning.edge_tightness}
-                onChange={(e) => set("edge_tightness", Number(e.target.value))}
-                className="w-full accent-[var(--brand)]"
-              />
-            </Row>
+            <div>
+              <span className="text-xs font-medium text-foreground">Building outline</span>
+              <div className="mt-2 grid grid-cols-3 gap-1">
+                {(
+                  [
+                    ["auto", "Auto"],
+                    ["osm", "Vector map"],
+                    ["boxes", "Solar only"],
+                  ] as const
+                ).map(([v, label]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => set("footprint_source", v)}
+                    className="rounded-md border px-2 py-1.5 text-[11px] font-semibold"
+                    style={{
+                      borderColor: tuning.footprint_source === v ? "var(--brand)" : "var(--border)",
+                      color: tuning.footprint_source === v ? "var(--brand)" : undefined,
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Auto uses the real vector building outline and falls back to Google's roof data when
+                the building isn't mapped.
+              </p>
+            </div>
 
-            <Row
-              label="Min facet size"
-              value={`${tuning.min_facet_sqft} sqft`}
-              hint="Discards sliver facets the AI hallucinates on busy roofs."
-            >
-              <input
-                type="range"
-                min={TUNING_BOUNDS.min_facet_sqft.min}
-                max={TUNING_BOUNDS.min_facet_sqft.max}
-                step={TUNING_BOUNDS.min_facet_sqft.step}
-                value={tuning.min_facet_sqft}
-                onChange={(e) => set("min_facet_sqft", Number(e.target.value))}
-                className="w-full accent-[var(--brand)]"
-              />
-            </Row>
+            <Toggle
+              label="Fewer, larger shapes"
+              checked={tuning.merge_small}
+              onChange={(v) => set("merge_small", v)}
+              hint="Merges roof planes that face the same direction instead of many small pieces."
+            />
 
-            <Row
-              label="Search radius"
-              value={`${tuning.max_facet_radius_ft} ft`}
-              hint="How far from your pin a facet can sit before it's treated as a neighbour's roof."
-            >
-              <input
-                type="range"
-                min={TUNING_BOUNDS.max_facet_radius_ft.min}
-                max={TUNING_BOUNDS.max_facet_radius_ft.max}
-                step={TUNING_BOUNDS.max_facet_radius_ft.step}
-                value={tuning.max_facet_radius_ft}
-                onChange={(e) => set("max_facet_radius_ft", Number(e.target.value))}
-                className="w-full accent-[var(--brand)]"
-              />
-            </Row>
+            <Toggle
+              label="Snap to square"
+              checked={tuning.snap_square}
+              onChange={(v) => set("snap_square", v)}
+              hint="Straightens near-90° corners so the outline reads as a building."
+            />
+
 
             <div>
               <div className="flex items-center justify-between">
@@ -177,3 +174,38 @@ function Row({
     </div>
   );
 }
+
+function Toggle({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        className="flex w-full items-center justify-between gap-3"
+      >
+        <span className="text-xs font-medium text-foreground">{label}</span>
+        <span
+          className="relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors"
+          style={{ background: checked ? "var(--brand)" : "var(--border)" }}
+        >
+          <span
+            className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all"
+            style={{ left: checked ? 18 : 2 }}
+          />
+        </span>
+      </button>
+      <p className="mt-1 text-left text-[11px] text-muted-foreground">{hint}</p>
+    </div>
+  );
+}
+

@@ -1,13 +1,16 @@
 /**
- * Per-job AI edge-detection tuning for Google Solar roof measurements.
+ * Per-job AI measurement settings for the roof fitter.
  * Stored on jobs.ai_measure_settings and sent with each measure request.
  */
+export type FootprintSource = "auto" | "osm" | "boxes";
+
 export type MeasureTuning = {
-  /**
-   * Edge tightness. 1.0 = fit the facet rectangle to the reported roof area.
-   * Below 1 pulls edges inward (busy/overhanging roofs), above 1 pushes out.
-   */
-  edge_tightness: number;
+  /** Where the building outline comes from. */
+  footprint_source: FootprintSource;
+  /** Merge faces that share a slope direction — fewer, larger polygons. */
+  merge_small: boolean;
+  /** Snap near-90° corners to the building's dominant axis. */
+  snap_square: boolean;
   /** Ignore detected facets smaller than this (sqft) — kills slivers. */
   min_facet_sqft: number;
   /** Ignore facets whose centre is farther than this from the pin (feet). */
@@ -17,8 +20,10 @@ export type MeasureTuning = {
 };
 
 export const DEFAULT_MEASURE_TUNING: MeasureTuning = {
-  edge_tightness: 1,
-  min_facet_sqft: 40,
+  footprint_source: "auto",
+  merge_small: true,
+  snap_square: true,
+  min_facet_sqft: 25,
   max_facet_radius_ft: 150,
   imagery_quality: "LOW",
 };
@@ -26,7 +31,6 @@ export const DEFAULT_MEASURE_TUNING: MeasureTuning = {
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
 export const TUNING_BOUNDS = {
-  edge_tightness: { min: 0.7, max: 1.3, step: 0.01 },
   min_facet_sqft: { min: 0, max: 300, step: 5 },
   max_facet_radius_ft: { min: 40, max: 400, step: 10 },
 } as const;
@@ -34,14 +38,15 @@ export const TUNING_BOUNDS = {
 export function normalizeTuning(raw: unknown): MeasureTuning {
   const t = (raw ?? {}) as Partial<MeasureTuning>;
   const q = t.imagery_quality;
+  const src = t.footprint_source;
   return {
-    edge_tightness: clamp(
-      Number.isFinite(Number(t.edge_tightness)) ? Number(t.edge_tightness) : DEFAULT_MEASURE_TUNING.edge_tightness,
-      TUNING_BOUNDS.edge_tightness.min,
-      TUNING_BOUNDS.edge_tightness.max,
-    ),
+    footprint_source: src === "osm" || src === "boxes" ? src : "auto",
+    merge_small: t.merge_small !== false,
+    snap_square: t.snap_square !== false,
     min_facet_sqft: clamp(
-      Number.isFinite(Number(t.min_facet_sqft)) ? Number(t.min_facet_sqft) : DEFAULT_MEASURE_TUNING.min_facet_sqft,
+      Number.isFinite(Number(t.min_facet_sqft))
+        ? Number(t.min_facet_sqft)
+        : DEFAULT_MEASURE_TUNING.min_facet_sqft,
       TUNING_BOUNDS.min_facet_sqft.min,
       TUNING_BOUNDS.min_facet_sqft.max,
     ),
