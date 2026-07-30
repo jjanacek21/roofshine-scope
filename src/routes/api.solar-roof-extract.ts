@@ -282,9 +282,8 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
               predominant_pitch: predominantPitch,
               segment_count: segments.length,
               segments,
-              // tuning that produced this run, for the training centre
-              
-              raw_response: data as unknown as Record<string, unknown>,
+              raw_response: { ...(data as unknown as Record<string, unknown>), tuning },
+
             });
           } catch (err) {
             console.error("ai_measurement_runs log failed:", err);
