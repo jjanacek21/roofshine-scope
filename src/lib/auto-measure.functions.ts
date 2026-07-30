@@ -72,22 +72,35 @@ export async function runAutoMeasure(
   userId: string,
   jobId: string,
 ): Promise<AutoMeasureResult> {
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("id, property_id, company_id")
+    .eq("id", jobId)
+    .maybeSingle();
+  if (!job?.property_id) return { ok: false, reason: "no_property" };
+  return runAutoMeasureForProperty(supabase, userId, job.property_id, job.company_id);
+}
+
+/**
+ * Core measurement pipeline, keyed on a property. Used by the job flow and by
+ * the storm canvassing map — there is only ever one pipeline.
+ */
+export async function runAutoMeasureForProperty(
+  supabase: SupabaseClient,
+  userId: string,
+  propertyId: string,
+  companyId: string | null,
+): Promise<AutoMeasureResult> {
   const GOOGLE_KEY = process.env.GOOGLE_MAPS_API_KEY;
   if (!GOOGLE_KEY) return { ok: false, reason: "google_key_missing" };
 
-  const { data: job } = await supabase
-  .from("jobs")
-  .select("id, property_id, company_id")
-  .eq("id", jobId)
-  .maybeSingle();
-  if (!job?.property_id) return { ok: false, reason: "no_property" };
-
   const { data: prop } = await supabase
     .from("properties")
-    .select("id, lat, lng")
-    .eq("id", job.property_id)
+    .select("id, lat, lng, company_id")
+    .eq("id", propertyId)
     .maybeSingle();
   if (!prop?.lat || !prop?.lng) return { ok: false, reason: "no_coordinates" as const };
+  const resolvedCompanyId = companyId ?? prop.company_id;
 
   // Skip if a measurement already exists (don't overwrite user-verified work).
   const { data: existing } = await supabase
@@ -98,6 +111,7 @@ export async function runAutoMeasure(
   if (existing && existing.source !== "google_solar") {
     return { ok: false, reason: "already_measured" as const };
   }
+
 
   // Probe center + 8 surrounding points at ~25m, then 4 corners at ~50m.
   const lat = Number(prop.lat);
