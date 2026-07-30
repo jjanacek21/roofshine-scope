@@ -945,8 +945,26 @@ export function SolarRoofTab({
         i++;
       }
     }
+    // Remember what the AI produced so a hand-drawn correction on the Mapbox
+    // tab can be saved as a training pair.
+    if (propertyId) {
+      const anchor = active[0];
+      setMeasureHandoff({
+        property_id: propertyId,
+        run_id: active.find((p) => p.run_id)?.run_id ?? null,
+        lat: anchor.lat,
+        lng: anchor.lng,
+        total_plan_sqft: Math.round(active.reduce((s, p) => s + (p.plan_area_sqft || 0), 0)),
+        facets: sections.map((s) => ({
+          ring: s.ring,
+          pitch: s.pitch,
+          plan_area_sqft: s.plan_area_sqft,
+        })),
+      });
+    }
     onApply({ sections, lines: [] });
     toast.success("Applied to Mapbox tab — refine shapes & label edges");
+
   }
 
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
