@@ -706,7 +706,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     const { error } = await supabase.rpc("save_storm_disposition" as any, {
       p_lat: point.lat,
       p_lng: point.lng,
-      p_address: point.label,
+      p_address: pointLabel || point.label,
       p_disposition: "storm_damage",
       p_notes: null,
       p_storm: (report ?? {}) as any,
