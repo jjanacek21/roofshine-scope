@@ -874,7 +874,6 @@ export function SolarRoofTab({
       setActivePinId(null);
       setShowHandoff(false);
       setCalibration(null);
-      onApply({ sections: [], lines: [] });
       toast.success(n > 0 ? "All saved measurements deleted for this address" : "No saved measurements to delete");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't clear measurements"),
@@ -957,21 +956,35 @@ export function SolarRoofTab({
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-foreground">AI Roof Measurements</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            One click measures the whole property. If there are <b>multiple structures</b> (shed, detached garage, guest house), <b>click each extra structure on the map first</b> to drop a pin — then hit Measure entire property and each pin will be measured too.
+            Nothing is measured automatically. <b>Click on top of each roof</b> on the map to drop a pin —
+            one pin per structure (house, shed, detached garage) — then hit <b>AI measurements</b> and only
+            the pinned roofs are measured.
           </p>
         </div>
-        <button
-          onClick={() => detect.mutate()}
-          disabled={detect.isPending}
-          className="btn-brand inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-5 text-xs font-semibold disabled:opacity-40"
-        >
-          {detect.isPending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Sparkles className="h-3.5 w-3.5" />
-          )}
-          {detect.isPending ? "Measuring…" : "Measure entire property"}
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            onClick={() => clearSaved.mutate()}
+            disabled={clearSaved.isPending || !propertyId}
+            className="inline-flex h-10 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-red-500 hover:bg-red-500/10 disabled:opacity-40"
+            style={{ borderColor: "var(--border)" }}
+            title="Delete every saved measurement for this address"
+          >
+            {clearSaved.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+            Clear all measurements
+          </button>
+          <button
+            onClick={() => measureAll.mutate()}
+            disabled={measureAll.isPending || pins.filter((p) => p.kind !== "ignore").length === 0}
+            className="btn-brand inline-flex h-10 items-center gap-2 rounded-md px-5 text-xs font-semibold disabled:opacity-40"
+          >
+            {measureAll.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            {measureAll.isPending ? "Measuring…" : `AI measurements${pins.length ? ` (${pins.filter((p) => p.kind !== "ignore").length})` : ""}`}
+          </button>
+        </div>
       </div>
 
       {/* No-coverage empty state — shown when Google Solar has no building data here */}
@@ -999,12 +1012,12 @@ export function SolarRoofTab({
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => detect.mutate()}
-              disabled={detect.isPending}
+              onClick={() => measureAll.mutate()}
+              disabled={measureAll.isPending}
               className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs text-foreground hover:bg-[var(--surface-hover)] disabled:opacity-40"
               style={{ borderColor: "var(--border)" }}
             >
-              {detect.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              {measureAll.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
               Try again
             </button>
             {onSwitchToMapbox && (
@@ -1127,7 +1140,7 @@ export function SolarRoofTab({
             }}
           >
             <Info className="h-3 w-3 text-muted-foreground" />
-            <span className="text-muted-foreground">Click to add a custom pin · use button above to measure whole property</span>
+            <span className="text-muted-foreground">Click each roof to drop a pin · then hit AI measurements above</span>
           </div>
         )}
         {imageryQuality && (
