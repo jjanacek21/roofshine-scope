@@ -211,6 +211,63 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     },
   });
 
+  // The point RPC misses swath coverage in some areas, so derive hail for the
+  // panel from the same swath layer the map paints, using a tiny bbox at the point.
+  const { data: pointHail = [] } = useQuery({
+    queryKey: [
+      "storm-point-hail",
+      point?.lat?.toFixed(4),
+      point?.lng?.toFixed(4),
+      HAIL_MAX_DAYS,
+    ],
+    enabled: !!point,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const d = 0.001;
+      const { data, error } = await stormSupabase.rpc("hail_swaths_in_view" as any, {
+        p_min_lon: point!.lng - d,
+        p_min_lat: point!.lat - d,
+        p_max_lon: point!.lng + d,
+        p_max_lat: point!.lat + d,
+        p_days: HAIL_MAX_DAYS,
+      });
+      if (error) throw error;
+      const feats = ((data as FC)?.features ?? []) as any[];
+      const byKey = new Map<string, StormReport["hail_dates"][number]>();
+      for (const f of feats) {
+        const p = f?.properties ?? {};
+        const date = String(p.event_date ?? "");
+        if (!date) continue;
+        const size = typeof p.max_in === "number" ? p.max_in : null;
+        const min = typeof p.min_in === "number" ? p.min_in : null;
+        const key = `${date}|${p.band ?? ""}`;
+        const prev = byKey.get(key);
+        const entry = {
+          date,
+          size_in: size ?? min,
+          band: p.band ? String(p.band) : null,
+          color: p.color ? String(p.color) : null,
+        };
+        if (!prev || (entry.size_in ?? 0) > (prev.size_in ?? 0)) byKey.set(key, entry);
+      }
+      return Array.from(byKey.values()).sort((a, b) => (a.date < b.date ? 1 : -1));
+    },
+  });
+
+  // Merge swath-derived hail into the point report (swaths win when present).
+  const mergedReport = useMemo<StormReport | null>(() => {
+    if (!report && pointHail.length === 0) return report ?? null;
+    const base: StormReport =
+      report ?? { max_hail_in: null, max_wind_mph: null, hail_dates: [], wind_dates: [] };
+    const hailDates = pointHail.length > 0 ? pointHail : base.hail_dates ?? [];
+    const maxHail = hailDates.reduce<number | null>(
+      (m, h) => (h.size_in != null && (m == null || h.size_in > m) ? h.size_in : m),
+      base.max_hail_in ?? null,
+    );
+    return { ...base, hail_dates: hailDates, max_hail_in: maxHail };
+  }, [report, pointHail]);
+
+
   // Reverse-geocode the selected house so the panel shows a real street address.
   const { data: resolvedAddress } = useQuery({
     queryKey: ["storm-reverse-geocode", point?.lat?.toFixed(6), point?.lng?.toFixed(6)],
@@ -709,7 +766,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       p_address: pointLabel || point.label,
       p_disposition: "storm_damage",
       p_notes: null,
-      p_storm: (report ?? {}) as any,
+      p_storm: (mergedReport ?? {}) as any,
     });
     setSaving(false);
     if (error) {
@@ -718,7 +775,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     }
     toast.success("Saved as storm damage lead");
     queryClient.invalidateQueries({ queryKey: ["storm-saved-dispositions"] });
-  }, [point, pointLabel, report, queryClient]);
+  }, [point, pointLabel, mergedReport, queryClient]);
 
   const handleExportCsv = useCallback(async () => {
     const { data, error } = await supabase.rpc("export_storm_dispositions" as any, {
@@ -870,19 +927,19 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
             </div>
           )}
 
-          {!reportLoading && report && (
+          {!reportLoading && mergedReport && (
             <>
               <div className="flex gap-3 font-mono text-foreground">
-                <span>Max hail: {report.max_hail_in != null ? `${report.max_hail_in}"` : "—"}</span>
-                <span>Max wind: {report.max_wind_mph != null ? `${report.max_wind_mph} mph` : "—"}</span>
+                <span>Max hail: {mergedReport.max_hail_in != null ? `${mergedReport.max_hail_in}"` : "—"}</span>
+                <span>Max wind: {mergedReport.max_wind_mph != null ? `${mergedReport.max_wind_mph} mph` : "—"}</span>
               </div>
 
               <div>
                 <div className="mb-1 font-semibold text-foreground">Hail — last 60 days</div>
-                {(report.hail_dates ?? []).length === 0 ? (
+                {(mergedReport.hail_dates ?? []).length === 0 ? (
                   <div className="opacity-70">No hail reported.</div>
                 ) : (
-                  (report.hail_dates ?? []).map((h, i) => (
+                  (mergedReport.hail_dates ?? []).map((h, i) => (
                     <div key={i} className="flex items-center gap-2 py-[1px]">
                       <span
                         className="inline-block h-2.5 w-2.5 rounded-sm"
@@ -899,10 +956,10 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
 
               <div>
                 <div className="mb-1 font-semibold text-foreground">Wind 60+ mph — last year</div>
-                {(report.wind_dates ?? []).length === 0 ? (
+                {(mergedReport.wind_dates ?? []).length === 0 ? (
                   <div className="opacity-70">No 60+ mph winds reported.</div>
                 ) : (
-                  (report.wind_dates ?? []).map((w, i) => (
+                  (mergedReport.wind_dates ?? []).map((w, i) => (
                     <div key={i} className="flex items-center gap-2 py-[1px]">
                       <span className="flex-1">{fmtDate(w.date)}</span>
                       <span className="font-mono text-foreground">
@@ -969,7 +1026,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           propertyId={measure?.propertyId ?? null}
           roofType={measure?.roofType ?? null}
           math={measure?.math ?? null}
-          stormReport={report ?? null}
+          stormReport={mergedReport ?? null}
         />
       )}
 
