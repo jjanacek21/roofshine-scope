@@ -190,6 +190,7 @@
 
   html {
     font-family: var(--font-sans);
+    font-size: 17px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background-color: var(--bg);
@@ -200,11 +201,12 @@
     color: var(--text);
     min-height: 100vh;
     background:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(30, 144, 255, 0.08), transparent),
-      radial-gradient(ellipse 60% 40% at 80% 120%, rgba(212, 165, 116, 0.04), transparent),
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(22, 104, 214, 0.07), transparent),
+      radial-gradient(ellipse 60% 40% at 80% 120%, rgba(169, 122, 65, 0.05), transparent),
       var(--bg);
     background-attachment: fixed;
   }
+
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-sans);
