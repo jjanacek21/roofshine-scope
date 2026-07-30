@@ -555,6 +555,12 @@ export function SolarRoofTab({
 
     function updateOverlays() {
       if (!map) return;
+      // Layers may not exist yet if data arrived before "load" fired.
+      if (!ensureOverlayLayers(map)) {
+        map.once("idle", () => updateOverlays());
+        return;
+      }
+
       for (const kind of ["pitched", "flat", "ignore"] as PinKind[]) {
         const src = map.getSource(`facet-${kind}`) as mapboxgl.GeoJSONSource | undefined;
         if (!src) continue;
