@@ -21,18 +21,21 @@ type Props = {
   lat: number;
   lng: number;
   address: string | null;
+  /** Footprint bbox of the clicked house: [minLng, minLat, maxLng, maxLat]. */
+  footprint?: [number, number, number, number] | null;
   onChange: (snap: MeasureSnapshot) => void;
   onSections: (features: any[]) => void;
 };
 
 const fmt = (n: number) => Math.round(n).toLocaleString();
 
-export function RoofMeasureCard({ lat, lng, address, onChange, onSections }: Props) {
+export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange, onSections }: Props) {
   const qc = useQueryClient();
   const key = ["storm-roof", lat.toFixed(5), lng.toFixed(5)];
 
   const measureFn = useServerFn(autoMeasurePropertyRoof);
   const ensureFn = useServerFn(ensureStormProperty);
+
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: key,
