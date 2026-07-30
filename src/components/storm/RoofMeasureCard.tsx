@@ -161,7 +161,7 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
           </p>
           <button
             type="button"
-            onClick={() => measure.mutate()}
+            onClick={() => measure.mutate(false)}
             disabled={measure.isPending}
             className="flex w-full items-center justify-center gap-1.5 rounded-md px-2 py-2 text-xs font-semibold disabled:opacity-60"
             style={{ background: "var(--brand, #2563eb)", color: "#fff" }}
@@ -180,7 +180,7 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
                 <AlertTriangle className="h-3 w-3" />
                 {(measure.error as Error).message}
               </span>
-              <button type="button" onClick={() => measure.mutate()} className="flex items-center gap-1 underline">
+              <button type="button" onClick={() => measure.mutate(false)} className="flex items-center gap-1 underline">
                 <RefreshCw className="h-3 w-3" /> Retry
               </button>
             </div>
