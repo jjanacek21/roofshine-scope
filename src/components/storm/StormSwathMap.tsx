@@ -2,12 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Download, Save, X } from "lucide-react";
+import { Loader2, Download, Save, X, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { stormSupabase } from "@/integrations/storm/client";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { HOUSE_CIRCLE_MIN_ZOOM } from "@/lib/storm-config";
+import { RoofMeasureCard, type MeasureSnapshot } from "@/components/storm/RoofMeasureCard";
+import { StormMailerModal } from "@/components/storm/StormMailerModal";
+
 
 type FC = { type: "FeatureCollection"; features: any[] };
 const EMPTY_FC: FC = { type: "FeatureCollection", features: [] };
@@ -36,30 +40,9 @@ const WIND_BANDS: { band: string; label: string; color: string; min: number; max
   { band: "110+", label: "110+ mph", color: "#7B1FA2", min: 110.001, max: Infinity },
 ];
 
-const SAFE_BASE_STYLE = {
-  version: 8,
-  sources: {
-    "osm-raster": {
-      type: "raster",
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-      tileSize: 256,
-      attribution: "© OpenStreetMap contributors",
-    },
-  },
-  layers: [
-    {
-      id: "osm-raster",
-      type: "raster",
-      source: "osm-raster",
-      paint: {
-        "raster-brightness-min": 0.08,
-        "raster-brightness-max": 0.58,
-        "raster-saturation": -0.65,
-        "raster-contrast": 0.15,
-      },
-    },
-  ],
-} as const;
+// Satellite imagery is what canvassers need — they identify the actual roof.
+const SAFE_BASE_STYLE = "mapbox://styles/mapbox/satellite-streets-v12";
+
 
 type SearchPoint = { lng: number; lat: number; label: string };
 type Bbox = { minLon: number; minLat: number; maxLon: number; maxLat: number };
@@ -137,6 +120,11 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const [point, setPoint] = useState<SearchPoint | null>(null);
   const [savedOpen, setSavedOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [measure, setMeasure] = useState<MeasureSnapshot | null>(null);
+  const [facets, setFacets] = useState<any[]>([]);
+  const [mailerOpen, setMailerOpen] = useState(false);
+
+
 
   const days = rangeDays(rangeKey);
   const hailDays = Math.min(days, HAIL_MAX_DAYS);
@@ -276,6 +264,26 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
 
       addSrc("hail-swaths");
       addSrc("wind-swaths");
+      addSrc("roof-facets");
+
+      // Building footprints — only at canvassing zoom so the view stays clean.
+      if (!map.getSource("mb-streets")) {
+        map.addSource("mb-streets", { type: "vector", url: "mapbox://mapbox.mapbox-streets-v8" });
+      }
+      addLyr({
+        id: "house-footprints",
+        type: "fill",
+        source: "mb-streets",
+        "source-layer": "building",
+        minzoom: HOUSE_CIRCLE_MIN_ZOOM,
+        paint: {
+          "fill-color": "#38bdf8",
+          "fill-opacity": 0.18,
+          "fill-outline-color": "#38bdf8",
+        },
+      });
+
+
 
       for (const key of ["hail", "wind"] as const) {
         addLyr({
@@ -299,8 +307,26 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         });
       }
 
+      // Measured roof facets for the selected house.
+      addLyr({
+        id: "roof-facets-fill",
+        type: "fill",
+        source: "roof-facets",
+        paint: { "fill-color": ["coalesce", ["get", "color"], "#38bdf8"], "fill-opacity": 0.35 },
+      });
+      addLyr({
+        id: "roof-facets-line",
+        type: "line",
+        source: "roof-facets",
+        paint: { "line-color": "#fbbf24", "line-width": 1.5 },
+      });
+
       const popup = new mapboxgl.Popup({ closeButton: true, closeOnClick: true });
       swathPopupRef.current = popup;
+
+      map.on("mouseenter", "house-footprints", () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", "house-footprints", () => (map.getCanvas().style.cursor = ""));
+
 
       for (const layer of ["hail-fill", "wind-fill"]) {
         map.on("click", layer, (e) => {
@@ -320,14 +346,21 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       }
 
       map.on("click", (e) => {
-        const hits = map.queryRenderedFeatures(e.point, { layers: ["hail-fill", "wind-fill"] });
-        if (hits.length > 0) return;
+        // A house click always wins over a swath click at canvassing zoom.
+        const houseHit =
+          map.getZoom() >= HOUSE_CIRCLE_MIN_ZOOM &&
+          map.queryRenderedFeatures(e.point, { layers: ["house-footprints"] }).length > 0;
+        if (!houseHit) {
+          const hits = map.queryRenderedFeatures(e.point, { layers: ["hail-fill", "wind-fill"] });
+          if (hits.length > 0) return;
+        }
         setPointRef.current?.({
           lng: e.lngLat.lng,
           lat: e.lngLat.lat,
           label: `${e.lngLat.lat.toFixed(5)}, ${e.lngLat.lng.toFixed(5)}`,
         });
       });
+
 
       map.on("moveend", () => publishBounds(map));
 
@@ -459,6 +492,17 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       (showWind ? wind : EMPTY_FC) as any,
     );
   }, [wind, showWind, styleReady]);
+
+  // ---- measured roof facets -------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !readyRef.current) return;
+    (map.getSource("roof-facets") as mapboxgl.GeoJSONSource | undefined)?.setData({
+      type: "FeatureCollection",
+      features: point ? facets : [],
+    } as any);
+  }, [facets, point, styleReady]);
+
 
   // ---- marker for the active point ------------------------------------
   useEffect(() => {
@@ -714,6 +758,17 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
             </>
           )}
 
+          {user && (
+            <RoofMeasureCard
+              key={`${point.lat.toFixed(5)},${point.lng.toFixed(5)}`}
+              lat={point.lat}
+              lng={point.lng}
+              address={point.label}
+              onChange={setMeasure}
+              onSections={setFacets}
+            />
+          )}
+
           {!user ? (
             <div
               className="mt-1 rounded-md px-2 py-1.5 text-center text-[11px]"
@@ -722,19 +777,44 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
               Sign in to save leads
             </div>
           ) : (
-          <button
-            type="button"
-            onClick={handleSaveLead}
-            disabled={saving}
-            className="mt-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold"
-            style={{ background: "var(--brand, #2563eb)", color: "#fff" }}
-          >
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-            Save as storm damage lead
-          </button>
+            <>
+              <button
+                type="button"
+                onClick={handleSaveLead}
+                disabled={saving}
+                className="mt-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold"
+                style={{ background: "var(--brand, #2563eb)", color: "#fff" }}
+              >
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Save as storm damage lead
+              </button>
+              <button
+                type="button"
+                onClick={() => setMailerOpen(true)}
+                className="flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-semibold text-foreground"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <Mail className="h-3.5 w-3.5" /> Create mailer
+              </button>
+            </>
           )}
         </div>
       )}
+
+      {point && mailerOpen && (
+        <StormMailerModal
+          open={mailerOpen}
+          onClose={() => setMailerOpen(false)}
+          address={point.label}
+          lat={point.lat}
+          lng={point.lng}
+          propertyId={measure?.propertyId ?? null}
+          roofType={measure?.roofType ?? null}
+          math={measure?.math ?? null}
+          stormReport={report ?? null}
+        />
+      )}
+
 
       {/* Saved properties panel */}
       {savedOpen && (

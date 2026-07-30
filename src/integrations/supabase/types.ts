@@ -3073,6 +3073,53 @@ export type Database = {
           },
         ]
       }
+      owner_lookups: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          fetched_at: string
+          id: string
+          owner_email: string | null
+          owner_name: string | null
+          owner_phone: string | null
+          property_id: string | null
+          provider: string
+          raw_response: Json | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          property_id?: string | null
+          provider?: string
+          raw_response?: Json | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          property_id?: string | null
+          provider?: string
+          raw_response?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_lookups_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       photo_suggestion_decisions: {
         Row: {
           ai_confidence: string | null
@@ -3341,7 +3388,7 @@ export type Database = {
         Row: {
           address: string
           city: string | null
-          client_id: string
+          client_id: string | null
           company_id: string
           created_at: string
           id: string
@@ -3358,7 +3405,7 @@ export type Database = {
         Insert: {
           address: string
           city?: string | null
-          client_id: string
+          client_id?: string | null
           company_id: string
           created_at?: string
           id?: string
@@ -3375,7 +3422,7 @@ export type Database = {
         Update: {
           address?: string
           city?: string | null
-          client_id?: string
+          client_id?: string | null
           company_id?: string
           created_at?: string
           id?: string
@@ -4869,6 +4916,141 @@ export type Database = {
           storm_date?: string
         }
         Relationships: []
+      }
+      storm_mailer_campaigns: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      storm_mailers: {
+        Row: {
+          address: string
+          campaign_id: string | null
+          clicked_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          email_message_id: string | null
+          generated_body: string | null
+          generated_subject: string | null
+          id: string
+          image_urls: string[] | null
+          lat: number
+          lng: number
+          open_count: number
+          opened_at: string | null
+          prompt_input: string | null
+          property_id: string | null
+          roof_type: string | null
+          sent_at: string | null
+          signature_payload: Json | null
+          signature_type: string | null
+          squares: number | null
+          status: string
+          storm_report: Json | null
+          storm_type: string | null
+          tone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          campaign_id?: string | null
+          clicked_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          email_message_id?: string | null
+          generated_body?: string | null
+          generated_subject?: string | null
+          id?: string
+          image_urls?: string[] | null
+          lat: number
+          lng: number
+          open_count?: number
+          opened_at?: string | null
+          prompt_input?: string | null
+          property_id?: string | null
+          roof_type?: string | null
+          sent_at?: string | null
+          signature_payload?: Json | null
+          signature_type?: string | null
+          squares?: number | null
+          status?: string
+          storm_report?: Json | null
+          storm_type?: string | null
+          tone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          campaign_id?: string | null
+          clicked_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          email_message_id?: string | null
+          generated_body?: string | null
+          generated_subject?: string | null
+          id?: string
+          image_urls?: string[] | null
+          lat?: number
+          lng?: number
+          open_count?: number
+          opened_at?: string | null
+          prompt_input?: string | null
+          property_id?: string | null
+          roof_type?: string | null
+          sent_at?: string | null
+          signature_payload?: Json | null
+          signature_type?: string | null
+          squares?: number | null
+          status?: string
+          storm_report?: Json | null
+          storm_type?: string | null
+          tone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storm_mailers_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "storm_mailer_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storm_mailers_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       storm_swaths: {
         Row: {
