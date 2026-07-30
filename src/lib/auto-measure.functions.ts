@@ -171,6 +171,33 @@ export async function runAutoMeasureForProperty(
 
   if (buildings.length === 0) return { ok: false, reason: "no_coverage" as const };
 
+  // Single-house mode: keep only the building nearest the clicked point, and
+  // drop any facet whose centre falls outside the clicked footprint.
+  if (opts?.single) {
+    buildings.sort(
+      (a, b) => haversineMeters(a.center, { lat, lng }) - haversineMeters(b.center, { lat, lng }),
+    );
+    buildings.splice(1);
+    const fp = opts.footprint;
+    if (fp) {
+      const [minLng, minLat, maxLng, maxLat] = fp;
+      const pad = 0.00012; // ~13 m of slack around the footprint bbox
+      const b = buildings[0];
+      const inside = b.segments.filter((s) => {
+        const c = s.center;
+        if (!c) return true;
+        return (
+          c.longitude >= minLng - pad &&
+          c.longitude <= maxLng + pad &&
+          c.latitude >= minLat - pad &&
+          c.latitude <= maxLat + pad
+        );
+      });
+      if (inside.length) b.segments = inside;
+    }
+  }
+
+
   // Build a single roof_measurements row + one roof_sections row per facet
   // across ALL detected buildings (house + shed + garage, etc.).
   let totalPlan = 0;
