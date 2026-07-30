@@ -25,6 +25,8 @@ import type { MapboxRoofData } from "./MapboxRoofDraw";
 import { MeasureTuningPanel } from "./MeasureTuningPanel";
 import { DEFAULT_MEASURE_TUNING, normalizeTuning, type MeasureTuning } from "@/lib/measure-tuning";
 import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares, polygonAreaSqft, haversineFeet } from "@/lib/roof-math";
+import { setMeasureHandoff } from "@/lib/measure-handoff";
+
 import "mapbox-gl/dist/mapbox-gl.css";
 
 type PinKind = "pitched" | "flat" | "ignore";
@@ -38,6 +40,12 @@ type Pin = {
   lng: number;
   lat: number;
   ring?: number[][];
+  /** Fitted building outline (drawn as a dashed guide). */
+  footprint?: number[][];
+  /** ai_measurement_runs row this pin's geometry came from. */
+  run_id?: string | null;
+
+
   // All facets that contributed to this pin's measurement (for overlay rendering)
   facets?: Array<{ ring: number[][]; pitch: string; plan_area_sqft: number; pitch_degrees: number }>;
   source: "solar" | "manual";
@@ -58,7 +66,13 @@ type SolarResponse = {
   total_plan_sqft: number;
   segments: SolarSegment[];
   imagery_quality: string | null;
+  /** True building outline the facets were fitted to. */
+  footprint?: number[][];
+  footprint_source?: string;
+  /** Pitch was assumed because Google had no roof data here. */
+  pitch_estimated?: boolean;
 };
+
 
 type CalibrationResponse = {
   raw_total_sqft: number;
@@ -172,6 +186,8 @@ export function SolarRoofTab({
   const [activePinId, setActivePinId] = useState<string | null>(null);
   const [wastePct, setWastePct] = useState(15);
   const [imageryQuality, setImageryQuality] = useState<string | null>(null);
+  const [estimatedPitch, setEstimatedPitch] = useState(false);
+
   const [showOverlay, setShowOverlay] = useState(true);
   const [showCoverageGaps, setShowCoverageGaps] = useState(false);
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
@@ -419,6 +435,27 @@ export function SolarRoofTab({
         }
       }
 
+      // Fitted building outline (dashed white guide under the facets)
+      if (!map.getSource("facet-footprint")) {
+        map.addSource("facet-footprint", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+        map.addLayer({
+          id: "facet-footprint-line",
+          type: "line",
+          source: "facet-footprint",
+          paint: {
+            "line-color": "#ffffff",
+            "line-width": 1.5,
+            "line-opacity": 0.9,
+            "line-dasharray": [2, 2],
+          },
+        });
+      }
+
+
+
       // Facet labels
       if (!map.getSource("facet-labels")) {
         map.addSource("facet-labels", {
@@ -520,6 +557,30 @@ export function SolarRoofTab({
         }
         src.setData({ type: "FeatureCollection", features });
       }
+
+      // Fitted building outlines
+      const footSrc = map.getSource("facet-footprint") as mapboxgl.GeoJSONSource | undefined;
+      if (footSrc) {
+        const features: GeoJSON.Feature[] = [];
+        if (showOverlay) {
+          for (const pin of pins) {
+            const fp = pin.footprint;
+            if (!fp || fp.length < 3 || pin.kind === "ignore") continue;
+            const closed =
+              fp[0][0] === fp[fp.length - 1][0] && fp[0][1] === fp[fp.length - 1][1]
+                ? fp
+                : [...fp, fp[0]];
+            features.push({
+              type: "Feature",
+              geometry: { type: "LineString", coordinates: closed },
+              properties: {},
+            });
+          }
+        }
+        footSrc.setData({ type: "FeatureCollection", features });
+      }
+
+
 
       // Labels (one per pin centered at pin location)
       const labelSrc = map.getSource("facet-labels") as mapboxgl.GeoJSONSource | undefined;
@@ -699,10 +760,9 @@ export function SolarRoofTab({
   }
 
   /**
-   * FIXED: Hit Solar at a single pin and aggregate ALL facets returned at that
-   * location into a single "whole-structure" measurement, instead of picking
-   * just the closest segment. Returns a merged convex-hull outline so the
-   * Mapbox hand-off draws the entire building footprint.
+   * Measure the structure under a pin. The server fits roof facets to the real
+   * building outline, so what comes back already tiles the roof — we just keep
+   * the outline for the Mapbox hand-off.
    */
   async function measurePinAt(pin: Pin): Promise<{ ok: boolean; reason?: string }> {
     const { data: s } = await supabase.auth.getSession();
@@ -719,38 +779,57 @@ export function SolarRoofTab({
         tuning: tuningRef.current,
       }),
     });
-    if (!r.ok) return { ok: false, reason: "No building data here" };
+    if (!r.ok) {
+      let reason = "No building data here";
+      try {
+        const err = (await r.json()) as { message?: string; error?: string; detail?: string };
+        reason = err.message || err.detail || err.error || reason;
+      } catch {
+        // keep the default
+      }
+      return { ok: false, reason };
+    }
     const data = (await r.json()) as SolarResponse;
     if (!data.segments?.length) return { ok: false, reason: "No structure detected here" };
 
     setImageryQuality(data.imagery_quality);
+    setEstimatedPitch(Boolean(data.pitch_estimated));
 
-    // Aggregate ALL facets — total area, area-weighted average pitch, merged outline.
     const facets = data.segments.map((seg) => ({
       ring: seg.ring,
       pitch: seg.pitch,
       plan_area_sqft: seg.plan_area_sqft,
       pitch_degrees: seg.pitch_degrees,
     }));
-    const totalSqft = facets.reduce((s, f) => s + f.plan_area_sqft, 0);
+    const totalSqft = data.total_plan_sqft || facets.reduce((s, f) => s + f.plan_area_sqft, 0);
     const weightedDeg = totalSqft > 0
-      ? facets.reduce((s, f) => s + f.pitch_degrees * f.plan_area_sqft, 0) / totalSqft
+      ? facets.reduce((s, f) => s + f.pitch_degrees * f.plan_area_sqft, 0) /
+        Math.max(1, facets.reduce((s, f) => s + f.plan_area_sqft, 0))
       : 0;
     const avgPitch = degreesToPitchString(weightedDeg);
 
-    // Merge all facet rings into a single convex hull outline (good enough for the hand-off)
+    // Prefer the fitted building outline; fall back to a hull of the facets.
     const allPoints = facets.flatMap((f) => f.ring);
-    const mergedRing = allPoints.length >= 3 ? convexHull(allPoints) : pin.ring;
+    const outline =
+      data.footprint && data.footprint.length >= 3
+        ? data.footprint
+        : allPoints.length >= 3
+          ? convexHull(allPoints)
+          : pin.ring;
 
     updatePin(pin.id, {
       plan_area_sqft: Math.round(totalSqft),
       pitch: pin.kind === "pitched" ? avgPitch : pin.pitch,
-      ring: mergedRing,
+      ring: outline,
+      footprint: outline,
+      run_id: (data as { run_id?: string | null }).run_id ?? null,
+
       facets,
       source: pin.source === "manual" ? "manual" : "solar",
     });
     return { ok: true };
   }
+
 
   const measureOne = useMutation({
     mutationFn: async (pin: Pin) => {
@@ -873,8 +952,26 @@ export function SolarRoofTab({
         i++;
       }
     }
+    // Remember what the AI produced so a hand-drawn correction on the Mapbox
+    // tab can be saved as a training pair.
+    if (propertyId) {
+      const anchor = active[0];
+      setMeasureHandoff({
+        property_id: propertyId,
+        run_id: active.find((p) => p.run_id)?.run_id ?? null,
+        lat: anchor.lat,
+        lng: anchor.lng,
+        total_plan_sqft: Math.round(active.reduce((s, p) => s + (p.plan_area_sqft || 0), 0)),
+        facets: sections.map((s) => ({
+          ring: s.ring,
+          pitch: s.pitch,
+          plan_area_sqft: s.plan_area_sqft,
+        })),
+      });
+    }
     onApply({ sections, lines: [] });
     toast.success("Applied to Mapbox tab — refine shapes & label edges");
+
   }
 
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
@@ -1088,7 +1185,7 @@ export function SolarRoofTab({
             <span className="text-muted-foreground">Click each roof to drop a pin · then hit AI measurements above</span>
           </div>
         )}
-        {imageryQuality && (
+        {(imageryQuality || estimatedPitch) && (
           <div
             className="absolute right-3 top-3 z-10 rounded-md border px-2 py-1 text-[10px] uppercase tracking-wider backdrop-blur"
             style={{
@@ -1096,9 +1193,10 @@ export function SolarRoofTab({
               backgroundColor: "color-mix(in oklab, var(--bg-card) 85%, transparent)",
             }}
           >
-            Imagery: {imageryQuality}
+            {imageryQuality ? `Imagery: ${imageryQuality}` : "Outline fit · pitch estimated"}
           </div>
         )}
+
 
 
 

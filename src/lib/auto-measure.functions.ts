@@ -52,10 +52,6 @@ async function fetchBuilding(
   return (await r.json()) as SolarResponse;
 }
 
-function pitchStrFromDeg(deg: number): string {
-  const rise = Math.round(Math.tan((deg * Math.PI) / 180) * 12);
-  return `${Math.max(0, Math.min(12, rise))}/12`;
-}
 function pitchMultFromDeg(deg: number): number {
   const rise = Math.tan((deg * Math.PI) / 180) * 12;
   return Math.sqrt(1 + Math.pow(rise / 12, 2));
@@ -217,7 +213,11 @@ export async function runAutoMeasureForProperty(
   const COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ec4899", "#06b6d4"];
   let sortIdx = 0;
 
-  buildings.forEach((b, bi) => {
+  const { fitFacetsToFootprint, footprintFromSegmentBoxes } = await import("./roof-geometry");
+  const { fetchBuildingFootprint } = await import("./footprint.server");
+
+  for (let bi = 0; bi < buildings.length; bi++) {
+    const b = buildings[bi];
     const label = bi === 0 ? "House" : `Structure ${bi + 1}`;
     // Drop stray segments that belong to a neighbouring roof.
     const near = b.segments.filter((s) => {
@@ -226,54 +226,58 @@ export async function runAutoMeasureForProperty(
       return haversineMeters(b.center, { lat: c.latitude, lng: c.longitude }) <= 45;
     });
     if (near.length) b.segments = near;
-    b.segments.forEach((seg, si) => {
 
-      const planM2 = seg.stats?.areaMeters2 ?? 0;
-      if (planM2 <= 0 || !seg.boundingBox) return;
-      const planSqFt = planM2 * SQ_M_TO_SQ_FT;
-      const pitchDeg = seg.pitchDegrees ?? 0;
-      const mult = pitchMultFromDeg(pitchDeg);
-      const pitchStr = pitchStrFromDeg(pitchDeg);
+    const usable = b.segments.filter((s) => (s.stats?.areaMeters2 ?? 0) > 0);
+    if (usable.length === 0) continue;
+
+    // Fit facets to the real building outline so they follow the house angle
+    // instead of stacking axis-aligned boxes.
+    const hit = await fetchBuildingFootprint(b.center.lat, b.center.lng, 30);
+    const reportedSqFt = usable.reduce(
+      (sum, s) => sum + (s.stats?.areaMeters2 ?? 0) * SQ_M_TO_SQ_FT,
+      0,
+    );
+    const outline =
+      hit?.ring ??
+      footprintFromSegmentBoxes(
+        usable
+          .filter((s) => s.boundingBox)
+          .map((s) => ({
+            sw: [s.boundingBox!.sw.longitude, s.boundingBox!.sw.latitude] as [number, number],
+            ne: [s.boundingBox!.ne.longitude, s.boundingBox!.ne.latitude] as [number, number],
+          })),
+        reportedSqFt,
+      );
+    if (!outline) continue;
+
+    const fit = fitFacetsToFootprint(
+      outline,
+      usable.map((s) => ({
+        azimuth_degrees: s.azimuthDegrees ?? 0,
+        pitch_degrees: s.pitchDegrees ?? 0,
+        area_m2: s.stats?.areaMeters2 ?? 0,
+      })),
+    );
+
+    fit.facets.forEach((f, si) => {
+      const planSqFt = f.plan_area_sqft;
+      const mult = pitchMultFromDeg(f.pitch_degrees);
       const actual = planSqFt * mult;
       totalPlan += planSqFt;
       totalActual += actual;
-      pitchTotals[pitchStr] = (pitchTotals[pitchStr] ?? 0) + planSqFt;
-      const bb = seg.boundingBox;
-      // Google returns an axis-aligned bounding box for each roof segment. On a
-      // hipped or diagonally-oriented roof that box is far larger than the facet
-      // itself and overlaps neighbouring houses. Shrink it around the segment
-      // centre until its ground area matches the reported plan area.
-      const cLat = seg.center?.latitude ?? (bb.sw.latitude + bb.ne.latitude) / 2;
-      const cLng = seg.center?.longitude ?? (bb.sw.longitude + bb.ne.longitude) / 2;
-      const mPerDegLng = M_PER_DEG_LAT * Math.max(0.1, Math.cos((cLat * Math.PI) / 180));
-      let halfLat = Math.abs(bb.ne.latitude - bb.sw.latitude) / 2;
-      let halfLng = Math.abs(bb.ne.longitude - bb.sw.longitude) / 2;
-      const boxM2 = halfLat * 2 * M_PER_DEG_LAT * (halfLng * 2 * mPerDegLng);
-      if (boxM2 > 0 && planM2 > 0 && boxM2 > planM2) {
-        const k = Math.sqrt(planM2 / boxM2);
-        halfLat *= k;
-        halfLng *= k;
-      }
-      const ring = [
-        [cLng - halfLng, cLat - halfLat],
-        [cLng + halfLng, cLat - halfLat],
-        [cLng + halfLng, cLat + halfLat],
-        [cLng - halfLng, cLat + halfLat],
-        [cLng - halfLng, cLat - halfLat],
-      ];
-
+      pitchTotals[f.pitch] = (pitchTotals[f.pitch] ?? 0) + planSqFt;
       sectionRows.push({
-        name: b.segments.length > 1 ? `${label} · Facet ${si + 1}` : label,
+        name: fit.facets.length > 1 ? `${label} · Facet ${si + 1}` : label,
         color: COLORS[bi % COLORS.length],
-        polygon_geojson: { type: "Polygon", coordinates: [ring] },
+        polygon_geojson: { type: "Polygon", coordinates: [f.ring] },
         plan_area_sqft: Math.round(planSqFt),
-        pitch: pitchStr,
+        pitch: f.pitch,
         pitch_multiplier: Number(mult.toFixed(4)),
         actual_area_sqft: Math.round(actual),
         sort_order: sortIdx++,
       });
     });
-  });
+  }
 
   if (sectionRows.length === 0) return { ok: false, reason: "no_segments" as const };
 

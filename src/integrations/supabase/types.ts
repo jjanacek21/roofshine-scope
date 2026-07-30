@@ -4257,6 +4257,8 @@ export type Database = {
       roof_measurements: {
         Row: {
           ai_analysis: Json
+          ai_geometry: Json | null
+          ai_run_id: string | null
           company_id: string
           created_at: string
           created_by: string | null
@@ -4286,6 +4288,8 @@ export type Database = {
         }
         Insert: {
           ai_analysis?: Json
+          ai_geometry?: Json | null
+          ai_run_id?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
@@ -4315,6 +4319,8 @@ export type Database = {
         }
         Update: {
           ai_analysis?: Json
+          ai_geometry?: Json | null
+          ai_run_id?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
@@ -4343,6 +4349,13 @@ export type Database = {
           waste_pct?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "roof_measurements_ai_run_id_fkey"
+            columns: ["ai_run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_measurement_runs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "roof_measurements_property_id_fkey"
             columns: ["property_id"]

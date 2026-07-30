@@ -19,6 +19,7 @@ import {
   type EdgeType,
 } from "@/lib/roof-math";
 import type { FeatureProps } from "@/lib/measurement-utils";
+import { getMeasureHandoff, clearMeasureHandoff } from "@/lib/measure-handoff";
 
 type Tab = "manual" | "mapbox" | "solar" | "condition" | "report";
 
@@ -161,6 +162,10 @@ export function RoofMeasurementPanel({
       const effectiveWaste = isMapbox ? wastePct : manual.waste_pct;
       const wasteMult = 1 + Number(effectiveWaste || 0) / 100;
 
+      // If this measurement started as an AI scan the user then redrew by hand,
+      // keep the AI geometry alongside it — that pair is the training signal.
+      const handoff = getMeasureHandoff(propertyId);
+
       const payload = {
         property_id: propertyId,
         company_id: profile.company_id,
@@ -179,6 +184,10 @@ export function RoofMeasurementPanel({
         step_flashing_lf: totals.step_flashing_lf,
         transition_lf: totals.transition_lf,
         created_by: profile.id,
+        ai_run_id: handoff?.run_id ?? null,
+        ai_geometry: handoff
+          ? { facets: handoff.facets, total_plan_sqft: handoff.total_plan_sqft }
+          : null,
       };
 
       const { data: m, error: mErr } = await supabase
@@ -187,6 +196,7 @@ export function RoofMeasurementPanel({
         .select()
         .single();
       if (mErr) throw mErr;
+
 
       if (isMapbox) {
         await supabase.from("roof_sections").delete().eq("measurement_id", m.id);
@@ -264,6 +274,45 @@ export function RoofMeasurementPanel({
             const { error: lErr } = await supabase.from("roof_lines").insert(lineRows);
             if (lErr) throw lErr;
           }
+        }
+
+        // Close the training loop: AI geometry vs. the outline the user drew.
+        if (handoff) {
+          try {
+            await supabase.from("training_examples").insert({
+              address: `${handoff.lat.toFixed(6)}, ${handoff.lng.toFixed(6)}`,
+              lat: handoff.lat,
+              lng: handoff.lng,
+              source: "mapbox_redraw",
+              solar_response: {
+                run_id: handoff.run_id,
+                facets: handoff.facets,
+                total_plan_sqft: handoff.total_plan_sqft,
+              },
+              ground_truth: {
+                total_plan_sqft: totals.total_area_sqft,
+                predominant_pitch: derivedPitch,
+                facets: polygons.map((poly, i) => ({
+                  ring: poly.geometry.coordinates[0],
+                  pitch: poly.properties?.pitch ?? "6/12",
+                  plan_area_sqft: polygonAreaFromRing(poly.geometry.coordinates[0]),
+                  name: poly.properties?.section_name ?? `Roof ${i + 1}`,
+                })),
+              },
+              source_measurement_id: m.id,
+              notes: "User redrew the AI measurement in Mapbox",
+              created_by: profile.id,
+            });
+            if (handoff.run_id) {
+              await supabase
+                .from("ai_measurement_runs")
+                .update({ correction_measurement_id: m.id, review_status: "corrected" })
+                .eq("id", handoff.run_id);
+            }
+          } catch {
+            // training capture is best-effort — never block a save
+          }
+          clearMeasureHandoff();
         }
       }
     },

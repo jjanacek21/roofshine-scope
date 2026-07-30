@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import { normalizeTuning, qualityLadder } from "@/lib/measure-tuning";
+import { fitFacetsToFootprint, footprintFromSegmentBoxes } from "@/lib/roof-geometry";
+import { fetchBuildingFootprint } from "@/lib/footprint.server";
+
 
 type SolarApiResponse = {
   solarPotential?: {
@@ -139,7 +142,44 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
           }
         }
 
+        // Building outline — the accuracy of everything downstream depends on it.
+        const wantFootprint = tuning.footprint_source !== "boxes";
+        const footprintHit = wantFootprint ? await fetchBuildingFootprint(lat, lng, 30) : null;
+
         if (!success) {
+          // Google has no roof data here. If we still know the building outline
+          // we can produce a real measurement instead of failing outright.
+          if (footprintHit) {
+            const fit = fitFacetsToFootprint(footprintHit.ring, [], {
+              mergeSmall: tuning.merge_small,
+              snapSquare: tuning.snap_square,
+              minFacetSqft: tuning.min_facet_sqft,
+            });
+            if (fit.facets.length > 0) {
+              return Response.json({
+                imagery_quality: null,
+                imagery_date: null,
+                total_plan_sqft: fit.plan_area_sqft,
+                max_sunshine_hours_per_year: 0,
+                segment_count: fit.facets.length,
+                footprint: fit.footprint,
+                footprint_source: footprintHit.source,
+                pitch_estimated: true,
+                segments: fit.facets.map((f, i) => ({
+                  index: i,
+                  name: `Facet ${i + 1}`,
+                  plan_area_sqft: f.plan_area_sqft,
+                  pitch: f.pitch,
+                  pitch_degrees: f.pitch_degrees,
+                  azimuth_degrees: f.azimuth_degrees,
+                  ring: f.ring,
+                  center: null,
+                })),
+                used_quality: "FOOTPRINT_ONLY",
+              });
+            }
+          }
+
           // True coverage gap (or upstream error). Log to training_examples
           // for super admins to prioritize manual measurement.
           if (SUPABASE_SERVICE_ROLE_KEY && !lastNon404) {
@@ -176,7 +216,7 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
             {
               error: "no_coverage",
               message:
-                "Google Solar has no building data for this location. Use Mapbox Draw to measure manually.",
+                "No building data for this location. Use Mapbox Draw to measure manually.",
               address_lat: lat,
               address_lng: lng,
             },
@@ -190,8 +230,7 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
         const FT_PER_M = 3.28084;
 
         const rawSegments = data.solarPotential?.roofSegmentStats ?? [];
-        // Apply the job's edge-detection tuning: drop far-away neighbour roofs
-        // and sliver facets before building geometry.
+        // Drop far-away neighbour roofs and sliver facets before fitting.
         const tunedSegments = rawSegments.filter((seg) => {
           const areaSqft = (seg.stats?.areaMeters2 ?? 0) * sqMeterToSqFt;
           if (areaSqft < tuning.min_facet_sqft) return false;
@@ -203,50 +242,56 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
           return Math.hypot(dx, dy) * FT_PER_M <= tuning.max_facet_radius_ft;
         });
 
-        const segments = (tunedSegments.length ? tunedSegments : rawSegments).map((seg, i) => {
-          const planSqM = seg.stats?.areaMeters2 ?? 0;
-          const planSqFt = planSqM * sqMeterToSqFt;
-          const pitchDeg = seg.pitchDegrees ?? 0;
-          const rise = Math.round(Math.tan((pitchDeg * Math.PI) / 180) * 12);
-          const pitchStr = `${Math.max(0, Math.min(12, rise))}/12`;
-          const bb = seg.boundingBox;
-          // Google returns an axis-aligned bounding box per segment, which is
-          // wider than the facet on diagonal/hipped roofs. Fit it to the
-          // reported area, then apply the job's edge-tightness setting.
-          let ring: number[][] = [];
-          if (bb) {
-            const cLat = seg.center?.latitude ?? (bb.sw.latitude + bb.ne.latitude) / 2;
-            const cLng = seg.center?.longitude ?? (bb.sw.longitude + bb.ne.longitude) / 2;
-            const mPerDegLng = M_PER_DEG_LAT * Math.max(0.1, Math.cos((cLat * Math.PI) / 180));
-            let halfLat = Math.abs(bb.ne.latitude - bb.sw.latitude) / 2;
-            let halfLng = Math.abs(bb.ne.longitude - bb.sw.longitude) / 2;
-            const boxM2 = halfLat * 2 * M_PER_DEG_LAT * (halfLng * 2 * mPerDegLng);
-            let k = tuning.edge_tightness;
-            if (boxM2 > 0 && planSqM > 0 && boxM2 > planSqM) k *= Math.sqrt(planSqM / boxM2);
-            halfLat *= k;
-            halfLng *= k;
-            ring = [
-              [cLng - halfLng, cLat - halfLat],
-              [cLng + halfLng, cLat - halfLat],
-              [cLng + halfLng, cLat + halfLat],
-              [cLng - halfLng, cLat + halfLat],
-              [cLng - halfLng, cLat - halfLat],
-            ];
-          }
-          return {
-            index: i,
-            name: `Segment ${i + 1}`,
-            plan_area_sqft: planSqFt,
-            pitch: pitchStr,
-            pitch_degrees: pitchDeg,
-            azimuth_degrees: seg.azimuthDegrees ?? 0,
-            ring,
-            center: seg.center ?? null,
-          };
-        });
+        const kept = tunedSegments.length ? tunedSegments : rawSegments;
 
-        const totalPlanSqFt =
-          (data.solarPotential?.wholeRoofStats?.areaMeters2 ?? 0) * sqMeterToSqFt;
+        const totalPlanSqFtReported =
+          (data.solarPotential?.wholeRoofStats?.areaMeters2 ?? 0) * sqMeterToSqFt ||
+          kept.reduce((s, seg) => s + (seg.stats?.areaMeters2 ?? 0) * sqMeterToSqFt, 0);
+
+        // Fall back to a rotated rectangle around Google's boxes when the
+        // building isn't in the vector map — still follows the house angle.
+        const footprintRing =
+          footprintHit?.ring ??
+          footprintFromSegmentBoxes(
+            kept
+              .filter((s) => s.boundingBox)
+              .map((s) => ({
+                sw: [s.boundingBox!.sw.longitude, s.boundingBox!.sw.latitude] as [number, number],
+                ne: [s.boundingBox!.ne.longitude, s.boundingBox!.ne.latitude] as [number, number],
+              })),
+            totalPlanSqFtReported,
+          );
+
+        const fit = footprintRing
+          ? fitFacetsToFootprint(
+              footprintRing,
+              kept.map((s) => ({
+                azimuth_degrees: s.azimuthDegrees ?? 0,
+                pitch_degrees: s.pitchDegrees ?? 0,
+                area_m2: s.stats?.areaMeters2 ?? 0,
+              })),
+              {
+                mergeSmall: tuning.merge_small,
+                snapSquare: tuning.snap_square,
+                minFacetSqft: tuning.min_facet_sqft,
+              },
+            )
+          : { facets: [], footprint: [], plan_area_sqft: 0 };
+
+        const segments = fit.facets.map((f, i) => ({
+          index: i,
+          name: `Facet ${i + 1}`,
+          plan_area_sqft: f.plan_area_sqft,
+          pitch: f.pitch,
+          pitch_degrees: f.pitch_degrees,
+          azimuth_degrees: f.azimuth_degrees,
+          ring: f.ring,
+          center: null as { latitude: number; longitude: number } | null,
+        }));
+
+        const totalPlanSqFt = fit.plan_area_sqft || totalPlanSqFtReported;
+
+
 
         // Compute pitch-adjusted total + predominant pitch for the AI run log
         let totalActualSqFt = 0;
@@ -261,44 +306,58 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
           Object.entries(pitchTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 
         // Best-effort log every successful AI run (uses service role to bypass RLS)
+        let runId: string | null = null;
         if (SUPABASE_SERVICE_ROLE_KEY) {
           try {
             const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
               auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
             });
-            await admin.from("ai_measurement_runs").insert({
-              requested_lat: lat,
-              requested_lng: lng,
-              property_id: property_id ?? null,
-              job_id: job_id ?? null,
-              company_id: callerCompanyId,
-              user_id: claims.claims.sub,
-              provider: "google_solar",
-              status: "success",
-              imagery_quality: data.imageryQuality ?? success.usedQuality,
-              imagery_date: data.imageryDate ?? null,
-              total_plan_sqft: totalPlanSqFt,
-              total_actual_sqft: totalActualSqFt,
-              predominant_pitch: predominantPitch,
-              segment_count: segments.length,
-              segments,
-              raw_response: { ...(data as unknown as Record<string, unknown>), tuning },
-
-            });
+            const { data: run } = await admin
+              .from("ai_measurement_runs")
+              .insert({
+                requested_lat: lat,
+                requested_lng: lng,
+                property_id: property_id ?? null,
+                job_id: job_id ?? null,
+                company_id: callerCompanyId,
+                user_id: claims.claims.sub,
+                provider: "google_solar",
+                status: "success",
+                imagery_quality: data.imageryQuality ?? success.usedQuality,
+                imagery_date: data.imageryDate ?? null,
+                total_plan_sqft: totalPlanSqFt,
+                total_actual_sqft: totalActualSqFt,
+                predominant_pitch: predominantPitch,
+                segment_count: segments.length,
+                segments,
+                raw_response: {
+                  ...(data as unknown as Record<string, unknown>),
+                  tuning,
+                  footprint: fit.footprint,
+                  footprint_source: footprintHit?.source ?? "solar_boxes",
+                },
+              })
+              .select("id")
+              .single();
+            runId = (run?.id as string | undefined) ?? null;
           } catch (err) {
             console.error("ai_measurement_runs log failed:", err);
           }
         }
 
         return Response.json({
+          run_id: runId,
           imagery_quality: data.imageryQuality ?? success.usedQuality,
           imagery_date: data.imageryDate ?? null,
           total_plan_sqft: totalPlanSqFt,
           max_sunshine_hours_per_year: data.solarPotential?.maxSunshineHoursPerYear ?? 0,
           segment_count: segments.length,
+          footprint: fit.footprint,
+          footprint_source: footprintHit?.source ?? "solar_boxes",
           segments,
           used_quality: success.usedQuality,
         });
+
       },
     },
   },
