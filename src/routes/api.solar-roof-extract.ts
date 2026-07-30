@@ -306,44 +306,58 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
           Object.entries(pitchTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 
         // Best-effort log every successful AI run (uses service role to bypass RLS)
+        let runId: string | null = null;
         if (SUPABASE_SERVICE_ROLE_KEY) {
           try {
             const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
               auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
             });
-            await admin.from("ai_measurement_runs").insert({
-              requested_lat: lat,
-              requested_lng: lng,
-              property_id: property_id ?? null,
-              job_id: job_id ?? null,
-              company_id: callerCompanyId,
-              user_id: claims.claims.sub,
-              provider: "google_solar",
-              status: "success",
-              imagery_quality: data.imageryQuality ?? success.usedQuality,
-              imagery_date: data.imageryDate ?? null,
-              total_plan_sqft: totalPlanSqFt,
-              total_actual_sqft: totalActualSqFt,
-              predominant_pitch: predominantPitch,
-              segment_count: segments.length,
-              segments,
-              raw_response: { ...(data as unknown as Record<string, unknown>), tuning },
-
-            });
+            const { data: run } = await admin
+              .from("ai_measurement_runs")
+              .insert({
+                requested_lat: lat,
+                requested_lng: lng,
+                property_id: property_id ?? null,
+                job_id: job_id ?? null,
+                company_id: callerCompanyId,
+                user_id: claims.claims.sub,
+                provider: "google_solar",
+                status: "success",
+                imagery_quality: data.imageryQuality ?? success.usedQuality,
+                imagery_date: data.imageryDate ?? null,
+                total_plan_sqft: totalPlanSqFt,
+                total_actual_sqft: totalActualSqFt,
+                predominant_pitch: predominantPitch,
+                segment_count: segments.length,
+                segments,
+                raw_response: {
+                  ...(data as unknown as Record<string, unknown>),
+                  tuning,
+                  footprint: fit.footprint,
+                  footprint_source: footprintHit?.source ?? "solar_boxes",
+                },
+              })
+              .select("id")
+              .single();
+            runId = (run?.id as string | undefined) ?? null;
           } catch (err) {
             console.error("ai_measurement_runs log failed:", err);
           }
         }
 
         return Response.json({
+          run_id: runId,
           imagery_quality: data.imageryQuality ?? success.usedQuality,
           imagery_date: data.imageryDate ?? null,
           total_plan_sqft: totalPlanSqFt,
           max_sunshine_hours_per_year: data.solarPotential?.maxSunshineHoursPerYear ?? 0,
           segment_count: segments.length,
+          footprint: fit.footprint,
+          footprint_source: footprintHit?.source ?? "solar_boxes",
           segments,
           used_quality: success.usedQuality,
         });
+
       },
     },
   },
