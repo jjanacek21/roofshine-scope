@@ -211,6 +211,63 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     },
   });
 
+  // The point RPC misses swath coverage in some areas, so derive hail for the
+  // panel from the same swath layer the map paints, using a tiny bbox at the point.
+  const { data: pointHail = [] } = useQuery({
+    queryKey: [
+      "storm-point-hail",
+      point?.lat?.toFixed(4),
+      point?.lng?.toFixed(4),
+      HAIL_MAX_DAYS,
+    ],
+    enabled: !!point,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const d = 0.001;
+      const { data, error } = await stormSupabase.rpc("hail_swaths_in_view" as any, {
+        p_min_lon: point!.lng - d,
+        p_min_lat: point!.lat - d,
+        p_max_lon: point!.lng + d,
+        p_max_lat: point!.lat + d,
+        p_days: HAIL_MAX_DAYS,
+      });
+      if (error) throw error;
+      const feats = ((data as FC)?.features ?? []) as any[];
+      const byKey = new Map<string, StormReport["hail_dates"][number]>();
+      for (const f of feats) {
+        const p = f?.properties ?? {};
+        const date = String(p.event_date ?? "");
+        if (!date) continue;
+        const size = typeof p.max_in === "number" ? p.max_in : null;
+        const min = typeof p.min_in === "number" ? p.min_in : null;
+        const key = `${date}|${p.band ?? ""}`;
+        const prev = byKey.get(key);
+        const entry = {
+          date,
+          size_in: size ?? min,
+          band: p.band ? String(p.band) : null,
+          color: p.color ? String(p.color) : null,
+        };
+        if (!prev || (entry.size_in ?? 0) > (prev.size_in ?? 0)) byKey.set(key, entry);
+      }
+      return Array.from(byKey.values()).sort((a, b) => (a.date < b.date ? 1 : -1));
+    },
+  });
+
+  // Merge swath-derived hail into the point report (swaths win when present).
+  const mergedReport = useMemo<StormReport | null>(() => {
+    if (!report && pointHail.length === 0) return report ?? null;
+    const base: StormReport =
+      report ?? { max_hail_in: null, max_wind_mph: null, hail_dates: [], wind_dates: [] };
+    const hailDates = pointHail.length > 0 ? pointHail : base.hail_dates ?? [];
+    const maxHail = hailDates.reduce<number | null>(
+      (m, h) => (h.size_in != null && (m == null || h.size_in > m) ? h.size_in : m),
+      base.max_hail_in ?? null,
+    );
+    return { ...base, hail_dates: hailDates, max_hail_in: maxHail };
+  }, [report, pointHail]);
+
+
   // Reverse-geocode the selected house so the panel shows a real street address.
   const { data: resolvedAddress } = useQuery({
     queryKey: ["storm-reverse-geocode", point?.lat?.toFixed(6), point?.lng?.toFixed(6)],
