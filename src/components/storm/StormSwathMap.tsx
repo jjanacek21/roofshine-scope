@@ -435,14 +435,39 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       }
 
       map.on("click", (e) => {
+        if (e.defaultPrevented) return; // a house circle handled it
         // A house click always wins over a swath click at canvassing zoom.
-        const houseHit =
-          map.getZoom() >= HOUSE_CIRCLE_MIN_ZOOM &&
-          map.queryRenderedFeatures(e.point, { layers: ["house-footprints"] }).length > 0;
-        if (!houseHit) {
+        const houseFeats =
+          map.getZoom() >= HOUSE_CIRCLE_MIN_ZOOM
+            ? map.queryRenderedFeatures(e.point, { layers: ["house-footprints"] })
+            : [];
+        if (houseFeats.length === 0) {
           const hits = map.queryRenderedFeatures(e.point, { layers: ["hail-fill", "wind-fill"] });
           if (hits.length > 0) return;
+        } else {
+          const geom: any = houseFeats[0].geometry;
+          const rings: number[][][] =
+            geom?.type === "Polygon" ? geom.coordinates : (geom?.coordinates ?? []).flat();
+          let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+          for (const ring of rings) {
+            for (const [x, y] of ring) {
+              if (x < minLng) minLng = x;
+              if (x > maxLng) maxLng = x;
+              if (y < minLat) minLat = y;
+              if (y > maxLat) maxLat = y;
+            }
+          }
+          if (Number.isFinite(minLng)) {
+            setPointRef.current?.({
+              lng: (minLng + maxLng) / 2,
+              lat: (minLat + maxLat) / 2,
+              label: `${((minLat + maxLat) / 2).toFixed(5)}, ${((minLng + maxLng) / 2).toFixed(5)}`,
+              footprint: [minLng, minLat, maxLng, maxLat],
+            });
+            return;
+          }
         }
+
         setPointRef.current?.({
           lng: e.lngLat.lng,
           lat: e.lngLat.lat,
