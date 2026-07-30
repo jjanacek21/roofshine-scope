@@ -321,7 +321,19 @@ export const autoMeasureJobProperty = createServerFn({ method: "POST" })
  */
 export const autoMeasurePropertyRoof = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { property_id: string }) => input)
+  .inputValidator(
+    (input: {
+      property_id: string;
+      single?: boolean;
+      footprint?: [number, number, number, number] | null;
+      force?: boolean;
+    }) => input,
+  )
   .handler(async ({ data, context }) => {
-    return runAutoMeasureForProperty(context.supabase, context.userId, data.property_id, null);
+    return runAutoMeasureForProperty(context.supabase, context.userId, data.property_id, null, {
+      single: data.single,
+      footprint: data.footprint ?? null,
+      force: data.force,
+    });
+
   });
