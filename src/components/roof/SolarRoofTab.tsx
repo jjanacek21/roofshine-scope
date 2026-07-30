@@ -822,6 +822,8 @@ export function SolarRoofTab({
       pitch: pin.kind === "pitched" ? avgPitch : pin.pitch,
       ring: outline,
       footprint: outline,
+      run_id: (data as { run_id?: string | null }).run_id ?? null,
+
       facets,
       source: pin.source === "manual" ? "manual" : "solar",
     });
