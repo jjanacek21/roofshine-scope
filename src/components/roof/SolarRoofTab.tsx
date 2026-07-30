@@ -779,8 +779,14 @@ export function SolarRoofTab({
 
 
   function updatePin(id: string, patch: Partial<Pin>) {
+    // Keep the ref in sync synchronously so persistence right after a
+    // measurement sees the fresh facets instead of the previous render's pins.
+    pinsStateRef.current = pinsStateRef.current.map((x) =>
+      x.id === id ? { ...x, ...patch } : x,
+    );
     setPins((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
+
   function removePin(id: string) {
     setPins((p) => p.filter((x) => x.id !== id));
     if (activePinId === id) setActivePinId(null);
