@@ -920,7 +920,8 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
               key={`${point.lat.toFixed(5)},${point.lng.toFixed(5)}`}
               lat={point.lat}
               lng={point.lng}
-              address={point.label}
+              address={pointLabel}
+              footprint={point.footprint ?? null}
               onChange={setMeasure}
               onSections={setFacets}
             />
@@ -962,7 +963,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         <StormMailerModal
           open={mailerOpen}
           onClose={() => setMailerOpen(false)}
-          address={point.label}
+          address={pointLabel}
           lat={point.lat}
           lng={point.lng}
           propertyId={measure?.propertyId ?? null}
