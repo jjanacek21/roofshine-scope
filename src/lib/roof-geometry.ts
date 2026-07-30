@@ -324,6 +324,110 @@ export type SolarSegmentInput = {
   area_m2: number;
 };
 
+/**
+ * Google's Solar API segments a roof by plane from its elevation model, and it
+ * over-reports badly on real houses: dormers, AC units, vents, tree shadow and
+ * plain DSM noise all come back as separate "roof segments". Because
+ * fitFacetsToFootprint creates one facet group per reported segment, an ordinary
+ * hip roof ends up covered in facet boundaries radiating from the centre.
+ *
+ * Consolidate first -- drop the noise, then merge segments that describe the
+ * same physical plane -- so the facet count reflects the roof and not the
+ * elevation model.
+ */
+export function consolidateSolarSegments(
+  segments: SolarSegmentInput[],
+  opts: {
+    azimuthTolDeg?: number;
+    pitchTolDeg?: number;
+    minAreaM2?: number;
+    minAreaFrac?: number;
+  } = {},
+): SolarSegmentInput[] {
+  const azTol = opts.azimuthTolDeg ?? 25;
+  const pitchTol = opts.pitchTolDeg ?? 6;
+  const minAreaM2 = opts.minAreaM2 ?? 3.7; // ~40 sqft: below this it's a vent, not a plane
+  const minFrac = opts.minAreaFrac ?? 0.03;
+
+  const valid = segments.filter(
+    (s) =>
+      Number.isFinite(s.azimuth_degrees) &&
+      Number.isFinite(s.pitch_degrees) &&
+      s.area_m2 > 0,
+  );
+  if (valid.length === 0) return [];
+
+  const total = valid.reduce((sum, s) => sum + s.area_m2, 0);
+
+  // A near-flat section has no meaningful slope direction. Keep those together
+  // instead of letting an arbitrary azimuth invent a facet boundary.
+  const flat = valid.filter((s) => s.pitch_degrees < 3);
+  const sloped = valid
+    .filter((s) => s.pitch_degrees >= 3)
+    .filter((s) => s.area_m2 >= minAreaM2 && s.area_m2 / total >= minFrac)
+    // Largest first, so the big planes seed the groups and small neighbours
+    // merge into them rather than the other way round.
+    .sort((a, b) => b.area_m2 - a.area_m2);
+
+  type Group = {
+    sinSum: number;
+    cosSum: number;
+    pitchSum: number;
+    area: number;
+    az: number;
+    pitch: number;
+  };
+  const groups: Group[] = [];
+  const toRad = (d: number) => (d * Math.PI) / 180;
+
+  for (const s of sloped) {
+    const g = groups.find(
+      (x) =>
+        angleDelta(x.az, s.azimuth_degrees) <= azTol &&
+        Math.abs(x.pitch - s.pitch_degrees) <= pitchTol,
+    );
+    if (g) {
+      g.sinSum += Math.sin(toRad(s.azimuth_degrees)) * s.area_m2;
+      g.cosSum += Math.cos(toRad(s.azimuth_degrees)) * s.area_m2;
+      g.pitchSum += s.pitch_degrees * s.area_m2;
+      g.area += s.area_m2;
+      // Circular mean -- a plain average would break across the 0/360 wrap and
+      // turn 350 deg + 10 deg into 180 deg, pointing the facet the wrong way.
+      g.az = ((Math.atan2(g.sinSum, g.cosSum) * 180) / Math.PI + 360) % 360;
+      g.pitch = g.pitchSum / g.area;
+    } else {
+      groups.push({
+        sinSum: Math.sin(toRad(s.azimuth_degrees)) * s.area_m2,
+        cosSum: Math.cos(toRad(s.azimuth_degrees)) * s.area_m2,
+        pitchSum: s.pitch_degrees * s.area_m2,
+        area: s.area_m2,
+        az: s.azimuth_degrees,
+        pitch: s.pitch_degrees,
+      });
+    }
+  }
+
+  const out: SolarSegmentInput[] = groups.map((g) => ({
+    azimuth_degrees: g.az,
+    pitch_degrees: g.pitch,
+    area_m2: g.area,
+  }));
+
+  const flatArea = flat.reduce((sum, s) => sum + s.area_m2, 0);
+  if (flatArea >= minAreaM2) {
+    out.push({ azimuth_degrees: 0, pitch_degrees: 0, area_m2: flatArea });
+  }
+
+  // Nothing survived the filters (tiny or very fragmented roof) -- fall back to
+  // the single largest reported segment rather than returning no planes at all.
+  if (out.length === 0) {
+    const biggest = valid.reduce((a, b) => (b.area_m2 > a.area_m2 ? b : a));
+    return [biggest];
+  }
+
+  return out.sort((a, b) => b.area_m2 - a.area_m2);
+}
+
 export type FittedFacet = {
   /** Closed ring in [lng, lat]. */
   ring: number[][];
@@ -401,7 +505,10 @@ export function fitFacetsToFootprint(
   // Group faces by the roof plane they belong to. With Google segments we snap
   // each face to the nearest reported slope direction; without them we group by
   // the face's own bearing so opposite slopes of a gable stay separate.
-  const usable = segments.filter((s) => Number.isFinite(s.azimuth_degrees));
+  // Consolidate before grouping. Without this every segment Google reports --
+  // including dormers, vents and DSM noise -- becomes its own facet, which is
+  // what produces facet boundaries fanning out across an ordinary roof.
+  const usable = consolidateSolarSegments(segments);
   const groups = new Map<string, { faces: RoofFace[]; pitchDeg: number; azimuth: number }>();
 
   for (const face of faces) {

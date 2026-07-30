@@ -250,13 +250,23 @@ export async function runAutoMeasureForProperty(
       );
     if (!outline) continue;
 
+    // Only hand over segments Google actually gave a slope direction for.
+    // Defaulting a missing azimuth to 0 invents a due-north plane and adds a
+    // facet boundary that isn't on the roof. A missing azimuth on a near-flat
+    // segment is expected and harmless, so keep those; drop the rest.
     const fit = fitFacetsToFootprint(
       outline,
-      usable.map((s) => ({
-        azimuth_degrees: s.azimuthDegrees ?? 0,
-        pitch_degrees: s.pitchDegrees ?? 0,
-        area_m2: s.stats?.areaMeters2 ?? 0,
-      })),
+      usable
+        .filter(
+          (s) =>
+            Number.isFinite(s.azimuthDegrees) ||
+            (s.pitchDegrees ?? 90) < 3,
+        )
+        .map((s) => ({
+          azimuth_degrees: Number.isFinite(s.azimuthDegrees) ? s.azimuthDegrees! : 0,
+          pitch_degrees: s.pitchDegrees ?? 0,
+          area_m2: s.stats?.areaMeters2 ?? 0,
+        })),
     );
 
     fit.facets.forEach((f, si) => {
