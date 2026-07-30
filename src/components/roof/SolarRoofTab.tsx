@@ -254,7 +254,18 @@ export function SolarRoofTab({
           const ring: number[][] | undefined =
             (s.polygon_geojson as { coordinates?: number[][][] } | null)?.coordinates?.[0];
           if (!ring || ring.length < 3) continue;
-          const [cLng, cLat] = ringCentroid(ring);
+          let [cLng, cLat] = ringCentroid(ring);
+          // Older AI scans stored the raw Google bounding box, which can be far
+          // bigger than the facet itself. Shrink it to match the stored area.
+          const planSqft = Number(s.plan_area_sqft) || 0;
+          const ringSqft = polygonAreaSqft(ring);
+          const fitted =
+            planSqft > 0 && ringSqft > planSqft * 1.15
+              ? ring.map(([x, y]) => {
+                  const k = Math.sqrt(planSqft / ringSqft);
+                  return [cLng + (x - cLng) * k, cLat + (y - cLat) * k];
+                })
+              : ring;
           const pitch = (s.pitch as string) || "6/12";
           const kind: PinKind = pitch === "0/12" ? "flat" : "pitched";
           seeded.push({
@@ -265,8 +276,8 @@ export function SolarRoofTab({
             plan_area_sqft: Number(s.plan_area_sqft) || 0,
             lng: cLng,
             lat: cLat,
-            ring,
-            facets: [{ ring, pitch, plan_area_sqft: Number(s.plan_area_sqft) || 0, pitch_degrees: 0 }],
+            ring: fitted,
+            facets: [{ ring: fitted, pitch, plan_area_sqft: planSqft, pitch_degrees: 0 }],
             source: "solar",
           });
         }

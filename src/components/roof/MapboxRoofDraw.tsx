@@ -74,6 +74,7 @@ export function MapboxRoofDraw({
   const [features, setFeatures] = useState<AnyFeature[]>(initialFeatures ?? []);
   const [activeTool, setActiveTool] = useState<Tool | null>("select");
   const [activeEdge, setActiveEdge] = useState<EdgeType | "clear" | null>(null);
+  const [bearing, setBearing] = useState(0);
   const activeToolRef = useRef<Tool | null>(activeTool);
   const activeEdgeRef = useRef<EdgeType | "clear" | null>(activeEdge);
   useEffect(() => {
@@ -122,6 +123,12 @@ export function MapboxRoofDraw({
   }, [features, waste]);
 
   const polygonCount = features.filter((f) => f.geometry.type === "Polygon").length;
+
+  const rotateMap = useCallback((delta: number) => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.easeTo({ bearing: map.getBearing() + delta, duration: 180 });
+  }, []);
 
   // Init map
   useEffect(() => {
@@ -193,6 +200,7 @@ export function MapboxRoofDraw({
     drawRef.current = draw;
     map.addControl(draw as unknown as mapboxgl.IControl);
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
+    map.on("rotate", () => setBearing(map.getBearing()));
 
     map.on("load", () => {
       if (initialFeatures && initialFeatures.length) {
@@ -1005,6 +1013,28 @@ export function MapboxRoofDraw({
           className="h-[600px] w-full overflow-hidden rounded-xl border"
           style={{ borderColor: "var(--border)" }}
         />
+        {/* Rotate the imagery so a diagonal roof squares up before drawing */}
+        <div
+          className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-lg border px-2 py-1.5 shadow-lg"
+          style={{ borderColor: "var(--border)", backgroundColor: "rgba(10,10,11,0.85)" }}
+        >
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Rotate
+          </span>
+          <button type="button" onClick={() => rotateMap(-10)} title="Rotate 10 degrees left" className="rounded px-1.5 py-0.5 text-xs text-foreground hover:bg-[var(--bg-hover)]">-10</button>
+          <button type="button" onClick={() => rotateMap(-1)} title="Rotate 1 degree left" className="rounded px-1.5 py-0.5 text-xs text-foreground hover:bg-[var(--bg-hover)]">-1</button>
+          <button
+            type="button"
+            onClick={() => mapRef.current?.easeTo({ bearing: 0, duration: 220 })}
+            title="Reset rotation to north"
+            className="rounded px-1.5 py-0.5 font-mono text-xs text-foreground hover:bg-[var(--bg-hover)]"
+          >
+            {Math.round(bearing)}°
+          </button>
+          <button type="button" onClick={() => rotateMap(1)} title="Rotate 1 degree right" className="rounded px-1.5 py-0.5 text-xs text-foreground hover:bg-[var(--bg-hover)]">+1</button>
+          <button type="button" onClick={() => rotateMap(10)} title="Rotate 10 degrees right" className="rounded px-1.5 py-0.5 text-xs text-foreground hover:bg-[var(--bg-hover)]">+10</button>
+        </div>
+
         <DrawToolbar
           active={activeTool}
           onChoose={chooseTool}

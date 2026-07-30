@@ -219,7 +219,15 @@ export async function runAutoMeasureForProperty(
 
   buildings.forEach((b, bi) => {
     const label = bi === 0 ? "House" : `Structure ${bi + 1}`;
+    // Drop stray segments that belong to a neighbouring roof.
+    const near = b.segments.filter((s) => {
+      const c = s.center;
+      if (!c) return true;
+      return haversineMeters(b.center, { lat: c.latitude, lng: c.longitude }) <= 45;
+    });
+    if (near.length) b.segments = near;
     b.segments.forEach((seg, si) => {
+
       const planM2 = seg.stats?.areaMeters2 ?? 0;
       if (planM2 <= 0 || !seg.boundingBox) return;
       const planSqFt = planM2 * SQ_M_TO_SQ_FT;
@@ -231,13 +239,29 @@ export async function runAutoMeasureForProperty(
       totalActual += actual;
       pitchTotals[pitchStr] = (pitchTotals[pitchStr] ?? 0) + planSqFt;
       const bb = seg.boundingBox;
+      // Google returns an axis-aligned bounding box for each roof segment. On a
+      // hipped or diagonally-oriented roof that box is far larger than the facet
+      // itself and overlaps neighbouring houses. Shrink it around the segment
+      // centre until its ground area matches the reported plan area.
+      const cLat = seg.center?.latitude ?? (bb.sw.latitude + bb.ne.latitude) / 2;
+      const cLng = seg.center?.longitude ?? (bb.sw.longitude + bb.ne.longitude) / 2;
+      const mPerDegLng = M_PER_DEG_LAT * Math.max(0.1, Math.cos((cLat * Math.PI) / 180));
+      let halfLat = Math.abs(bb.ne.latitude - bb.sw.latitude) / 2;
+      let halfLng = Math.abs(bb.ne.longitude - bb.sw.longitude) / 2;
+      const boxM2 = halfLat * 2 * M_PER_DEG_LAT * (halfLng * 2 * mPerDegLng);
+      if (boxM2 > 0 && planM2 > 0 && boxM2 > planM2) {
+        const k = Math.sqrt(planM2 / boxM2);
+        halfLat *= k;
+        halfLng *= k;
+      }
       const ring = [
-        [bb.sw.longitude, bb.sw.latitude],
-        [bb.ne.longitude, bb.sw.latitude],
-        [bb.ne.longitude, bb.ne.latitude],
-        [bb.sw.longitude, bb.ne.latitude],
-        [bb.sw.longitude, bb.sw.latitude],
+        [cLng - halfLng, cLat - halfLat],
+        [cLng + halfLng, cLat - halfLat],
+        [cLng + halfLng, cLat + halfLat],
+        [cLng - halfLng, cLat + halfLat],
+        [cLng - halfLng, cLat - halfLat],
       ];
+
       sectionRows.push({
         name: b.segments.length > 1 ? `${label} · Facet ${si + 1}` : label,
         color: COLORS[bi % COLORS.length],
