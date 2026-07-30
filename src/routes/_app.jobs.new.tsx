@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { resolvePriceBook } from "@/lib/resolve-price-book";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
@@ -73,29 +74,25 @@ function NewJobPage() {
     queryFn: async (): Promise<PropertyRow[]> => {
       const { data } = await supabase
         .from("properties")
-        .select("id, address, zip")
+        .select("id, address, zip, state")
         .eq("client_id", clientId!);
       return data ?? [];
     },
   });
 
   // Lookup price book by zip when on review step
-  const propertyZip = propertyId ? properties.find((p) => p.id === propertyId)?.zip : newProperty.zip;
+  const selectedProperty = propertyId ? properties.find((p) => p.id === propertyId) : null;
+  const propertyZip = selectedProperty ? selectedProperty.zip : newProperty.zip;
+  const propertyState = selectedProperty ? (selectedProperty as any).state : newProperty.state;
   const { data: matchedPriceBook } = useQuery({
-    queryKey: ["pb-by-zip", companyId, propertyZip],
-    enabled: step === 4 && !!companyId && !!propertyZip,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("price_books")
-        .select("id, name, jurisdiction, effective_month")
-        .eq("company_id", companyId!)
-        .eq("is_active", true)
-        .contains("zip_codes", [propertyZip!])
-        .order("effective_month", { ascending: false, nullsFirst: false })
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
+    queryKey: ["pb-resolve", companyId, propertyZip, propertyState],
+    enabled: step === 4 && !!companyId,
+    queryFn: async () =>
+      await resolvePriceBook({
+        companyId: companyId!,
+        zip: propertyZip || null,
+        state: propertyState || null,
+      }),
   });
 
   const canStep1 = clientId !== null || newClient.name.trim().length > 0;
@@ -348,11 +345,15 @@ function NewJobPage() {
             <Row label="Type" value={details.job_type} />
             <Row label="Property" value={propertyId ? properties.find((p) => p.id === propertyId)?.address ?? "" : newProperty.address} />
             <Row label="Zip" value={propertyZip ?? "—"} />
-            <div className="rounded-md border p-3" style={{ borderColor: matchedPriceBook ? "var(--success)" : "var(--warning)", backgroundColor: "var(--bg-card)" }}>
+            <div className="rounded-md border p-3" style={{ borderColor: matchedPriceBook ? "var(--success)" : "var(--border)", backgroundColor: "var(--bg-card)" }}>
               {matchedPriceBook ? (
-                <p className="text-xs"><span className="font-semibold text-[var(--success)]">Price book matched:</span> {matchedPriceBook.name}</p>
+                <p className="text-xs">
+                  <span className="font-semibold text-[var(--success)]">Market pricing:</span> {matchedPriceBook.name}
+                </p>
               ) : (
-                <p className="text-xs text-[var(--warning)]">No active price book found for zip {propertyZip ?? "—"}. Job will be created without one.</p>
+                <p className="text-xs text-muted-foreground">
+                  Market pricing can be set on the job overview after it's created.
+                </p>
               )}
             </div>
           </div>
