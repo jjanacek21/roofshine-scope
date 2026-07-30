@@ -1,82 +1,65 @@
 import { cn } from "@/lib/utils";
 
-// Prototype-matched palette: bg / border / text
+// Light-theme palette: soft tinted bg / solid border / dark readable text
+const GREEN = {
+  bg: "rgba(21,128,61,.12)",
+  border: "rgba(21,128,61,.45)",
+  text: "#14532d",
+};
+
 const STATUS_STYLES: Record<
   string,
   { bg: string; border: string; text: string; label?: string }
 > = {
-  lead: {
-    bg: "rgba(161,161,170,.15)",
-    border: "rgba(161,161,170,.2)",
-    text: "#d4d4d8",
-  },
+  lead: { ...GREEN },
   inspected: {
-    bg: "rgba(212,165,116,.15)",
-    border: "rgba(212,165,116,.3)",
-    text: "#d4a574",
+    bg: "rgba(180,83,9,.12)",
+    border: "rgba(180,83,9,.45)",
+    text: "#7c2d12",
   },
   estimated: {
-    bg: "rgba(30,144,255,.15)",
-    border: "rgba(30,144,255,.3)",
-    text: "#7dc3ff",
+    bg: "rgba(3,105,161,.12)",
+    border: "rgba(3,105,161,.45)",
+    text: "#0c4a6e",
   },
   proposed: {
-    bg: "rgba(168,85,247,.15)",
-    border: "rgba(168,85,247,.3)",
-    text: "#c4a5f7",
+    bg: "rgba(126,34,206,.12)",
+    border: "rgba(126,34,206,.45)",
+    text: "#581c87",
   },
-  signed: {
-    bg: "rgba(34,197,94,.15)",
-    border: "rgba(34,197,94,.3)",
-    text: "#86efac",
-  },
+  signed: { ...GREEN },
   in_progress: {
-    bg: "rgba(234,179,8,.15)",
-    border: "rgba(234,179,8,.3)",
-    text: "#fde047",
+    bg: "rgba(180,83,9,.14)",
+    border: "rgba(180,83,9,.45)",
+    text: "#78350f",
     label: "In Progress",
   },
-  complete: {
-    bg: "rgba(71,85,105,.3)",
-    border: "rgba(71,85,105,.4)",
-    text: "#cbd5e1",
-  },
-  draft: {
-    bg: "rgba(161,161,170,.15)",
-    border: "rgba(161,161,170,.2)",
-    text: "#d4d4d8",
-  },
+  complete: { ...GREEN },
+  draft: { ...GREEN },
   sent: {
-    bg: "rgba(30,144,255,.15)",
-    border: "rgba(30,144,255,.3)",
-    text: "#7dc3ff",
+    bg: "rgba(3,105,161,.12)",
+    border: "rgba(3,105,161,.45)",
+    text: "#0c4a6e",
   },
-  approved: {
-    bg: "rgba(34,197,94,.15)",
-    border: "rgba(34,197,94,.3)",
-    text: "#86efac",
-  },
+  approved: { ...GREEN },
   rejected: {
-    bg: "rgba(239,68,68,.15)",
-    border: "rgba(239,68,68,.3)",
-    text: "#fca5a5",
+    bg: "rgba(220,38,38,.12)",
+    border: "rgba(220,38,38,.45)",
+    text: "#7f1d1d",
   },
-  active: {
-    bg: "rgba(34,197,94,.15)",
-    border: "rgba(34,197,94,.3)",
-    text: "#86efac",
-  },
+  active: { ...GREEN },
   inactive: {
-    bg: "rgba(161,161,170,.15)",
-    border: "rgba(161,161,170,.2)",
-    text: "#d4d4d8",
+    bg: "rgba(71,85,105,.12)",
+    border: "rgba(71,85,105,.45)",
+    text: "#1e293b",
   },
   archived: {
-    bg: "rgba(71,85,105,.3)",
-    border: "rgba(71,85,105,.4)",
-    text: "#cbd5e1",
+    bg: "rgba(71,85,105,.12)",
+    border: "rgba(71,85,105,.45)",
+    text: "#1e293b",
   },
 };
+
 
 interface StatusBadgeProps {
   status: string;
