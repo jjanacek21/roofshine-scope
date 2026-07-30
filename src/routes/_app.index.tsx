@@ -8,7 +8,7 @@ import { StatCard } from "@/components/brand/StatCard";
 import { TradeMixBar } from "@/components/brand/TradeMixBar";
 import { TradeBadge } from "@/components/brand/TradeBadge";
 import { StatusBadge } from "@/components/brand/StatusBadge";
-import type { Trade } from "@/lib/trades";
+import { TRADES, type Trade } from "@/lib/trades";
 
 export const Route = createFileRoute("/_app/")({
   component: Dashboard,
