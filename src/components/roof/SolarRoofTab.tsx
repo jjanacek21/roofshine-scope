@@ -366,7 +366,7 @@ export function SolarRoofTab({
         id: rid(),
         name: `Structure ${pinsStateRef.current.length + 1}`,
         kind: "pitched",
-        pitch: "6/12",
+        pitch: "unknown",
         plan_area_sqft: 0,
         lng: e.lngLat.lng,
         lat: e.lngLat.lat,
@@ -931,6 +931,14 @@ export function SolarRoofTab({
     toast.success(`Outlined ${Math.round(area).toLocaleString()} sqft`);
   }
 
+  const unknownPitchCount = useMemo(
+    () =>
+      pins.filter(
+        (p) => p.kind === "pitched" && !/^\d+\s*\/\s*\d+$/.test(p.pitch || ""),
+      ).length,
+    [pins],
+  );
+
   const totals = useMemo(() => {
     const active = pins.filter((p) => p.kind !== "ignore");
     const plan = active.reduce((s, p) => s + (p.plan_area_sqft || 0), 0);
@@ -1212,6 +1220,19 @@ export function SolarRoofTab({
           </div>
         )}
 
+        {unknownPitchCount > 0 && (
+          <div
+            className="absolute left-3 top-3 z-10 rounded-md border px-2.5 py-1.5 text-[11px] font-medium backdrop-blur"
+            style={{
+              borderColor: "rgba(245,158,11,0.5)",
+              backgroundColor: "color-mix(in oklab, var(--bg-card) 85%, transparent)",
+              color: "rgb(245,158,11)",
+            }}
+          >
+            {unknownPitchCount} structure{unknownPitchCount === 1 ? "" : "s"} with pitch unknown — set the pitch before trusting these squares.
+          </div>
+        )}
+
 
 
 
@@ -1372,6 +1393,7 @@ export function SolarRoofTab({
                   className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
                   style={{ borderColor: "var(--border)" }}
                 >
+                  <option value="unknown">Pitch unknown — pick one</option>
                   {PITCH_OPTIONS.map((p) => (
                     <option key={p} value={p}>
                       {p} ({pitchMultiplier(p).toFixed(3)}×)
