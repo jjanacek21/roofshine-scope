@@ -46,15 +46,21 @@ const RESOURCES_NAV = [
   { to: "/survival-guide", label: "Survival Guide", icon: BookOpenText },
 ] as const;
 
+const ADMIN_NAV = [
+  { to: "/price-books", label: "Pricing", icon: Library },
+  { to: "/settings", label: "Settings", icon: Settings },
+] as const;
 
 export function MobileSidebarSheet() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
+  const { isRoofKing } = useIsRoofKing();
   const isSuperAdmin = profile?.role === "super_admin";
   const isCompanyAdmin =
     profile?.role === "owner" || profile?.role === "admin" || isSuperAdmin;
+
 
   const { data: jobsCount = 0 } = useQuery({
     queryKey: ["sidebar-jobs-count"],
