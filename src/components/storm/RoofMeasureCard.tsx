@@ -219,8 +219,23 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
               </p>
             </>
           )}
+          <button
+            type="button"
+            onClick={() => measure.mutate(true)}
+            disabled={measure.isPending}
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-semibold text-foreground disabled:opacity-60"
+            style={{ borderColor: "var(--border)" }}
+          >
+            {measure.isPending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3 w-3" />
+            )}
+            Re-measure this roof
+          </button>
         </div>
       )}
+
     </section>
   );
 }
