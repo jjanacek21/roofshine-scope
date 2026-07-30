@@ -493,6 +493,17 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     );
   }, [wind, showWind, styleReady]);
 
+  // ---- measured roof facets -------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !readyRef.current) return;
+    (map.getSource("roof-facets") as mapboxgl.GeoJSONSource | undefined)?.setData({
+      type: "FeatureCollection",
+      features: point ? facets : [],
+    } as any);
+  }, [facets, point, styleReady]);
+
+
   // ---- marker for the active point ------------------------------------
   useEffect(() => {
     const map = mapRef.current;
