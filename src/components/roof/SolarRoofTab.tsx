@@ -25,6 +25,8 @@ import type { MapboxRoofData } from "./MapboxRoofDraw";
 import { MeasureTuningPanel } from "./MeasureTuningPanel";
 import { DEFAULT_MEASURE_TUNING, normalizeTuning, type MeasureTuning } from "@/lib/measure-tuning";
 import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares, polygonAreaSqft, haversineFeet } from "@/lib/roof-math";
+import { setMeasureHandoff } from "@/lib/measure-handoff";
+
 import "mapbox-gl/dist/mapbox-gl.css";
 
 type PinKind = "pitched" | "flat" | "ignore";
