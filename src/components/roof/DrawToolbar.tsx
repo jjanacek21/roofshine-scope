@@ -48,7 +48,7 @@ export function DrawToolbar({
       <div
         className="flex items-center gap-1 rounded-xl border p-1.5 shadow-lg backdrop-blur"
         style={{
-          backgroundColor: "rgba(10,10,11,0.85)",
+          backgroundColor: "var(--bg-card)",
           borderColor: "var(--border-bright, var(--border))",
         }}
       >
@@ -90,7 +90,7 @@ export function DrawToolbar({
         <div
           className="flex max-w-[520px] flex-wrap items-center gap-1 rounded-xl border p-1.5 shadow-lg backdrop-blur"
           style={{
-            backgroundColor: "rgba(10,10,11,0.85)",
+            backgroundColor: "var(--bg-card)",
             borderColor: "var(--border-bright, var(--border))",
           }}
         >
@@ -135,7 +135,7 @@ export function DrawToolbar({
         <div
           className="max-w-[520px] rounded-md border px-2.5 py-1 text-[11px] leading-snug text-foreground/90 shadow"
           style={{
-            backgroundColor: "rgba(10,10,11,0.85)",
+            backgroundColor: "var(--bg-card)",
             borderColor: "var(--border-bright, var(--border))",
           }}
         >
