@@ -478,33 +478,34 @@
 [data-rk] .rk-subnav-link:hover { background: var(--rk-panel-2); color: var(--rk-ink); }
 [data-rk] .rk-subnav-link.is-active { background: var(--rk-panel-2); color: var(--rk-ink); border: 1px solid var(--rk-line-2); }
 
-/* Mapbox popup — dark theme override (mapbox-gl.css loads after styles.css, so use !important) */
+/* Mapbox popup — light theme override (mapbox-gl.css loads after styles.css, so use !important) */
 .mapboxgl-popup-content {
-  background: hsl(222 15% 12%) !important;
-  color: hsl(0 0% 95%) !important;
-  border: 1px solid hsl(222 10% 25%) !important;
+  background: #ffffff !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 8px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18) !important;
 }
-.mapboxgl-popup-content * { color: hsl(0 0% 95%); }
+.mapboxgl-popup-content * { color: var(--text); }
+.mapboxgl-popup-content a { color: var(--success); }
 .mapboxgl-popup-anchor-top .mapboxgl-popup-tip,
 .mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip,
 .mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip {
-  border-bottom-color: hsl(222 15% 12%) !important;
+  border-bottom-color: #ffffff !important;
 }
 .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip,
 .mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip,
 .mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {
-  border-top-color: hsl(222 15% 12%) !important;
+  border-top-color: #ffffff !important;
 }
-.mapboxgl-popup-anchor-left .mapboxgl-popup-tip { border-right-color: hsl(222 15% 12%) !important; }
-.mapboxgl-popup-anchor-right .mapboxgl-popup-tip { border-left-color: hsl(222 15% 12%) !important; }
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip { border-right-color: #ffffff !important; }
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip { border-left-color: #ffffff !important; }
 .mapboxgl-popup-close-button {
-  color: hsl(0 0% 70%) !important;
+  color: var(--text-muted) !important;
   font-size: 18px !important;
   padding: 4px 8px !important;
 }
 .mapboxgl-popup-close-button:hover {
-  background: hsl(222 10% 20%) !important;
-  color: hsl(0 0% 95%) !important;
+  background: var(--bg-hover) !important;
+  color: var(--text) !important;
 }
