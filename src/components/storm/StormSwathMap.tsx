@@ -33,7 +33,7 @@ const RANGE_OPTIONS: { key: RangeKey; label: string; days: number }[] = [
 const rangeDays = (k: RangeKey) => RANGE_OPTIONS.find((r) => r.key === k)?.days ?? 2;
 
 const WIND_BANDS: { band: string; label: string; color: string; min: number; max: number }[] = [
-  { band: "60-69", label: "60–69 mph", color: "#FFD400", min: 60, max: 69.999 },
+  { band: "60-69", label: "60–69 mph", color: "var(--warning)", min: 60, max: 69.999 },
   { band: "70-79", label: "70–79 mph", color: "#FFB74D", min: 70, max: 79.999 },
   { band: "80-89", label: "80–89 mph", color: "#FF8C00", min: 80, max: 89.999 },
   { band: "90-110", label: "90–110 mph", color: "#D0021B", min: 90, max: 110 },
@@ -814,8 +814,8 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         className="absolute top-4 left-4 z-10 flex w-[230px] flex-col gap-2 rounded-lg border p-3 text-[11px] shadow-lg"
         style={{
           borderColor: "var(--border)",
-          backgroundColor: "rgba(10,10,11,0.88)",
-          color: "var(--text-dim)",
+          backgroundColor: "var(--bg-card)",
+          color: "var(--text)",
         }}
       >
         <label className="font-semibold text-foreground" htmlFor="storm-range">
@@ -829,13 +829,13 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           style={{ borderColor: "var(--border)", color: "var(--text)" }}
         >
           {RANGE_OPTIONS.map((r) => (
-            <option key={r.key} value={r.key} style={{ background: "#0a0a0b" }}>
+            <option key={r.key} value={r.key} style={{ background: "var(--bg-card)", color: "var(--text)" }}>
               {r.label}
             </option>
           ))}
         </select>
         {hailClamped && (
-          <p className="text-[10px] leading-snug" style={{ color: "#FFD400" }}>
+          <p className="text-[10px] leading-snug" style={{ color: "var(--warning)" }}>
             Hail data is limited to the last 60 days.
           </p>
         )}
@@ -858,7 +858,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
             <div key={b.band} className="flex items-center gap-2 py-[1px]">
               <span
                 className="inline-block h-3 w-3 rounded-sm"
-                style={{ background: b.color, border: "1px solid rgba(255,255,255,0.25)" }}
+                style={{ background: b.color, border: "1px solid rgba(15,23,42,0.25)" }}
               />
               <span className="flex-1">{b.label}</span>
               <span className="font-mono text-foreground">{windCounts[b.band] ?? 0}</span>
@@ -873,7 +873,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
               <div key={h.band} className="flex items-center gap-2 py-[1px]">
                 <span
                   className="inline-block h-3 w-3 rounded-sm"
-                  style={{ background: h.color, border: "1px solid rgba(255,255,255,0.25)" }}
+                  style={{ background: h.color, border: "1px solid rgba(15,23,42,0.25)" }}
                 />
                 <span className="flex-1">{h.band}</span>
                 <span className="font-mono text-foreground">{h.count}</span>
@@ -898,8 +898,8 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           className="absolute top-4 right-4 z-10 flex max-h-[70%] w-[300px] flex-col gap-2 overflow-auto rounded-lg border p-3 text-[11px] shadow-lg"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "rgba(10,10,11,0.92)",
-            color: "var(--text-dim)",
+            backgroundColor: "var(--bg-card)",
+            color: "var(--text)",
           }}
         >
           <div className="flex items-start gap-2">
@@ -987,7 +987,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           {!user ? (
             <div
               className="mt-1 rounded-md px-2 py-1.5 text-center text-[11px]"
-              style={{ background: "rgba(255,255,255,0.06)" }}
+              style={{ background: "var(--bg-hover)" }}
             >
               Sign in to save leads
             </div>
@@ -998,7 +998,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
                 onClick={handleSaveLead}
                 disabled={saving}
                 className="mt-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold"
-                style={{ background: "var(--brand, #2563eb)", color: "#fff" }}
+                style={{ background: "var(--success)", color: "#fff" }}
               >
                 {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 Save as storm damage lead
@@ -1037,8 +1037,8 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           className="absolute bottom-4 left-4 z-10 flex max-h-[45%] w-[320px] flex-col gap-2 overflow-auto rounded-lg border p-3 text-[11px] shadow-lg"
           style={{
             borderColor: "var(--border)",
-            backgroundColor: "rgba(10,10,11,0.92)",
-            color: "var(--text-dim)",
+            backgroundColor: "var(--bg-card)",
+            color: "var(--text)",
           }}
         >
           <div className="flex items-center gap-2">
@@ -1066,7 +1066,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
             <div className="opacity-70">Nothing saved yet.</div>
           )}
           {savedRows.map((r, i) => (
-            <div key={i} className="rounded-md px-2 py-1" style={{ background: "rgba(255,255,255,0.04)" }}>
+            <div key={i} className="rounded-md px-2 py-1" style={{ background: "var(--bg-hover)" }}>
               <div className="text-foreground">{r.address ?? r.full_address ?? "—"}</div>
               <div className="opacity-70">
                 {[r.disposition, r.customer_name, r.created_at ? fmtDate(r.created_at) : null]
@@ -1081,11 +1081,11 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       {initError ? (
         <div
           className="absolute inset-0 z-20 flex items-center justify-center"
-          style={{ backgroundColor: "rgba(10,10,11,0.9)" }}
+          style={{ backgroundColor: "var(--bg-card)" }}
         >
           <div
             className="flex items-center gap-3 rounded-full border px-4 py-2 text-xs font-semibold shadow-lg"
-            style={{ borderColor: "var(--border)", backgroundColor: "rgba(10,10,11,0.9)", color: "#f87171" }}
+            style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)", color: "var(--danger)" }}
           >
             <span>{initError}</span>
             <button
@@ -1096,7 +1096,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
                 initMapRef.current?.();
               }}
               className="rounded-full border px-3 py-1 text-xs font-semibold"
-              style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+              style={{ borderColor: "var(--border)", color: "var(--text)" }}
             >
               Reload map
             </button>
@@ -1105,14 +1105,14 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       ) : showOverlay ? (
         <div
           className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
-          style={{ backgroundColor: "rgba(10,10,11,0.55)" }}
+          style={{ backgroundColor: "rgba(255,255,255,0.6)" }}
         >
           <div
             className="flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-lg"
             style={{
               borderColor: "var(--border)",
-              backgroundColor: "rgba(10,10,11,0.9)",
-              color: "var(--text-dim)",
+              backgroundColor: "var(--bg-card)",
+              color: "var(--text)",
             }}
           >
             <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -1016,7 +1016,7 @@ export function MapboxRoofDraw({
         {/* Rotates the basemap only — polygons stay locked to the roof. */}
         <div
           className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-lg border px-2 py-1.5 shadow-lg"
-          style={{ borderColor: "var(--border)", backgroundColor: "rgba(10,10,11,0.85)" }}
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
           title="Rotates the imagery only. Measurements stay locked to the roof."
         >
           <span

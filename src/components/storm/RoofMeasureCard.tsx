@@ -143,7 +143,7 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
       )}
 
       {!!error && !isLoading && (
-        <div className="flex items-center justify-between gap-2 text-[11px]" style={{ color: "#f87171" }}>
+        <div className="flex items-center justify-between gap-2 text-[11px]" style={{ color: "var(--danger)" }}>
           <span className="flex items-center gap-1.5">
             <AlertTriangle className="h-3 w-3" /> Could not load measurement
           </span>
@@ -164,7 +164,7 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
             onClick={() => measure.mutate(false)}
             disabled={measure.isPending}
             className="flex w-full items-center justify-center gap-1.5 rounded-md px-2 py-2 text-xs font-semibold disabled:opacity-60"
-            style={{ background: "var(--brand, #2563eb)", color: "#fff" }}
+            style={{ background: "var(--success)", color: "#fff" }}
           >
             {measure.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ruler className="h-3.5 w-3.5" />}
             {measure.isPending ? "Measuring…" : "Measure this roof"}
@@ -176,7 +176,7 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
           )}
 
           {measure.isError && (
-            <div className="mt-2 flex items-center justify-between gap-2 text-[11px]" style={{ color: "#f87171" }}>
+            <div className="mt-2 flex items-center justify-between gap-2 text-[11px]" style={{ color: "var(--danger)" }}>
               <span className="flex items-center gap-1.5">
                 <AlertTriangle className="h-3 w-3" />
                 {(measure.error as Error).message}
@@ -213,7 +213,7 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
                 label="Stored total (pitch-adjusted)"
                 value={`${fmt(Number(data.measurement.total_area_sqft ?? 0))} sq ft`}
               />
-              <p className="pt-1 text-[10px]" style={{ color: "#fbbf24" }}>
+              <p className="pt-1 text-[10px]" style={{ color: "var(--warning)" }}>
                 This measurement has no per-facet footprint data, so the pitch and waste breakdown cannot
                 be recomputed from the footprint.
               </p>

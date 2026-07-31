@@ -22,8 +22,8 @@
   --text-muted: #475569;
 
   /* Brand */
-  --brand: #1668d6;
-  --brand-dim: #0c5fb3;
+  --brand: #15803d;
+  --brand-dim: #116331;
 
   /* Chrome (silver) */
   --chrome-1: #f2f3f5;
@@ -108,14 +108,14 @@
   --surface-hover: var(--bg-hover);
   --border-strong: var(--border-bright);
   --brand-deep: var(--brand-dim);
-  --brand-hover: #1b78ef;
-  --gradient-brand: linear-gradient(180deg, #2a8cf0, var(--brand));
-  --gradient-brand-soft: linear-gradient(135deg, rgba(22, 104, 214, 0.12) 0%, rgba(22, 104, 214, 0.03) 100%);
+  --brand-hover: #1a9a4b;
+  --gradient-brand: linear-gradient(180deg, #22a355, var(--brand));
+  --gradient-brand-soft: linear-gradient(135deg, rgba(21, 128, 61, 0.12) 0%, rgba(21, 128, 61, 0.03) 100%);
   --gradient-chrome: linear-gradient(180deg, var(--chrome-1), var(--chrome-2));
-  --gradient-stat-glow: radial-gradient(circle at top right, rgba(22, 104, 214, 0.10) 0%, transparent 60%);
+  --gradient-stat-glow: radial-gradient(circle at top right, rgba(21, 128, 61, 0.10) 0%, transparent 60%);
   --gradient-sidebar: linear-gradient(180deg, #ffffff 0%, #f2f4f7 100%);
   --shadow-md: var(--shadow);
-  --shadow-glow: 0 4px 14px rgba(22, 104, 214, 0.22);
+  --shadow-glow: 0 4px 14px rgba(21, 128, 61, 0.22);
   --shadow-chrome: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 1px 3px rgba(15, 23, 42, 0.14);
 
 }
@@ -201,7 +201,7 @@
     color: var(--text);
     min-height: 100vh;
     background:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(22, 104, 214, 0.07), transparent),
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(21, 128, 61, 0.07), transparent),
       radial-gradient(ellipse 60% 40% at 80% 120%, rgba(169, 122, 65, 0.05), transparent),
       var(--bg);
     background-attachment: fixed;
@@ -230,18 +230,18 @@
 
 /* Primary brand button — vertical gradient + brand glow */
 .btn-brand {
-  background: linear-gradient(180deg, #2aa0ff, var(--brand));
+  background: linear-gradient(180deg, #22a355, var(--brand));
   color: #fff;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    0 4px 14px rgba(30, 144, 255, 0.3);
+    0 4px 14px rgba(21, 128, 61, 0.3);
   transition: all 0.15s ease;
 }
 .btn-brand:hover {
   transform: translateY(-1px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    0 6px 20px rgba(30, 144, 255, 0.4);
+    0 6px 20px rgba(21, 128, 61, 0.4);
 }
 .btn-brand:disabled {
   opacity: 0.6;
@@ -288,7 +288,7 @@
   right: 0;
   width: 80px;
   height: 80px;
-  background: radial-gradient(circle, rgba(22, 104, 214, 0.10), transparent 70%);
+  background: radial-gradient(circle, rgba(21, 128, 61, 0.10), transparent 70%);
   pointer-events: none;
 }
 
@@ -301,7 +301,7 @@
 
 /* Nav active state — 2px inset border + 90deg blue gradient */
 .nav-active {
-  background: linear-gradient(90deg, rgba(30, 144, 255, 0.12), rgba(30, 144, 255, 0.02));
+  background: linear-gradient(90deg, rgba(21, 128, 61, 0.12), rgba(21, 128, 61, 0.02));
   box-shadow: inset 2px 0 0 var(--brand);
   color: var(--text);
 }
@@ -478,33 +478,34 @@
 [data-rk] .rk-subnav-link:hover { background: var(--rk-panel-2); color: var(--rk-ink); }
 [data-rk] .rk-subnav-link.is-active { background: var(--rk-panel-2); color: var(--rk-ink); border: 1px solid var(--rk-line-2); }
 
-/* Mapbox popup — dark theme override (mapbox-gl.css loads after styles.css, so use !important) */
+/* Mapbox popup — light theme override (mapbox-gl.css loads after styles.css, so use !important) */
 .mapboxgl-popup-content {
-  background: hsl(222 15% 12%) !important;
-  color: hsl(0 0% 95%) !important;
-  border: 1px solid hsl(222 10% 25%) !important;
+  background: #ffffff !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 8px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18) !important;
 }
-.mapboxgl-popup-content * { color: hsl(0 0% 95%); }
+.mapboxgl-popup-content * { color: var(--text); }
+.mapboxgl-popup-content a { color: var(--success); }
 .mapboxgl-popup-anchor-top .mapboxgl-popup-tip,
 .mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip,
 .mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip {
-  border-bottom-color: hsl(222 15% 12%) !important;
+  border-bottom-color: #ffffff !important;
 }
 .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip,
 .mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip,
 .mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {
-  border-top-color: hsl(222 15% 12%) !important;
+  border-top-color: #ffffff !important;
 }
-.mapboxgl-popup-anchor-left .mapboxgl-popup-tip { border-right-color: hsl(222 15% 12%) !important; }
-.mapboxgl-popup-anchor-right .mapboxgl-popup-tip { border-left-color: hsl(222 15% 12%) !important; }
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip { border-right-color: #ffffff !important; }
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip { border-left-color: #ffffff !important; }
 .mapboxgl-popup-close-button {
-  color: hsl(0 0% 70%) !important;
+  color: var(--text-muted) !important;
   font-size: 18px !important;
   padding: 4px 8px !important;
 }
 .mapboxgl-popup-close-button:hover {
-  background: hsl(222 10% 20%) !important;
-  color: hsl(0 0% 95%) !important;
+  background: var(--bg-hover) !important;
+  color: var(--text) !important;
 }

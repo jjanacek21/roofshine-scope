@@ -28,7 +28,7 @@ function DoorToDoorLayout() {
         )}
         style={{
           borderColor: "var(--border)",
-          backgroundColor: isWorld ? "rgba(10,10,11,0.85)" : "var(--bg-card)",
+          backgroundColor: isWorld ? "var(--bg-card)" : "var(--bg-card)",
         }}
       >
         {TABS.map((t) => {
