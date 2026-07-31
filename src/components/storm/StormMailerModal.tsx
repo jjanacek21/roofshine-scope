@@ -240,8 +240,8 @@ export function StormMailerModal({
                     onClick={() => setSigType(t)}
                     className="flex-1 rounded-md border px-2 py-1.5 capitalize"
                     style={{
-                      borderColor: sigType === t ? "var(--brand, #2563eb)" : "var(--border)",
-                      color: sigType === t ? "var(--brand, #60a5fa)" : undefined,
+                      borderColor: sigType === t ? "var(--success)" : "var(--border)",
+                      color: sigType === t ? "var(--success)" : undefined,
                     }}
                   >
                     {t}
