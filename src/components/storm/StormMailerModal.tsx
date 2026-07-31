@@ -172,7 +172,7 @@ export function StormMailerModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(15,23,42,0.45)] p-4">
       <div
         className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border"
         style={{ borderColor: "var(--border)", background: "var(--bg-card)" }}
@@ -198,7 +198,7 @@ export function StormMailerModal({
                 style={{ borderColor: "var(--border)" }}
               >
                 {STORM_TYPES.map((s) => (
-                  <option key={s} value={s} className="bg-neutral-900">
+                  <option key={s} value={s} style={{ background: "var(--bg-card)", color: "var(--text)" }}>
                     {s}
                   </option>
                 ))}
@@ -213,7 +213,7 @@ export function StormMailerModal({
                 style={{ borderColor: "var(--border)" }}
               >
                 {MAILER_TONES.map((t) => (
-                  <option key={t} value={t} className="bg-neutral-900">
+                  <option key={t} value={t} style={{ background: "var(--bg-card)", color: "var(--text)" }}>
                     {t}
                   </option>
                 ))}
@@ -283,7 +283,7 @@ export function StormMailerModal({
               onClick={() => gen.mutate()}
               disabled={gen.isPending}
               className="flex w-full items-center justify-center gap-1.5 rounded-md px-2 py-2 text-xs font-semibold disabled:opacity-60"
-              style={{ background: "var(--brand, #2563eb)", color: "#fff" }}
+              style={{ background: "var(--success)", color: "#fff" }}
             >
               {gen.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
               {body ? "Regenerate letter" : "Generate letter"}
