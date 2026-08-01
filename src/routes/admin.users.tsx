@@ -294,15 +294,44 @@ function AddRepDialog({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const [mode, setMode] = useState<"direct" | "invite">("direct");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [companyId, setCompanyId] = useState(companies[0]?.id ?? "");
   const [role, setRole] = useState<(typeof ASSIGNABLE_ROLES)[number]>("member");
   const [submitting, setSubmitting] = useState(false);
+
+  const createFn = useServerFn(createUserAsAdmin);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!companyId) return toast.error("Pick a company");
     setSubmitting(true);
+
+    if (mode === "direct") {
+      try {
+        await createFn({
+          data: {
+            email: email.trim().toLowerCase(),
+            password,
+            first_name: firstName.trim() || null,
+            last_name: lastName.trim() || null,
+            role,
+            company_id: companyId,
+          },
+        });
+        toast.success("User created — they can log in right away");
+        onCreated();
+      } catch (err: any) {
+        toast.error(err?.message ?? "Could not create user");
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     const { data, error } = await supabase.rpc("create_company_invite_as_super_admin", {
       _company_id: companyId,
       _email: email.trim().toLowerCase(),
@@ -338,10 +367,51 @@ function AddRepDialog({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          They'll receive an email to set up their password and profile.
+
+        <div className="mt-3 inline-flex rounded-md border border-border p-0.5 text-xs">
+          <button
+            type="button"
+            onClick={() => setMode("direct")}
+            className={`rounded px-3 py-1.5 font-semibold ${mode === "direct" ? "bg-muted" : ""}`}
+          >
+            Create account
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("invite")}
+            className={`rounded px-3 py-1.5 font-semibold ${mode === "invite" ? "bg-muted" : ""}`}
+          >
+            Send invite
+          </button>
+        </div>
+
+        <p className="mt-2 text-xs text-muted-foreground">
+          {mode === "direct"
+            ? "Set their email and password now — the account is confirmed and ready to log in immediately."
+            : "They'll receive an email to set up their password and profile."}
         </p>
+
         <div className="mt-4 space-y-3">
+          {mode === "direct" && (
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block text-xs font-semibold text-muted-foreground">
+                First name
+                <input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="field-input mt-1 font-normal text-foreground"
+                />
+              </label>
+              <label className="block text-xs font-semibold text-muted-foreground">
+                Last name
+                <input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="field-input mt-1 font-normal text-foreground"
+                />
+              </label>
+            </div>
+          )}
           <label className="block text-xs font-semibold text-muted-foreground">
             Email
             <input
@@ -353,6 +423,20 @@ function AddRepDialog({
               className="field-input mt-1 font-normal text-foreground"
             />
           </label>
+          {mode === "direct" && (
+            <label className="block text-xs font-semibold text-muted-foreground">
+              Password
+              <input
+                required
+                type="text"
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                className="field-input mt-1 font-normal text-foreground"
+              />
+            </label>
+          )}
           <label className="block text-xs font-semibold text-muted-foreground">
             Company
             <select
@@ -385,10 +469,10 @@ function AddRepDialog({
           </button>
           <button
             type="submit"
-            disabled={submitting || !email || !companyId}
+            disabled={submitting || !email || !companyId || (mode === "direct" && password.length < 8)}
             className="btn-brand h-9 rounded-md px-4 text-sm font-semibold disabled:opacity-60"
           >
-            {submitting ? "Creating…" : "Send invite"}
+            {submitting ? "Saving…" : mode === "direct" ? "Create user" : "Send invite"}
           </button>
         </div>
       </form>
