@@ -133,3 +133,101 @@ export const updateUserAsAdmin = createServerFn({ method: "POST" })
 
     return { success: true };
   });
+
+async function assertCanManage(actorId: string, companyId: string | null, role: string) {
+  const { data: actor, error } = await supabaseAdmin
+    .from("profiles")
+    .select("id, role, company_id")
+    .eq("id", actorId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!actor) throw new Error("Actor profile not found");
+
+  const isSuper = actor.role === "super_admin";
+  const isCompanyAdmin = actor.role === "owner" || actor.role === "admin";
+  if (!isSuper && !isCompanyAdmin) throw new Error("You don't have permission to do this.");
+  if (role === "super_admin" && !isSuper) throw new Error("Only a super admin can grant super_admin.");
+  if (!isSuper && companyId !== actor.company_id) {
+    throw new Error("You can only manage users in your own company.");
+  }
+  return actor;
+}
+
+const CreateUserSchema = z.object({
+  email: z.string().trim().email(),
+  password: z.string().min(8).max(72),
+  first_name: z.string().trim().max(100).nullable().optional(),
+  last_name: z.string().trim().max(100).nullable().optional(),
+  role: z.enum(["super_admin", "owner", "admin", "estimator", "member"]).default("member"),
+  company_id: z.string().uuid().nullable().optional(),
+});
+
+export const createUserAsAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => CreateUserSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const companyId = data.company_id ?? null;
+    await assertCanManage(context.userId, companyId, data.role);
+
+    const email = data.email.toLowerCase();
+
+    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: data.password,
+      email_confirm: true,
+      user_metadata: {
+        first_name: data.first_name ?? null,
+        last_name: data.last_name ?? null,
+      },
+    });
+    if (createErr || !created?.user) {
+      throw new Error(createErr?.message ?? "Could not create user");
+    }
+
+    const newId = created.user.id;
+    const { error: profErr } = await supabaseAdmin
+      .from("profiles")
+      .upsert(
+        {
+          id: newId,
+          email,
+          first_name: data.first_name ?? null,
+          last_name: data.last_name ?? null,
+          role: data.role,
+          company_id: companyId,
+          onboarding_completed_at: new Date().toISOString(),
+        } as never,
+        { onConflict: "id" }
+      );
+    if (profErr) throw new Error(profErr.message);
+
+    return { success: true, userId: newId };
+  });
+
+const SetPasswordSchema = z.object({
+  userId: z.string().uuid(),
+  password: z.string().min(8).max(72),
+});
+
+export const setUserPasswordAsAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => SetPasswordSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: target, error: targetErr } = await supabaseAdmin
+      .from("profiles")
+      .select("id, role, company_id")
+      .eq("id", data.userId)
+      .maybeSingle();
+    if (targetErr) throw new Error(targetErr.message);
+    if (!target) throw new Error("User not found");
+
+    await assertCanManage(context.userId, target.company_id, target.role);
+
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      password: data.password,
+      email_confirm: true,
+    });
+    if (error) throw new Error(error.message);
+
+    return { success: true };
+  });
