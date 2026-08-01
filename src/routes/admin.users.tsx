@@ -623,6 +623,29 @@ function EditUserDialog({
               ))}
             </select>
           </label>
+          <div className="col-span-2 rounded-lg border border-border p-3">
+            <p className="text-xs font-semibold text-muted-foreground">Set password</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Sets the password and confirms the email so they can log in immediately.
+            </p>
+            <div className="mt-2 flex gap-2">
+              <input
+                type="text"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="New password (8+ chars)"
+                className="field-input font-normal text-foreground"
+              />
+              <button
+                type="button"
+                onClick={applyPassword}
+                disabled={settingPw || newPassword.length < 8}
+                className="h-9 shrink-0 rounded-md border border-border px-3 text-xs font-semibold disabled:opacity-50"
+              >
+                {settingPw ? "Setting…" : "Set"}
+              </button>
+            </div>
+          </div>
         </div>
         <div className="mt-6 flex items-center justify-between gap-2">
           <button
