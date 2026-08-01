@@ -500,9 +500,26 @@ function EditUserDialog({
   const [companyId, setCompanyId] = useState<string | "">(user.company_id ?? "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [settingPw, setSettingPw] = useState(false);
 
   const updateFn = useServerFn(updateUserAsAdmin);
   const deleteFn = useServerFn(deleteTeamMember);
+  const setPwFn = useServerFn(setUserPasswordAsAdmin);
+
+  async function applyPassword() {
+    if (newPassword.length < 8) return toast.error("Password must be at least 8 characters");
+    setSettingPw(true);
+    try {
+      await setPwFn({ data: { userId: user.id, password: newPassword } });
+      toast.success("Password set — account confirmed, they can log in now");
+      setNewPassword("");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to set password");
+    } finally {
+      setSettingPw(false);
+    }
+  }
 
   async function save(e: FormEvent) {
     e.preventDefault();
