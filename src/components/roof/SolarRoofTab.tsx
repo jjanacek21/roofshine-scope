@@ -314,6 +314,9 @@ export function SolarRoofTab({
   const pinsStateRef = useRef<Pin[]>([]);
 
   const [pins, setPins] = useState<Pin[]>([]);
+  // Bumped whenever the map instance is (re)created / its style finishes loading,
+  // so overlay + marker effects re-run for data that arrived before the map existed.
+  const [mapReady, setMapReady] = useState(0);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   const [wastePct, setWastePct] = useState(15);
   const [imageryQuality, setImageryQuality] = useState<string | null>(null);
@@ -505,14 +508,21 @@ export function SolarRoofTab({
 
     map.on("rotate", () => setBearing(map.getBearing()));
 
-    map.on("load", () => ensureOverlayLayers(map));
-    map.on("styledata", () => ensureOverlayLayers(map));
+    map.on("load", () => {
+      ensureOverlayLayers(map);
+      setMapReady((n) => n + 1);
+    });
+    map.on("styledata", () => {
+      ensureOverlayLayers(map);
+    });
 
 
     mapRef.current = map;
+    setMapReady((n) => n + 1);
     return () => {
       map.remove();
       mapRef.current = null;
+      markersRef.current = {};
     };
   }, [token, center.lng, center.lat]);
 
@@ -637,7 +647,7 @@ export function SolarRoofTab({
         labelSrc.setData({ type: "FeatureCollection", features });
       }
     }
-  }, [pins, showOverlay]);
+  }, [pins, showOverlay, mapReady]);
 
   // ESC exits draw-mode
   useEffect(() => {
@@ -705,7 +715,7 @@ export function SolarRoofTab({
         delete existing[id];
       }
     });
-  }, [pins]);
+  }, [pins, mapReady]);
 
   // Vertex-edit mode: render draggable corner handles for the active pin's facets
   useEffect(() => {
