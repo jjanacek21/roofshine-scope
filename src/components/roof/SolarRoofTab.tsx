@@ -314,6 +314,9 @@ export function SolarRoofTab({
   const pinsStateRef = useRef<Pin[]>([]);
 
   const [pins, setPins] = useState<Pin[]>([]);
+  // Bumped whenever the map instance is (re)created / its style finishes loading,
+  // so overlay + marker effects re-run for data that arrived before the map existed.
+  const [mapReady, setMapReady] = useState(0);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   const [wastePct, setWastePct] = useState(15);
   const [imageryQuality, setImageryQuality] = useState<string | null>(null);
