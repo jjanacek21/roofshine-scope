@@ -647,7 +647,7 @@ export function SolarRoofTab({
         labelSrc.setData({ type: "FeatureCollection", features });
       }
     }
-  }, [pins, showOverlay]);
+  }, [pins, showOverlay, mapReady]);
 
   // ESC exits draw-mode
   useEffect(() => {
@@ -715,7 +715,7 @@ export function SolarRoofTab({
         delete existing[id];
       }
     });
-  }, [pins]);
+  }, [pins, mapReady]);
 
   // Vertex-edit mode: render draggable corner handles for the active pin's facets
   useEffect(() => {
