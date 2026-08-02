@@ -508,14 +508,21 @@ export function SolarRoofTab({
 
     map.on("rotate", () => setBearing(map.getBearing()));
 
-    map.on("load", () => ensureOverlayLayers(map));
-    map.on("styledata", () => ensureOverlayLayers(map));
+    map.on("load", () => {
+      ensureOverlayLayers(map);
+      setMapReady((n) => n + 1);
+    });
+    map.on("styledata", () => {
+      if (ensureOverlayLayers(map)) setMapReady((n) => n + 1);
+    });
 
 
     mapRef.current = map;
+    setMapReady((n) => n + 1);
     return () => {
       map.remove();
       mapRef.current = null;
+      markersRef.current = {};
     };
   }, [token, center.lng, center.lat]);
 
