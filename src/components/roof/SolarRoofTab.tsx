@@ -513,7 +513,7 @@ export function SolarRoofTab({
       setMapReady((n) => n + 1);
     });
     map.on("styledata", () => {
-      if (ensureOverlayLayers(map)) setMapReady((n) => n + 1);
+      ensureOverlayLayers(map);
     });
 
 
