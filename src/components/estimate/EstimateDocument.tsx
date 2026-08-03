@@ -331,3 +331,12 @@ const tdStyle: React.CSSProperties = {
   padding: "5px 6px",
   verticalAlign: "top",
 };
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 9,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  fontWeight: 800,
+  color: "#666",
+  marginBottom: 3,
+};
