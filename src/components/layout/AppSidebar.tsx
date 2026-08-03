@@ -114,7 +114,12 @@ export function AppSidebar() {
             </p>
           )}
           <nav className="space-y-1">
-            {WORKSPACE_NAV.filter((i) => !(isRoofKing && i.to === "/leads")).map((item) => {
+            {WORKSPACE_NAV.filter((i) => {
+              if (isRoofKing && i.to === "/leads") return false;
+              if (i.to === "/door-to-door" && !features.doorToDoor) return false;
+              if (i.to === "/storm-intelligence" && !features.stormIntel) return false;
+              return true;
+            }).map((item) => {
               const active = isActive(item.to);
               const Icon = item.icon;
               const link = (
