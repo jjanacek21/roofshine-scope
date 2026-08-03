@@ -135,13 +135,13 @@ export function AddressAutocomplete({ value, onSelect, placeholder = "Search add
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => results.length > 0 && setOpen(true)}
+          onFocus={() => query.length >= 3 && setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 200)}
           placeholder={placeholder}
           className="h-10 flex-1 bg-transparent text-sm text-foreground outline-none"
         />
       </div>
-      {open && results.length > 0 && (
+      {open && query.trim().length >= 3 && (
         <div
           className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border shadow-lg"
           style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
@@ -158,8 +158,21 @@ export function AddressAutocomplete({ value, onSelect, placeholder = "Search add
               {f.place_name}
             </button>
           ))}
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleUseTyped}
+            className="block w-full border-t px-3 py-2 text-left text-sm font-semibold text-foreground hover:bg-[var(--bg-hover)]"
+            style={{ borderColor: "var(--border)" }}
+          >
+            Use “{query.trim()}” as typed
+            <span className="ml-1 font-normal text-muted-foreground">
+              (for rural / grid addresses)
+            </span>
+          </button>
         </div>
       )}
+
     </div>
   );
 }
