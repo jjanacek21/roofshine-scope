@@ -233,11 +233,46 @@ function JobEstimate() {
       setHidePricing(Boolean(activeEstimate.hide_pricing));
       setUseManualTotal(Boolean(activeEstimate.use_manual_total));
       setManualTotal(Number(activeEstimate.manual_total ?? 0));
+      setDeductible(Number(activeEstimate.deductible ?? 0));
+      setReportMeta((activeEstimate.report_meta ?? {}) as CoverMeta);
+      setReportNotes(
+        Array.isArray(activeEstimate.report_notes) ? (activeEstimate.report_notes as ReportNote[]) : [],
+      );
     }
     // Only hydrate editable fields when switching estimates. Refetches after autosave
     // should not overwrite the user's in-progress percentage edits or re-trigger saves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeEstimateId]);
+
+  // Carrier report fields (cover sheet, deductible, notes)
+  const [deductible, setDeductible] = useState(0);
+  const [reportMeta, setReportMeta] = useState<CoverMeta>({});
+  const [reportNotes, setReportNotes] = useState<ReportNote[]>([]);
+  const reportTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reportHydrated = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activeEstimateId) return;
+    if (reportHydrated.current !== activeEstimateId) {
+      reportHydrated.current = activeEstimateId;
+      return; // skip the save triggered by hydration
+    }
+    if (reportTimer.current) clearTimeout(reportTimer.current);
+    reportTimer.current = setTimeout(async () => {
+      await supabase
+        .from("estimates")
+        .update({
+          deductible,
+          report_meta: reportMeta as never,
+          report_notes: reportNotes as never,
+        } as never)
+        .eq("id", activeEstimateId);
+      setSavedAt(Date.now());
+    }, 600);
+    return () => {
+      if (reportTimer.current) clearTimeout(reportTimer.current);
+    };
+  }, [deductible, reportMeta, reportNotes, activeEstimateId]);
+
 
   // Debounced save of estimate header (pcts + totals)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
