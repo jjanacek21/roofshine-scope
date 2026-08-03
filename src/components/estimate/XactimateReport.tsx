@@ -416,8 +416,10 @@ function Party({ label, lines }: { label: string; lines: (string | null | undefi
   const clean = lines.filter(Boolean) as string[];
   if (clean.length === 0) return null;
   return (
-    <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
-      <div style={{ width: 110, fontWeight: 700 }}>{label}:</div>
+    <div style={{ display: "flex", gap: 14, marginBottom: 7 }}>
+      <div style={{ width: 118, textAlign: "right", fontWeight: 700, flex: "0 0 auto" }}>
+        {label}:
+      </div>
       <div>
         {clean.map((l, i) => (
           <div key={i} style={{ whiteSpace: "pre-wrap" }}>
@@ -435,14 +437,24 @@ function FieldGrid({ rows }: { rows: [string, string | null | undefined][] }) {
       {rows
         .filter(([, v]) => Boolean(v))
         .map(([k, v], i) => (
-          <div key={i} style={{ display: "flex", gap: 12 }}>
-            <div style={{ width: 160, fontWeight: k ? 700 : 400 }}>{k ? `${k}:` : ""}</div>
+          <div key={i} style={{ display: "flex", gap: 14, marginBottom: 1 }}>
+            <div
+              style={{
+                width: 118,
+                textAlign: "right",
+                fontWeight: k ? 700 : 400,
+                flex: "0 0 auto",
+              }}
+            >
+              {k ? `${k}:` : ""}
+            </div>
             <div>{v}</div>
           </div>
         ))}
     </div>
   );
 }
+
 
 // ---------------------------------------------------------------- line items
 
