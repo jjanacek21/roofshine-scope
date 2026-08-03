@@ -58,6 +58,7 @@ export function MobileSidebarSheet() {
   const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
   const { isRoofKing } = useIsRoofKing();
+  const features = useCompanyFeatures();
   const isSuperAdmin = profile?.role === "super_admin";
   const isCompanyAdmin =
     profile?.role === "owner" || profile?.role === "admin" || isSuperAdmin;
