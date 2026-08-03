@@ -63,6 +63,7 @@ import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppDoorToDoorRouteImport } from './routes/_app.door-to-door'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCardRouteImport } from './routes/_app.card'
+import { Route as AdminCompaniesIndexRouteImport } from './routes/admin.companies.index'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppRoofkingIndexRouteImport } from './routes/_app.roofking.index'
 import { Route as AppLeadsIndexRouteImport } from './routes/_app.leads.index'
@@ -379,6 +380,11 @@ const AppCardRoute = AppCardRouteImport.update({
   id: '/card',
   path: '/card',
   getParentRoute: () => AppRoute,
+} as any)
+const AdminCompaniesIndexRoute = AdminCompaniesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminCompaniesRoute,
 } as any)
 const AppTeamIndexRoute = AppTeamIndexRouteImport.update({
   id: '/',
@@ -703,6 +709,7 @@ export interface FileRoutesByFullPath {
   '/leads/': typeof AppLeadsIndexRoute
   '/roofking/': typeof AppRoofkingIndexRoute
   '/team/': typeof AppTeamIndexRoute
+  '/admin/companies/': typeof AdminCompaniesIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -730,7 +737,6 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
-  '/admin/companies': typeof AdminCompaniesRouteWithChildren
   '/admin/content': typeof AdminContentRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
@@ -798,6 +804,7 @@ export interface FileRoutesByTo {
   '/leads': typeof AppLeadsIndexRoute
   '/roofking': typeof AppRoofkingIndexRoute
   '/team': typeof AppTeamIndexRoute
+  '/admin/companies': typeof AdminCompaniesIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -901,6 +908,7 @@ export interface FileRoutesById {
   '/_app/leads/': typeof AppLeadsIndexRoute
   '/_app/roofking/': typeof AppRoofkingIndexRoute
   '/_app/team/': typeof AppTeamIndexRoute
+  '/admin/companies/': typeof AdminCompaniesIndexRoute
   '/_app/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/_app/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/_app/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -1004,6 +1012,7 @@ export interface FileRouteTypes {
     | '/leads/'
     | '/roofking/'
     | '/team/'
+    | '/admin/companies/'
     | '/jobs/$id/contract'
     | '/jobs/$id/documents'
     | '/jobs/$id/estimate'
@@ -1031,7 +1040,6 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/announcements'
     | '/admin/audit'
-    | '/admin/companies'
     | '/admin/content'
     | '/admin/emails'
     | '/admin/features'
@@ -1099,6 +1107,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/roofking'
     | '/team'
+    | '/admin/companies'
     | '/jobs/$id/contract'
     | '/jobs/$id/documents'
     | '/jobs/$id/estimate'
@@ -1201,6 +1210,7 @@ export interface FileRouteTypes {
     | '/_app/leads/'
     | '/_app/roofking/'
     | '/_app/team/'
+    | '/admin/companies/'
     | '/_app/jobs/$id/contract'
     | '/_app/jobs/$id/documents'
     | '/_app/jobs/$id/estimate'
@@ -1622,6 +1632,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/card'
       preLoaderRoute: typeof AppCardRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/admin/companies/': {
+      id: '/admin/companies/'
+      path: '/'
+      fullPath: '/admin/companies/'
+      preLoaderRoute: typeof AdminCompaniesIndexRouteImport
+      parentRoute: typeof AdminCompaniesRoute
     }
     '/_app/team/': {
       id: '/_app/team/'
@@ -2131,10 +2148,12 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface AdminCompaniesRouteChildren {
   AdminCompaniesIdRoute: typeof AdminCompaniesIdRoute
+  AdminCompaniesIndexRoute: typeof AdminCompaniesIndexRoute
 }
 
 const AdminCompaniesRouteChildren: AdminCompaniesRouteChildren = {
   AdminCompaniesIdRoute: AdminCompaniesIdRoute,
+  AdminCompaniesIndexRoute: AdminCompaniesIndexRoute,
 }
 
 const AdminCompaniesRouteWithChildren = AdminCompaniesRoute._addFileChildren(
