@@ -28,7 +28,13 @@ import { MacroPicker, type MacroPickerItem } from "@/components/estimate/MacroPi
 import { AISuggestionsPanel } from "@/components/estimate/AISuggestionsPanel";
 import type { Trade } from "@/lib/trades";
 import { unitCost, lineTotal } from "@/lib/estimate-document";
-import { EstimateDocument } from "@/components/estimate/EstimateDocument";
+import {
+  XactimateReport,
+  type CoverMeta,
+  type ReportProfile,
+} from "@/components/estimate/XactimateReport";
+import { ReportSetupPanel } from "@/components/estimate/ReportSetupPanel";
+import type { ReportNote, SectionMeasurements } from "@/lib/xact-report";
 import { generateEstimatePdf } from "@/lib/estimate-pdf";
 import { format } from "date-fns";
 
@@ -55,7 +61,12 @@ type EstimateRowFull = EstimateRow & {
   estimate_number?: string | null;
   type_of_estimate?: string | null;
   price_list_code?: string | null;
+  deductible?: number | null;
+  coverage_label?: string | null;
+  report_meta?: Record<string, unknown> | null;
+  report_notes?: ReportNote[] | null;
 };
+
 
 function JobEstimate() {
   const { id: jobId } = Route.useParams();
