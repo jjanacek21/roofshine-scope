@@ -509,3 +509,27 @@
   background: var(--bg-hover) !important;
   color: var(--text) !important;
 }
+
+/* ---- Carrier-style estimate report (print) ---- */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .xr-root,
+  .xr-root * {
+    visibility: visible;
+  }
+  .xr-root {
+    position: absolute;
+    inset: 0;
+  }
+  .xr-page {
+    box-shadow: none !important;
+    page-break-after: always;
+    break-after: page;
+  }
+  .xr-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+}

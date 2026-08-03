@@ -28,7 +28,13 @@ import { MacroPicker, type MacroPickerItem } from "@/components/estimate/MacroPi
 import { AISuggestionsPanel } from "@/components/estimate/AISuggestionsPanel";
 import type { Trade } from "@/lib/trades";
 import { unitCost, lineTotal } from "@/lib/estimate-document";
-import { EstimateDocument } from "@/components/estimate/EstimateDocument";
+import {
+  XactimateReport,
+  type CoverMeta,
+  type ReportProfile,
+} from "@/components/estimate/XactimateReport";
+import { ReportSetupPanel } from "@/components/estimate/ReportSetupPanel";
+import type { ReportNote, SectionMeasurements } from "@/lib/xact-report";
 import { generateEstimatePdf } from "@/lib/estimate-pdf";
 import { format } from "date-fns";
 
@@ -55,7 +61,12 @@ type EstimateRowFull = EstimateRow & {
   estimate_number?: string | null;
   type_of_estimate?: string | null;
   price_list_code?: string | null;
+  deductible?: number | null;
+  coverage_label?: string | null;
+  report_meta?: Record<string, unknown> | null;
+  report_notes?: ReportNote[] | null;
 };
+
 
 function JobEstimate() {
   const { id: jobId } = Route.useParams();
@@ -89,7 +100,7 @@ function JobEstimate() {
       const { data } = await supabase
         .from("companies")
         .select(
-          "name, logo_url, address, phone, email, website, default_markup_pct, default_overhead_pct, default_profit_pct, default_tax_rate",
+          "name, logo_url, address, phone, email, website, report_profile, default_markup_pct, default_overhead_pct, default_profit_pct, default_tax_rate",
         )
         .eq("id", job!.company_id)
         .maybeSingle();
@@ -109,6 +120,21 @@ function JobEstimate() {
       return data;
     },
   });
+
+  // Roof measurement block printed under the first section of the report
+  const { data: measurement } = useQuery({
+    queryKey: ["estimate-measurement", job?.property_id],
+    enabled: !!job?.property_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("roof_measurements")
+        .select("total_area_sqft, squares, eaves_lf, rakes_lf, ridges_lf, hips_lf, valleys_lf")
+        .eq("property_id", job!.property_id!)
+        .maybeSingle();
+      return data;
+    },
+  });
+
 
   // Estimates list
   const { data: estimates } = useQuery({
@@ -207,11 +233,46 @@ function JobEstimate() {
       setHidePricing(Boolean(activeEstimate.hide_pricing));
       setUseManualTotal(Boolean(activeEstimate.use_manual_total));
       setManualTotal(Number(activeEstimate.manual_total ?? 0));
+      setDeductible(Number(activeEstimate.deductible ?? 0));
+      setReportMeta((activeEstimate.report_meta ?? {}) as CoverMeta);
+      setReportNotes(
+        Array.isArray(activeEstimate.report_notes) ? (activeEstimate.report_notes as ReportNote[]) : [],
+      );
     }
     // Only hydrate editable fields when switching estimates. Refetches after autosave
     // should not overwrite the user's in-progress percentage edits or re-trigger saves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeEstimateId]);
+
+  // Carrier report fields (cover sheet, deductible, notes)
+  const [deductible, setDeductible] = useState(0);
+  const [reportMeta, setReportMeta] = useState<CoverMeta>({});
+  const [reportNotes, setReportNotes] = useState<ReportNote[]>([]);
+  const reportTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reportHydrated = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activeEstimateId) return;
+    if (reportHydrated.current !== activeEstimateId) {
+      reportHydrated.current = activeEstimateId;
+      return; // skip the save triggered by hydration
+    }
+    if (reportTimer.current) clearTimeout(reportTimer.current);
+    reportTimer.current = setTimeout(async () => {
+      await supabase
+        .from("estimates")
+        .update({
+          deductible,
+          report_meta: reportMeta as never,
+          report_notes: reportNotes as never,
+        } as never)
+        .eq("id", activeEstimateId);
+      setSavedAt(Date.now());
+    }, 600);
+    return () => {
+      if (reportTimer.current) clearTimeout(reportTimer.current);
+    };
+  }, [deductible, reportMeta, reportNotes, activeEstimateId]);
+
 
   // Debounced save of estimate header (pcts + totals)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -280,6 +341,8 @@ function JobEstimate() {
         area?: string;
         category?: string | null;
         subgroup?: string | null;
+        depreciation_pct?: number | null;
+        not_yet_incurred?: boolean;
       } = {};
       if (patch.name !== undefined) updates.name = patch.name;
       if (patch.unit !== undefined) updates.unit = patch.unit;
@@ -291,7 +354,12 @@ function JobEstimate() {
       if (patch.area !== undefined) updates.area = patch.area || "Main Level";
       if (patch.category !== undefined) updates.category = patch.category ?? null;
       if (patch.subgroup !== undefined) updates.subgroup = patch.subgroup ?? null;
+      if (patch.depreciation_pct !== undefined)
+        updates.depreciation_pct = Number(patch.depreciation_pct) || 0;
+      if (patch.not_yet_incurred !== undefined)
+        updates.not_yet_incurred = Boolean(patch.not_yet_incurred);
       if (merged) updates.total = merged.qty * unitCost(merged);
+
       await supabase.from("estimate_line_items").update(updates).eq("id", itemId);
       setSavedAt(Date.now());
       qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
@@ -600,6 +668,57 @@ function JobEstimate() {
     qc.invalidateQueries({ queryKey: ["estimates", jobId] });
   };
 
+  // Company branding for the carrier report letterhead / legal blocks
+  const rp = (company?.report_profile ?? {}) as Record<string, string | null>;
+  const reportProfile: ReportProfile = {
+    companyName: company?.name ?? "Company",
+    logoUrl: company?.logo_url ?? null,
+    addressLine1: rp.address_line1 ?? company?.address ?? null,
+    addressLine2: rp.address_line2 ?? null,
+    businessPhone: rp.business_phone ?? company?.phone ?? null,
+    claimsEmail: rp.claims_email ?? company?.email ?? null,
+    website: company?.website ?? null,
+    estimatorName: rp.estimator_name ?? null,
+    estimatorPosition: rp.estimator_position ?? null,
+    estimatorLicense: rp.estimator_license ?? null,
+    legalStatute: rp.legal_statute ?? null,
+    legalNotice: rp.legal_notice ?? null,
+    fraudWarning: rp.fraud_warning ?? null,
+  };
+
+  const coverMeta: CoverMeta = {
+    ...reportMeta,
+    estimateName: reportMeta.estimateName || activeEstimate?.estimate_number || activeEstimate?.name || "Estimate",
+    coverageLabel: reportMeta.coverageLabel || activeEstimate?.coverage_label || "Coverage A - Dwelling",
+    insuredName: reportMeta.insuredName || client?.name || job?.name || null,
+    insuredPhone: reportMeta.insuredPhone || client?.phone || null,
+    insuredEmail: reportMeta.insuredEmail || client?.email || null,
+    homeAddress: reportMeta.homeAddress || client?.address || job?.property_address || null,
+    propertyAddress: reportMeta.propertyAddress || job?.property_address || null,
+    claimNumber: reportMeta.claimNumber || job?.claim_number || null,
+    claimRepCompany: reportMeta.claimRepCompany || job?.insurance_carrier || null,
+    priceListCode: reportMeta.priceListCode || activeEstimate?.price_list_code || null,
+    typeOfLoss: reportMeta.typeOfLoss || activeEstimate?.type_of_estimate || null,
+    dateEntered: reportMeta.dateEntered || format(new Date(), "M/d/yyyy"),
+    reportDate: format(new Date(), "M/d/yyyy"),
+  };
+
+  const firstArea = localItems[0]?.area || "Main Level";
+  const sectionMeasurements: Record<string, SectionMeasurements> = measurement
+    ? {
+        [firstArea]: {
+          surfaceArea: Number(measurement.total_area_sqft ?? 0),
+          squares: Number(measurement.squares ?? 0),
+          perimeter:
+            Number(measurement.eaves_lf ?? 0) + Number(measurement.rakes_lf ?? 0),
+          ridge: Number(measurement.ridges_lf ?? 0),
+          hip: Number(measurement.hips_lf ?? 0),
+          valley: Number(measurement.valleys_lf ?? 0),
+        },
+      }
+    : {};
+
+
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       <div className="space-y-5">
@@ -654,7 +773,7 @@ function JobEstimate() {
               onClick={() => setView("document")}
               className={`rounded-md px-3 py-1 text-[12px] font-semibold ${view === "document" ? "bg-[var(--bg-hover)]" : "text-muted-foreground"}`}
             >
-              Estimate document
+              Carrier report
             </button>
           </div>
           {view === "document" && (
@@ -667,6 +786,17 @@ function JobEstimate() {
           )}
         </div>
 
+        {view === "document" && (
+          <ReportSetupPanel
+            meta={reportMeta}
+            onMetaChange={(patch) => setReportMeta((m) => ({ ...m, ...patch }))}
+            deductible={deductible}
+            onDeductibleChange={setDeductible}
+            notes={reportNotes}
+            onNotesChange={setReportNotes}
+          />
+        )}
+
         {view === "edit" ? (
           <LineItemTable
             items={localItems}
@@ -676,37 +806,33 @@ function JobEstimate() {
             taxPct={pcts.tax_pct}
           />
         ) : (
-          <div ref={docRef}>
-            <EstimateDocument
-              items={localItems}
-              pcts={pcts}
-              manualTotal={manualTotal}
-              useManualTotal={useManualTotal}
-              hidePricing={hidePricing}
-              company={company ? {
-                name: company.name ?? "Company",
-                logo_url: company.logo_url,
-                address: company.address,
-                phone: company.phone,
-                email: company.email,
-                website: company.website,
-              } : null}
-              customer={{
-                name: client?.name ?? job?.name ?? null,
-                address: client?.address ?? job?.property_address ?? null,
-                phone: client?.phone ?? null,
-                email: client?.email ?? null,
-              }}
-              meta={{
-                estimate_number: activeEstimate?.estimate_number ?? activeEstimate?.name ?? null,
-                type_of_estimate: activeEstimate?.type_of_estimate ?? activeEstimate?.name ?? null,
-                price_list_code: activeEstimate?.price_list_code ?? null,
-                date: format(new Date(), "MMM d, yyyy"),
-                claim_number: job?.claim_number ?? null,
-              }}
+          <div ref={docRef} className="overflow-x-auto">
+            <XactimateReport
+              profile={reportProfile}
+              meta={coverMeta}
+              items={localItems.map((i) => ({
+                id: i.id,
+                code: i.code,
+                name: i.name,
+                unit: i.unit,
+                qty: Number(i.qty ?? 0),
+                unit_price: unitCost(i),
+                depreciation_pct: i.depreciation_pct ?? null,
+                depreciation_amount: i.depreciation_amount ?? null,
+                depreciation_recoverable: i.depreciation_recoverable ?? true,
+                not_yet_incurred: Boolean(i.not_yet_incurred),
+                note: i.note,
+                category: i.category,
+                area: i.area,
+              }))}
+              taxPct={pcts.tax_pct}
+              deductible={deductible}
+              notes={reportNotes}
+              measurements={sectionMeasurements}
             />
           </div>
         )}
+
 
         <div className="space-y-2">
           {pickerOpen ? (

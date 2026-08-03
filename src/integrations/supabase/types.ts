@@ -519,6 +519,7 @@ export type Database = {
           logo_url: string | null
           name: string
           phone: string | null
+          report_profile: Json
           trades: Database["public"]["Enums"]["trade_type"][]
           updated_at: string
           warranty_blurb: string | null
@@ -544,6 +545,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           phone?: string | null
+          report_profile?: Json
           trades?: Database["public"]["Enums"]["trade_type"][]
           updated_at?: string
           warranty_blurb?: string | null
@@ -569,6 +571,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           phone?: string | null
+          report_profile?: Json
           trades?: Database["public"]["Enums"]["trade_type"][]
           updated_at?: string
           warranty_blurb?: string | null
@@ -1087,10 +1090,14 @@ export type Database = {
           category: string | null
           code: string | null
           created_at: string
+          depreciation_amount: number | null
+          depreciation_pct: number | null
+          depreciation_recoverable: boolean
           estimate_id: string
           id: string
           line_item_id: string | null
           name: string
+          not_yet_incurred: boolean
           note: string | null
           qty: number
           remove_price: number
@@ -1098,6 +1105,7 @@ export type Database = {
           sort_order: number
           source: string
           subgroup: string | null
+          tax_amount: number | null
           total: number
           trade: Database["public"]["Enums"]["trade_type"]
           unit: string
@@ -1108,10 +1116,14 @@ export type Database = {
           category?: string | null
           code?: string | null
           created_at?: string
+          depreciation_amount?: number | null
+          depreciation_pct?: number | null
+          depreciation_recoverable?: boolean
           estimate_id: string
           id?: string
           line_item_id?: string | null
           name: string
+          not_yet_incurred?: boolean
           note?: string | null
           qty?: number
           remove_price?: number
@@ -1119,6 +1131,7 @@ export type Database = {
           sort_order?: number
           source?: string
           subgroup?: string | null
+          tax_amount?: number | null
           total?: number
           trade: Database["public"]["Enums"]["trade_type"]
           unit?: string
@@ -1129,10 +1142,14 @@ export type Database = {
           category?: string | null
           code?: string | null
           created_at?: string
+          depreciation_amount?: number | null
+          depreciation_pct?: number | null
+          depreciation_recoverable?: boolean
           estimate_id?: string
           id?: string
           line_item_id?: string | null
           name?: string
+          not_yet_incurred?: boolean
           note?: string | null
           qty?: number
           remove_price?: number
@@ -1140,6 +1157,7 @@ export type Database = {
           sort_order?: number
           source?: string
           subgroup?: string | null
+          tax_amount?: number | null
           total?: number
           trade?: Database["public"]["Enums"]["trade_type"]
           unit?: string
@@ -1165,7 +1183,9 @@ export type Database = {
       estimates: {
         Row: {
           company_id: string
+          coverage_label: string
           created_at: string
+          deductible: number
           estimate_number: string | null
           hide_pricing: boolean
           id: string
@@ -1177,6 +1197,8 @@ export type Database = {
           overhead_pct: number
           price_list_code: string | null
           profit_pct: number
+          report_meta: Json
+          report_notes: Json
           show_code_pages: boolean
           status: Database["public"]["Enums"]["estimate_doc_status"]
           subtotal: number
@@ -1190,7 +1212,9 @@ export type Database = {
         }
         Insert: {
           company_id: string
+          coverage_label?: string
           created_at?: string
+          deductible?: number
           estimate_number?: string | null
           hide_pricing?: boolean
           id?: string
@@ -1202,6 +1226,8 @@ export type Database = {
           overhead_pct?: number
           price_list_code?: string | null
           profit_pct?: number
+          report_meta?: Json
+          report_notes?: Json
           show_code_pages?: boolean
           status?: Database["public"]["Enums"]["estimate_doc_status"]
           subtotal?: number
@@ -1215,7 +1241,9 @@ export type Database = {
         }
         Update: {
           company_id?: string
+          coverage_label?: string
           created_at?: string
+          deductible?: number
           estimate_number?: string | null
           hide_pricing?: boolean
           id?: string
@@ -1227,6 +1255,8 @@ export type Database = {
           overhead_pct?: number
           price_list_code?: string | null
           profit_pct?: number
+          report_meta?: Json
+          report_notes?: Json
           show_code_pages?: boolean
           status?: Database["public"]["Enums"]["estimate_doc_status"]
           subtotal?: number

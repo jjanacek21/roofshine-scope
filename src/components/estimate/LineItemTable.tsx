@@ -21,7 +21,12 @@ export type LineItem = {
   replace_price?: number | null;
   note?: string | null;
   area?: string | null;
+  depreciation_pct?: number | null;
+  depreciation_amount?: number | null;
+  depreciation_recoverable?: boolean | null;
+  not_yet_incurred?: boolean | null;
 };
+
 
 type Source = "catalog" | "ai" | "rule" | "custom";
 
@@ -173,8 +178,11 @@ export function LineItemTable({
                   <th className="w-24 px-2 py-2 text-right">Remove</th>
                   <th className="w-24 px-2 py-2 text-right">Replace</th>
                   <th className="w-20 px-2 py-2 text-right">Tax</th>
+                  <th className="w-16 px-2 py-2 text-right">Dep %</th>
+                  <th className="w-10 px-2 py-2 text-center" title="Payment not yet incurred">NI</th>
                   <th className="w-24 px-2 py-2 text-right">Total</th>
                   <th className="w-10 px-2 py-2"></th>
+
                 </tr>
               </thead>
               <tbody>
@@ -258,9 +266,28 @@ export function LineItemTable({
                       <td className="font-mono-num px-2 py-2 text-right align-top text-[12px] text-muted-foreground">
                         ${tax.toFixed(2)}
                       </td>
-                      <td className="font-mono-num px-2 py-2 text-right align-top font-bold text-[var(--brand)]">
+                      <td className="px-2 py-2 text-right align-top">
+                        <NumberInput
+                          value={Number(item.depreciation_pct ?? 0)}
+                          onChange={(v) => onPatch(item.id, { depreciation_pct: v })}
+                        />
+                      </td>
+                      <td className="px-2 py-2 text-center align-top">
+                        <input
+                          type="checkbox"
+                          title="Payment not yet incurred — excluded from totals"
+                          checked={Boolean(item.not_yet_incurred)}
+                          onChange={(e) => onPatch(item.id, { not_yet_incurred: e.target.checked })}
+                          className="h-3.5 w-3.5 cursor-pointer"
+                        />
+                      </td>
+                      <td
+                        className="font-mono-num px-2 py-2 text-right align-top font-bold text-[var(--brand)]"
+                        style={item.not_yet_incurred ? { textDecoration: "line-through", opacity: 0.6 } : undefined}
+                      >
                         ${(lineTotal(item) + tax).toFixed(2)}
                       </td>
+
                       <td className="px-2 py-2 align-top">
                         <DeleteButton onConfirm={() => onDelete(item.id)} />
                       </td>
