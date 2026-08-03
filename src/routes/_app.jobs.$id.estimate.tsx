@@ -68,6 +68,8 @@ type EstimateRowFull = EstimateRow & {
 };
 
 
+const EMPTY_ITEMS: LineItem[] = [];
+
 function JobEstimate() {
   const { id: jobId } = Route.useParams();
   const search = Route.useSearch();
