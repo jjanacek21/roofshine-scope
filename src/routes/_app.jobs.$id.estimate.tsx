@@ -97,6 +97,19 @@ function JobEstimate() {
     },
   });
 
+  const { data: client } = useQuery({
+    queryKey: ["estimate-client", job?.client_id],
+    enabled: !!job?.client_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("clients")
+        .select("name, email, phone, address")
+        .eq("id", job!.client_id!)
+        .maybeSingle();
+      return data;
+    },
+  });
+
   // Estimates list
   const { data: estimates } = useQuery({
     queryKey: ["estimates", jobId],
@@ -679,10 +692,10 @@ function JobEstimate() {
                 website: company.website,
               } : null}
               customer={{
-                name: job?.client_name ?? null,
-                address: job?.address ?? null,
-                phone: job?.client_phone ?? null,
-                email: job?.client_email ?? null,
+                name: client?.name ?? job?.name ?? null,
+                address: client?.address ?? job?.property_address ?? null,
+                phone: client?.phone ?? null,
+                email: client?.email ?? null,
               }}
               meta={{
                 estimate_number: activeEstimate?.estimate_number ?? activeEstimate?.name ?? null,
