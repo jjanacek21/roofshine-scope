@@ -156,7 +156,7 @@ export function XactimateReport({
     blocks.push({
       key: `t-${section}`,
       weight: SECTION_TOTAL_WEIGHT,
-      node: <SectionTotals name={section} rcv={st.rcv} dep={st.dep} acv={st.acv} />,
+      node: <SectionTotals name={section} tax={st.tax} rcv={st.rcv} dep={st.dep} acv={st.acv} />,
     });
   }
 
@@ -260,7 +260,7 @@ function Letterhead({ profile }: { profile: ReportProfile }) {
         alignItems: "flex-start",
         justifyContent: "space-between",
         gap: 18,
-        borderBottom: "1.5px solid #000",
+        borderBottom: "1px solid #000",
         paddingBottom: 8,
         marginBottom: 14,
       }}
@@ -416,8 +416,10 @@ function Party({ label, lines }: { label: string; lines: (string | null | undefi
   const clean = lines.filter(Boolean) as string[];
   if (clean.length === 0) return null;
   return (
-    <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
-      <div style={{ width: 110, fontWeight: 700 }}>{label}:</div>
+    <div style={{ display: "flex", gap: 14, marginBottom: 7 }}>
+      <div style={{ width: 118, textAlign: "right", fontWeight: 700, flex: "0 0 auto" }}>
+        {label}:
+      </div>
       <div>
         {clean.map((l, i) => (
           <div key={i} style={{ whiteSpace: "pre-wrap" }}>
@@ -435,14 +437,24 @@ function FieldGrid({ rows }: { rows: [string, string | null | undefined][] }) {
       {rows
         .filter(([, v]) => Boolean(v))
         .map(([k, v], i) => (
-          <div key={i} style={{ display: "flex", gap: 12 }}>
-            <div style={{ width: 160, fontWeight: k ? 700 : 400 }}>{k ? `${k}:` : ""}</div>
+          <div key={i} style={{ display: "flex", gap: 14, marginBottom: 1 }}>
+            <div
+              style={{
+                width: 118,
+                textAlign: "right",
+                fontWeight: k ? 700 : 400,
+                flex: "0 0 auto",
+              }}
+            >
+              {k ? `${k}:` : ""}
+            </div>
             <div>{v}</div>
           </div>
         ))}
     </div>
   );
 }
+
 
 // ---------------------------------------------------------------- line items
 
@@ -511,19 +523,36 @@ function MeasureRow({
   );
 }
 
+/** Shared column widths so head / rows / totals line up across separate tables. */
+function ItemCols() {
+  return (
+    <colgroup>
+      <col style={{ width: 26 }} />
+      <col />
+      <col style={{ width: 78 }} />
+      <col style={{ width: 68 }} />
+      <col style={{ width: 52 }} />
+      <col style={{ width: 76 }} />
+      <col style={{ width: 76 }} />
+      <col style={{ width: 76 }} />
+    </colgroup>
+  );
+}
+
 function ItemsHead() {
   return (
     <table style={tableStyle}>
+      <ItemCols />
       <thead>
         <tr style={{ borderBottom: "1px solid #000" }}>
-          <th style={{ ...th, width: 22, textAlign: "left" }}>#</th>
+          <th style={{ ...th, textAlign: "left" }}>#</th>
           <th style={{ ...th, textAlign: "left" }}>DESCRIPTION</th>
-          <th style={{ ...th, width: 74 }}>QUANTITY</th>
-          <th style={{ ...th, width: 66 }}>UNIT PRICE</th>
-          <th style={{ ...th, width: 48 }}>TAX</th>
-          <th style={{ ...th, width: 66 }}>RCV</th>
-          <th style={{ ...th, width: 70 }}>DEPREC.</th>
-          <th style={{ ...th, width: 66 }}>ACV</th>
+          <th style={th}>QUANTITY</th>
+          <th style={th}>UNIT PRICE</th>
+          <th style={th}>TAX</th>
+          <th style={th}>RCV</th>
+          <th style={th}>DEPREC.</th>
+          <th style={th}>ACV</th>
         </tr>
       </thead>
     </table>
@@ -541,42 +570,34 @@ function ItemRow({
 }) {
   const struck = Boolean(item.not_yet_incurred);
   const strike: CSSProperties = struck
-    ? { textDecoration: "line-through", color: "#555" }
+    ? { textDecoration: "line-through", color: "#444" }
     : {};
   const dep = itemDepreciation(item, taxPct);
   return (
     <table style={tableStyle}>
+      <ItemCols />
       <tbody>
-        <tr style={{ borderBottom: "1px solid #ddd" }}>
-          <td style={{ ...td, width: 22, ...strike }}>{index}.</td>
+        <tr>
+          <td style={{ ...td, ...strike }}>{index}.</td>
           <td style={{ ...td, ...strike }}>
             {item.name}
             {item.code ? <span style={{ color: "#666" }}> ({item.code})</span> : null}
           </td>
-          <td style={{ ...td, width: 74, textAlign: "right", ...strike }}>
+          <td style={{ ...td, textAlign: "right", ...strike }}>
             {num(Number(item.qty))} {item.unit}
           </td>
-          <td style={{ ...td, width: 66, textAlign: "right", ...strike }}>
-            {num(Number(item.unit_price))}
-          </td>
-          <td style={{ ...td, width: 48, textAlign: "right", ...strike }}>
-            {num(itemTax(item, taxPct))}
-          </td>
-          <td style={{ ...td, width: 66, textAlign: "right", ...strike }}>
-            {num(itemRcv(item, taxPct))}
-          </td>
-          <td style={{ ...td, width: 70, textAlign: "right", ...strike }}>
-            {dep ? paren(dep) : "(0.00)"}
-          </td>
-          <td style={{ ...td, width: 66, textAlign: "right", fontWeight: 700, ...strike }}>
-            {num(itemAcv(item, taxPct))}
-          </td>
+          <td style={{ ...td, textAlign: "right", ...strike }}>{num(Number(item.unit_price))}</td>
+          <td style={{ ...td, textAlign: "right", ...strike }}>{num(itemTax(item, taxPct))}</td>
+          <td style={{ ...td, textAlign: "right", ...strike }}>{num(itemRcv(item, taxPct))}</td>
+          <td style={{ ...td, textAlign: "right", ...strike }}>{dep ? paren(dep) : "(0.00)"}</td>
+          <td style={{ ...td, textAlign: "right", ...strike }}>{num(itemAcv(item, taxPct))}</td>
         </tr>
         {item.note || struck ? (
           <tr>
-            <td />
-            <td colSpan={7} style={{ ...td, fontSize: 9.5, color: "#444", fontStyle: "italic" }}>
-              {struck ? "Payment for this item is not yet incurred and is excluded from all totals. " : ""}
+            <td style={td} />
+            <td colSpan={7} style={{ ...td, paddingTop: 0 }}>
+              {struck ? "The payment for this item has not yet been incurred." : ""}
+              {struck && item.note ? " " : ""}
               {item.note}
             </td>
           </tr>
@@ -588,28 +609,35 @@ function ItemRow({
 
 function SectionTotals({
   name,
+  tax,
   rcv,
   dep,
   acv,
 }: {
   name: string;
+  tax: number;
   rcv: number;
   dep: number;
   acv: number;
 }) {
   return (
-    <table style={{ ...tableStyle, marginBottom: 6 }}>
+    <table style={{ ...tableStyle, marginBottom: 10 }}>
+      <ItemCols />
       <tbody>
-        <tr style={{ borderTop: "1.5px solid #000" }}>
-          <td style={{ ...td, fontWeight: 700 }}>Totals: {name}</td>
-          <td style={{ ...td, width: 66, textAlign: "right", fontWeight: 700 }}>{num(rcv)}</td>
-          <td style={{ ...td, width: 70, textAlign: "right", fontWeight: 700 }}>{paren(dep)}</td>
-          <td style={{ ...td, width: 66, textAlign: "right", fontWeight: 700 }}>{num(acv)}</td>
+        <tr style={{ borderTop: "1px solid #000", borderBottom: "3px double #000" }}>
+          <td colSpan={4} style={{ ...td, fontWeight: 700, paddingTop: 4, paddingBottom: 4 }}>
+            Totals: {name}
+          </td>
+          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{num(tax)}</td>
+          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{num(rcv)}</td>
+          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{num(dep)}</td>
+          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{num(acv)}</td>
         </tr>
       </tbody>
     </table>
   );
 }
+
 
 // -------------------------------------------------------------------- recaps
 
@@ -639,13 +667,13 @@ function RecapPage({
         </thead>
         <tbody>
           {roomRows.map((r) => (
-            <tr key={r.label} style={{ borderBottom: "1px solid #ddd" }}>
+            <tr key={r.label} >
               <td style={td}>{r.label}</td>
               <td style={{ ...td, textAlign: "right" }}>{num(r.amount)}</td>
               <td style={{ ...td, textAlign: "right" }}>{r.pct.toFixed(2)}%</td>
             </tr>
           ))}
-          <tr style={{ borderTop: "1.5px solid #000" }}>
+          <tr style={{ borderTop: "1px solid #000" }}>
             <td style={{ ...td, fontWeight: 700 }}>Line Item Subtotals</td>
             <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{num(lineItemTotal)}</td>
             <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>100.00%</td>
@@ -662,7 +690,7 @@ function RecapPage({
           </tr>
         </thead>
         <tbody>
-          <tr style={{ borderBottom: "1px solid #ddd" }}>
+          <tr >
             <td style={td}>Material Sales Tax ({num(taxPct)}%)</td>
             <td style={{ ...td, textAlign: "right" }}>{num(materialTax)}</td>
           </tr>
@@ -680,7 +708,7 @@ function RecapPage({
         </thead>
         <tbody>
           {catRows.map((r) => (
-            <tr key={r.label} style={{ borderBottom: "1px solid #ddd" }}>
+            <tr key={r.label} >
               <td style={td}>{r.label}</td>
               <td style={{ ...td, textAlign: "right" }}>{num(r.amount)}</td>
               <td style={{ ...td, textAlign: "right" }}>{r.pct.toFixed(2)}%</td>
@@ -698,7 +726,7 @@ function RecapPage({
               {lineItemTotal > 0 ? ((materialTax / lineItemTotal) * 100).toFixed(2) : "0.00"}%
             </td>
           </tr>
-          <tr style={{ borderTop: "1.5px solid #000" }}>
+          <tr style={{ borderTop: "1px solid #000" }}>
             <td style={{ ...td, fontWeight: 700 }}>Total</td>
             <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>
               {num(lineItemTotal + materialTax)}
@@ -727,15 +755,20 @@ function SummaryPage({
   return (
     <div style={{ fontSize: 11 }}>
       <div style={heading}>Summary</div>
-      <table style={{ ...tableStyle, maxWidth: 460 }}>
+      <table style={{ ...tableStyle, maxWidth: 620 }}>
         <tbody>
           <SumRow label="Line Item Total" value={num(totals.lineItemTotal)} />
           <SumRow label="Material Sales Tax" value={num(totals.materialSalesTax)} />
-          <SumRow label="Replacement Cost Value" value={`$${num(totals.replacementCostValue)}`} bold />
+          <SumRow
+            label="Replacement Cost Value"
+            value={`$${num(totals.replacementCostValue)}`}
+            bold
+            rule
+          />
           <SumRow label="Less Depreciation" value={paren(totals.depreciation)} />
-          <SumRow label="Actual Cash Value" value={`$${num(totals.actualCashValue)}`} bold />
+          <SumRow label="Actual Cash Value" value={`$${num(totals.actualCashValue)}`} bold rule />
           <SumRow label="Less Deductible" value={paren(totals.deductible)} />
-          <SumRow label="Net Claim" value={`$${num(totals.netClaim)}`} bold rule />
+          <SumRow label="Net Claim" value={`$${num(totals.netClaim)}`} bold rule double />
           <SumRow
             label="Total Recoverable Depreciation"
             value={num(totals.recoverableDepreciation)}
@@ -745,9 +778,11 @@ function SummaryPage({
             value={`$${num(totals.netClaimIfDepreciationRecovered)}`}
             bold
             rule
+            double
           />
         </tbody>
       </table>
+
 
       {notIncurred.length > 0 && (
         <div style={{ marginTop: 18, fontSize: 10 }}>
@@ -779,21 +814,30 @@ function SumRow({
   value,
   bold,
   rule,
+  double,
 }: {
   label: string;
   value: string;
   bold?: boolean;
   rule?: boolean;
+  double?: boolean;
 }) {
+  const valueCell: CSSProperties = {
+    ...td,
+    textAlign: "right",
+    fontWeight: bold ? 700 : 400,
+    width: 150,
+    borderTop: rule ? "1px solid #000" : undefined,
+    borderBottom: double ? "3px double #000" : undefined,
+  };
   return (
-    <tr style={rule ? { borderTop: "1.5px solid #000" } : undefined}>
+    <tr>
       <td style={{ ...td, fontWeight: bold ? 700 : 400 }}>{label}</td>
-      <td style={{ ...td, textAlign: "right", fontWeight: bold ? 700 : 400, width: 140 }}>
-        {value}
-      </td>
+      <td style={valueCell}>{value}</td>
     </tr>
   );
 }
+
 
 function NotesPage({ notes }: { notes: ReportNote[] }) {
   return (
@@ -834,23 +878,24 @@ const tableStyle: CSSProperties = {
 };
 
 const th: CSSProperties = {
-  fontSize: 9,
+  fontSize: 9.5,
   fontWeight: 700,
-  letterSpacing: "0.04em",
-  padding: "3px 4px",
+  letterSpacing: "0.02em",
+  padding: "2px 5px",
   textAlign: "right",
 };
 
 const td: CSSProperties = {
-  padding: "3px 4px",
+  padding: "2px 5px",
   verticalAlign: "top",
   wordBreak: "break-word",
+  lineHeight: 1.25,
 };
 
 const heading: CSSProperties = {
   fontWeight: 700,
-  fontSize: 12.5,
-  borderBottom: "1.5px solid #000",
-  paddingBottom: 3,
-  marginBottom: 8,
+  fontSize: 12,
+  borderBottom: "1px solid #000",
+  paddingBottom: 2,
+  marginBottom: 6,
 };
