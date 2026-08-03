@@ -668,6 +668,57 @@ function JobEstimate() {
     qc.invalidateQueries({ queryKey: ["estimates", jobId] });
   };
 
+  // Company branding for the carrier report letterhead / legal blocks
+  const rp = (company?.report_profile ?? {}) as Record<string, string | null>;
+  const reportProfile: ReportProfile = {
+    companyName: company?.name ?? "Company",
+    logoUrl: company?.logo_url ?? null,
+    addressLine1: rp.address_line1 ?? company?.address ?? null,
+    addressLine2: rp.address_line2 ?? null,
+    businessPhone: rp.business_phone ?? company?.phone ?? null,
+    claimsEmail: rp.claims_email ?? company?.email ?? null,
+    website: company?.website ?? null,
+    estimatorName: rp.estimator_name ?? null,
+    estimatorPosition: rp.estimator_position ?? null,
+    estimatorLicense: rp.estimator_license ?? null,
+    legalStatute: rp.legal_statute ?? null,
+    legalNotice: rp.legal_notice ?? null,
+    fraudWarning: rp.fraud_warning ?? null,
+  };
+
+  const coverMeta: CoverMeta = {
+    ...reportMeta,
+    estimateName: reportMeta.estimateName || activeEstimate?.estimate_number || activeEstimate?.name || "Estimate",
+    coverageLabel: reportMeta.coverageLabel || activeEstimate?.coverage_label || "Coverage A - Dwelling",
+    insuredName: reportMeta.insuredName || client?.name || job?.name || null,
+    insuredPhone: reportMeta.insuredPhone || client?.phone || null,
+    insuredEmail: reportMeta.insuredEmail || client?.email || null,
+    homeAddress: reportMeta.homeAddress || client?.address || job?.property_address || null,
+    propertyAddress: reportMeta.propertyAddress || job?.property_address || null,
+    claimNumber: reportMeta.claimNumber || job?.claim_number || null,
+    claimRepCompany: reportMeta.claimRepCompany || job?.insurance_carrier || null,
+    priceListCode: reportMeta.priceListCode || activeEstimate?.price_list_code || null,
+    typeOfLoss: reportMeta.typeOfLoss || activeEstimate?.type_of_estimate || null,
+    dateEntered: reportMeta.dateEntered || format(new Date(), "M/d/yyyy"),
+    reportDate: format(new Date(), "M/d/yyyy"),
+  };
+
+  const firstArea = localItems[0]?.area || "Main Level";
+  const sectionMeasurements: Record<string, SectionMeasurements> = measurement
+    ? {
+        [firstArea]: {
+          surfaceArea: Number(measurement.total_area_sqft ?? 0),
+          squares: Number(measurement.squares ?? 0),
+          perimeter:
+            Number(measurement.eaves_lf ?? 0) + Number(measurement.rakes_lf ?? 0),
+          ridge: Number(measurement.ridges_lf ?? 0),
+          hip: Number(measurement.hips_lf ?? 0),
+          valley: Number(measurement.valleys_lf ?? 0),
+        },
+      }
+    : {};
+
+
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       <div className="space-y-5">
