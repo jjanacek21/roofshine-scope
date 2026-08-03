@@ -722,7 +722,7 @@ function JobEstimate() {
               onClick={() => setView("document")}
               className={`rounded-md px-3 py-1 text-[12px] font-semibold ${view === "document" ? "bg-[var(--bg-hover)]" : "text-muted-foreground"}`}
             >
-              Estimate document
+              Carrier report
             </button>
           </div>
           {view === "document" && (
@@ -735,6 +735,17 @@ function JobEstimate() {
           )}
         </div>
 
+        {view === "document" && (
+          <ReportSetupPanel
+            meta={reportMeta}
+            onMetaChange={(patch) => setReportMeta((m) => ({ ...m, ...patch }))}
+            deductible={deductible}
+            onDeductibleChange={setDeductible}
+            notes={reportNotes}
+            onNotesChange={setReportNotes}
+          />
+        )}
+
         {view === "edit" ? (
           <LineItemTable
             items={localItems}
@@ -744,37 +755,33 @@ function JobEstimate() {
             taxPct={pcts.tax_pct}
           />
         ) : (
-          <div ref={docRef}>
-            <EstimateDocument
-              items={localItems}
-              pcts={pcts}
-              manualTotal={manualTotal}
-              useManualTotal={useManualTotal}
-              hidePricing={hidePricing}
-              company={company ? {
-                name: company.name ?? "Company",
-                logo_url: company.logo_url,
-                address: company.address,
-                phone: company.phone,
-                email: company.email,
-                website: company.website,
-              } : null}
-              customer={{
-                name: client?.name ?? job?.name ?? null,
-                address: client?.address ?? job?.property_address ?? null,
-                phone: client?.phone ?? null,
-                email: client?.email ?? null,
-              }}
-              meta={{
-                estimate_number: activeEstimate?.estimate_number ?? activeEstimate?.name ?? null,
-                type_of_estimate: activeEstimate?.type_of_estimate ?? activeEstimate?.name ?? null,
-                price_list_code: activeEstimate?.price_list_code ?? null,
-                date: format(new Date(), "MMM d, yyyy"),
-                claim_number: job?.claim_number ?? null,
-              }}
+          <div ref={docRef} className="overflow-x-auto">
+            <XactimateReport
+              profile={reportProfile}
+              meta={coverMeta}
+              items={localItems.map((i) => ({
+                id: i.id,
+                code: i.code,
+                name: i.name,
+                unit: i.unit,
+                qty: Number(i.qty ?? 0),
+                unit_price: unitCost(i),
+                depreciation_pct: i.depreciation_pct ?? null,
+                depreciation_amount: i.depreciation_amount ?? null,
+                depreciation_recoverable: i.depreciation_recoverable ?? true,
+                not_yet_incurred: Boolean(i.not_yet_incurred),
+                note: i.note,
+                category: i.category,
+                area: i.area,
+              }))}
+              taxPct={pcts.tax_pct}
+              deductible={deductible}
+              notes={reportNotes}
+              measurements={sectionMeasurements}
             />
           </div>
         )}
+
 
         <div className="space-y-2">
           {pickerOpen ? (
