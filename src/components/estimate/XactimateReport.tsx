@@ -260,7 +260,7 @@ function Letterhead({ profile }: { profile: ReportProfile }) {
         alignItems: "flex-start",
         justifyContent: "space-between",
         gap: 18,
-        borderBottom: "1.5px solid #000",
+        borderBottom: "1px solid #000",
         paddingBottom: 8,
         marginBottom: 14,
       }}
@@ -655,13 +655,13 @@ function RecapPage({
         </thead>
         <tbody>
           {roomRows.map((r) => (
-            <tr key={r.label} style={{ borderBottom: "1px solid #ddd" }}>
+            <tr key={r.label} >
               <td style={td}>{r.label}</td>
               <td style={{ ...td, textAlign: "right" }}>{num(r.amount)}</td>
               <td style={{ ...td, textAlign: "right" }}>{r.pct.toFixed(2)}%</td>
             </tr>
           ))}
-          <tr style={{ borderTop: "1.5px solid #000" }}>
+          <tr style={{ borderTop: "1px solid #000" }}>
             <td style={{ ...td, fontWeight: 700 }}>Line Item Subtotals</td>
             <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{num(lineItemTotal)}</td>
             <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>100.00%</td>
@@ -678,7 +678,7 @@ function RecapPage({
           </tr>
         </thead>
         <tbody>
-          <tr style={{ borderBottom: "1px solid #ddd" }}>
+          <tr >
             <td style={td}>Material Sales Tax ({num(taxPct)}%)</td>
             <td style={{ ...td, textAlign: "right" }}>{num(materialTax)}</td>
           </tr>
@@ -696,7 +696,7 @@ function RecapPage({
         </thead>
         <tbody>
           {catRows.map((r) => (
-            <tr key={r.label} style={{ borderBottom: "1px solid #ddd" }}>
+            <tr key={r.label} >
               <td style={td}>{r.label}</td>
               <td style={{ ...td, textAlign: "right" }}>{num(r.amount)}</td>
               <td style={{ ...td, textAlign: "right" }}>{r.pct.toFixed(2)}%</td>
@@ -714,7 +714,7 @@ function RecapPage({
               {lineItemTotal > 0 ? ((materialTax / lineItemTotal) * 100).toFixed(2) : "0.00"}%
             </td>
           </tr>
-          <tr style={{ borderTop: "1.5px solid #000" }}>
+          <tr style={{ borderTop: "1px solid #000" }}>
             <td style={{ ...td, fontWeight: 700 }}>Total</td>
             <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>
               {num(lineItemTotal + materialTax)}
@@ -802,7 +802,7 @@ function SumRow({
   rule?: boolean;
 }) {
   return (
-    <tr style={rule ? { borderTop: "1.5px solid #000" } : undefined}>
+    <tr style={rule ? { borderTop: "1px solid #000" } : undefined}>
       <td style={{ ...td, fontWeight: bold ? 700 : 400 }}>{label}</td>
       <td style={{ ...td, textAlign: "right", fontWeight: bold ? 700 : 400, width: 140 }}>
         {value}
