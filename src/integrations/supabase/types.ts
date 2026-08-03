@@ -503,6 +503,8 @@ export type Database = {
           address: string | null
           auto_add_photo_suggestions: boolean
           bank_instructions: Json | null
+          city: string | null
+          contract_profile: Json
           created_at: string
           default_market_id: string | null
           default_markup: number
@@ -511,6 +513,9 @@ export type Database = {
           default_profit_pct: number
           default_tax_rate: number
           email: string | null
+          feature_door_to_door: boolean
+          feature_roof_king: boolean
+          feature_storm_intel: boolean
           financing_blurb: string | null
           id: string
           include_fl_code_package: boolean
@@ -519,7 +524,9 @@ export type Database = {
           logo_url: string | null
           name: string
           phone: string | null
+          postal_code: string | null
           report_profile: Json
+          state: string | null
           trades: Database["public"]["Enums"]["trade_type"][]
           updated_at: string
           warranty_blurb: string | null
@@ -529,6 +536,8 @@ export type Database = {
           address?: string | null
           auto_add_photo_suggestions?: boolean
           bank_instructions?: Json | null
+          city?: string | null
+          contract_profile?: Json
           created_at?: string
           default_market_id?: string | null
           default_markup?: number
@@ -537,6 +546,9 @@ export type Database = {
           default_profit_pct?: number
           default_tax_rate?: number
           email?: string | null
+          feature_door_to_door?: boolean
+          feature_roof_king?: boolean
+          feature_storm_intel?: boolean
           financing_blurb?: string | null
           id?: string
           include_fl_code_package?: boolean
@@ -545,7 +557,9 @@ export type Database = {
           logo_url?: string | null
           name: string
           phone?: string | null
+          postal_code?: string | null
           report_profile?: Json
+          state?: string | null
           trades?: Database["public"]["Enums"]["trade_type"][]
           updated_at?: string
           warranty_blurb?: string | null
@@ -555,6 +569,8 @@ export type Database = {
           address?: string | null
           auto_add_photo_suggestions?: boolean
           bank_instructions?: Json | null
+          city?: string | null
+          contract_profile?: Json
           created_at?: string
           default_market_id?: string | null
           default_markup?: number
@@ -563,6 +579,9 @@ export type Database = {
           default_profit_pct?: number
           default_tax_rate?: number
           email?: string | null
+          feature_door_to_door?: boolean
+          feature_roof_king?: boolean
+          feature_storm_intel?: boolean
           financing_blurb?: string | null
           id?: string
           include_fl_code_package?: boolean
@@ -571,7 +590,9 @@ export type Database = {
           logo_url?: string | null
           name?: string
           phone?: string | null
+          postal_code?: string | null
           report_profile?: Json
+          state?: string | null
           trades?: Database["public"]["Enums"]["trade_type"][]
           updated_at?: string
           warranty_blurb?: string | null
@@ -625,6 +646,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      company_documents: {
+        Row: {
+          category: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          file_url: string | null
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          file_url?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_url?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_invites: {
         Row: {

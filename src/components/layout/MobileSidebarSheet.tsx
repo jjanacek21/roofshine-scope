@@ -29,6 +29,7 @@ import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
+import { useCompanyFeatures } from "@/hooks/useCompanyFeatures";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +58,7 @@ export function MobileSidebarSheet() {
   const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
   const { isRoofKing } = useIsRoofKing();
+  const features = useCompanyFeatures();
   const isSuperAdmin = profile?.role === "super_admin";
   const isCompanyAdmin =
     profile?.role === "owner" || profile?.role === "admin" || isSuperAdmin;
@@ -120,7 +122,12 @@ export function MobileSidebarSheet() {
             Workspace
           </p>
           <nav className="space-y-1">
-            {WORKSPACE_NAV.filter((i) => !(isRoofKing && i.to === "/leads")).map((item) => {
+            {WORKSPACE_NAV.filter((i) => {
+              if (isRoofKing && i.to === "/leads") return false;
+              if (i.to === "/door-to-door" && !features.doorToDoor) return false;
+              if (i.to === "/storm-intelligence" && !features.stormIntel) return false;
+              return true;
+            }).map((item) => {
               const active = isActive(item.to);
               const Icon = item.icon;
               return (
