@@ -100,7 +100,7 @@ function JobEstimate() {
       const { data } = await supabase
         .from("companies")
         .select(
-          "name, logo_url, address, phone, email, website, default_markup_pct, default_overhead_pct, default_profit_pct, default_tax_rate",
+          "name, logo_url, address, phone, email, website, report_profile, default_markup_pct, default_overhead_pct, default_profit_pct, default_tax_rate",
         )
         .eq("id", job!.company_id)
         .maybeSingle();
@@ -120,6 +120,21 @@ function JobEstimate() {
       return data;
     },
   });
+
+  // Roof measurement block printed under the first section of the report
+  const { data: measurement } = useQuery({
+    queryKey: ["estimate-measurement", job?.property_id],
+    enabled: !!job?.property_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("roof_measurements")
+        .select("total_area_sqft, squares, eaves_lf, rakes_lf, ridges_lf, hips_lf, valleys_lf")
+        .eq("property_id", job!.property_id!)
+        .maybeSingle();
+      return data;
+    },
+  });
+
 
   // Estimates list
   const { data: estimates } = useQuery({
