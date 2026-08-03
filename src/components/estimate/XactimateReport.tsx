@@ -156,7 +156,7 @@ export function XactimateReport({
     blocks.push({
       key: `t-${section}`,
       weight: SECTION_TOTAL_WEIGHT,
-      node: <SectionTotals name={section} rcv={st.rcv} dep={st.dep} acv={st.acv} />,
+      node: <SectionTotals name={section} tax={st.tax} rcv={st.rcv} dep={st.dep} acv={st.acv} />,
     });
   }
 
