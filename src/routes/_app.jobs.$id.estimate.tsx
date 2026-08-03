@@ -341,6 +341,8 @@ function JobEstimate() {
         area?: string;
         category?: string | null;
         subgroup?: string | null;
+        depreciation_pct?: number | null;
+        not_yet_incurred?: boolean;
       } = {};
       if (patch.name !== undefined) updates.name = patch.name;
       if (patch.unit !== undefined) updates.unit = patch.unit;
@@ -352,7 +354,12 @@ function JobEstimate() {
       if (patch.area !== undefined) updates.area = patch.area || "Main Level";
       if (patch.category !== undefined) updates.category = patch.category ?? null;
       if (patch.subgroup !== undefined) updates.subgroup = patch.subgroup ?? null;
+      if (patch.depreciation_pct !== undefined)
+        updates.depreciation_pct = Number(patch.depreciation_pct) || 0;
+      if (patch.not_yet_incurred !== undefined)
+        updates.not_yet_incurred = Boolean(patch.not_yet_incurred);
       if (merged) updates.total = merged.qty * unitCost(merged);
+
       await supabase.from("estimate_line_items").update(updates).eq("id", itemId);
       setSavedAt(Date.now());
       qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
