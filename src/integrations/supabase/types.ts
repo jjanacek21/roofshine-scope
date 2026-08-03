@@ -1083,45 +1083,63 @@ export type Database = {
       }
       estimate_line_items: {
         Row: {
+          area: string
+          category: string | null
           code: string | null
           created_at: string
           estimate_id: string
           id: string
           line_item_id: string | null
           name: string
+          note: string | null
           qty: number
+          remove_price: number
+          replace_price: number
           sort_order: number
           source: string
+          subgroup: string | null
           total: number
           trade: Database["public"]["Enums"]["trade_type"]
           unit: string
           unit_price: number
         }
         Insert: {
+          area?: string
+          category?: string | null
           code?: string | null
           created_at?: string
           estimate_id: string
           id?: string
           line_item_id?: string | null
           name: string
+          note?: string | null
           qty?: number
+          remove_price?: number
+          replace_price?: number
           sort_order?: number
           source?: string
+          subgroup?: string | null
           total?: number
           trade: Database["public"]["Enums"]["trade_type"]
           unit?: string
           unit_price?: number
         }
         Update: {
+          area?: string
+          category?: string | null
           code?: string | null
           created_at?: string
           estimate_id?: string
           id?: string
           line_item_id?: string | null
           name?: string
+          note?: string | null
           qty?: number
+          remove_price?: number
+          replace_price?: number
           sort_order?: number
           source?: string
+          subgroup?: string | null
           total?: number
           trade?: Database["public"]["Enums"]["trade_type"]
           unit?: string
@@ -1148,6 +1166,7 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          estimate_number: string | null
           hide_pricing: boolean
           id: string
           job_id: string
@@ -1156,19 +1175,23 @@ export type Database = {
           name: string
           notes: string | null
           overhead_pct: number
+          price_list_code: string | null
           profit_pct: number
+          show_code_pages: boolean
           status: Database["public"]["Enums"]["estimate_doc_status"]
           subtotal: number
           tax: number
           tax_pct: number
           tier: string
           total: number
+          type_of_estimate: string | null
           updated_at: string
           use_manual_total: boolean
         }
         Insert: {
           company_id: string
           created_at?: string
+          estimate_number?: string | null
           hide_pricing?: boolean
           id?: string
           job_id: string
@@ -1177,19 +1200,23 @@ export type Database = {
           name: string
           notes?: string | null
           overhead_pct?: number
+          price_list_code?: string | null
           profit_pct?: number
+          show_code_pages?: boolean
           status?: Database["public"]["Enums"]["estimate_doc_status"]
           subtotal?: number
           tax?: number
           tax_pct?: number
           tier?: string
           total?: number
+          type_of_estimate?: string | null
           updated_at?: string
           use_manual_total?: boolean
         }
         Update: {
           company_id?: string
           created_at?: string
+          estimate_number?: string | null
           hide_pricing?: boolean
           id?: string
           job_id?: string
@@ -1198,13 +1225,16 @@ export type Database = {
           name?: string
           notes?: string | null
           overhead_pct?: number
+          price_list_code?: string | null
           profit_pct?: number
+          show_code_pages?: boolean
           status?: Database["public"]["Enums"]["estimate_doc_status"]
           subtotal?: number
           tax?: number
           tax_pct?: number
           tier?: string
           total?: number
+          type_of_estimate?: string | null
           updated_at?: string
           use_manual_total?: boolean
         }

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Sparkles, Layers } from "lucide-react";
+import { Plus, Sparkles, Layers, FileDown } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -27,6 +27,10 @@ import { StatusBadge } from "@/components/brand/StatusBadge";
 import { MacroPicker, type MacroPickerItem } from "@/components/estimate/MacroPicker";
 import { AISuggestionsPanel } from "@/components/estimate/AISuggestionsPanel";
 import type { Trade } from "@/lib/trades";
+import { unitCost, lineTotal } from "@/lib/estimate-document";
+import { EstimateDocument } from "@/components/estimate/EstimateDocument";
+import { generateEstimatePdf } from "@/lib/estimate-pdf";
+import { format } from "date-fns";
 
 export const Route = createFileRoute("/_app/jobs/$id/estimate")({
   validateSearch: z.object({
@@ -48,6 +52,9 @@ type EstimateRowFull = EstimateRow & {
   use_manual_total: boolean;
   manual_total: number | null;
   notes: string | null;
+  estimate_number?: string | null;
+  type_of_estimate?: string | null;
+  price_list_code?: string | null;
 };
 
 function JobEstimate() {
@@ -62,6 +69,8 @@ function JobEstimate() {
     null,
   );
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [view, setView] = useState<"edit" | "document">("edit");
+  const docRef = useRef<HTMLDivElement>(null);
   const codesAppliedRef = useRef(false);
 
   // Load job for company / price book / jurisdiction
@@ -79,8 +88,23 @@ function JobEstimate() {
     queryFn: async () => {
       const { data } = await supabase
         .from("companies")
-        .select("default_markup_pct, default_overhead_pct, default_profit_pct, default_tax_rate")
+        .select(
+          "name, logo_url, address, phone, email, website, default_markup_pct, default_overhead_pct, default_profit_pct, default_tax_rate",
+        )
         .eq("id", job!.company_id)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: client } = useQuery({
+    queryKey: ["estimate-client", job?.client_id],
+    enabled: !!job?.client_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("clients")
+        .select("name, email, phone, address")
+        .eq("id", job!.client_id!)
         .maybeSingle();
       return data;
     },
@@ -158,7 +182,7 @@ function JobEstimate() {
   }, [items]);
 
   const subtotal = useMemo(
-    () => localItems.reduce((s, i) => s + i.qty * i.unit_price, 0),
+    () => localItems.reduce((s, i) => s + lineTotal(i), 0),
     [localItems],
   );
 
@@ -235,7 +259,7 @@ function JobEstimate() {
       prev.map((i) => {
         if (i.id !== itemId) return i;
         const next = { ...i, ...patch };
-        next.total = next.qty * next.unit_price;
+        next.total = next.qty * unitCost(next);
         return next;
       }),
     );
@@ -250,12 +274,24 @@ function JobEstimate() {
         qty?: number;
         unit_price?: number;
         total?: number;
+        remove_price?: number;
+        replace_price?: number;
+        note?: string | null;
+        area?: string;
+        category?: string | null;
+        subgroup?: string | null;
       } = {};
       if (patch.name !== undefined) updates.name = patch.name;
       if (patch.unit !== undefined) updates.unit = patch.unit;
       if (patch.qty !== undefined) updates.qty = patch.qty;
       if (patch.unit_price !== undefined) updates.unit_price = patch.unit_price;
-      if (merged) updates.total = merged.qty * merged.unit_price;
+      if (patch.remove_price !== undefined) updates.remove_price = Number(patch.remove_price) || 0;
+      if (patch.replace_price !== undefined) updates.replace_price = Number(patch.replace_price) || 0;
+      if (patch.note !== undefined) updates.note = patch.note ?? null;
+      if (patch.area !== undefined) updates.area = patch.area || "Main Level";
+      if (patch.category !== undefined) updates.category = patch.category ?? null;
+      if (patch.subgroup !== undefined) updates.subgroup = patch.subgroup ?? null;
+      if (merged) updates.total = merged.qty * unitCost(merged);
       await supabase.from("estimate_line_items").update(updates).eq("id", itemId);
       setSavedAt(Date.now());
       qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
@@ -323,6 +359,8 @@ function JobEstimate() {
       qty: 1,
       unit_price: item.unit_price,
       total: item.unit_price,
+      category: (item as { category?: string | null }).category ?? null,
+      subgroup: (item as { subgroup?: string | null }).subgroup ?? null,
       sort_order: localItems.length,
     });
     if (error) {
@@ -345,7 +383,7 @@ function JobEstimate() {
     const codes = normalized.map((n) => n.code);
     const { data: matches } = await supabase
       .from("line_item_master")
-      .select("id, code, name, unit, trade, default_price, category")
+      .select("id, code, name, unit, trade, default_price, category, subgroup, remove_price, replace_price")
       .or(`company_id.eq.${job.company_id},company_id.is.null`)
       .in("code", codes);
     if (!matches?.length) {
@@ -384,6 +422,8 @@ function JobEstimate() {
         qty,
         unit_price,
         total: qty * unit_price,
+        category: (m as { category?: string | null }).category ?? null,
+        subgroup: (m as { subgroup?: string | null }).subgroup ?? null,
         source,
         sort_order: localItems.length + idx,
       };
@@ -523,7 +563,13 @@ function JobEstimate() {
           unit: i.unit,
           qty: i.qty,
           unit_price: i.unit_price,
-          total: i.qty * i.unit_price,
+          total: i.qty * unitCost(i),
+          remove_price: Number(i.remove_price ?? 0),
+          replace_price: Number(i.replace_price ?? 0),
+          note: i.note ?? null,
+          area: i.area ?? "Main Level",
+          category: i.category ?? null,
+          subgroup: i.subgroup ?? null,
           sort_order: idx,
         })),
       );
@@ -531,6 +577,18 @@ function JobEstimate() {
     qc.invalidateQueries({ queryKey: ["estimates", jobId] });
     setActiveId(newEst.id);
     toast.success("Estimate duplicated");
+  };
+
+  const exportPdf = async () => {
+    if (!docRef.current) return;
+    try {
+      await generateEstimatePdf(
+        docRef.current,
+        `estimate-${activeEstimate?.estimate_number ?? activeEstimate?.name ?? "draft"}.pdf`,
+      );
+    } catch {
+      toast.error("Could not export PDF");
+    }
   };
 
   const updateStatus = async (status: string) => {
@@ -584,12 +642,71 @@ function JobEstimate() {
 
         <AISuggestionsPanel jobId={jobId} activeEstimateId={activeId} />
 
-        <LineItemTable
-          items={localItems}
-          onPatch={patchItem}
-          onDelete={(id) => deleteItem.mutate(id)}
-          onDeleteMany={(ids) => deleteItems.mutate(ids)}
-        />
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border p-0.5" style={{ borderColor: "var(--border)" }}>
+            <button
+              onClick={() => setView("edit")}
+              className={`rounded-md px-3 py-1 text-[12px] font-semibold ${view === "edit" ? "bg-[var(--bg-hover)]" : "text-muted-foreground"}`}
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => setView("document")}
+              className={`rounded-md px-3 py-1 text-[12px] font-semibold ${view === "document" ? "bg-[var(--bg-hover)]" : "text-muted-foreground"}`}
+            >
+              Estimate document
+            </button>
+          </div>
+          {view === "document" && (
+            <button
+              onClick={exportPdf}
+              className="btn-ghost flex h-9 items-center gap-2 rounded-lg px-3.5 text-[13px] font-semibold"
+            >
+              <FileDown className="h-3.5 w-3.5" /> Export PDF
+            </button>
+          )}
+        </div>
+
+        {view === "edit" ? (
+          <LineItemTable
+            items={localItems}
+            onPatch={patchItem}
+            onDelete={(id) => deleteItem.mutate(id)}
+            onDeleteMany={(ids) => deleteItems.mutate(ids)}
+            taxPct={pcts.tax_pct}
+          />
+        ) : (
+          <div ref={docRef}>
+            <EstimateDocument
+              items={localItems}
+              pcts={pcts}
+              manualTotal={manualTotal}
+              useManualTotal={useManualTotal}
+              hidePricing={hidePricing}
+              company={company ? {
+                name: company.name ?? "Company",
+                logo_url: company.logo_url,
+                address: company.address,
+                phone: company.phone,
+                email: company.email,
+                website: company.website,
+              } : null}
+              customer={{
+                name: client?.name ?? job?.name ?? null,
+                address: client?.address ?? job?.property_address ?? null,
+                phone: client?.phone ?? null,
+                email: client?.email ?? null,
+              }}
+              meta={{
+                estimate_number: activeEstimate?.estimate_number ?? activeEstimate?.name ?? null,
+                type_of_estimate: activeEstimate?.type_of_estimate ?? activeEstimate?.name ?? null,
+                price_list_code: activeEstimate?.price_list_code ?? null,
+                date: format(new Date(), "MMM d, yyyy"),
+                claim_number: job?.claim_number ?? null,
+              }}
+            />
+          </div>
+        )}
 
         <div className="space-y-2">
           {pickerOpen ? (

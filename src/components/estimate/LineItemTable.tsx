@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { Trash2, BookOpen, Sparkles, Zap, X } from "lucide-react";
-import { TradeBadge } from "@/components/brand/TradeBadge";
-import { getTradeLabel } from "@/lib/trades";
+import { DEFAULT_AREA, UNCATEGORIZED, lineTotal, lineTax } from "@/lib/estimate-document";
 
 export type LineItem = {
   id: string;
@@ -16,6 +15,12 @@ export type LineItem = {
   total: number;
   sort_order: number;
   source?: string | null;
+  category?: string | null;
+  subgroup?: string | null;
+  remove_price?: number | null;
+  replace_price?: number | null;
+  note?: string | null;
+  area?: string | null;
 };
 
 type Source = "catalog" | "ai" | "rule" | "custom";
@@ -38,11 +43,13 @@ export function LineItemTable({
   onPatch,
   onDelete,
   onDeleteMany,
+  taxPct = 0,
 }: {
   items: LineItem[];
   onPatch: (id: string, patch: Partial<LineItem>) => void;
   onDelete: (id: string) => void;
   onDeleteMany?: (ids: string[]) => void;
+  taxPct?: number;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const toggle = (id: string) =>
@@ -59,16 +66,21 @@ export function LineItemTable({
     });
   const clearSelection = () => setSelected(new Set());
 
+  // Group by AREA → CATEGORY to match the printed estimate document.
   const groups = useMemo(() => {
-    const byTrade = new Map<string, LineItem[]>();
+    const byKey = new Map<string, { area: string; category: string; items: LineItem[] }>();
     for (const item of items) {
-      if (!byTrade.has(item.trade)) byTrade.set(item.trade, []);
-      byTrade.get(item.trade)!.push(item);
+      const area = (item.area || DEFAULT_AREA).trim() || DEFAULT_AREA;
+      const category = (item.category || UNCATEGORIZED).trim() || UNCATEGORIZED;
+      const key = `${area}||${category}`;
+      if (!byKey.has(key)) byKey.set(key, { area, category, items: [] });
+      byKey.get(key)!.items.push(item);
     }
-    return Array.from(byTrade.entries()).sort((a, b) =>
-      getTradeLabel(a[0]).localeCompare(getTradeLabel(b[0])),
+    return Array.from(byKey.values()).sort(
+      (a, b) => a.area.localeCompare(b.area) || a.category.localeCompare(b.category),
     );
   }, [items]);
+
 
   if (items.length === 0) {
     return (
@@ -115,15 +127,22 @@ export function LineItemTable({
           </button>
         </div>
       )}
-      {groups.map(([trade, tradeItems]) => {
-        const tradeIds = tradeItems.map((t) => t.id);
-        const allSelected = tradeIds.every((id) => selected.has(id));
-        const someSelected = !allSelected && tradeIds.some((id) => selected.has(id));
+      {groups.map((group) => {
+        const groupIds = group.items.map((t) => t.id);
+        const allSelected = groupIds.every((id) => selected.has(id));
+        const someSelected = !allSelected && groupIds.some((id) => selected.has(id));
+        const groupSubtotal = group.items.reduce((s, i) => s + lineTotal(i), 0);
         return (
-        <div key={trade} className="space-y-2">
+        <div key={`${group.area}||${group.category}`} className="space-y-2">
           <div className="flex items-center gap-2">
-            <TradeBadge trade={trade} size="md" />
-            <span className="text-[11px] text-muted-foreground">{tradeItems.length} items</span>
+            <span className="rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ background: "var(--bg-hover)", color: "var(--text)" }}>
+              {group.area}
+            </span>
+            <span className="text-[12px] font-bold uppercase tracking-wider text-foreground">{group.category}</span>
+            <span className="text-[11px] text-muted-foreground">{group.items.length} items</span>
+            <span className="font-mono-num ml-auto text-[12px] font-bold text-[var(--brand)]">
+              ${groupSubtotal.toFixed(2)}
+            </span>
           </div>
 
           <div
@@ -142,33 +161,38 @@ export function LineItemTable({
                         type="checkbox"
                         checked={allSelected}
                         ref={(el) => { if (el) el.indeterminate = someSelected; }}
-                        onChange={(e) => toggleAll(tradeIds, e.target.checked)}
+                        onChange={(e) => toggleAll(groupIds, e.target.checked)}
                         className="h-3.5 w-3.5 cursor-pointer"
                       />
                     )}
                   </th>
                   <th className="w-8 px-2 py-2 text-left"></th>
-                  <th className="w-20 px-2 py-2 text-left">Code</th>
                   <th className="px-2 py-2 text-left">Description</th>
-                  <th className="w-20 px-2 py-2 text-right">Qty</th>
-                  <th className="w-16 px-2 py-2 text-left">Unit</th>
-                  <th className="w-24 px-2 py-2 text-right">Price</th>
+                  <th className="w-24 px-2 py-2 text-right">Qty</th>
+                  <th className="w-14 px-2 py-2 text-left">Unit</th>
+                  <th className="w-24 px-2 py-2 text-right">Remove</th>
+                  <th className="w-24 px-2 py-2 text-right">Replace</th>
+                  <th className="w-20 px-2 py-2 text-right">Tax</th>
                   <th className="w-24 px-2 py-2 text-right">Total</th>
                   <th className="w-10 px-2 py-2"></th>
                 </tr>
               </thead>
               <tbody>
-                {tradeItems.map((item) => {
+                {group.items.map((item) => {
                   const source = inferSource(item);
                   const Icon = SOURCE_META[source].icon;
                   const isSelected = selected.has(item.id);
+                  const rm = Number(item.remove_price ?? 0);
+                  const rp = Number(item.replace_price ?? 0);
+                  const split = rm > 0 || rp > 0;
+                  const tax = lineTax(item, taxPct);
                   return (
                     <tr
                       key={item.id}
                       className="hover:bg-[var(--bg-hover)]"
                       style={{ borderTop: "1px solid var(--border)", backgroundColor: isSelected ? "var(--bg-hover)" : undefined }}
                     >
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 align-top">
                         {onDeleteMany && (
                           <input
                             type="checkbox"
@@ -178,16 +202,11 @@ export function LineItemTable({
                           />
                         )}
                       </td>
-                      <td className="px-2 py-2">
+                      <td className="px-2 py-2 align-top">
                         <Icon
                           className="h-3.5 w-3.5"
                           style={{ color: SOURCE_META[source].color }}
                         />
-                      </td>
-                      <td className="px-2 py-2">
-                        <span className="font-mono-num text-[11px] text-muted-foreground">
-                          {item.code ?? "—"}
-                        </span>
                       </td>
                       <td className="px-2 py-2">
                         <input
@@ -195,14 +214,20 @@ export function LineItemTable({
                           onChange={(e) => onPatch(item.id, { name: e.target.value })}
                           className="w-full bg-transparent text-foreground outline-none"
                         />
+                        <input
+                          value={item.note ?? ""}
+                          placeholder={item.code ? `${item.code} — add a note` : "Add a note"}
+                          onChange={(e) => onPatch(item.id, { note: e.target.value })}
+                          className="w-full bg-transparent text-[11px] text-muted-foreground outline-none"
+                        />
                       </td>
-                      <td className="px-2 py-2 text-right">
+                      <td className="px-2 py-2 text-right align-top">
                         <NumberInput
                           value={item.qty}
                           onChange={(v) => onPatch(item.id, { qty: v })}
                         />
                       </td>
-                      <td className="px-2 py-2">
+                      <td className="px-2 py-2 align-top">
                         <input
                           value={item.unit}
                           onChange={(e) =>
@@ -211,17 +236,32 @@ export function LineItemTable({
                           className="font-mono-num w-full bg-transparent text-[12px] text-muted-foreground outline-none"
                         />
                       </td>
-                      <td className="px-2 py-2 text-right">
+                      <td className="px-2 py-2 text-right align-top">
                         <NumberInput
-                          value={item.unit_price}
-                          onChange={(v) => onPatch(item.id, { unit_price: v })}
+                          value={rm}
+                          onChange={(v) => onPatch(item.id, { remove_price: v })}
                           prefix="$"
                         />
                       </td>
-                      <td className="font-mono-num px-2 py-2 text-right font-bold text-[var(--brand)]">
-                        ${(item.qty * item.unit_price).toFixed(2)}
+                      <td className="px-2 py-2 text-right align-top">
+                        <NumberInput
+                          value={split ? rp : Number(item.unit_price ?? 0)}
+                          onChange={(v) =>
+                            onPatch(
+                              item.id,
+                              split ? { replace_price: v } : { unit_price: v },
+                            )
+                          }
+                          prefix="$"
+                        />
                       </td>
-                      <td className="px-2 py-2">
+                      <td className="font-mono-num px-2 py-2 text-right align-top text-[12px] text-muted-foreground">
+                        ${tax.toFixed(2)}
+                      </td>
+                      <td className="font-mono-num px-2 py-2 text-right align-top font-bold text-[var(--brand)]">
+                        ${(lineTotal(item) + tax).toFixed(2)}
+                      </td>
+                      <td className="px-2 py-2 align-top">
                         <DeleteButton onConfirm={() => onDelete(item.id)} />
                       </td>
                     </tr>
@@ -233,6 +273,7 @@ export function LineItemTable({
         </div>
         );
       })}
+
     </div>
   );
 }
