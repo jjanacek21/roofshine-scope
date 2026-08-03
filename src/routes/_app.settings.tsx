@@ -56,7 +56,7 @@ function SettingsPage() {
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
       >
         {tab === "Company" && <CompanyTab />}
-        {tab === "Branding" && <Placeholder name="Branding" />}
+        {tab === "Branding" && <ReportBrandingTab />}
         {tab === "Defaults" && <DefaultsTab />}
         {tab === "Trades" && <TradesTab />}
         {tab === "Rules" && <RulesTab />}
