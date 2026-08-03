@@ -743,15 +743,20 @@ function SummaryPage({
   return (
     <div style={{ fontSize: 11 }}>
       <div style={heading}>Summary</div>
-      <table style={{ ...tableStyle, maxWidth: 460 }}>
+      <table style={{ ...tableStyle, maxWidth: 620 }}>
         <tbody>
           <SumRow label="Line Item Total" value={num(totals.lineItemTotal)} />
           <SumRow label="Material Sales Tax" value={num(totals.materialSalesTax)} />
-          <SumRow label="Replacement Cost Value" value={`$${num(totals.replacementCostValue)}`} bold />
+          <SumRow
+            label="Replacement Cost Value"
+            value={`$${num(totals.replacementCostValue)}`}
+            bold
+            rule
+          />
           <SumRow label="Less Depreciation" value={paren(totals.depreciation)} />
-          <SumRow label="Actual Cash Value" value={`$${num(totals.actualCashValue)}`} bold />
+          <SumRow label="Actual Cash Value" value={`$${num(totals.actualCashValue)}`} bold rule />
           <SumRow label="Less Deductible" value={paren(totals.deductible)} />
-          <SumRow label="Net Claim" value={`$${num(totals.netClaim)}`} bold rule />
+          <SumRow label="Net Claim" value={`$${num(totals.netClaim)}`} bold rule double />
           <SumRow
             label="Total Recoverable Depreciation"
             value={num(totals.recoverableDepreciation)}
@@ -761,9 +766,11 @@ function SummaryPage({
             value={`$${num(totals.netClaimIfDepreciationRecovered)}`}
             bold
             rule
+            double
           />
         </tbody>
       </table>
+
 
       {notIncurred.length > 0 && (
         <div style={{ marginTop: 18, fontSize: 10 }}>
