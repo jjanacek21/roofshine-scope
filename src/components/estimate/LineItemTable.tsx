@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { Trash2, BookOpen, Sparkles, Zap, X } from "lucide-react";
-import { TradeBadge } from "@/components/brand/TradeBadge";
-import { getTradeLabel } from "@/lib/trades";
+import { DEFAULT_AREA, UNCATEGORIZED, lineTotal, lineTax } from "@/lib/estimate-document";
 
 export type LineItem = {
   id: string;
@@ -16,6 +15,12 @@ export type LineItem = {
   total: number;
   sort_order: number;
   source?: string | null;
+  category?: string | null;
+  subgroup?: string | null;
+  remove_price?: number | null;
+  replace_price?: number | null;
+  note?: string | null;
+  area?: string | null;
 };
 
 type Source = "catalog" | "ai" | "rule" | "custom";
@@ -38,11 +43,13 @@ export function LineItemTable({
   onPatch,
   onDelete,
   onDeleteMany,
+  taxPct = 0,
 }: {
   items: LineItem[];
   onPatch: (id: string, patch: Partial<LineItem>) => void;
   onDelete: (id: string) => void;
   onDeleteMany?: (ids: string[]) => void;
+  taxPct?: number;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const toggle = (id: string) =>
@@ -59,16 +66,21 @@ export function LineItemTable({
     });
   const clearSelection = () => setSelected(new Set());
 
+  // Group by AREA → CATEGORY to match the printed estimate document.
   const groups = useMemo(() => {
-    const byTrade = new Map<string, LineItem[]>();
+    const byKey = new Map<string, { area: string; category: string; items: LineItem[] }>();
     for (const item of items) {
-      if (!byTrade.has(item.trade)) byTrade.set(item.trade, []);
-      byTrade.get(item.trade)!.push(item);
+      const area = (item.area || DEFAULT_AREA).trim() || DEFAULT_AREA;
+      const category = (item.category || UNCATEGORIZED).trim() || UNCATEGORIZED;
+      const key = `${area}||${category}`;
+      if (!byKey.has(key)) byKey.set(key, { area, category, items: [] });
+      byKey.get(key)!.items.push(item);
     }
-    return Array.from(byTrade.entries()).sort((a, b) =>
-      getTradeLabel(a[0]).localeCompare(getTradeLabel(b[0])),
+    return Array.from(byKey.values()).sort(
+      (a, b) => a.area.localeCompare(b.area) || a.category.localeCompare(b.category),
     );
   }, [items]);
+
 
   if (items.length === 0) {
     return (
