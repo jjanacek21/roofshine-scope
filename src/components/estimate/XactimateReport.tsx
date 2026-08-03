@@ -511,19 +511,36 @@ function MeasureRow({
   );
 }
 
+/** Shared column widths so head / rows / totals line up across separate tables. */
+function ItemCols() {
+  return (
+    <colgroup>
+      <col style={{ width: 26 }} />
+      <col />
+      <col style={{ width: 78 }} />
+      <col style={{ width: 68 }} />
+      <col style={{ width: 52 }} />
+      <col style={{ width: 76 }} />
+      <col style={{ width: 76 }} />
+      <col style={{ width: 76 }} />
+    </colgroup>
+  );
+}
+
 function ItemsHead() {
   return (
     <table style={tableStyle}>
+      <ItemCols />
       <thead>
         <tr style={{ borderBottom: "1px solid #000" }}>
-          <th style={{ ...th, width: 22, textAlign: "left" }}>#</th>
+          <th style={{ ...th, textAlign: "left" }}>#</th>
           <th style={{ ...th, textAlign: "left" }}>DESCRIPTION</th>
-          <th style={{ ...th, width: 74 }}>QUANTITY</th>
-          <th style={{ ...th, width: 66 }}>UNIT PRICE</th>
-          <th style={{ ...th, width: 48 }}>TAX</th>
-          <th style={{ ...th, width: 66 }}>RCV</th>
-          <th style={{ ...th, width: 70 }}>DEPREC.</th>
-          <th style={{ ...th, width: 66 }}>ACV</th>
+          <th style={th}>QUANTITY</th>
+          <th style={th}>UNIT PRICE</th>
+          <th style={th}>TAX</th>
+          <th style={th}>RCV</th>
+          <th style={th}>DEPREC.</th>
+          <th style={th}>ACV</th>
         </tr>
       </thead>
     </table>
@@ -541,42 +558,34 @@ function ItemRow({
 }) {
   const struck = Boolean(item.not_yet_incurred);
   const strike: CSSProperties = struck
-    ? { textDecoration: "line-through", color: "#555" }
+    ? { textDecoration: "line-through", color: "#444" }
     : {};
   const dep = itemDepreciation(item, taxPct);
   return (
     <table style={tableStyle}>
+      <ItemCols />
       <tbody>
-        <tr style={{ borderBottom: "1px solid #ddd" }}>
-          <td style={{ ...td, width: 22, ...strike }}>{index}.</td>
+        <tr>
+          <td style={{ ...td, ...strike }}>{index}.</td>
           <td style={{ ...td, ...strike }}>
             {item.name}
             {item.code ? <span style={{ color: "#666" }}> ({item.code})</span> : null}
           </td>
-          <td style={{ ...td, width: 74, textAlign: "right", ...strike }}>
+          <td style={{ ...td, textAlign: "right", ...strike }}>
             {num(Number(item.qty))} {item.unit}
           </td>
-          <td style={{ ...td, width: 66, textAlign: "right", ...strike }}>
-            {num(Number(item.unit_price))}
-          </td>
-          <td style={{ ...td, width: 48, textAlign: "right", ...strike }}>
-            {num(itemTax(item, taxPct))}
-          </td>
-          <td style={{ ...td, width: 66, textAlign: "right", ...strike }}>
-            {num(itemRcv(item, taxPct))}
-          </td>
-          <td style={{ ...td, width: 70, textAlign: "right", ...strike }}>
-            {dep ? paren(dep) : "(0.00)"}
-          </td>
-          <td style={{ ...td, width: 66, textAlign: "right", fontWeight: 700, ...strike }}>
-            {num(itemAcv(item, taxPct))}
-          </td>
+          <td style={{ ...td, textAlign: "right", ...strike }}>{num(Number(item.unit_price))}</td>
+          <td style={{ ...td, textAlign: "right", ...strike }}>{num(itemTax(item, taxPct))}</td>
+          <td style={{ ...td, textAlign: "right", ...strike }}>{num(itemRcv(item, taxPct))}</td>
+          <td style={{ ...td, textAlign: "right", ...strike }}>{dep ? paren(dep) : "(0.00)"}</td>
+          <td style={{ ...td, textAlign: "right", ...strike }}>{num(itemAcv(item, taxPct))}</td>
         </tr>
         {item.note || struck ? (
           <tr>
-            <td />
-            <td colSpan={7} style={{ ...td, fontSize: 9.5, color: "#444", fontStyle: "italic" }}>
-              {struck ? "Payment for this item is not yet incurred and is excluded from all totals. " : ""}
+            <td style={td} />
+            <td colSpan={7} style={{ ...td, paddingTop: 0 }}>
+              {struck ? "The payment for this item has not yet been incurred." : ""}
+              {struck && item.note ? " " : ""}
               {item.note}
             </td>
           </tr>
@@ -588,28 +597,35 @@ function ItemRow({
 
 function SectionTotals({
   name,
+  tax,
   rcv,
   dep,
   acv,
 }: {
   name: string;
+  tax: number;
   rcv: number;
   dep: number;
   acv: number;
 }) {
   return (
-    <table style={{ ...tableStyle, marginBottom: 6 }}>
+    <table style={{ ...tableStyle, marginBottom: 10 }}>
+      <ItemCols />
       <tbody>
-        <tr style={{ borderTop: "1.5px solid #000" }}>
-          <td style={{ ...td, fontWeight: 700 }}>Totals: {name}</td>
-          <td style={{ ...td, width: 66, textAlign: "right", fontWeight: 700 }}>{num(rcv)}</td>
-          <td style={{ ...td, width: 70, textAlign: "right", fontWeight: 700 }}>{paren(dep)}</td>
-          <td style={{ ...td, width: 66, textAlign: "right", fontWeight: 700 }}>{num(acv)}</td>
+        <tr style={{ borderTop: "1px solid #000", borderBottom: "3px double #000" }}>
+          <td colSpan={4} style={{ ...td, fontWeight: 700, paddingTop: 4, paddingBottom: 4 }}>
+            Totals: {name}
+          </td>
+          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{num(tax)}</td>
+          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{num(rcv)}</td>
+          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{num(dep)}</td>
+          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{num(acv)}</td>
         </tr>
       </tbody>
     </table>
   );
 }
+
 
 // -------------------------------------------------------------------- recaps
 
