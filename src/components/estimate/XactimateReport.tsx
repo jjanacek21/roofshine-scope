@@ -802,21 +802,30 @@ function SumRow({
   value,
   bold,
   rule,
+  double,
 }: {
   label: string;
   value: string;
   bold?: boolean;
   rule?: boolean;
+  double?: boolean;
 }) {
+  const valueCell: CSSProperties = {
+    ...td,
+    textAlign: "right",
+    fontWeight: bold ? 700 : 400,
+    width: 150,
+    borderTop: rule ? "1px solid #000" : undefined,
+    borderBottom: double ? "3px double #000" : undefined,
+  };
   return (
-    <tr style={rule ? { borderTop: "1px solid #000" } : undefined}>
+    <tr>
       <td style={{ ...td, fontWeight: bold ? 700 : 400 }}>{label}</td>
-      <td style={{ ...td, textAlign: "right", fontWeight: bold ? 700 : 400, width: 140 }}>
-        {value}
-      </td>
+      <td style={valueCell}>{value}</td>
     </tr>
   );
 }
+
 
 function NotesPage({ notes }: { notes: ReportNote[] }) {
   return (
