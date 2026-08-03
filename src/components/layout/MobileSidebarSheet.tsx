@@ -29,6 +29,7 @@ import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
+import { useCompanyFeatures } from "@/hooks/useCompanyFeatures";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
