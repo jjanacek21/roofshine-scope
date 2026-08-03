@@ -850,23 +850,24 @@ const tableStyle: CSSProperties = {
 };
 
 const th: CSSProperties = {
-  fontSize: 9,
+  fontSize: 9.5,
   fontWeight: 700,
-  letterSpacing: "0.04em",
-  padding: "3px 4px",
+  letterSpacing: "0.02em",
+  padding: "2px 5px",
   textAlign: "right",
 };
 
 const td: CSSProperties = {
-  padding: "3px 4px",
+  padding: "2px 5px",
   verticalAlign: "top",
   wordBreak: "break-word",
+  lineHeight: 1.25,
 };
 
 const heading: CSSProperties = {
   fontWeight: 700,
-  fontSize: 12.5,
-  borderBottom: "1.5px solid #000",
-  paddingBottom: 3,
-  marginBottom: 8,
+  fontSize: 12,
+  borderBottom: "1px solid #000",
+  paddingBottom: 2,
+  marginBottom: 6,
 };
