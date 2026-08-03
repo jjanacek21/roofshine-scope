@@ -68,6 +68,8 @@ type EstimateRowFull = EstimateRow & {
 };
 
 
+const EMPTY_ITEMS: LineItem[] = [];
+
 function JobEstimate() {
   const { id: jobId } = Route.useParams();
   const search = Route.useSearch();
@@ -187,7 +189,7 @@ function JobEstimate() {
   const activeEstimateId = activeEstimate?.id ?? null;
 
   // Line items for active estimate
-  const { data: items = [] } = useQuery({
+  const { data: itemsData } = useQuery({
     queryKey: ["estimate-items", activeId],
     enabled: !!activeId,
     queryFn: async () => {
@@ -200,12 +202,15 @@ function JobEstimate() {
       return (data ?? []) as LineItem[];
     },
   });
+  // Stable identity: a fresh [] every render would retrigger the sync effect forever.
+  const items = itemsData ?? EMPTY_ITEMS;
 
   // Local optimistic copy so debounced updates feel snappy
   const [localItems, setLocalItems] = useState<LineItem[]>([]);
   useEffect(() => {
-    setLocalItems(items);
+    setLocalItems((prev) => (prev === items ? prev : items));
   }, [items]);
+
 
   const subtotal = useMemo(
     () => localItems.reduce((s, i) => s + lineTotal(i), 0),
