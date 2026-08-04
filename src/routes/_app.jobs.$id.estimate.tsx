@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Sparkles, Layers, FileDown } from "lucide-react";
+import { Plus, Sparkles, Layers, FileDown, Ruler } from "lucide-react";
+import { ApplyMeasurementsDialog } from "@/components/estimate/ApplyMeasurementsDialog";
+import { deriveQtyForItem, type SavedMeasurement } from "@/lib/estimate-measurement-fill";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
