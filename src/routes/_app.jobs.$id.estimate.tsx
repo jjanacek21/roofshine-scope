@@ -80,6 +80,7 @@ function JobEstimate() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
   const [macroOpen, setMacroOpen] = useState(false);
+  const [measureOpen, setMeasureOpen] = useState(false);
   const [companionSuggestion, setCompanionSuggestion] = useState<CompanionSuggestion | null>(
     null,
   );
