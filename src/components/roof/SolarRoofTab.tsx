@@ -560,39 +560,30 @@ export function SolarRoofTab({
     src.setData({ type: "FeatureCollection", features });
   }, [drawPoints]);
 
-  // Sync facet overlays + labels with pins
+  // Sync facet overlays + labels with pins.
+  // The painter lives in a ref so map events (load / styledata / idle) can
+  // repaint at any time — a style reload can otherwise leave the map blank.
+  const lastPaintRef = useRef<{ kinds: Record<string, GeoJSON.Feature[]>; foot: GeoJSON.Feature[]; labels: GeoJSON.Feature[] } | null>(null);
+
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) {
-      // Defer until style loaded
-      const handler = () => updateOverlays();
-      map?.once("idle", handler);
-      return;
-    }
-    updateOverlays();
-
-    function updateOverlays() {
+    paintRef.current = () => {
+      const map = mapRef.current;
       if (!map) return;
-      // Layers may not exist yet if data arrived before "load" fired.
-      if (!ensureOverlayLayers(map)) {
-        map.once("idle", () => updateOverlays());
-        return;
-      }
+      if (!ensureOverlayLayers(map)) return;
 
+      const kinds: Record<string, GeoJSON.Feature[]> = { pitched: [], flat: [], ignore: [] };
       for (const kind of ["pitched", "flat", "ignore"] as PinKind[]) {
-        const src = map.getSource(`facet-${kind}`) as mapboxgl.GeoJSONSource | undefined;
-        if (!src) continue;
         const features: GeoJSON.Feature[] = [];
         if (showOverlay) {
           for (const pin of pins) {
             if (pin.kind !== kind) continue;
-            const facets = pin.facets && pin.facets.length > 0
+            const rings = pin.facets && pin.facets.length > 0
               ? pin.facets.map((f) => f.ring)
               : pin.ring && pin.ring.length >= 3
                 ? [pin.ring]
                 : [];
-            for (const ring of facets) {
-              if (ring.length < 3) continue;
+            for (const ring of rings) {
+              if (!ring || ring.length < 3) continue;
               const closed = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
                 ? ring
                 : [...ring, ring[0]];
@@ -604,56 +595,55 @@ export function SolarRoofTab({
             }
           }
         }
-        src.setData({ type: "FeatureCollection", features });
+        kinds[kind] = features;
       }
 
-      // Fitted building outlines
-      const footSrc = map.getSource("facet-footprint") as mapboxgl.GeoJSONSource | undefined;
-      if (footSrc) {
-        const features: GeoJSON.Feature[] = [];
-        if (showOverlay) {
-          for (const pin of pins) {
-            const fp = pin.footprint;
-            if (!fp || fp.length < 3 || pin.kind === "ignore") continue;
-            const closed =
-              fp[0][0] === fp[fp.length - 1][0] && fp[0][1] === fp[fp.length - 1][1]
-                ? fp
-                : [...fp, fp[0]];
-            features.push({
-              type: "Feature",
-              geometry: { type: "LineString", coordinates: closed },
-              properties: {},
-            });
-          }
+      const foot: GeoJSON.Feature[] = [];
+      if (showOverlay) {
+        for (const pin of pins) {
+          const fp = pin.footprint;
+          if (!fp || fp.length < 3 || pin.kind === "ignore") continue;
+          const closed =
+            fp[0][0] === fp[fp.length - 1][0] && fp[0][1] === fp[fp.length - 1][1] ? fp : [...fp, fp[0]];
+          foot.push({ type: "Feature", geometry: { type: "LineString", coordinates: closed }, properties: {} });
         }
-        footSrc.setData({ type: "FeatureCollection", features });
       }
 
-
-
-      // Labels (one per pin centered at pin location)
-      const labelSrc = map.getSource("facet-labels") as mapboxgl.GeoJSONSource | undefined;
-      if (labelSrc) {
-        const features: GeoJSON.Feature[] = [];
-        if (showOverlay) {
-          for (const pin of pins) {
-            if (pin.kind === "ignore") continue;
-            if ((pin.plan_area_sqft || 0) === 0) continue;
-            const sqft = Math.round(pin.plan_area_sqft).toLocaleString();
-            const label = pin.kind === "flat"
-              ? `${pin.name} · ${sqft} sqft · flat`
-              : `${pin.name} · ${sqft} sqft · ${pin.pitch}`;
-            features.push({
-              type: "Feature",
-              geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
-              properties: { label },
-            });
-          }
+      const labels: GeoJSON.Feature[] = [];
+      if (showOverlay) {
+        for (const pin of pins) {
+          if (pin.kind === "ignore") continue;
+          if ((pin.plan_area_sqft || 0) === 0) continue;
+          const sqft = Math.round(pin.plan_area_sqft).toLocaleString();
+          const label = pin.kind === "flat"
+            ? `${pin.name} · ${sqft} sqft · flat`
+            : `${pin.name} · ${sqft} sqft · ${pin.pitch}`;
+          labels.push({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
+            properties: { label },
+          });
         }
-        labelSrc.setData({ type: "FeatureCollection", features });
       }
-    }
+
+      lastPaintRef.current = { kinds, foot, labels };
+
+      for (const kind of ["pitched", "flat", "ignore"] as PinKind[]) {
+        const src = map.getSource(`facet-${kind}`) as mapboxgl.GeoJSONSource | undefined;
+        src?.setData({ type: "FeatureCollection", features: kinds[kind] });
+      }
+      (map.getSource("facet-footprint") as mapboxgl.GeoJSONSource | undefined)?.setData({
+        type: "FeatureCollection",
+        features: foot,
+      });
+      (map.getSource("facet-labels") as mapboxgl.GeoJSONSource | undefined)?.setData({
+        type: "FeatureCollection",
+        features: labels,
+      });
+    };
+    paintRef.current();
   }, [pins, showOverlay, mapReady]);
+
 
   // ESC exits draw-mode
   useEffect(() => {
