@@ -90,7 +90,7 @@ export function buildEstimateDocument(
   const areaMap = new Map<string, Map<string, DocLineItem[]>>();
   for (const item of items) {
     const area = (item.area || DEFAULT_AREA).trim() || DEFAULT_AREA;
-    const category = (item.category || UNCATEGORIZED).trim() || UNCATEGORIZED;
+    const category = itemCategory(item);
     if (!areaMap.has(area)) areaMap.set(area, new Map());
     const catMap = areaMap.get(area)!;
     if (!catMap.has(category)) catMap.set(category, []);
