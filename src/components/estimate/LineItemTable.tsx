@@ -76,7 +76,7 @@ export function LineItemTable({
     const byKey = new Map<string, { area: string; category: string; items: LineItem[] }>();
     for (const item of items) {
       const area = (item.area || DEFAULT_AREA).trim() || DEFAULT_AREA;
-      const category = (item.category || UNCATEGORIZED).trim() || UNCATEGORIZED;
+      const category = itemCategory(item);
       const key = `${area}||${category}`;
       if (!byKey.has(key)) byKey.set(key, { area, category, items: [] });
       byKey.get(key)!.items.push(item);
