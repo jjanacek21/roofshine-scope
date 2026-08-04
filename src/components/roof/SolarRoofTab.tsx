@@ -716,6 +716,79 @@ export function SolarRoofTab({
     });
   }, [pins, mapReady]);
 
+  type Facet = NonNullable<Pin["facets"]>[number];
+
+  /** Normalized facet list for a pin (falls back to its single ring). */
+  function facetsOf(p: Pin): Facet[] {
+    if (p.facets && p.facets.length > 0) return p.facets;
+    if (p.ring && p.ring.length >= 3) {
+      return [{ ring: p.ring, pitch: p.pitch, plan_area_sqft: p.plan_area_sqft, pitch_degrees: pitchStringToDegrees(p.pitch) }];
+    }
+    return [];
+  }
+
+  /** Undo stack of facet snapshots while editing corners. */
+  const editUndoRef = useRef<Facet[][]>([]);
+  /** Original AI geometry per pin, captured when edit mode is entered. */
+  const aiSnapshotRef = useRef<Record<string, Facet[]>>({});
+  const [editRev, setEditRev] = useState(0);
+
+  /** Apply a ring transform to one facet of a pin, recomputing areas. */
+  function mutateFacetRing(pinId: string, facetIndex: number, fn: (ring: number[][]) => number[][]) {
+    const current = pinsStateRef.current.find((p) => p.id === pinId);
+    if (!current) return;
+    const cur = facetsOf(current);
+    editUndoRef.current = [...editUndoRef.current.slice(-19), cur.map((f) => ({ ...f, ring: f.ring.map((pt) => pt.slice()) }))];
+    const nextFacets = cur.map((ff, ii) => {
+      if (ii !== facetIndex) return ff;
+      const newRing = fn(ff.ring);
+      return { ...ff, ring: newRing, plan_area_sqft: polygonAreaSqft(newRing) };
+    });
+    const total = nextFacets.reduce((s, ff) => s + ff.plan_area_sqft, 0);
+    updatePin(pinId, {
+      facets: nextFacets,
+      ring: nextFacets[facetIndex]?.ring ?? current.ring,
+      plan_area_sqft: Math.round(total),
+    });
+    setEditRev((n) => n + 1);
+  }
+
+  function undoVertexEdit(pinId: string) {
+    const prev = editUndoRef.current.pop();
+    if (!prev) {
+      toast.info("Nothing to undo");
+      return;
+    }
+    const total = prev.reduce((s, f) => s + f.plan_area_sqft, 0);
+    updatePin(pinId, { facets: prev, ring: prev[0]?.ring, plan_area_sqft: Math.round(total) });
+    setEditRev((n) => n + 1);
+  }
+
+  function resetFacetsToAI(pinId: string) {
+    const snap = aiSnapshotRef.current[pinId];
+    if (!snap) {
+      toast.info("No original AI shape stored for this structure");
+      return;
+    }
+    const restored = snap.map((f) => ({ ...f, ring: f.ring.map((pt) => pt.slice()) }));
+    const total = restored.reduce((s, f) => s + f.plan_area_sqft, 0);
+    updatePin(pinId, { facets: restored, ring: restored[0]?.ring, plan_area_sqft: Math.round(total) });
+    editUndoRef.current = [];
+    setEditRev((n) => n + 1);
+    toast.success("Reset to the original AI shape");
+  }
+
+  function beginVertexEdit(pin: Pin) {
+    if (!aiSnapshotRef.current[pin.id]) {
+      aiSnapshotRef.current[pin.id] = facetsOf(pin).map((f) => ({ ...f, ring: f.ring.map((pt) => pt.slice()) }));
+    }
+    editUndoRef.current = [];
+    setEditingVerticesPinId(pin.id);
+    setShowOverlay(true);
+    zoomToPin(pin);
+  }
+
+
   // Vertex-edit mode: render draggable corner handles for the active pin's facets
   useEffect(() => {
     const map = mapRef.current;
