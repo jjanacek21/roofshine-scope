@@ -915,6 +915,15 @@ function JobEstimate() {
                 <Sparkles className="h-3.5 w-3.5" />
                 Add custom item
               </button>
+              <button
+                onClick={() => setMeasureOpen(true)}
+                disabled={!activeId || !measurement}
+                title={measurement ? "Fill quantities from saved roof measurements" : "No saved measurements for this property"}
+                className="btn-ghost flex h-9 items-center gap-2 rounded-lg px-3.5 text-[13px] font-semibold disabled:opacity-50"
+              >
+                <Ruler className="h-3.5 w-3.5" />
+                Use saved measurements
+              </button>
             </div>
           )}
         </div>
