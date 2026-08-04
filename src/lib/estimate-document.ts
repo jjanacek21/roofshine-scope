@@ -125,7 +125,7 @@ export function buildEstimateDocument(
 
   const catTotals = new Map<string, number>();
   for (const item of items) {
-    const c = (item.category || UNCATEGORIZED).trim() || UNCATEGORIZED;
+    const c = itemCategory(item);
     catTotals.set(c, (catTotals.get(c) ?? 0) + lineTotal(item));
   }
   const pct = (n: number) => (subtotal > 0 ? (n / subtotal) * 100 : 0);
