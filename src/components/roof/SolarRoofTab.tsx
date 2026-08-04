@@ -398,6 +398,8 @@ export function SolarRoofTab({
   async function saveVertexCorrections(pin: Pin) {
     try {
       const facets = pin.facets ?? [];
+      const original = aiSnapshotRef.current[pin.id] ?? [];
+      const originalArea = original.reduce((s, f) => s + (f.plan_area_sqft || 0), 0);
       const { data: s } = await supabase.auth.getSession();
       const userId = s.session?.user.id ?? null;
       const { error } = await supabase.from("training_examples").insert({
@@ -405,17 +407,36 @@ export function SolarRoofTab({
         lat: pin.lat,
         lng: pin.lng,
         source: "vertex_edit",
-        ground_truth: { facets, total_plan_sqft: pin.plan_area_sqft, pin_name: pin.name, pitch: pin.pitch, kind: pin.kind },
-        solar_response: {},
+        ground_truth: {
+          facets,
+          total_plan_sqft: pin.plan_area_sqft,
+          pin_name: pin.name,
+          pitch: pin.pitch,
+          kind: pin.kind,
+          job_id: jobId ?? null,
+          property_id: propertyId ?? null,
+        },
+        solar_response: {
+          ai_facets: original,
+          ai_total_plan_sqft: Math.round(originalArea),
+          area_delta_sqft: Math.round((pin.plan_area_sqft || 0) - originalArea),
+        },
         notes: "User-corrected facet vertices from Solar tab",
         created_by: userId,
       });
       if (error) throw error;
-      toast.success("Correction saved — AI training center will use it");
+      // Keep the corrected geometry as the saved measurement too.
+      try {
+        await persistPins(pinsStateRef.current);
+      } catch (e) {
+        console.error("persist corrected geometry failed", e);
+      }
+      toast.success("Corrections saved to AI training");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't save correction");
     }
   }
+
 
   // Hydrate pins from an existing google_solar auto-measurement so the highlight
   // overlay appears when the user opens the tab after AI has already scanned.
