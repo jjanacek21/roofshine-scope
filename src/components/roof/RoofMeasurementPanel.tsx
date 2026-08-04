@@ -13,6 +13,8 @@ import {
 } from "./ManualMeasurementForm";
 import { MapboxRoofDraw, type MapboxRoofData, type AnyFeature } from "./MapboxRoofDraw";
 import { SolarRoofTab } from "./SolarRoofTab";
+import { PropertyLocationPicker } from "./PropertyLocationPicker";
+
 import { ConditionAITab } from "./ConditionAITab";
 import {
   squares, polygonEdgeLengths,
