@@ -960,6 +960,22 @@ function JobEstimate() {
           onClose={() => setMacroOpen(false)}
         />
       )}
+
+      {measurement && (
+        <ApplyMeasurementsDialog
+          open={measureOpen}
+          onClose={() => setMeasureOpen(false)}
+          measurement={measurement as SavedMeasurement}
+          items={localItems.map((i) => ({
+            id: i.id,
+            code: i.code,
+            name: i.name,
+            unit: i.unit,
+            qty: Number(i.qty ?? 0),
+          }))}
+          onApply={applyMeasurementQtys}
+        />
+      )}
     </div>
   );
 }
