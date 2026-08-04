@@ -1113,18 +1113,43 @@ export function SolarRoofTab({
     }
   }
 
+  /** Make sure freshly measured facets are visible: turn the overlay on, repaint, fit. */
+  function revealMeasuredFacets() {
+    setShowOverlay(true);
+    const map = mapRef.current;
+    paintRef.current?.();
+    if (!map) return;
+    const coords: number[][] = [];
+    for (const p of pinsStateRef.current) {
+      if (p.kind === "ignore") continue;
+      for (const f of facetsOf(p)) coords.push(...f.ring);
+    }
+    if (coords.length < 2) return;
+    const b = coords.reduce(
+      (acc, c) => acc.extend(c as [number, number]),
+      new mapboxgl.LngLatBounds(coords[0] as [number, number], coords[0] as [number, number]),
+    );
+    map.fitBounds(b, { padding: 70, duration: 500, maxZoom: 21 });
+  }
+
   const measureOne = useMutation({
     mutationFn: async (pin: Pin) => {
       const res = await measurePinAt(pin);
       if (!res.ok) throw new Error(res.reason ?? "Measurement failed");
       await persistPins(pinsStateRef.current);
     },
-    onSuccess: () => toast.success("Measured whole structure at this pin"),
+    onSuccess: () => {
+      revealMeasuredFacets();
+      const drew = facetsOf(pinsStateRef.current.find((p) => p.id === activePinId) ?? ({} as Pin)).length;
+      if (drew === 0) toast.warning("Measured, but no roof outline came back — draw the area to fix it");
+      else toast.success("Measured whole structure at this pin");
+    },
     onError: (e) =>
       toast.error(e instanceof Error ? e.message : "Couldn't measure", {
         description: "Try the Draw area tool, enter sqft manually, or refine on the Mapbox tab.",
       }),
   });
+
 
   const measureAll = useMutation({
     mutationFn: async () => {
