@@ -173,7 +173,7 @@ export function XactimateReport({
   const catMap = new Map<string, { amount: number; tax: number }>();
   for (const it of items) {
     if (it.not_yet_incurred) continue;
-    const key = (it.category || "GENERAL").toUpperCase();
+    const key = itemCategory(it).toUpperCase();
     const prev = catMap.get(key) ?? { amount: 0, tax: 0 };
     catMap.set(key, {
       amount: prev.amount + itemBase(it),
