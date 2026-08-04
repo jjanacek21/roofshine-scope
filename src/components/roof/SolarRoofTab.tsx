@@ -1635,6 +1635,25 @@ export function SolarRoofTab({
         )}
       </div>
 
+      {/* Highlight summary */}
+      {pins.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+          <span>
+            <span className="font-mono-num text-foreground">{highlightStats.facets}</span> facet
+            {highlightStats.facets === 1 ? "" : "s"} ·{" "}
+            <span className="font-mono-num text-foreground">{Math.round(highlightStats.sqft).toLocaleString()}</span> sqft highlighted
+          </span>
+          {highlightStats.facets === 0 && (
+            <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 font-semibold text-amber-600">
+              <AlertCircle className="h-3 w-3" /> No roof outline came back — draw the area or re-measure
+            </span>
+          )}
+          {!showOverlay && <span className="text-amber-600">Overlay is hidden</span>}
+        </div>
+      )}
+
+
+
       {/* Bulk actions */}
       {pins.length > 0 && (
         <div className="flex flex-wrap items-center justify-end gap-2">
