@@ -510,11 +510,17 @@ export function SolarRoofTab({
 
     map.on("load", () => {
       ensureOverlayLayers(map);
+      paintRef.current?.();
       setMapReady((n) => n + 1);
     });
     map.on("styledata", () => {
-      ensureOverlayLayers(map);
+      if (ensureOverlayLayers(map)) paintRef.current?.();
     });
+    map.on("idle", () => {
+      paintRef.current?.();
+    });
+
+
 
 
     mapRef.current = map;
