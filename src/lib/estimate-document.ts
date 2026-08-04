@@ -1,5 +1,6 @@
 // Shared model for the contractor-style estimate document
 // (DESCRIPTION | QTY | REMOVE | REPLACE | TAX | TOTAL)
+import { getTradeLabel } from "@/lib/trades";
 
 export type DocLineItem = {
   id: string;
