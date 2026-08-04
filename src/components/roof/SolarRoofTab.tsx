@@ -22,6 +22,8 @@ import {
   EyeOff,
   ArrowRight,
   Brain,
+  RotateCcw,
+
 } from "lucide-react";
 import type { MapboxRoofData } from "./MapboxRoofDraw";
 import { MeasureTuningPanel } from "./MeasureTuningPanel";
@@ -312,6 +314,9 @@ export function SolarRoofTab({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Record<string, mapboxgl.Marker>>({});
   const pinsStateRef = useRef<Pin[]>([]);
+  /** Repaints all facet overlays; kept in a ref so map events can call it any time. */
+  const paintRef = useRef<(() => void) | null>(null);
+
 
   const [pins, setPins] = useState<Pin[]>([]);
   // Bumped whenever the map instance is (re)created / its style finishes loading,
@@ -395,6 +400,8 @@ export function SolarRoofTab({
   async function saveVertexCorrections(pin: Pin) {
     try {
       const facets = pin.facets ?? [];
+      const original = aiSnapshotRef.current[pin.id] ?? [];
+      const originalArea = original.reduce((s, f) => s + (f.plan_area_sqft || 0), 0);
       const { data: s } = await supabase.auth.getSession();
       const userId = s.session?.user.id ?? null;
       const { error } = await supabase.from("training_examples").insert({
@@ -402,17 +409,36 @@ export function SolarRoofTab({
         lat: pin.lat,
         lng: pin.lng,
         source: "vertex_edit",
-        ground_truth: { facets, total_plan_sqft: pin.plan_area_sqft, pin_name: pin.name, pitch: pin.pitch, kind: pin.kind },
-        solar_response: {},
+        ground_truth: {
+          facets,
+          total_plan_sqft: pin.plan_area_sqft,
+          pin_name: pin.name,
+          pitch: pin.pitch,
+          kind: pin.kind,
+          job_id: jobId ?? null,
+          property_id: propertyId ?? null,
+        },
+        solar_response: {
+          ai_facets: original,
+          ai_total_plan_sqft: Math.round(originalArea),
+          area_delta_sqft: Math.round((pin.plan_area_sqft || 0) - originalArea),
+        },
         notes: "User-corrected facet vertices from Solar tab",
         created_by: userId,
       });
       if (error) throw error;
-      toast.success("Correction saved — AI training center will use it");
+      // Keep the corrected geometry as the saved measurement too.
+      try {
+        await persistPins(pinsStateRef.current);
+      } catch (e) {
+        console.error("persist corrected geometry failed", e);
+      }
+      toast.success("Corrections saved to AI training");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't save correction");
     }
   }
+
 
   // Hydrate pins from an existing google_solar auto-measurement so the highlight
   // overlay appears when the user opens the tab after AI has already scanned.
@@ -510,11 +536,17 @@ export function SolarRoofTab({
 
     map.on("load", () => {
       ensureOverlayLayers(map);
+      paintRef.current?.();
       setMapReady((n) => n + 1);
     });
     map.on("styledata", () => {
-      ensureOverlayLayers(map);
+      if (ensureOverlayLayers(map)) paintRef.current?.();
     });
+    map.on("idle", () => {
+      paintRef.current?.();
+    });
+
+
 
 
     mapRef.current = map;
@@ -554,39 +586,30 @@ export function SolarRoofTab({
     src.setData({ type: "FeatureCollection", features });
   }, [drawPoints]);
 
-  // Sync facet overlays + labels with pins
+  // Sync facet overlays + labels with pins.
+  // The painter lives in a ref so map events (load / styledata / idle) can
+  // repaint at any time — a style reload can otherwise leave the map blank.
+  const lastPaintRef = useRef<{ kinds: Record<string, GeoJSON.Feature[]>; foot: GeoJSON.Feature[]; labels: GeoJSON.Feature[] } | null>(null);
+
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) {
-      // Defer until style loaded
-      const handler = () => updateOverlays();
-      map?.once("idle", handler);
-      return;
-    }
-    updateOverlays();
-
-    function updateOverlays() {
+    paintRef.current = () => {
+      const map = mapRef.current;
       if (!map) return;
-      // Layers may not exist yet if data arrived before "load" fired.
-      if (!ensureOverlayLayers(map)) {
-        map.once("idle", () => updateOverlays());
-        return;
-      }
+      if (!ensureOverlayLayers(map)) return;
 
+      const kinds: Record<string, GeoJSON.Feature[]> = { pitched: [], flat: [], ignore: [] };
       for (const kind of ["pitched", "flat", "ignore"] as PinKind[]) {
-        const src = map.getSource(`facet-${kind}`) as mapboxgl.GeoJSONSource | undefined;
-        if (!src) continue;
         const features: GeoJSON.Feature[] = [];
         if (showOverlay) {
           for (const pin of pins) {
             if (pin.kind !== kind) continue;
-            const facets = pin.facets && pin.facets.length > 0
+            const rings = pin.facets && pin.facets.length > 0
               ? pin.facets.map((f) => f.ring)
               : pin.ring && pin.ring.length >= 3
                 ? [pin.ring]
                 : [];
-            for (const ring of facets) {
-              if (ring.length < 3) continue;
+            for (const ring of rings) {
+              if (!ring || ring.length < 3) continue;
               const closed = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
                 ? ring
                 : [...ring, ring[0]];
@@ -598,56 +621,55 @@ export function SolarRoofTab({
             }
           }
         }
-        src.setData({ type: "FeatureCollection", features });
+        kinds[kind] = features;
       }
 
-      // Fitted building outlines
-      const footSrc = map.getSource("facet-footprint") as mapboxgl.GeoJSONSource | undefined;
-      if (footSrc) {
-        const features: GeoJSON.Feature[] = [];
-        if (showOverlay) {
-          for (const pin of pins) {
-            const fp = pin.footprint;
-            if (!fp || fp.length < 3 || pin.kind === "ignore") continue;
-            const closed =
-              fp[0][0] === fp[fp.length - 1][0] && fp[0][1] === fp[fp.length - 1][1]
-                ? fp
-                : [...fp, fp[0]];
-            features.push({
-              type: "Feature",
-              geometry: { type: "LineString", coordinates: closed },
-              properties: {},
-            });
-          }
+      const foot: GeoJSON.Feature[] = [];
+      if (showOverlay) {
+        for (const pin of pins) {
+          const fp = pin.footprint;
+          if (!fp || fp.length < 3 || pin.kind === "ignore") continue;
+          const closed =
+            fp[0][0] === fp[fp.length - 1][0] && fp[0][1] === fp[fp.length - 1][1] ? fp : [...fp, fp[0]];
+          foot.push({ type: "Feature", geometry: { type: "LineString", coordinates: closed }, properties: {} });
         }
-        footSrc.setData({ type: "FeatureCollection", features });
       }
 
-
-
-      // Labels (one per pin centered at pin location)
-      const labelSrc = map.getSource("facet-labels") as mapboxgl.GeoJSONSource | undefined;
-      if (labelSrc) {
-        const features: GeoJSON.Feature[] = [];
-        if (showOverlay) {
-          for (const pin of pins) {
-            if (pin.kind === "ignore") continue;
-            if ((pin.plan_area_sqft || 0) === 0) continue;
-            const sqft = Math.round(pin.plan_area_sqft).toLocaleString();
-            const label = pin.kind === "flat"
-              ? `${pin.name} · ${sqft} sqft · flat`
-              : `${pin.name} · ${sqft} sqft · ${pin.pitch}`;
-            features.push({
-              type: "Feature",
-              geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
-              properties: { label },
-            });
-          }
+      const labels: GeoJSON.Feature[] = [];
+      if (showOverlay) {
+        for (const pin of pins) {
+          if (pin.kind === "ignore") continue;
+          if ((pin.plan_area_sqft || 0) === 0) continue;
+          const sqft = Math.round(pin.plan_area_sqft).toLocaleString();
+          const label = pin.kind === "flat"
+            ? `${pin.name} · ${sqft} sqft · flat`
+            : `${pin.name} · ${sqft} sqft · ${pin.pitch}`;
+          labels.push({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
+            properties: { label },
+          });
         }
-        labelSrc.setData({ type: "FeatureCollection", features });
       }
-    }
+
+      lastPaintRef.current = { kinds, foot, labels };
+
+      for (const kind of ["pitched", "flat", "ignore"] as PinKind[]) {
+        const src = map.getSource(`facet-${kind}`) as mapboxgl.GeoJSONSource | undefined;
+        src?.setData({ type: "FeatureCollection", features: kinds[kind] });
+      }
+      (map.getSource("facet-footprint") as mapboxgl.GeoJSONSource | undefined)?.setData({
+        type: "FeatureCollection",
+        features: foot,
+      });
+      (map.getSource("facet-labels") as mapboxgl.GeoJSONSource | undefined)?.setData({
+        type: "FeatureCollection",
+        features: labels,
+      });
+    };
+    paintRef.current();
   }, [pins, showOverlay, mapReady]);
+
 
   // ESC exits draw-mode
   useEffect(() => {
@@ -717,6 +739,79 @@ export function SolarRoofTab({
     });
   }, [pins, mapReady]);
 
+  type Facet = NonNullable<Pin["facets"]>[number];
+
+  /** Normalized facet list for a pin (falls back to its single ring). */
+  function facetsOf(p: Pin): Facet[] {
+    if (p.facets && p.facets.length > 0) return p.facets;
+    if (p.ring && p.ring.length >= 3) {
+      return [{ ring: p.ring, pitch: p.pitch, plan_area_sqft: p.plan_area_sqft, pitch_degrees: pitchStringToDegrees(p.pitch) }];
+    }
+    return [];
+  }
+
+  /** Undo stack of facet snapshots while editing corners. */
+  const editUndoRef = useRef<Facet[][]>([]);
+  /** Original AI geometry per pin, captured when edit mode is entered. */
+  const aiSnapshotRef = useRef<Record<string, Facet[]>>({});
+  const [editRev, setEditRev] = useState(0);
+
+  /** Apply a ring transform to one facet of a pin, recomputing areas. */
+  function mutateFacetRing(pinId: string, facetIndex: number, fn: (ring: number[][]) => number[][]) {
+    const current = pinsStateRef.current.find((p) => p.id === pinId);
+    if (!current) return;
+    const cur = facetsOf(current);
+    editUndoRef.current = [...editUndoRef.current.slice(-19), cur.map((f) => ({ ...f, ring: f.ring.map((pt) => pt.slice()) }))];
+    const nextFacets = cur.map((ff, ii) => {
+      if (ii !== facetIndex) return ff;
+      const newRing = fn(ff.ring);
+      return { ...ff, ring: newRing, plan_area_sqft: polygonAreaSqft(newRing) };
+    });
+    const total = nextFacets.reduce((s, ff) => s + ff.plan_area_sqft, 0);
+    updatePin(pinId, {
+      facets: nextFacets,
+      ring: nextFacets[facetIndex]?.ring ?? current.ring,
+      plan_area_sqft: Math.round(total),
+    });
+    setEditRev((n) => n + 1);
+  }
+
+  function undoVertexEdit(pinId: string) {
+    const prev = editUndoRef.current.pop();
+    if (!prev) {
+      toast.info("Nothing to undo");
+      return;
+    }
+    const total = prev.reduce((s, f) => s + f.plan_area_sqft, 0);
+    updatePin(pinId, { facets: prev, ring: prev[0]?.ring, plan_area_sqft: Math.round(total) });
+    setEditRev((n) => n + 1);
+  }
+
+  function resetFacetsToAI(pinId: string) {
+    const snap = aiSnapshotRef.current[pinId];
+    if (!snap) {
+      toast.info("No original AI shape stored for this structure");
+      return;
+    }
+    const restored = snap.map((f) => ({ ...f, ring: f.ring.map((pt) => pt.slice()) }));
+    const total = restored.reduce((s, f) => s + f.plan_area_sqft, 0);
+    updatePin(pinId, { facets: restored, ring: restored[0]?.ring, plan_area_sqft: Math.round(total) });
+    editUndoRef.current = [];
+    setEditRev((n) => n + 1);
+    toast.success("Reset to the original AI shape");
+  }
+
+  function beginVertexEdit(pin: Pin) {
+    if (!aiSnapshotRef.current[pin.id]) {
+      aiSnapshotRef.current[pin.id] = facetsOf(pin).map((f) => ({ ...f, ring: f.ring.map((pt) => pt.slice()) }));
+    }
+    editUndoRef.current = [];
+    setEditingVerticesPinId(pin.id);
+    setShowOverlay(true);
+    zoomToPin(pin);
+  }
+
+
   // Vertex-edit mode: render draggable corner handles for the active pin's facets
   useEffect(() => {
     const map = mapRef.current;
@@ -730,55 +825,85 @@ export function SolarRoofTab({
     const pin = pins.find((p) => p.id === targetId);
     if (!pin) return;
 
-    const facets =
-      pin.facets && pin.facets.length > 0
-        ? pin.facets
-        : pin.ring && pin.ring.length >= 3
-          ? [{ ring: pin.ring, pitch: pin.pitch, plan_area_sqft: pin.plan_area_sqft, pitch_degrees: pitchStringToDegrees(pin.pitch) }]
-          : [];
+    const facets = facetsOf(pin);
+
+    const mkHandle = (color: string, size: number, hollow: boolean) => {
+      const el = document.createElement("div");
+      el.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;background:${hollow ? "transparent" : color};border:2px solid ${hollow ? color : "#0a0a0a"};box-shadow:0 1px 3px rgba(0,0,0,.6);cursor:grab;`;
+      return el;
+    };
+
     facets.forEach((f, fi) => {
       const isClosed =
         f.ring.length > 1 &&
         f.ring[0][0] === f.ring[f.ring.length - 1][0] &&
         f.ring[0][1] === f.ring[f.ring.length - 1][1];
       const n = isClosed ? f.ring.length - 1 : f.ring.length;
+
+      // Corner handles — drag to move, alt/right-click to delete
       for (let vi = 0; vi < n; vi++) {
-        const el = document.createElement("div");
-        el.style.cssText =
-          "width:14px;height:14px;border-radius:50%;background:#facc15;border:2px solid #0a0a0a;box-shadow:0 1px 3px rgba(0,0,0,.6);cursor:grab;";
+        const el = mkHandle("#facc15", 14, false);
+        el.title = "Drag to move · Alt-click or right-click to delete";
         const marker = new mapboxgl.Marker({ element: el, draggable: true })
           .setLngLat(f.ring[vi] as [number, number])
           .addTo(map);
         marker.on("dragend", () => {
           const ll = marker.getLngLat();
-          setPins((prev) =>
-            prev.map((p) => {
-              if (p.id !== targetId) return p;
-              const cur =
-                p.facets && p.facets.length > 0
-                  ? p.facets
-                  : p.ring && p.ring.length >= 3
-                    ? [{ ring: p.ring, pitch: p.pitch, plan_area_sqft: p.plan_area_sqft, pitch_degrees: pitchStringToDegrees(p.pitch) }]
-                    : [];
-              const nextFacets = cur.map((ff, ii) => {
-                if (ii !== fi) return ff;
-                const newRing = ff.ring.map((pt, i) => (i === vi ? [ll.lng, ll.lat] : pt.slice()));
-                const closed =
-                  ff.ring.length > 1 &&
-                  ff.ring[0][0] === ff.ring[ff.ring.length - 1][0] &&
-                  ff.ring[0][1] === ff.ring[ff.ring.length - 1][1];
-                if (closed && vi === 0) newRing[newRing.length - 1] = [ll.lng, ll.lat];
-                return { ...ff, ring: newRing, plan_area_sqft: polygonAreaSqft(newRing) };
-              });
-              const total = nextFacets.reduce((s, ff) => s + ff.plan_area_sqft, 0);
-              return {
-                ...p,
-                facets: nextFacets,
-                ring: nextFacets[fi]?.ring ?? p.ring,
-                plan_area_sqft: Math.round(total),
-              };
-            }),
-          );
+          mutateFacetRing(targetId, fi, (ring) => {
+            const closed =
+              ring.length > 1 &&
+              ring[0][0] === ring[ring.length - 1][0] &&
+              ring[0][1] === ring[ring.length - 1][1];
+            const next = ring.map((pt, i) => (i === vi ? [ll.lng, ll.lat] : pt.slice()));
+            if (closed && vi === 0) next[next.length - 1] = [ll.lng, ll.lat];
+            return next;
+          });
+        });
+        const del = (ev: Event) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (n <= 3) {
+            toast.error("A facet needs at least 3 corners");
+            return;
+          }
+          mutateFacetRing(targetId, fi, (ring) => {
+            const closed =
+              ring.length > 1 &&
+              ring[0][0] === ring[ring.length - 1][0] &&
+              ring[0][1] === ring[ring.length - 1][1];
+            const open = closed ? ring.slice(0, -1) : ring.slice();
+            open.splice(vi, 1);
+            return [...open, open[0]];
+          });
+        };
+        el.addEventListener("contextmenu", del);
+        el.addEventListener("click", (ev) => {
+          if ((ev as MouseEvent).altKey) del(ev);
+        });
+        vertexMarkersRef.current.push(marker);
+      }
+
+      // Midpoint handles — drag to insert a new corner
+      for (let vi = 0; vi < n; vi++) {
+        const a = f.ring[vi];
+        const b = f.ring[(vi + 1) % n];
+        const mid: [number, number] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+        const el = mkHandle("#facc15", 10, true);
+        el.title = "Drag to add a corner here";
+        const marker = new mapboxgl.Marker({ element: el, draggable: true })
+          .setLngLat(mid)
+          .addTo(map);
+        marker.on("dragend", () => {
+          const ll = marker.getLngLat();
+          mutateFacetRing(targetId, fi, (ring) => {
+            const closed =
+              ring.length > 1 &&
+              ring[0][0] === ring[ring.length - 1][0] &&
+              ring[0][1] === ring[ring.length - 1][1];
+            const open = closed ? ring.slice(0, -1) : ring.slice();
+            open.splice(vi + 1, 0, [ll.lng, ll.lat]);
+            return [...open, open[0]];
+          });
         });
         vertexMarkersRef.current.push(marker);
       }
@@ -788,6 +913,7 @@ export function SolarRoofTab({
       vertexMarkersRef.current = [];
     };
   }, [editingVerticesPinId, pins]);
+
 
 
   function updatePin(id: string, patch: Partial<Pin>) {
@@ -989,18 +1115,43 @@ export function SolarRoofTab({
     }
   }
 
+  /** Make sure freshly measured facets are visible: turn the overlay on, repaint, fit. */
+  function revealMeasuredFacets() {
+    setShowOverlay(true);
+    const map = mapRef.current;
+    paintRef.current?.();
+    if (!map) return;
+    const coords: number[][] = [];
+    for (const p of pinsStateRef.current) {
+      if (p.kind === "ignore") continue;
+      for (const f of facetsOf(p)) coords.push(...f.ring);
+    }
+    if (coords.length < 2) return;
+    const b = coords.reduce(
+      (acc, c) => acc.extend(c as [number, number]),
+      new mapboxgl.LngLatBounds(coords[0] as [number, number], coords[0] as [number, number]),
+    );
+    map.fitBounds(b, { padding: 70, duration: 500, maxZoom: 21 });
+  }
+
   const measureOne = useMutation({
     mutationFn: async (pin: Pin) => {
       const res = await measurePinAt(pin);
       if (!res.ok) throw new Error(res.reason ?? "Measurement failed");
       await persistPins(pinsStateRef.current);
     },
-    onSuccess: () => toast.success("Measured whole structure at this pin"),
+    onSuccess: () => {
+      revealMeasuredFacets();
+      const drew = facetsOf(pinsStateRef.current.find((p) => p.id === activePinId) ?? ({} as Pin)).length;
+      if (drew === 0) toast.warning("Measured, but no roof outline came back — draw the area to fix it");
+      else toast.success("Measured whole structure at this pin");
+    },
     onError: (e) =>
       toast.error(e instanceof Error ? e.message : "Couldn't measure", {
         description: "Try the Draw area tool, enter sqft manually, or refine on the Mapbox tab.",
       }),
   });
+
 
   const measureAll = useMutation({
     mutationFn: async () => {
@@ -1025,10 +1176,12 @@ export function SolarRoofTab({
     },
 
     onSuccess: ({ success, failed, total }) => {
+      if (success > 0) revealMeasuredFacets();
       if (total === 0) toast.info("Drop a pin on each roof you want measured first");
       else if (failed === 0) toast.success(`Measured ${success} pinned roof${success === 1 ? "" : "s"}`);
       else toast.warning(`Measured ${success}/${total} — ${failed} need manual entry or draw`);
     },
+
     onError: (e) => toast.error(e instanceof Error ? e.message : "Bulk measure failed"),
   });
 
@@ -1105,7 +1258,24 @@ export function SolarRoofTab({
     [pins],
   );
 
+  /** How much area is actually drawn on the map right now. */
+  const highlightStats = useMemo(() => {
+    let facets = 0;
+    let sqft = 0;
+    for (const p of pins) {
+      if (p.kind === "ignore") continue;
+      for (const f of facetsOf(p)) {
+        if (!f.ring || f.ring.length < 3) continue;
+        facets++;
+        sqft += f.plan_area_sqft || 0;
+      }
+    }
+    return { facets, sqft };
+    // editRev forces a recount right after a vertex edit
+  }, [pins, editRev]);
+
   const totals = useMemo(() => {
+
     const active = pins.filter((p) => p.kind !== "ignore");
     const plan = active.reduce((s, p) => s + (p.plan_area_sqft || 0), 0);
     const sloped = active.reduce((s, p) => {
@@ -1482,6 +1652,25 @@ export function SolarRoofTab({
         )}
       </div>
 
+      {/* Highlight summary */}
+      {pins.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+          <span>
+            <span className="font-mono-num text-foreground">{highlightStats.facets}</span> facet
+            {highlightStats.facets === 1 ? "" : "s"} ·{" "}
+            <span className="font-mono-num text-foreground">{Math.round(highlightStats.sqft).toLocaleString()}</span> sqft highlighted
+          </span>
+          {highlightStats.facets === 0 && (
+            <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 font-semibold text-amber-600">
+              <AlertCircle className="h-3 w-3" /> No roof outline came back — draw the area or re-measure
+            </span>
+          )}
+          {!showOverlay && <span className="text-amber-600">Overlay is hidden</span>}
+        </div>
+      )}
+
+
+
       {/* Bulk actions */}
       {pins.length > 0 && (
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -1617,14 +1806,28 @@ export function SolarRoofTab({
               {editingVerticesPinId === activePin.id ? (
                 <>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setEditingVerticesPinId(null);
-                      toast.success("Vertex edits kept — save to train the AI");
+                      await saveVertexCorrections(activePin);
                     }}
                     className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5"
                     style={{ borderColor: "#facc15" }}
                   >
-                    <Check className="h-3.5 w-3.5 text-[#facc15]" /> Finish editing corners
+                    <Check className="h-3.5 w-3.5 text-[#facc15]" /> Done — save corrections
+                  </button>
+                  <button
+                    onClick={() => undoVertexEdit(activePin.id)}
+                    className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Undo last edit
+                  </button>
+                  <button
+                    onClick={() => resetFacetsToAI(activePin.id)}
+                    className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    Reset to AI shape
                   </button>
                   <button
                     onClick={() => saveVertexCorrections(activePin)}
@@ -1634,13 +1837,15 @@ export function SolarRoofTab({
                   >
                     <Brain className="h-3.5 w-3.5 text-violet-400" /> Save to AI training
                   </button>
+                  <span className="text-[11px] text-muted-foreground">
+                    Drag solid dots to move a corner · drag a hollow dot to add one · Alt-click or right-click a corner to delete it
+                  </span>
                 </>
               ) : (
                 <button
                   onClick={() => {
-                    setEditingVerticesPinId(activePin.id);
-                    zoomToPin(activePin);
-                    toast.info("Drag the yellow corner handles to align with the roof edges");
+                    beginVertexEdit(activePin);
+                    toast.info("Drag the yellow handles to match the roof edges");
                   }}
                   disabled={
                     !(activePin.facets && activePin.facets.length > 0) &&
@@ -1648,11 +1853,12 @@ export function SolarRoofTab({
                   }
                   className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5 disabled:opacity-40"
                   style={{ borderColor: "var(--border)" }}
-                  title="Zoom in and drag facet corners to match roof edges"
+                  title="Zoom in and edit facet corners to match roof edges"
                 >
                   <Pencil className="h-3.5 w-3.5 text-[#facc15]" /> Edit corners &amp; zoom in
                 </button>
               )}
+
               {(activePin.plan_area_sqft || 0) === 0 && (
                 <span className="inline-flex items-center gap-1 text-[11px] text-amber-500">
                   <AlertCircle className="h-3 w-3" /> Not yet measured
