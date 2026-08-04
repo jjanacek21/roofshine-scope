@@ -312,6 +312,9 @@ export function SolarRoofTab({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Record<string, mapboxgl.Marker>>({});
   const pinsStateRef = useRef<Pin[]>([]);
+  /** Repaints all facet overlays; kept in a ref so map events can call it any time. */
+  const paintRef = useRef<(() => void) | null>(null);
+
 
   const [pins, setPins] = useState<Pin[]>([]);
   // Bumped whenever the map instance is (re)created / its style finishes loading,
