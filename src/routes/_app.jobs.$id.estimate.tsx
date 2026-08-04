@@ -130,12 +130,15 @@ function JobEstimate() {
     queryFn: async () => {
       const { data } = await supabase
         .from("roof_measurements")
-        .select("total_area_sqft, squares, eaves_lf, rakes_lf, ridges_lf, hips_lf, valleys_lf")
+        .select(
+          "total_area_sqft, squares, waste_pct, eaves_lf, rakes_lf, ridges_lf, hips_lf, valleys_lf, drip_edge_lf, step_flashing_lf, wall_flashing_lf, gutters_lf, parapet_wall_lf, transition_lf",
+        )
         .eq("property_id", job!.property_id!)
         .maybeSingle();
       return data;
     },
   });
+
 
 
   // Estimates list
