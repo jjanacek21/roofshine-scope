@@ -1768,14 +1768,28 @@ export function SolarRoofTab({
               {editingVerticesPinId === activePin.id ? (
                 <>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setEditingVerticesPinId(null);
-                      toast.success("Vertex edits kept — save to train the AI");
+                      await saveVertexCorrections(activePin);
                     }}
                     className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5"
                     style={{ borderColor: "#facc15" }}
                   >
-                    <Check className="h-3.5 w-3.5 text-[#facc15]" /> Finish editing corners
+                    <Check className="h-3.5 w-3.5 text-[#facc15]" /> Done — save corrections
+                  </button>
+                  <button
+                    onClick={() => undoVertexEdit(activePin.id)}
+                    className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Undo last edit
+                  </button>
+                  <button
+                    onClick={() => resetFacetsToAI(activePin.id)}
+                    className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    Reset to AI shape
                   </button>
                   <button
                     onClick={() => saveVertexCorrections(activePin)}
@@ -1785,13 +1799,15 @@ export function SolarRoofTab({
                   >
                     <Brain className="h-3.5 w-3.5 text-violet-400" /> Save to AI training
                   </button>
+                  <span className="text-[11px] text-muted-foreground">
+                    Drag solid dots to move a corner · drag a hollow dot to add one · Alt-click or right-click a corner to delete it
+                  </span>
                 </>
               ) : (
                 <button
                   onClick={() => {
-                    setEditingVerticesPinId(activePin.id);
-                    zoomToPin(activePin);
-                    toast.info("Drag the yellow corner handles to align with the roof edges");
+                    beginVertexEdit(activePin);
+                    toast.info("Drag the yellow handles to match the roof edges");
                   }}
                   disabled={
                     !(activePin.facets && activePin.facets.length > 0) &&
@@ -1799,11 +1815,12 @@ export function SolarRoofTab({
                   }
                   className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-white/5 disabled:opacity-40"
                   style={{ borderColor: "var(--border)" }}
-                  title="Zoom in and drag facet corners to match roof edges"
+                  title="Zoom in and edit facet corners to match roof edges"
                 >
                   <Pencil className="h-3.5 w-3.5 text-[#facc15]" /> Edit corners &amp; zoom in
                 </button>
               )}
+
               {(activePin.plan_area_sqft || 0) === 0 && (
                 <span className="inline-flex items-center gap-1 text-[11px] text-amber-500">
                   <AlertCircle className="h-3 w-3" /> Not yet measured
