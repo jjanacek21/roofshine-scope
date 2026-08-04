@@ -22,6 +22,8 @@ import {
   EyeOff,
   ArrowRight,
   Brain,
+  RotateCcw,
+
 } from "lucide-react";
 import type { MapboxRoofData } from "./MapboxRoofDraw";
 import { MeasureTuningPanel } from "./MeasureTuningPanel";
