@@ -73,6 +73,9 @@ type Props = {
   items: ReportItem[];
   taxPct: number;
   deductible: number;
+  markupPct?: number;
+  overheadPct?: number;
+  profitPct?: number;
   notes?: ReportNote[];
   /** keyed by section (line item `area`) */
   measurements?: Record<string, SectionMeasurements>;
@@ -114,10 +117,13 @@ export function XactimateReport({
   items,
   taxPct,
   deductible,
+  markupPct = 0,
+  overheadPct = 0,
+  profitPct = 0,
   notes = [],
   measurements = {},
 }: Props) {
-  const totals = rollup(items, { taxPct, deductible });
+  const totals = rollup(items, { taxPct, deductible, markupPct, overheadPct, profitPct });
   const reportDate = meta.reportDate ?? new Date().toLocaleDateString("en-US");
 
   // Group into sections by `area`, preserving first-seen order.
@@ -221,6 +227,9 @@ export function XactimateReport({
       profile={profile}
       notIncurred={notIncurred}
       taxPct={taxPct}
+      markupPct={markupPct}
+      overheadPct={overheadPct}
+      profitPct={profitPct}
     />,
   );
   if (notes.length > 0) {
@@ -747,11 +756,17 @@ function SummaryPage({
   profile,
   notIncurred,
   taxPct,
+  markupPct = 0,
+  overheadPct = 0,
+  profitPct = 0,
 }: {
   totals: ReturnType<typeof rollup>;
   profile: ReportProfile;
   notIncurred: ReportItem[];
   taxPct: number;
+  markupPct?: number;
+  overheadPct?: number;
+  profitPct?: number;
 }) {
   return (
     <div style={{ fontSize: 11 }}>
@@ -760,6 +775,15 @@ function SummaryPage({
         <tbody>
           <SumRow label="Line Item Total" value={num(totals.lineItemTotal)} />
           <SumRow label="Material Sales Tax" value={num(totals.materialSalesTax)} />
+          {markupPct > 0 && (
+            <SumRow label={`Markup (${num(markupPct)}%)`} value={num(totals.markup)} />
+          )}
+          {overheadPct > 0 && (
+            <SumRow label={`Overhead (${num(overheadPct)}%)`} value={num(totals.overhead)} />
+          )}
+          {profitPct > 0 && (
+            <SumRow label={`Profit (${num(profitPct)}%)`} value={num(totals.profit)} />
+          )}
           <SumRow
             label="Replacement Cost Value"
             value={`$${num(totals.replacementCostValue)}`}
