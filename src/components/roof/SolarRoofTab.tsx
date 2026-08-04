@@ -1174,10 +1174,12 @@ export function SolarRoofTab({
     },
 
     onSuccess: ({ success, failed, total }) => {
+      if (success > 0) revealMeasuredFacets();
       if (total === 0) toast.info("Drop a pin on each roof you want measured first");
       else if (failed === 0) toast.success(`Measured ${success} pinned roof${success === 1 ? "" : "s"}`);
       else toast.warning(`Measured ${success}/${total} — ${failed} need manual entry or draw`);
     },
+
     onError: (e) => toast.error(e instanceof Error ? e.message : "Bulk measure failed"),
   });
 
