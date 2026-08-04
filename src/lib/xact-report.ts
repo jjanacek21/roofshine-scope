@@ -51,6 +51,10 @@ export function isIncluded(i: ReportLineItem): boolean {
 export type ReportTotals = {
   lineItemTotal: number;
   materialSalesTax: number;
+  markup: number;
+  overhead: number;
+  profit: number;
+  overheadAndProfit: number;
   replacementCostValue: number;
   depreciation: number;
   actualCashValue: number;
@@ -62,14 +66,27 @@ export type ReportTotals = {
 
 export function rollup(
   items: ReportLineItem[],
-  opts: { taxPct: number; deductible?: number },
+  opts: {
+    taxPct: number;
+    deductible?: number;
+    markupPct?: number;
+    overheadPct?: number;
+    profitPct?: number;
+  },
 ): ReportTotals {
   const taxPct = Number(opts.taxPct) || 0;
   const included = items.filter(isIncluded);
 
   const materialSalesTax = included.reduce((s, i) => s + itemTax(i, taxPct), 0);
-  const replacementCostValue = included.reduce((s, i) => s + itemRcv(i, taxPct), 0);
-  const lineItemTotal = replacementCostValue - materialSalesTax;
+  const baseRcv = included.reduce((s, i) => s + itemRcv(i, taxPct), 0);
+  const lineItemTotal = baseRcv - materialSalesTax;
+
+  const markup = (lineItemTotal * (Number(opts.markupPct) || 0)) / 100;
+  const overhead = (lineItemTotal * (Number(opts.overheadPct) || 0)) / 100;
+  const profit = (lineItemTotal * (Number(opts.profitPct) || 0)) / 100;
+  const overheadAndProfit = markup + overhead + profit;
+
+  const replacementCostValue = baseRcv + overheadAndProfit;
   const depreciation = included.reduce((s, i) => s + itemDepreciation(i, taxPct), 0);
   const actualCashValue = replacementCostValue - depreciation;
   const deductible = Number(opts.deductible ?? 0) || 0;
@@ -82,6 +99,10 @@ export function rollup(
   return {
     lineItemTotal,
     materialSalesTax,
+    markup,
+    overhead,
+    profit,
+    overheadAndProfit,
     replacementCostValue,
     depreciation,
     actualCashValue,
@@ -91,6 +112,7 @@ export function rollup(
     netClaimIfDepreciationRecovered: netClaim + recoverableDepreciation,
   };
 }
+
 
 /** Sum of tax / rcv / dep / acv for an arbitrary subset (section or level totals). */
 export function subsetTotals(items: ReportLineItem[], taxPct: number) {

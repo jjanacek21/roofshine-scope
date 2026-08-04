@@ -876,6 +876,9 @@ function JobEstimate() {
               }))}
               taxPct={pcts.tax_pct}
               deductible={deductible}
+              markupPct={pcts.markup_pct}
+              overheadPct={pcts.overhead_pct}
+              profitPct={pcts.profit_pct}
               notes={reportNotes}
               measurements={sectionMeasurements}
             />
