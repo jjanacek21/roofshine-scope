@@ -729,55 +729,85 @@ export function SolarRoofTab({
     const pin = pins.find((p) => p.id === targetId);
     if (!pin) return;
 
-    const facets =
-      pin.facets && pin.facets.length > 0
-        ? pin.facets
-        : pin.ring && pin.ring.length >= 3
-          ? [{ ring: pin.ring, pitch: pin.pitch, plan_area_sqft: pin.plan_area_sqft, pitch_degrees: pitchStringToDegrees(pin.pitch) }]
-          : [];
+    const facets = facetsOf(pin);
+
+    const mkHandle = (color: string, size: number, hollow: boolean) => {
+      const el = document.createElement("div");
+      el.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;background:${hollow ? "transparent" : color};border:2px solid ${hollow ? color : "#0a0a0a"};box-shadow:0 1px 3px rgba(0,0,0,.6);cursor:grab;`;
+      return el;
+    };
+
     facets.forEach((f, fi) => {
       const isClosed =
         f.ring.length > 1 &&
         f.ring[0][0] === f.ring[f.ring.length - 1][0] &&
         f.ring[0][1] === f.ring[f.ring.length - 1][1];
       const n = isClosed ? f.ring.length - 1 : f.ring.length;
+
+      // Corner handles — drag to move, alt/right-click to delete
       for (let vi = 0; vi < n; vi++) {
-        const el = document.createElement("div");
-        el.style.cssText =
-          "width:14px;height:14px;border-radius:50%;background:#facc15;border:2px solid #0a0a0a;box-shadow:0 1px 3px rgba(0,0,0,.6);cursor:grab;";
+        const el = mkHandle("#facc15", 14, false);
+        el.title = "Drag to move · Alt-click or right-click to delete";
         const marker = new mapboxgl.Marker({ element: el, draggable: true })
           .setLngLat(f.ring[vi] as [number, number])
           .addTo(map);
         marker.on("dragend", () => {
           const ll = marker.getLngLat();
-          setPins((prev) =>
-            prev.map((p) => {
-              if (p.id !== targetId) return p;
-              const cur =
-                p.facets && p.facets.length > 0
-                  ? p.facets
-                  : p.ring && p.ring.length >= 3
-                    ? [{ ring: p.ring, pitch: p.pitch, plan_area_sqft: p.plan_area_sqft, pitch_degrees: pitchStringToDegrees(p.pitch) }]
-                    : [];
-              const nextFacets = cur.map((ff, ii) => {
-                if (ii !== fi) return ff;
-                const newRing = ff.ring.map((pt, i) => (i === vi ? [ll.lng, ll.lat] : pt.slice()));
-                const closed =
-                  ff.ring.length > 1 &&
-                  ff.ring[0][0] === ff.ring[ff.ring.length - 1][0] &&
-                  ff.ring[0][1] === ff.ring[ff.ring.length - 1][1];
-                if (closed && vi === 0) newRing[newRing.length - 1] = [ll.lng, ll.lat];
-                return { ...ff, ring: newRing, plan_area_sqft: polygonAreaSqft(newRing) };
-              });
-              const total = nextFacets.reduce((s, ff) => s + ff.plan_area_sqft, 0);
-              return {
-                ...p,
-                facets: nextFacets,
-                ring: nextFacets[fi]?.ring ?? p.ring,
-                plan_area_sqft: Math.round(total),
-              };
-            }),
-          );
+          mutateFacetRing(targetId, fi, (ring) => {
+            const closed =
+              ring.length > 1 &&
+              ring[0][0] === ring[ring.length - 1][0] &&
+              ring[0][1] === ring[ring.length - 1][1];
+            const next = ring.map((pt, i) => (i === vi ? [ll.lng, ll.lat] : pt.slice()));
+            if (closed && vi === 0) next[next.length - 1] = [ll.lng, ll.lat];
+            return next;
+          });
+        });
+        const del = (ev: Event) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (n <= 3) {
+            toast.error("A facet needs at least 3 corners");
+            return;
+          }
+          mutateFacetRing(targetId, fi, (ring) => {
+            const closed =
+              ring.length > 1 &&
+              ring[0][0] === ring[ring.length - 1][0] &&
+              ring[0][1] === ring[ring.length - 1][1];
+            const open = closed ? ring.slice(0, -1) : ring.slice();
+            open.splice(vi, 1);
+            return [...open, open[0]];
+          });
+        };
+        el.addEventListener("contextmenu", del);
+        el.addEventListener("click", (ev) => {
+          if ((ev as MouseEvent).altKey) del(ev);
+        });
+        vertexMarkersRef.current.push(marker);
+      }
+
+      // Midpoint handles — drag to insert a new corner
+      for (let vi = 0; vi < n; vi++) {
+        const a = f.ring[vi];
+        const b = f.ring[(vi + 1) % n];
+        const mid: [number, number] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+        const el = mkHandle("#facc15", 10, true);
+        el.title = "Drag to add a corner here";
+        const marker = new mapboxgl.Marker({ element: el, draggable: true })
+          .setLngLat(mid)
+          .addTo(map);
+        marker.on("dragend", () => {
+          const ll = marker.getLngLat();
+          mutateFacetRing(targetId, fi, (ring) => {
+            const closed =
+              ring.length > 1 &&
+              ring[0][0] === ring[ring.length - 1][0] &&
+              ring[0][1] === ring[ring.length - 1][1];
+            const open = closed ? ring.slice(0, -1) : ring.slice();
+            open.splice(vi + 1, 0, [ll.lng, ll.lat]);
+            return [...open, open[0]];
+          });
         });
         vertexMarkersRef.current.push(marker);
       }
@@ -787,6 +817,7 @@ export function SolarRoofTab({
       vertexMarkersRef.current = [];
     };
   }, [editingVerticesPinId, pins]);
+
 
 
   function updatePin(id: string, patch: Partial<Pin>) {
