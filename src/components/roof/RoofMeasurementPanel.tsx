@@ -408,6 +408,43 @@ export function RoofMeasurementPanel({
         </div>
       )}
 
+      {pickingLocation ? (
+        <PropertyLocationPicker
+          initial={center}
+          isSaving={saveLocation.isPending}
+          onSave={(coords) => saveLocation.mutate(coords)}
+          onCancel={() => setPickingLocation(false)}
+        />
+      ) : (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"
+          style={{ borderColor: "var(--border)", background: "var(--bg-card)" }}
+        >
+          <div className="text-xs text-muted-foreground">
+            {center ? (
+              <>
+                Location:{" "}
+                <span className="font-mono-num text-foreground">
+                  {center.lat.toFixed(6)}, {center.lng.toFixed(6)}
+                </span>
+              </>
+            ) : (
+              "This property has no coordinates yet — drop a pin on the house to enable the map tools."
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setPickingLocation(true)}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-[var(--surface-hover)]"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <MapIcon className="h-3.5 w-3.5" />
+            {center ? "Wrong location? Set it on the map" : "Drop a pin on the house"}
+          </button>
+        </div>
+      )}
+
+
       <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: "var(--border)" }}>
         {(Object.entries(TAB_LABELS) as [Tab, typeof TAB_LABELS[Tab]][]).map(([k, v]) => {
           const Icon = v.icon;
