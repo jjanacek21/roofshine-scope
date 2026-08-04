@@ -427,6 +427,14 @@ function JobEstimate() {
 
   const addCatalogItem = async (item: CatalogResult) => {
     if (!activeId) return;
+    // Auto-fill the quantity from saved roof measurements when we can match it.
+    const derived = measurement
+      ? deriveQtyForItem(
+          { code: item.code, name: item.name, unit: item.unit },
+          measurement as SavedMeasurement,
+        )
+      : null;
+    const qty = derived && derived.qty > 0 ? derived.qty : 1;
     const { error } = await supabase.from("estimate_line_items").insert({
       estimate_id: activeId,
       line_item_id: item.id,
@@ -434,9 +442,9 @@ function JobEstimate() {
       name: item.name,
       trade: item.trade as Trade,
       unit: item.unit,
-      qty: 1,
+      qty,
       unit_price: item.unit_price,
-      total: item.unit_price,
+      total: qty * item.unit_price,
       category: (item as { category?: string | null }).category ?? null,
       subgroup: (item as { subgroup?: string | null }).subgroup ?? null,
       sort_order: localItems.length,
@@ -446,9 +454,39 @@ function JobEstimate() {
       return;
     }
     qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
-    toast.success(`Added ${item.code}`);
+    toast.success(
+      derived ? `Added ${item.code} — ${qty} ${item.unit} (${derived.basis})` : `Added ${item.code}`,
+    );
     void checkCompanion(item.category);
   };
+
+  const applyMeasurementQtys = async (changes: { id: string; qty: number }[]) => {
+    if (changes.length === 0) return;
+    const byId = new Map(localItems.map((i) => [i.id, i]));
+    setLocalItems((prev) =>
+      prev.map((i) => {
+        const change = changes.find((c) => c.id === i.id);
+        if (!change) return i;
+        const next = { ...i, qty: change.qty };
+        next.total = next.qty * unitCost(next);
+        return next;
+      }),
+    );
+    await Promise.all(
+      changes.map((c) => {
+        const item = byId.get(c.id);
+        const total = item ? c.qty * unitCost(item) : undefined;
+        return supabase
+          .from("estimate_line_items")
+          .update({ qty: c.qty, ...(total !== undefined ? { total } : {}) })
+          .eq("id", c.id);
+      }),
+    );
+    setSavedAt(Date.now());
+    qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
+    toast.success(`Updated ${changes.length} quantit${changes.length === 1 ? "y" : "ies"} from measurements`);
+  };
+
 
   const addCodes = async (
     input: Array<string | { code: string; qty?: number; unit?: string }>,
