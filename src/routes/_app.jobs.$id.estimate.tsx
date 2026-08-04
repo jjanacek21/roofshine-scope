@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Sparkles, Layers, FileDown } from "lucide-react";
+import { Plus, Sparkles, Layers, FileDown, Ruler } from "lucide-react";
+import { ApplyMeasurementsDialog } from "@/components/estimate/ApplyMeasurementsDialog";
+import { deriveQtyForItem, type SavedMeasurement } from "@/lib/estimate-measurement-fill";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -78,6 +80,7 @@ function JobEstimate() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
   const [macroOpen, setMacroOpen] = useState(false);
+  const [measureOpen, setMeasureOpen] = useState(false);
   const [companionSuggestion, setCompanionSuggestion] = useState<CompanionSuggestion | null>(
     null,
   );
@@ -130,12 +133,15 @@ function JobEstimate() {
     queryFn: async () => {
       const { data } = await supabase
         .from("roof_measurements")
-        .select("total_area_sqft, squares, eaves_lf, rakes_lf, ridges_lf, hips_lf, valleys_lf")
+        .select(
+          "total_area_sqft, squares, waste_pct, eaves_lf, rakes_lf, ridges_lf, hips_lf, valleys_lf, drip_edge_lf, step_flashing_lf, wall_flashing_lf, gutters_lf, parapet_wall_lf, transition_lf",
+        )
         .eq("property_id", job!.property_id!)
         .maybeSingle();
       return data;
     },
   });
+
 
 
   // Estimates list
@@ -422,6 +428,14 @@ function JobEstimate() {
 
   const addCatalogItem = async (item: CatalogResult) => {
     if (!activeId) return;
+    // Auto-fill the quantity from saved roof measurements when we can match it.
+    const derived = measurement
+      ? deriveQtyForItem(
+          { code: item.code, name: item.name, unit: item.unit },
+          measurement as SavedMeasurement,
+        )
+      : null;
+    const qty = derived && derived.qty > 0 ? derived.qty : 1;
     const { error } = await supabase.from("estimate_line_items").insert({
       estimate_id: activeId,
       line_item_id: item.id,
@@ -429,9 +443,9 @@ function JobEstimate() {
       name: item.name,
       trade: item.trade as Trade,
       unit: item.unit,
-      qty: 1,
+      qty,
       unit_price: item.unit_price,
-      total: item.unit_price,
+      total: qty * item.unit_price,
       category: (item as { category?: string | null }).category ?? null,
       subgroup: (item as { subgroup?: string | null }).subgroup ?? null,
       sort_order: localItems.length,
@@ -441,9 +455,39 @@ function JobEstimate() {
       return;
     }
     qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
-    toast.success(`Added ${item.code}`);
+    toast.success(
+      derived ? `Added ${item.code} — ${qty} ${item.unit} (${derived.basis})` : `Added ${item.code}`,
+    );
     void checkCompanion(item.category);
   };
+
+  const applyMeasurementQtys = async (changes: { id: string; qty: number }[]) => {
+    if (changes.length === 0) return;
+    const byId = new Map(localItems.map((i) => [i.id, i]));
+    setLocalItems((prev) =>
+      prev.map((i) => {
+        const change = changes.find((c) => c.id === i.id);
+        if (!change) return i;
+        const next = { ...i, qty: change.qty };
+        next.total = next.qty * unitCost(next);
+        return next;
+      }),
+    );
+    await Promise.all(
+      changes.map((c) => {
+        const item = byId.get(c.id);
+        const total = item ? c.qty * unitCost(item) : undefined;
+        return supabase
+          .from("estimate_line_items")
+          .update({ qty: c.qty, ...(total !== undefined ? { total } : {}) })
+          .eq("id", c.id);
+      }),
+    );
+    setSavedAt(Date.now());
+    qc.invalidateQueries({ queryKey: ["estimate-items", activeId] });
+    toast.success(`Updated ${changes.length} quantit${changes.length === 1 ? "y" : "ies"} from measurements`);
+  };
+
 
   const addCodes = async (
     input: Array<string | { code: string; qty?: number; unit?: string }>,
@@ -872,6 +916,15 @@ function JobEstimate() {
                 <Sparkles className="h-3.5 w-3.5" />
                 Add custom item
               </button>
+              <button
+                onClick={() => setMeasureOpen(true)}
+                disabled={!activeId || !measurement}
+                title={measurement ? "Fill quantities from saved roof measurements" : "No saved measurements for this property"}
+                className="btn-ghost flex h-9 items-center gap-2 rounded-lg px-3.5 text-[13px] font-semibold disabled:opacity-50"
+              >
+                <Ruler className="h-3.5 w-3.5" />
+                Use saved measurements
+              </button>
             </div>
           )}
         </div>
@@ -905,6 +958,22 @@ function JobEstimate() {
           companyId={job.company_id}
           onPick={insertMacro}
           onClose={() => setMacroOpen(false)}
+        />
+      )}
+
+      {measurement && (
+        <ApplyMeasurementsDialog
+          open={measureOpen}
+          onClose={() => setMeasureOpen(false)}
+          measurement={measurement as SavedMeasurement}
+          items={localItems.map((i) => ({
+            id: i.id,
+            code: i.code,
+            name: i.name,
+            unit: i.unit,
+            qty: Number(i.qty ?? 0),
+          }))}
+          onApply={applyMeasurementQtys}
         />
       )}
     </div>
