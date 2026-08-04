@@ -1,5 +1,6 @@
 // Shared model for the contractor-style estimate document
 // (DESCRIPTION | QTY | REMOVE | REPLACE | TAX | TOTAL)
+import { getTradeLabel } from "@/lib/trades";
 
 export type DocLineItem = {
   id: string;
@@ -19,6 +20,19 @@ export type DocLineItem = {
 
 export const DEFAULT_AREA = "Main Level";
 export const UNCATEGORIZED = "General";
+
+/**
+ * Top-level grouping for the estimate: the trade (Roofing, Exterior, Interior,
+ * Tree Removal / Landscaping, ...) — NOT the item's narrow sub-category.
+ */
+export function itemCategory(i: { trade?: string | null; category?: string | null }): string {
+  const trade = (i.trade || "").trim();
+  if (trade) {
+    const label = getTradeLabel(trade);
+    if (label && label !== "Other") return label;
+  }
+  return (i.category || "").trim() || UNCATEGORIZED;
+}
 
 /** Effective per-unit price: remove + replace when either is set, else unit_price. */
 export function unitCost(i: DocLineItem): number {
@@ -76,7 +90,7 @@ export function buildEstimateDocument(
   const areaMap = new Map<string, Map<string, DocLineItem[]>>();
   for (const item of items) {
     const area = (item.area || DEFAULT_AREA).trim() || DEFAULT_AREA;
-    const category = (item.category || UNCATEGORIZED).trim() || UNCATEGORIZED;
+    const category = itemCategory(item);
     if (!areaMap.has(area)) areaMap.set(area, new Map());
     const catMap = areaMap.get(area)!;
     if (!catMap.has(category)) catMap.set(category, []);
@@ -111,7 +125,7 @@ export function buildEstimateDocument(
 
   const catTotals = new Map<string, number>();
   for (const item of items) {
-    const c = (item.category || UNCATEGORIZED).trim() || UNCATEGORIZED;
+    const c = itemCategory(item);
     catTotals.set(c, (catTotals.get(c) ?? 0) + lineTotal(item));
   }
   const pct = (n: number) => (subtotal > 0 ? (n / subtotal) * 100 : 0);

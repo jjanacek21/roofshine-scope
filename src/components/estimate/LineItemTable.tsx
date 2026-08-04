@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Trash2, BookOpen, Sparkles, Zap, X } from "lucide-react";
-import { DEFAULT_AREA, UNCATEGORIZED, lineTotal, lineTax } from "@/lib/estimate-document";
+import { DEFAULT_AREA, itemCategory, lineTotal, lineTax } from "@/lib/estimate-document";
 
 export type LineItem = {
   id: string;
@@ -76,7 +76,7 @@ export function LineItemTable({
     const byKey = new Map<string, { area: string; category: string; items: LineItem[] }>();
     for (const item of items) {
       const area = (item.area || DEFAULT_AREA).trim() || DEFAULT_AREA;
-      const category = (item.category || UNCATEGORIZED).trim() || UNCATEGORIZED;
+      const category = itemCategory(item);
       const key = `${area}||${category}`;
       if (!byKey.has(key)) byKey.set(key, { area, category, items: [] });
       byKey.get(key)!.items.push(item);
