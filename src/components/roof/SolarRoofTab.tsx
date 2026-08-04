@@ -1258,7 +1258,24 @@ export function SolarRoofTab({
     [pins],
   );
 
+  /** How much area is actually drawn on the map right now. */
+  const highlightStats = useMemo(() => {
+    let facets = 0;
+    let sqft = 0;
+    for (const p of pins) {
+      if (p.kind === "ignore") continue;
+      for (const f of facetsOf(p)) {
+        if (!f.ring || f.ring.length < 3) continue;
+        facets++;
+        sqft += f.plan_area_sqft || 0;
+      }
+    }
+    return { facets, sqft };
+    // editRev forces a recount right after a vertex edit
+  }, [pins, editRev]);
+
   const totals = useMemo(() => {
+
     const active = pins.filter((p) => p.kind !== "ignore");
     const plan = active.reduce((s, p) => s + (p.plan_area_sqft || 0), 0);
     const sloped = active.reduce((s, p) => {
