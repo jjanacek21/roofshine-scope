@@ -20,6 +20,19 @@ export type DocLineItem = {
 export const DEFAULT_AREA = "Main Level";
 export const UNCATEGORIZED = "General";
 
+/**
+ * Top-level grouping for the estimate: the trade (Roofing, Exterior, Interior,
+ * Tree Removal / Landscaping, ...) — NOT the item's narrow sub-category.
+ */
+export function itemCategory(i: { trade?: string | null; category?: string | null }): string {
+  const trade = (i.trade || "").trim();
+  if (trade) {
+    const label = getTradeLabel(trade);
+    if (label && label !== "Other") return label;
+  }
+  return (i.category || "").trim() || UNCATEGORIZED;
+}
+
 /** Effective per-unit price: remove + replace when either is set, else unit_price. */
 export function unitCost(i: DocLineItem): number {
   const r = Number(i.remove_price ?? 0);
