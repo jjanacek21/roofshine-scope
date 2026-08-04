@@ -125,7 +125,7 @@ export function ApplyMeasurementsDialog({
               onApply(selected.map((s) => ({ id: s.id, qty: s.newQty })));
               onClose();
             }}
-            className="btn-primary h-9 rounded-lg px-3.5 text-[13px] font-semibold disabled:opacity-50"
+            className="btn-brand h-9 rounded-lg px-3.5 text-[13px] font-semibold disabled:opacity-50"
           >
             Apply to {selected.length} item{selected.length === 1 ? "" : "s"}
           </button>
