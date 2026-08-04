@@ -41,6 +41,27 @@ export function RoofMeasurementPanel({
   const { data: profile } = useProfile();
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>(center ? "mapbox" : "manual");
+  const [pickingLocation, setPickingLocation] = useState(false);
+
+  const saveLocation = useMutation({
+    mutationFn: async (coords: { lat: number; lng: number }) => {
+      const { error } = await supabase
+        .from("properties")
+        .update({ lat: coords.lat, lng: coords.lng })
+        .eq("id", propertyId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Location saved — satellite view updated");
+      setPickingLocation(false);
+      qc.invalidateQueries({ queryKey: ["job-property"] });
+      qc.invalidateQueries({ queryKey: ["property", propertyId] });
+      qc.invalidateQueries({ queryKey: ["roof-measurement", propertyId] });
+      setTab("solar");
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to save location"),
+  });
+
 
   const { data: existing } = useQuery({
     queryKey: ["roof-measurement", propertyId],
