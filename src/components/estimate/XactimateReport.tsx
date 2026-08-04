@@ -1,4 +1,5 @@
 import { Fragment, type CSSProperties, type ReactNode } from "react";
+import { itemCategory } from "@/lib/estimate-document";
 import {
   itemTax,
   itemRcv,
