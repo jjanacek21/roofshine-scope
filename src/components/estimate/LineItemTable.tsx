@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Trash2, BookOpen, Sparkles, Zap, X } from "lucide-react";
-import { DEFAULT_AREA, UNCATEGORIZED, lineTotal, lineTax } from "@/lib/estimate-document";
+import { DEFAULT_AREA, itemCategory, lineTotal, lineTax } from "@/lib/estimate-document";
 
 export type LineItem = {
   id: string;
