@@ -33,20 +33,23 @@ function NewInvoicePage() {
   const [dueDays, setDueDays] = useState(14);
 
   const { data: jobs = [] } = useQuery({
-    queryKey: ["jobs-for-invoice"],
+    queryKey: ["jobs-for-invoice", profile?.company_id],
+    enabled: !!profile?.company_id,
     queryFn: async () => {
       const { data } = await supabase
         .from("jobs")
         .select("id, name, property_address, client_id, total_estimate, clients(id, name, email, phone, address)")
+        .eq("company_id", profile!.company_id!)
         .order("created_at", { ascending: false })
         .limit(100);
       return data ?? [];
     },
   });
   const { data: clients = [] } = useQuery({
-    queryKey: ["clients-for-invoice"],
+    queryKey: ["clients-for-invoice", profile?.company_id],
+    enabled: !!profile?.company_id,
     queryFn: async () => {
-      const { data } = await supabase.from("clients").select("id, name, email, phone, address").order("name");
+      const { data } = await supabase.from("clients").select("id, name, email, phone, address").eq("company_id", profile!.company_id!).order("name");
       return data ?? [];
     },
   });
