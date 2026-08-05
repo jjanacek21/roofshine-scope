@@ -23,18 +23,12 @@ import {
   ArrowRight,
   Brain,
   RotateCcw,
+
 } from "lucide-react";
 import type { MapboxRoofData } from "./MapboxRoofDraw";
 import { MeasureTuningPanel } from "./MeasureTuningPanel";
 import { DEFAULT_MEASURE_TUNING, normalizeTuning, type MeasureTuning } from "@/lib/measure-tuning";
-import {
-  PITCH_OPTIONS,
-  pitchMultiplier,
-  withWaste,
-  squares,
-  polygonAreaSqft,
-  haversineFeet,
-} from "@/lib/roof-math";
+import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares, polygonAreaSqft, haversineFeet } from "@/lib/roof-math";
 import { setMeasureHandoff } from "@/lib/measure-handoff";
 
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -55,13 +49,9 @@ type Pin = {
   /** ai_measurement_runs row this pin's geometry came from. */
   run_id?: string | null;
 
+
   // All facets that contributed to this pin's measurement (for overlay rendering)
-  facets?: Array<{
-    ring: number[][];
-    pitch: string;
-    plan_area_sqft: number;
-    pitch_degrees: number;
-  }>;
+  facets?: Array<{ ring: number[][]; pitch: string; plan_area_sqft: number; pitch_degrees: number }>;
   source: "solar" | "manual";
 };
 
@@ -86,6 +76,7 @@ type SolarResponse = {
   /** Pitch was assumed because Google had no roof data here. */
   pitch_estimated?: boolean;
 };
+
 
 type CalibrationResponse = {
   raw_total_sqft: number;
@@ -175,10 +166,9 @@ function ringCentroid(ring: number[][]): [number, number] {
   if (ring.length === 0) return [0, 0];
   let x = 0;
   let y = 0;
-  const n =
-    ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
-      ? ring.length - 1
-      : ring.length;
+  const n = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+    ? ring.length - 1
+    : ring.length;
   for (let i = 0; i < n; i++) {
     x += ring[i][0];
     y += ring[i][1];
@@ -199,24 +189,18 @@ function ensureOverlayLayers(map: mapboxgl.Map) {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
-  }
-  if (!map.getLayer("ai-draw-fill")) {
     map.addLayer({
       id: "ai-draw-fill",
       type: "fill",
       source: "ai-draw",
       paint: { "fill-color": "#3b82f6", "fill-opacity": 0.25 },
     });
-  }
-  if (!map.getLayer("ai-draw-line")) {
     map.addLayer({
       id: "ai-draw-line",
       type: "line",
       source: "ai-draw",
       paint: { "line-color": "#3b82f6", "line-width": 2, "line-dasharray": [2, 2] },
     });
-  }
-  if (!map.getLayer("ai-draw-points")) {
     map.addLayer({
       id: "ai-draw-points",
       type: "circle",
@@ -237,8 +221,6 @@ function ensureOverlayLayers(map: mapboxgl.Map) {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
-  }
-  if (!map.getLayer("facet-footprint-line")) {
     map.addLayer({
       id: "facet-footprint-line",
       type: "line",
@@ -260,8 +242,6 @@ function ensureOverlayLayers(map: mapboxgl.Map) {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       });
-    }
-    if (!map.getLayer(`${srcId}-fill`)) {
       map.addLayer({
         id: `${srcId}-fill`,
         type: "fill",
@@ -271,8 +251,6 @@ function ensureOverlayLayers(map: mapboxgl.Map) {
           "fill-opacity": kind === "ignore" ? 0 : 0.32,
         },
       });
-    }
-    if (!map.getLayer(`${srcId}-line`)) {
       map.addLayer({
         id: `${srcId}-line`,
         type: "line",
@@ -292,8 +270,6 @@ function ensureOverlayLayers(map: mapboxgl.Map) {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
-  }
-  if (!map.getLayer("facet-labels-text")) {
     map.addLayer({
       id: "facet-labels-text",
       type: "symbol",
@@ -315,6 +291,8 @@ function ensureOverlayLayers(map: mapboxgl.Map) {
 
   return true;
 }
+
+
 
 export function SolarRoofTab({
   center,
@@ -339,6 +317,7 @@ export function SolarRoofTab({
   /** Repaints all facet overlays; kept in a ref so map events can call it any time. */
   const paintRef = useRef<(() => void) | null>(null);
 
+
   const [pins, setPins] = useState<Pin[]>([]);
   // Bumped whenever the map instance is (re)created / its style finishes loading,
   // so overlay + marker effects re-run for data that arrived before the map existed.
@@ -349,7 +328,6 @@ export function SolarRoofTab({
   const [estimatedPitch, setEstimatedPitch] = useState(false);
 
   const [showOverlay, setShowOverlay] = useState(true);
-  const showOverlayRef = useRef(true);
   const [showCoverageGaps, setShowCoverageGaps] = useState(false);
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
   const [showHandoff, setShowHandoff] = useState(false);
@@ -358,9 +336,7 @@ export function SolarRoofTab({
   // Per-job AI edge-detection tuning
   const [tuning, setTuning] = useState<MeasureTuning>({ ...DEFAULT_MEASURE_TUNING });
   const tuningRef = useRef<MeasureTuning>(tuning);
-  useEffect(() => {
-    tuningRef.current = tuning;
-  }, [tuning]);
+  useEffect(() => { tuningRef.current = tuning; }, [tuning]);
 
   useEffect(() => {
     if (!jobId) return;
@@ -374,9 +350,7 @@ export function SolarRoofTab({
       const saved = (data as { ai_measure_settings?: unknown } | null)?.ai_measure_settings;
       if (!cancelled && saved) setTuning(normalizeTuning(saved));
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [jobId]);
 
   const saveTuning = useMutation({
@@ -384,9 +358,7 @@ export function SolarRoofTab({
       if (!jobId) return;
       const { error } = await supabase
         .from("jobs")
-        .update({
-          ai_measure_settings: tuningRef.current as unknown as Record<string, number | string>,
-        })
+        .update({ ai_measure_settings: tuningRef.current as unknown as Record<string, number | string> })
         .eq("id", jobId);
       if (error) throw error;
     },
@@ -400,27 +372,16 @@ export function SolarRoofTab({
   const drawingPinIdRef = useRef<string | null>(null);
   const drawPointsRef = useRef<number[][]>([]);
 
-  useEffect(() => {
-    pinsStateRef.current = pins;
-  }, [pins]);
-  useEffect(() => {
-    showOverlayRef.current = showOverlay;
-  }, [showOverlay]);
-  useEffect(() => {
-    drawingPinIdRef.current = drawingPinId;
-  }, [drawingPinId]);
-  useEffect(() => {
-    drawPointsRef.current = drawPoints;
-  }, [drawPoints]);
+  useEffect(() => { pinsStateRef.current = pins; }, [pins]);
+  useEffect(() => { drawingPinIdRef.current = drawingPinId; }, [drawingPinId]);
+  useEffect(() => { drawPointsRef.current = drawPoints; }, [drawPoints]);
 
   // Rotation + vertex-edit state
   const [bearing, setBearing] = useState(0);
   const [editingVerticesPinId, setEditingVerticesPinId] = useState<string | null>(null);
   const editingVerticesPinIdRef = useRef<string | null>(null);
   const vertexMarkersRef = useRef<mapboxgl.Marker[]>([]);
-  useEffect(() => {
-    editingVerticesPinIdRef.current = editingVerticesPinId;
-  }, [editingVerticesPinId]);
+  useEffect(() => { editingVerticesPinIdRef.current = editingVerticesPinId; }, [editingVerticesPinId]);
 
   function rotate(delta: number) {
     const map = mapRef.current;
@@ -478,6 +439,7 @@ export function SolarRoofTab({
     }
   }
 
+
   // Hydrate pins from an existing google_solar auto-measurement so the highlight
   // overlay appears when the user opens the tab after AI has already scanned.
   const hydratedRef = useRef(false);
@@ -505,11 +467,10 @@ export function SolarRoofTab({
         if (existing.length > 0) return existing;
         const seeded: Pin[] = [];
         for (const s of sections) {
-          const ring: number[][] | undefined = (
-            s.polygon_geojson as { coordinates?: number[][][] } | null
-          )?.coordinates?.[0];
+          const ring: number[][] | undefined =
+            (s.polygon_geojson as { coordinates?: number[][][] } | null)?.coordinates?.[0];
           if (!ring || ring.length < 3) continue;
-          const [cLng, cLat] = ringCentroid(ring);
+          let [cLng, cLat] = ringCentroid(ring);
           const planSqft = Number(s.plan_area_sqft) || 0;
           const pitch = (s.pitch as string) || "unknown";
           const kind: PinKind = pitch === "0/12" ? "flat" : "pitched";
@@ -585,6 +546,9 @@ export function SolarRoofTab({
       paintRef.current?.();
     });
 
+
+
+
     mapRef.current = map;
     setMapReady((n) => n + 1);
     return () => {
@@ -625,11 +589,7 @@ export function SolarRoofTab({
   // Sync facet overlays + labels with pins.
   // The painter lives in a ref so map events (load / styledata / idle) can
   // repaint at any time — a style reload can otherwise leave the map blank.
-  const lastPaintRef = useRef<{
-    kinds: Record<string, GeoJSON.Feature[]>;
-    foot: GeoJSON.Feature[];
-    labels: GeoJSON.Feature[];
-  } | null>(null);
+  const lastPaintRef = useRef<{ kinds: Record<string, GeoJSON.Feature[]>; foot: GeoJSON.Feature[]; labels: GeoJSON.Feature[] } | null>(null);
 
   useEffect(() => {
     paintRef.current = () => {
@@ -640,23 +600,19 @@ export function SolarRoofTab({
       const kinds: Record<string, GeoJSON.Feature[]> = { pitched: [], flat: [], ignore: [] };
       for (const kind of ["pitched", "flat", "ignore"] as PinKind[]) {
         const features: GeoJSON.Feature[] = [];
-        if (showOverlayRef.current) {
-          for (const pin of pinsStateRef.current) {
+        if (showOverlay) {
+          for (const pin of pins) {
             if (pin.kind !== kind) continue;
-            const rings =
-              pin.footprint && pin.footprint.length >= 3
-                ? [pin.footprint]
-                : pin.facets && pin.facets.length > 0
-                  ? pin.facets.map((f) => f.ring)
-                  : pin.ring && pin.ring.length >= 3
-                    ? [pin.ring]
-                    : [];
+            const rings = pin.facets && pin.facets.length > 0
+              ? pin.facets.map((f) => f.ring)
+              : pin.ring && pin.ring.length >= 3
+                ? [pin.ring]
+                : [];
             for (const ring of rings) {
               if (!ring || ring.length < 3) continue;
-              const closed =
-                ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
-                  ? ring
-                  : [...ring, ring[0]];
+              const closed = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+                ? ring
+                : [...ring, ring[0]];
               features.push({
                 type: "Feature",
                 geometry: { type: "Polygon", coordinates: [closed] },
@@ -669,32 +625,25 @@ export function SolarRoofTab({
       }
 
       const foot: GeoJSON.Feature[] = [];
-      if (showOverlayRef.current) {
-        for (const pin of pinsStateRef.current) {
+      if (showOverlay) {
+        for (const pin of pins) {
           const fp = pin.footprint;
           if (!fp || fp.length < 3 || pin.kind === "ignore") continue;
           const closed =
-            fp[0][0] === fp[fp.length - 1][0] && fp[0][1] === fp[fp.length - 1][1]
-              ? fp
-              : [...fp, fp[0]];
-          foot.push({
-            type: "Feature",
-            geometry: { type: "LineString", coordinates: closed },
-            properties: {},
-          });
+            fp[0][0] === fp[fp.length - 1][0] && fp[0][1] === fp[fp.length - 1][1] ? fp : [...fp, fp[0]];
+          foot.push({ type: "Feature", geometry: { type: "LineString", coordinates: closed }, properties: {} });
         }
       }
 
       const labels: GeoJSON.Feature[] = [];
-      if (showOverlayRef.current) {
-        for (const pin of pinsStateRef.current) {
+      if (showOverlay) {
+        for (const pin of pins) {
           if (pin.kind === "ignore") continue;
           if ((pin.plan_area_sqft || 0) === 0) continue;
           const sqft = Math.round(pin.plan_area_sqft).toLocaleString();
-          const label =
-            pin.kind === "flat"
-              ? `${pin.name} · ${sqft} sqft · flat`
-              : `${pin.name} · ${sqft} sqft · ${pin.pitch}`;
+          const label = pin.kind === "flat"
+            ? `${pin.name} · ${sqft} sqft · flat`
+            : `${pin.name} · ${sqft} sqft · ${pin.pitch}`;
           labels.push({
             type: "Feature",
             geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
@@ -720,6 +669,7 @@ export function SolarRoofTab({
     };
     paintRef.current();
   }, [pins, showOverlay, mapReady]);
+
 
   // ESC exits draw-mode
   useEffect(() => {
@@ -753,8 +703,7 @@ export function SolarRoofTab({
         if (unmeasured) {
           const dot = document.createElement("span");
           dot.className = "ai-pin-warn";
-          dot.style.cssText =
-            "position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid white;";
+          dot.style.cssText = "position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid white;";
           el.appendChild(dot);
         }
         el.addEventListener("click", (ev) => {
@@ -773,8 +722,7 @@ export function SolarRoofTab({
         if (unmeasured && !existingDot) {
           const dot = document.createElement("span");
           dot.className = "ai-pin-warn";
-          dot.style.cssText =
-            "position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid white;";
+          dot.style.cssText = "position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid white;";
           el.appendChild(dot);
         } else if (!unmeasured && existingDot) {
           existingDot.remove();
@@ -795,28 +743,9 @@ export function SolarRoofTab({
 
   /** Normalized facet list for a pin (falls back to its single ring). */
   function facetsOf(p: Pin): Facet[] {
-    // The instant-measurement editor intentionally exposes one exterior
-    // footprint, not Google's internal roof-face subdivision.
-    if (p.footprint && p.footprint.length >= 3) {
-      return [
-        {
-          ring: p.footprint,
-          pitch: p.pitch,
-          plan_area_sqft: polygonAreaSqft(p.footprint),
-          pitch_degrees: pitchStringToDegrees(p.pitch),
-        },
-      ];
-    }
     if (p.facets && p.facets.length > 0) return p.facets;
     if (p.ring && p.ring.length >= 3) {
-      return [
-        {
-          ring: p.ring,
-          pitch: p.pitch,
-          plan_area_sqft: p.plan_area_sqft,
-          pitch_degrees: pitchStringToDegrees(p.pitch),
-        },
-      ];
+      return [{ ring: p.ring, pitch: p.pitch, plan_area_sqft: p.plan_area_sqft, pitch_degrees: pitchStringToDegrees(p.pitch) }];
     }
     return [];
   }
@@ -828,18 +757,11 @@ export function SolarRoofTab({
   const [editRev, setEditRev] = useState(0);
 
   /** Apply a ring transform to one facet of a pin, recomputing areas. */
-  function mutateFacetRing(
-    pinId: string,
-    facetIndex: number,
-    fn: (ring: number[][]) => number[][],
-  ) {
+  function mutateFacetRing(pinId: string, facetIndex: number, fn: (ring: number[][]) => number[][]) {
     const current = pinsStateRef.current.find((p) => p.id === pinId);
     if (!current) return;
     const cur = facetsOf(current);
-    editUndoRef.current = [
-      ...editUndoRef.current.slice(-19),
-      cur.map((f) => ({ ...f, ring: f.ring.map((pt) => pt.slice()) })),
-    ];
+    editUndoRef.current = [...editUndoRef.current.slice(-19), cur.map((f) => ({ ...f, ring: f.ring.map((pt) => pt.slice()) }))];
     const nextFacets = cur.map((ff, ii) => {
       if (ii !== facetIndex) return ff;
       const newRing = fn(ff.ring);
@@ -848,7 +770,6 @@ export function SolarRoofTab({
     const total = nextFacets.reduce((s, ff) => s + ff.plan_area_sqft, 0);
     updatePin(pinId, {
       facets: nextFacets,
-      footprint: nextFacets.length === 1 ? nextFacets[0]?.ring : current.footprint,
       ring: nextFacets[facetIndex]?.ring ?? current.ring,
       plan_area_sqft: Math.round(total),
     });
@@ -874,11 +795,7 @@ export function SolarRoofTab({
     }
     const restored = snap.map((f) => ({ ...f, ring: f.ring.map((pt) => pt.slice()) }));
     const total = restored.reduce((s, f) => s + f.plan_area_sqft, 0);
-    updatePin(pinId, {
-      facets: restored,
-      ring: restored[0]?.ring,
-      plan_area_sqft: Math.round(total),
-    });
+    updatePin(pinId, { facets: restored, ring: restored[0]?.ring, plan_area_sqft: Math.round(total) });
     editUndoRef.current = [];
     setEditRev((n) => n + 1);
     toast.success("Reset to the original AI shape");
@@ -886,16 +803,14 @@ export function SolarRoofTab({
 
   function beginVertexEdit(pin: Pin) {
     if (!aiSnapshotRef.current[pin.id]) {
-      aiSnapshotRef.current[pin.id] = facetsOf(pin).map((f) => ({
-        ...f,
-        ring: f.ring.map((pt) => pt.slice()),
-      }));
+      aiSnapshotRef.current[pin.id] = facetsOf(pin).map((f) => ({ ...f, ring: f.ring.map((pt) => pt.slice()) }));
     }
     editUndoRef.current = [];
     setEditingVerticesPinId(pin.id);
     setShowOverlay(true);
     zoomToPin(pin);
   }
+
 
   // Vertex-edit mode: render draggable corner handles for the active pin's facets
   useEffect(() => {
@@ -999,10 +914,14 @@ export function SolarRoofTab({
     };
   }, [editingVerticesPinId, pins]);
 
+
+
   function updatePin(id: string, patch: Partial<Pin>) {
     // Keep the ref in sync synchronously so persistence right after a
     // measurement sees the fresh facets instead of the previous render's pins.
-    pinsStateRef.current = pinsStateRef.current.map((x) => (x.id === id ? { ...x, ...patch } : x));
+    pinsStateRef.current = pinsStateRef.current.map((x) =>
+      x.id === id ? { ...x, ...patch } : x,
+    );
     setPins((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
 
@@ -1058,14 +977,10 @@ export function SolarRoofTab({
       pitch_degrees: seg.pitch_degrees,
     }));
     const totalSqft = data.total_plan_sqft || facets.reduce((s, f) => s + f.plan_area_sqft, 0);
-    const weightedDeg =
-      totalSqft > 0
-        ? facets.reduce((s, f) => s + f.pitch_degrees * f.plan_area_sqft, 0) /
-          Math.max(
-            1,
-            facets.reduce((s, f) => s + f.plan_area_sqft, 0),
-          )
-        : 0;
+    const weightedDeg = totalSqft > 0
+      ? facets.reduce((s, f) => s + f.pitch_degrees * f.plan_area_sqft, 0) /
+        Math.max(1, facets.reduce((s, f) => s + f.plan_area_sqft, 0))
+      : 0;
     const avgPitch = degreesToPitchString(weightedDeg);
 
     // Prefer the fitted building outline; fall back to a hull of the facets.
@@ -1076,26 +991,15 @@ export function SolarRoofTab({
         : allPoints.length >= 3
           ? convexHull(allPoints)
           : pin.ring;
-    const exteriorArea = outline && outline.length >= 3 ? polygonAreaSqft(outline) : totalSqft;
 
     updatePin(pin.id, {
-      plan_area_sqft: Math.round(exteriorArea),
+      plan_area_sqft: Math.round(totalSqft),
       pitch: pin.kind === "pitched" ? avgPitch : pin.pitch,
       ring: outline,
       footprint: outline,
       run_id: (data as { run_id?: string | null }).run_id ?? null,
 
-      facets:
-        outline && outline.length >= 3
-          ? [
-              {
-                ring: outline,
-                pitch: pin.kind === "pitched" ? avgPitch : pin.pitch,
-                plan_area_sqft: exteriorArea,
-                pitch_degrees: weightedDeg,
-              },
-            ]
-          : facets,
+      facets,
       source: pin.source === "manual" ? "manual" : "solar",
     });
     return { ok: true };
@@ -1108,7 +1012,9 @@ export function SolarRoofTab({
    */
   async function persistPins(currentPins: Pin[]) {
     if (!propertyId || !profile?.company_id) return;
-    const active = currentPins.filter((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) > 0);
+    const active = currentPins.filter(
+      (p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) > 0,
+    );
     if (active.length === 0) return;
 
     const planTotal = active.reduce((s, p) => s + (p.plan_area_sqft || 0), 0);
@@ -1211,11 +1117,9 @@ export function SolarRoofTab({
 
   /** Make sure freshly measured facets are visible: turn the overlay on, repaint, fit. */
   function revealMeasuredFacets() {
-    showOverlayRef.current = true;
     setShowOverlay(true);
     const map = mapRef.current;
     paintRef.current?.();
-    requestAnimationFrame(() => paintRef.current?.());
     if (!map) return;
     const coords: number[][] = [];
     for (const p of pinsStateRef.current) {
@@ -1238,11 +1142,8 @@ export function SolarRoofTab({
     },
     onSuccess: () => {
       revealMeasuredFacets();
-      const drew = facetsOf(
-        pinsStateRef.current.find((p) => p.id === activePinId) ?? ({} as Pin),
-      ).length;
-      if (drew === 0)
-        toast.warning("Measured, but no roof outline came back — draw the area to fix it");
+      const drew = facetsOf(pinsStateRef.current.find((p) => p.id === activePinId) ?? ({} as Pin)).length;
+      if (drew === 0) toast.warning("Measured, but no roof outline came back — draw the area to fix it");
       else toast.success("Measured whole structure at this pin");
     },
     onError: (e) =>
@@ -1250,6 +1151,7 @@ export function SolarRoofTab({
         description: "Try the Draw area tool, enter sqft manually, or refine on the Mapbox tab.",
       }),
   });
+
 
   const measureAll = useMutation({
     mutationFn: async () => {
@@ -1276,13 +1178,13 @@ export function SolarRoofTab({
     onSuccess: ({ success, failed, total }) => {
       if (success > 0) revealMeasuredFacets();
       if (total === 0) toast.info("Drop a pin on each roof you want measured first");
-      else if (failed === 0)
-        toast.success(`Measured ${success} pinned roof${success === 1 ? "" : "s"}`);
+      else if (failed === 0) toast.success(`Measured ${success} pinned roof${success === 1 ? "" : "s"}`);
       else toast.warning(`Measured ${success}/${total} — ${failed} need manual entry or draw`);
     },
 
     onError: (e) => toast.error(e instanceof Error ? e.message : "Bulk measure failed"),
   });
+
 
   /** Wipe every saved measurement (and its facets) for this property. */
   const clearSaved = useMutation({
@@ -1305,14 +1207,11 @@ export function SolarRoofTab({
       setActivePinId(null);
       setShowHandoff(false);
       setCalibration(null);
-      toast.success(
-        n > 0
-          ? "All saved measurements deleted for this address"
-          : "No saved measurements to delete",
-      );
+      toast.success(n > 0 ? "All saved measurements deleted for this address" : "No saved measurements to delete");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't clear measurements"),
   });
+
 
   function startDraw(pinId: string) {
     setDrawingPinId(pinId);
@@ -1333,7 +1232,7 @@ export function SolarRoofTab({
     const ring = [...drawPoints, drawPoints[0]];
     const area = polygonAreaSqft(ring);
     const drawnPin = pinsStateRef.current.find((p) => p.id === drawingPinId);
-    const drawnPitch = drawnPin?.kind === "flat" ? "0/12" : (drawnPin?.pitch ?? "unknown");
+    const drawnPitch = drawnPin?.kind === "flat" ? "0/12" : drawnPin?.pitch ?? "unknown";
     updatePin(drawingPinId, {
       plan_area_sqft: Math.round(area),
       ring,
@@ -1353,7 +1252,9 @@ export function SolarRoofTab({
 
   const unknownPitchCount = useMemo(
     () =>
-      pins.filter((p) => p.kind === "pitched" && !/^\d+\s*\/\s*\d+$/.test(p.pitch || "")).length,
+      pins.filter(
+        (p) => p.kind === "pitched" && !/^\d+\s*\/\s*\d+$/.test(p.pitch || ""),
+      ).length,
     [pins],
   );
 
@@ -1374,6 +1275,7 @@ export function SolarRoofTab({
   }, [pins, editRev]);
 
   const totals = useMemo(() => {
+
     const active = pins.filter((p) => p.kind !== "ignore");
     const plan = active.reduce((s, p) => s + (p.plan_area_sqft || 0), 0);
     const sloped = active.reduce((s, p) => {
@@ -1395,17 +1297,7 @@ export function SolarRoofTab({
     let i = 0;
     for (const p of active) {
       const fallbackPitch = p.kind === "flat" ? "0/12" : p.pitch;
-      const facets =
-        p.facets && p.facets.length > 0
-          ? p.facets
-          : [
-              {
-                ring: p.ring && p.ring.length >= 3 ? p.ring : squareRingAround(p.lng, p.lat),
-                pitch: fallbackPitch,
-                plan_area_sqft: p.plan_area_sqft,
-                pitch_degrees: pitchStringToDegrees(fallbackPitch),
-              },
-            ];
+      const facets = p.facets && p.facets.length > 0 ? p.facets : [{ ring: p.ring && p.ring.length >= 3 ? p.ring : squareRingAround(p.lng, p.lat), pitch: fallbackPitch, plan_area_sqft: p.plan_area_sqft, pitch_degrees: pitchStringToDegrees(fallbackPitch) }];
       for (const f of facets) {
         sections.push({
           id: `ai-${p.id}-${i}`,
@@ -1438,6 +1330,7 @@ export function SolarRoofTab({
     }
     onApply({ sections, lines: [] });
     toast.success("Applied to Mapbox tab — refine shapes & label edges");
+
   }
 
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
@@ -1453,9 +1346,9 @@ export function SolarRoofTab({
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-foreground">AI Roof Measurements</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Nothing is measured automatically. <b>Click on top of each roof</b> on the map to drop a
-            pin — one pin per structure (house, shed, detached garage) — then hit{" "}
-            <b>AI measurements</b> and only the pinned roofs are measured.
+            Nothing is measured automatically. <b>Click on top of each roof</b> on the map to drop a pin —
+            one pin per structure (house, shed, detached garage) — then hit <b>AI measurements</b> and only
+            the pinned roofs are measured.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -1477,11 +1370,7 @@ export function SolarRoofTab({
             style={{ borderColor: "var(--border)" }}
             title="Delete every saved measurement for this address"
           >
-            {clearSaved.isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Trash2 className="h-3.5 w-3.5" />
-            )}
+            {clearSaved.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
             Clear all measurements
           </button>
           <button
@@ -1494,9 +1383,7 @@ export function SolarRoofTab({
             ) : (
               <Sparkles className="h-3.5 w-3.5" />
             )}
-            {measureAll.isPending
-              ? "Measuring…"
-              : `AI measurements${pins.length ? ` (${pins.filter((p) => p.kind !== "ignore").length})` : ""}`}
+            {measureAll.isPending ? "Measuring…" : `AI measurements${pins.length ? ` (${pins.filter((p) => p.kind !== "ignore").length})` : ""}`}
           </button>
         </div>
       </div>
@@ -1517,8 +1404,8 @@ export function SolarRoofTab({
                 This property isn't in Google's Solar coverage yet
               </div>
               <div className="mt-1 text-xs text-muted-foreground">
-                We tried HIGH, MEDIUM, and LOW quality plus 4 nearby points — Google Solar still has
-                no building data for this location. This usually means a newer build or a recently
+                We tried HIGH, MEDIUM, and LOW quality plus 4 nearby points — Google Solar still has no
+                building data for this location. This usually means a newer build or a recently
                 modified roof. Switch to Mapbox Draw to outline the roof manually, or drop a custom
                 pin on the map below to measure a single structure.
               </div>
@@ -1560,12 +1447,10 @@ export function SolarRoofTab({
             <Check className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
             <div>
               <div className="text-sm font-semibold text-foreground">
-                Measured {pins.length} facet{pins.length === 1 ? "" : "s"} ·{" "}
-                {Math.round(totals.plan).toLocaleString()} sqft plan · {totals.sq.toFixed(1)} SQ
+                Measured {pins.length} facet{pins.length === 1 ? "" : "s"} · {Math.round(totals.plan).toLocaleString()} sqft plan · {totals.sq.toFixed(1)} SQ
               </div>
               <div className="mt-0.5 text-[11px] text-muted-foreground">
-                Verify the highlights on the map below. Then send to Mapbox to label edges (eaves,
-                hips, ridges) for an accurate flashing &amp; ridge cap quote.
+                Verify the highlights on the map below. Then send to Mapbox to label edges (eaves, hips, ridges) for an accurate flashing &amp; ridge cap quote.
               </div>
             </div>
           </div>
@@ -1589,30 +1474,25 @@ export function SolarRoofTab({
       )}
 
       {/* AI Calibration banner — when training data is available */}
-      {calibration &&
-        calibration.example_count > 0 &&
-        calibration.calibrated_total_sqft != null && (
-          <div
-            className="flex flex-wrap items-center gap-3 rounded-xl border p-3"
-            style={{
-              borderColor: "color-mix(in oklab, #8b5cf6 30%, transparent)",
-              background: "color-mix(in oklab, #8b5cf6 8%, var(--bg-card))",
-            }}
-          >
-            <Brain className="h-4 w-4 shrink-0 text-violet-500" />
-            <div className="flex-1 text-xs">
-              <span className="font-semibold text-foreground">
-                AI-calibrated total:{" "}
-                {Math.round(calibration.calibrated_total_sqft).toLocaleString()} sqft
-              </span>
-              <span className="ml-2 text-muted-foreground">
-                vs raw {Math.round(calibration.raw_total_sqft).toLocaleString()} sqft · based on{" "}
-                {calibration.example_count} nearby training example
-                {calibration.example_count === 1 ? "" : "s"}
-              </span>
-            </div>
+      {calibration && calibration.example_count > 0 && calibration.calibrated_total_sqft != null && (
+        <div
+          className="flex flex-wrap items-center gap-3 rounded-xl border p-3"
+          style={{
+            borderColor: "color-mix(in oklab, #8b5cf6 30%, transparent)",
+            background: "color-mix(in oklab, #8b5cf6 8%, var(--bg-card))",
+          }}
+        >
+          <Brain className="h-4 w-4 shrink-0 text-violet-500" />
+          <div className="flex-1 text-xs">
+            <span className="font-semibold text-foreground">
+              AI-calibrated total: {Math.round(calibration.calibrated_total_sqft).toLocaleString()} sqft
+            </span>
+            <span className="ml-2 text-muted-foreground">
+              vs raw {Math.round(calibration.raw_total_sqft).toLocaleString()} sqft · based on {calibration.example_count} nearby training example{calibration.example_count === 1 ? "" : "s"}
+            </span>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Map */}
       <div
@@ -1635,10 +1515,7 @@ export function SolarRoofTab({
           >
             <Pencil className="h-3.5 w-3.5 text-[#3b82f6]" />
             <span className="text-foreground font-semibold">
-              Drawing: click{" "}
-              {drawPoints.length < 3
-                ? `${3 - drawPoints.length} more point${3 - drawPoints.length === 1 ? "" : "s"}`
-                : `(${drawPoints.length} points)`}
+              Drawing: click {drawPoints.length < 3 ? `${3 - drawPoints.length} more point${3 - drawPoints.length === 1 ? "" : "s"}` : `(${drawPoints.length} points)`}
             </span>
             <button
               onClick={finishDraw}
@@ -1664,9 +1541,7 @@ export function SolarRoofTab({
             }}
           >
             <Info className="h-3 w-3 text-muted-foreground" />
-            <span className="text-muted-foreground">
-              Click each roof to drop a pin · then hit AI measurements above
-            </span>
+            <span className="text-muted-foreground">Click each roof to drop a pin · then hit AI measurements above</span>
           </div>
         )}
         {(imageryQuality || estimatedPitch) && (
@@ -1690,10 +1565,12 @@ export function SolarRoofTab({
               color: "rgb(245,158,11)",
             }}
           >
-            {unknownPitchCount} structure{unknownPitchCount === 1 ? "" : "s"} with pitch unknown —
-            set the pitch before trusting these squares.
+            {unknownPitchCount} structure{unknownPitchCount === 1 ? "" : "s"} with pitch unknown — set the pitch before trusting these squares.
           </div>
         )}
+
+
+
 
         {/* Rotate & align controls — bottom-right */}
         <div
@@ -1703,9 +1580,7 @@ export function SolarRoofTab({
             backgroundColor: "color-mix(in oklab, var(--bg-card) 90%, transparent)",
           }}
         >
-          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Rotate
-          </span>
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rotate</span>
           <button
             onClick={() => rotate(-10)}
             title="Rotate 10° left"
@@ -1748,6 +1623,8 @@ export function SolarRoofTab({
           </button>
         </div>
 
+
+
         {/* Overlay legend (bottom-left of map) */}
         {pins.length > 0 && (
           <div
@@ -1758,9 +1635,7 @@ export function SolarRoofTab({
             }}
           >
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Highlight overlay
-              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Highlight overlay</span>
               <button
                 onClick={() => setShowOverlay((v) => !v)}
                 className="inline-flex items-center gap-1 text-[11px] text-foreground hover:text-[var(--brand)]"
@@ -1770,18 +1645,9 @@ export function SolarRoofTab({
                 {showOverlay ? "On" : "Off"}
               </button>
             </div>
-            <LegendSwatch
-              color={FILL_COLORS.pitched}
-              stroke={STROKE_COLORS.pitched}
-              label="Pitched"
-            />
+            <LegendSwatch color={FILL_COLORS.pitched} stroke={STROKE_COLORS.pitched} label="Pitched" />
             <LegendSwatch color={FILL_COLORS.flat} stroke={STROKE_COLORS.flat} label="Flat" />
-            <LegendSwatch
-              color="transparent"
-              stroke={STROKE_COLORS.ignore}
-              label="Ignored"
-              dashed
-            />
+            <LegendSwatch color="transparent" stroke={STROKE_COLORS.ignore} label="Ignored" dashed />
           </div>
         )}
       </div>
@@ -1792,20 +1658,18 @@ export function SolarRoofTab({
           <span>
             <span className="font-mono-num text-foreground">{highlightStats.facets}</span> facet
             {highlightStats.facets === 1 ? "" : "s"} ·{" "}
-            <span className="font-mono-num text-foreground">
-              {Math.round(highlightStats.sqft).toLocaleString()}
-            </span>{" "}
-            sqft highlighted
+            <span className="font-mono-num text-foreground">{Math.round(highlightStats.sqft).toLocaleString()}</span> sqft highlighted
           </span>
           {highlightStats.facets === 0 && (
             <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 font-semibold text-amber-600">
-              <AlertCircle className="h-3 w-3" /> No roof outline came back — draw the area or
-              re-measure
+              <AlertCircle className="h-3 w-3" /> No roof outline came back — draw the area or re-measure
             </span>
           )}
           {!showOverlay && <span className="text-amber-600">Overlay is hidden</span>}
         </div>
       )}
+
+
 
       {/* Bulk actions */}
       {pins.length > 0 && (
@@ -1909,10 +1773,7 @@ export function SolarRoofTab({
           </div>
 
           {activePin.kind !== "ignore" && (
-            <div
-              className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3"
-              style={{ borderColor: "var(--border)" }}
-            >
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: "var(--border)" }}>
               <button
                 onClick={() => measureOne.mutate(activePin)}
                 disabled={measureOne.isPending || drawingPinId === activePin.id}
@@ -1977,8 +1838,7 @@ export function SolarRoofTab({
                     <Brain className="h-3.5 w-3.5 text-violet-400" /> Save to AI training
                   </button>
                   <span className="text-[11px] text-muted-foreground">
-                    Drag solid dots to move a corner · drag a hollow dot to add one · Alt-click or
-                    right-click a corner to delete it
+                    Drag solid dots to move a corner · drag a hollow dot to add one · Alt-click or right-click a corner to delete it
                   </span>
                 </>
               ) : (
@@ -2024,10 +1884,7 @@ export function SolarRoofTab({
               {pins.some((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0) && (
                 <span className="ml-2 inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500">
                   <AlertCircle className="h-2.5 w-2.5" />
-                  {
-                    pins.filter((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0).length
-                  }{" "}
-                  unmeasured
+                  {pins.filter((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0).length} unmeasured
                 </span>
               )}
             </h4>
@@ -2079,7 +1936,9 @@ export function SolarRoofTab({
                             ).toLocaleString()} sqft plan`}
                     </p>
                   </div>
-                  {unmeasured && <AlertCircle className="h-3.5 w-3.5 shrink-0 text-amber-500" />}
+                  {unmeasured && (
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                  )}
                 </button>
               );
             })}
@@ -2132,13 +1991,11 @@ export function SolarRoofTab({
           {pins.length === 0 ? (
             <>
               <Plus className="mr-1 inline h-3 w-3" />
-              Click <b>Measure entire property</b> above. For extra structures (shed, garage), click
-              each one on the map first to drop a pin.
+              Click <b>Measure entire property</b> above. For extra structures (shed, garage), click each one on the map first to drop a pin.
             </>
           ) : (
             <>
-              {totals.count} active facet{totals.count === 1 ? "" : "s"} · click empty map area to
-              add another structure pin.
+              {totals.count} active facet{totals.count === 1 ? "" : "s"} · click empty map area to add another structure pin.
             </>
           )}
         </p>
@@ -2171,26 +2028,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function LegendSwatch({
-  color,
-  stroke,
-  label,
-  dashed,
-}: {
-  color: string;
-  stroke: string;
-  label: string;
-  dashed?: boolean;
-}) {
+function LegendSwatch({ color, stroke, label, dashed }: { color: string; stroke: string; label: string; dashed?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2 text-[11px] text-foreground">
       <span
         className="inline-block h-3 w-5 rounded-sm"
         style={{
-          backgroundColor:
-            color === "transparent"
-              ? "transparent"
-              : `color-mix(in oklab, ${color} 40%, transparent)`,
+          backgroundColor: color === "transparent" ? "transparent" : `color-mix(in oklab, ${color} 40%, transparent)`,
           border: `2px ${dashed ? "dashed" : "solid"} ${stroke}`,
         }}
       />
@@ -2199,7 +2043,15 @@ function LegendSwatch({
   );
 }
 
-function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function Stat({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
   return (
     <div className="rounded-md border p-3" style={{ borderColor: "var(--border)" }}>
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
