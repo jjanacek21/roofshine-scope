@@ -509,7 +509,7 @@ export function SolarRoofTab({
             s.polygon_geojson as { coordinates?: number[][][] } | null
           )?.coordinates?.[0];
           if (!ring || ring.length < 3) continue;
-          let [cLng, cLat] = ringCentroid(ring);
+          const [cLng, cLat] = ringCentroid(ring);
           const planSqft = Number(s.plan_area_sqft) || 0;
           const pitch = (s.pitch as string) || "unknown";
           const kind: PinKind = pitch === "0/12" ? "flat" : "pitched";
