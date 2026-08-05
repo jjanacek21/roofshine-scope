@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useServerFn } from "@tanstack/react-start";
@@ -10,6 +10,11 @@ import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { fmtNum, type LeadRow } from "@/lib/leads";
 import { analyzeRoofWithAI } from "@/lib/lead-ai.functions";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  FootprintOverlayEditor,
+  type EditableFootprint,
+} from "@/components/roof/FootprintOverlayEditor";
+import { polygonAreaSqft } from "@/lib/roof-math";
 
 interface Pin { id: string; lat: number; lng: number; }
 interface Measurements {
@@ -17,6 +22,7 @@ interface Measurements {
   sun_hours_per_year: number;
   avg_pitch: number;
   segments: { pitch: number; azimuth: number; area_sqft: number }[];
+  footprints?: EditableFootprint[];
 }
 type PinStatus = Record<string, { status: "pending" | "ok" | "error"; sqft?: number; message?: string }>;
 
@@ -43,6 +49,10 @@ export function RoofWizardInline({ lead }: Props) {
   );
   const [pinStatus, setPinStatus] = useState<PinStatus>({});
   const [measurements, setMeasurements] = useState<Measurements | null>(savedReport.measurements ?? null);
+  const [footprints, setFootprints] = useState<EditableFootprint[]>(
+    savedReport.measurements?.footprints ?? [],
+  );
+  const [mapInstance, setMapInstance] = useState<mapboxgl.Map | null>(null);
   const [analysis, setAnalysis] = useState<string>(savedReport.analysis ?? "");
   const [loading, setLoading] = useState<"none" | "measure" | "analyze">("none");
 
@@ -83,10 +93,12 @@ export function RoofWizardInline({ lead }: Props) {
     });
     const t = setTimeout(() => map.resize(), 250);
     mapRef.current = map;
+    setMapInstance(map);
     return () => {
       clearTimeout(t);
       try { map.remove(); } catch { /* noop */ }
       mapRef.current = null;
+      setMapInstance(null);
     };
   }, [token, lead.lat, lead.lng]);
 
@@ -122,6 +134,7 @@ export function RoofWizardInline({ lead }: Props) {
 
       const targets = pins.length > 0 ? pins : [{ id: "selected", lat: center.lat, lng: center.lng }];
       const results: Measurements[] = [];
+      const measuredFootprints: EditableFootprint[] = [];
       const failures: string[] = [];
       const nextStatus: PinStatus = {};
       targets.forEach((t) => { nextStatus[t.id] = { status: "pending" }; });
@@ -147,6 +160,16 @@ export function RoofWizardInline({ lead }: Props) {
         }));
         const avgPitch = segments.length > 0 ? segments.reduce((a, s) => a + s.pitch, 0) / segments.length : 0;
         const totalSqft = Number(payload.total_plan_sqft ?? 0);
+        const outline = Array.isArray(payload.footprint)
+          ? (payload.footprint as number[][])
+          : [];
+        if (outline.length >= 3) {
+          measuredFootprints.push({
+            id: target.id,
+            ring: outline,
+            originalRing: outline.map((point) => point.slice()),
+          });
+        }
         results.push({
           total_sqft: totalSqft,
           sun_hours_per_year: Number(payload.max_sunshine_hours_per_year ?? 0),
@@ -162,12 +185,17 @@ export function RoofWizardInline({ lead }: Props) {
       }
       const allSegments = results.flatMap((r) => r.segments);
       const merged: Measurements = {
-        total_sqft: results.reduce((s, r) => s + r.total_sqft, 0),
+        total_sqft:
+          measuredFootprints.length > 0
+            ? measuredFootprints.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0)
+            : results.reduce((s, r) => s + r.total_sqft, 0),
         sun_hours_per_year: Math.max(...results.map((r) => r.sun_hours_per_year)),
         avg_pitch: allSegments.length > 0 ? allSegments.reduce((a, s) => a + s.pitch, 0) / allSegments.length : 0,
         segments: allSegments,
+        footprints: measuredFootprints,
       };
       setMeasurements(merged);
+      setFootprints(measuredFootprints);
 
       const prev = (lead.ai_report as Record<string, unknown> | null) ?? {};
       await supabase.from("leads").update({
@@ -179,6 +207,7 @@ export function RoofWizardInline({ lead }: Props) {
             avg_pitch: Number(merged.avg_pitch.toFixed(2)),
             segment_count: merged.segments.length,
             pins: pins.map((p) => ({ lat: p.lat, lng: p.lng })),
+            footprints: measuredFootprints,
             generated_at: new Date().toISOString(),
           },
         },
@@ -193,6 +222,71 @@ export function RoofWizardInline({ lead }: Props) {
       setLoading("none");
     }
   }
+
+  const updateFootprints = useCallback((next: EditableFootprint[]) => {
+    setFootprints(next);
+    setMeasurements((current) =>
+      current
+        ? {
+            ...current,
+            total_sqft: next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0),
+            footprints: next,
+          }
+        : current,
+    );
+  }, []);
+
+  const saveFootprints = useCallback(
+    async (next: EditableFootprint[]) => {
+      const totalSqft = Math.round(
+        next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0),
+      );
+      const previous = (lead.ai_report as Record<string, unknown> | null) ?? {};
+      const previousMeasurements =
+        previous.measurements && typeof previous.measurements === "object"
+          ? (previous.measurements as Record<string, unknown>)
+          : {};
+      const { error } = await supabase
+        .from("leads")
+        .update({
+          sqft: totalSqft,
+          ai_report: {
+            ...previous,
+            measurements: {
+              ...previousMeasurements,
+              total_sqft: totalSqft,
+              footprints: next,
+              corrected_at: new Date().toISOString(),
+            },
+          },
+        })
+        .eq("id", lead.id);
+      if (error) throw error;
+      const { data: session } = await supabase.auth.getSession();
+      const { error: trainingError } = await supabase.from("training_examples").insert({
+        address: lead.address,
+        lat: lead.lat,
+        lng: lead.lng,
+        source: "vertex_edit",
+        ground_truth: {
+          footprints: next,
+          total_plan_sqft: totalSqft,
+          lead_id: lead.id,
+          workflow: "roof_king_report",
+        },
+        solar_response: {
+          ai_footprints: next.map((item) => item.originalRing ?? item.ring),
+        },
+        notes: "Roof King savings/damage report exterior footprint correction",
+        created_by: session.session?.user.id ?? null,
+      });
+      if (trainingError) throw trainingError;
+      await qc.invalidateQueries({ queryKey: ["lead", lead.id] });
+      await qc.invalidateQueries({ queryKey: ["leads"] });
+      toast.success("Corrections saved to AI training");
+    },
+    [lead.address, lead.ai_report, lead.id, lead.lat, lead.lng, qc],
+  );
 
   async function runAnalysis() {
     const target = center ?? (lead.lat != null && lead.lng != null ? { lat: lead.lat, lng: lead.lng } : null);
@@ -248,6 +342,12 @@ export function RoofWizardInline({ lead }: Props) {
         <MapPin className="h-3 w-3" />
         Click roofs to drop pins · click a pin to remove it · drag/zoom freely.
       </p>
+      <FootprintOverlayEditor
+        map={mapInstance}
+        footprints={footprints}
+        onChange={updateFootprints}
+        onSave={saveFootprints}
+      />
 
       {pins.length > 0 && (
         <div className="rounded-lg border p-2" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}>
