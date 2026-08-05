@@ -619,8 +619,10 @@ export function SolarRoofTab({
         if (showOverlayRef.current) {
           for (const pin of pinsStateRef.current) {
             if (pin.kind !== kind) continue;
-            const rings = pin.facets && pin.facets.length > 0
-              ? pin.facets.map((f) => f.ring)
+            const rings = pin.footprint && pin.footprint.length >= 3
+              ? [pin.footprint]
+              : pin.facets && pin.facets.length > 0
+                ? pin.facets.map((f) => f.ring)
               : pin.ring && pin.ring.length >= 3
                 ? [pin.ring]
                 : [];
@@ -1018,15 +1020,18 @@ export function SolarRoofTab({
         : allPoints.length >= 3
           ? convexHull(allPoints)
           : pin.ring;
+    const exteriorArea = outline && outline.length >= 3 ? polygonAreaSqft(outline) : totalSqft;
 
     updatePin(pin.id, {
-      plan_area_sqft: Math.round(totalSqft),
+      plan_area_sqft: Math.round(exteriorArea),
       pitch: pin.kind === "pitched" ? avgPitch : pin.pitch,
       ring: outline,
       footprint: outline,
       run_id: (data as { run_id?: string | null }).run_id ?? null,
 
-      facets,
+      facets: outline && outline.length >= 3
+        ? [{ ring: outline, pitch: pin.kind === "pitched" ? avgPitch : pin.pitch, plan_area_sqft: exteriorArea, pitch_degrees: weightedDeg }]
+        : facets,
       source: pin.source === "manual" ? "manual" : "solar",
     });
     return { ok: true };
