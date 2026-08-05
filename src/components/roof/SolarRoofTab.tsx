@@ -334,6 +334,10 @@ export function SolarRoofTab({
   const [showOverlay, setShowOverlay] = useState(true);
   const [showCoverageGaps, setShowCoverageGaps] = useState(false);
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
+  const [measureSource, setMeasureSource] = useState<"ai" | "corrected" | null>(null);
+  const [calibrationInfo, setCalibrationInfo] = useState<{ factor: number; samples: number } | null>(
+    null,
+  );
   const [showHandoff, setShowHandoff] = useState(false);
   const [noCoverage, setNoCoverage] = useState(false);
 
