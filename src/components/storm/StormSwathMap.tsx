@@ -981,6 +981,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
               footprint={point.footprint ?? null}
               onChange={setMeasure}
               onSections={setFacets}
+              map={styleReady ? mapRef.current : null}
             />
           )}
 

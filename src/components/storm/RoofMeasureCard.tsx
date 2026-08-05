@@ -2,10 +2,13 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Ruler, AlertTriangle, RefreshCw } from "lucide-react";
+import type mapboxgl from "mapbox-gl";
 import { supabase } from "@/integrations/supabase/client";
 import { autoMeasurePropertyRoof } from "@/lib/auto-measure.functions";
 import { ensureStormProperty } from "@/lib/storm-mailer.functions";
 import { roofMathFromPlan, PITCH_FACTOR, WASTE_FACTOR, type RoofMath } from "@/lib/storm-config";
+import { FootprintOverlayEditor, type EditableFootprint } from "@/components/roof/FootprintOverlayEditor";
+import { polygonAreaSqft } from "@/lib/roof-math";
 
 const EPS = 0.00008; // ~9 m box for matching a clicked roof to a saved property
 
@@ -25,11 +28,12 @@ type Props = {
   footprint?: [number, number, number, number] | null;
   onChange: (snap: MeasureSnapshot) => void;
   onSections: (features: any[]) => void;
+  map: mapboxgl.Map | null;
 };
 
 const fmt = (n: number) => Math.round(n).toLocaleString();
 
-export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange, onSections }: Props) {
+export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange, onSections, map }: Props) {
   const qc = useQueryClient();
   const key = ["storm-roof", lat.toFixed(5), lng.toFixed(5)];
 
@@ -79,6 +83,55 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
       ? roofMathFromPlan(planSqft)
       : null
     : null;
+  const editableFootprints: EditableFootprint[] = (data?.sections ?? []).flatMap((section: any) => {
+    const ring = section.polygon_geojson?.coordinates?.[0];
+    return Array.isArray(ring) && ring.length >= 3
+      ? [{ id: section.id, ring, originalRing: ring }]
+      : [];
+  });
+
+  const updateEditableFootprints = (next: EditableFootprint[]) => {
+    onSections(next.map((item) => ({
+      type: "Feature",
+      geometry: { type: "Polygon", coordinates: [item.ring] },
+      properties: { id: item.id, color: "#facc15" },
+    })));
+    qc.setQueryData(key, (current: any) => current ? {
+      ...current,
+      sections: current.sections.map((section: any) => {
+        const edited = next.find((item) => item.id === section.id);
+        return edited ? { ...section, plan_area_sqft: polygonAreaSqft(edited.ring), polygon_geojson: { type: "Polygon", coordinates: [edited.ring] } } : section;
+      }),
+    } : current);
+  };
+
+  const saveEditableFootprints = async (next: EditableFootprint[]) => {
+    for (const item of next) {
+      const { error: sectionError } = await supabase.from("roof_sections").update({
+        polygon_geojson: { type: "Polygon", coordinates: [item.ring] },
+        plan_area_sqft: polygonAreaSqft(item.ring),
+      }).eq("id", item.id);
+      if (sectionError) throw sectionError;
+    }
+    const total = Math.round(next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0));
+    if (data?.measurement?.id) {
+      const { error: measurementError } = await supabase.from("roof_measurements").update({ total_area_sqft: total }).eq("id", data.measurement.id);
+      if (measurementError) throw measurementError;
+    }
+    const { data: session } = await supabase.auth.getSession();
+    const { error: trainingError } = await supabase.from("training_examples").insert({
+      address: address ?? `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+      lat,
+      lng,
+      source: "vertex_edit",
+      ground_truth: { footprints: next, total_plan_sqft: total, property_id: data?.property?.id ?? null, workflow: "storm_intelligence" },
+      solar_response: { ai_footprints: next.map((item) => item.originalRing ?? item.ring) },
+      notes: "Storm Intelligence exterior footprint correction",
+      created_by: session.session?.user.id ?? null,
+    });
+    if (trainingError) throw trainingError;
+    await qc.invalidateQueries({ queryKey: key });
+  };
 
   useEffect(() => {
     onChange({
@@ -233,6 +286,13 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
             )}
             Re-measure this roof
           </button>
+          <FootprintOverlayEditor
+            map={map}
+            footprints={editableFootprints}
+            onChange={updateEditableFootprints}
+            onSave={saveEditableFootprints}
+            compact
+          />
         </div>
       )}
 
