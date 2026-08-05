@@ -16,7 +16,7 @@ import {
   Send,
   Trash2,
   ExternalLink,
-  Upload,
+  
   FileText,
   Plus,
 } from "lucide-react";
