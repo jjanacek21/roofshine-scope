@@ -37,6 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { useProfile } from "@/hooks/useProfile";
 import { getTradeLabel } from "@/lib/trades";
+import { pitchMultiplier } from "@/lib/roof-math";
 import {
   BUILT_IN_LABEL,
   CUSTOM_LABEL,
