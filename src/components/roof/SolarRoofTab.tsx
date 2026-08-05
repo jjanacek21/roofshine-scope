@@ -75,6 +75,10 @@ type SolarResponse = {
   footprint_source?: string;
   /** Pitch was assumed because Google had no roof data here. */
   pitch_estimated?: boolean;
+  /** "corrected" when a saved hand-corrected footprint was reused. */
+  source?: "ai" | "corrected";
+  correction_saved_at?: string | null;
+  calibration?: { factor: number; samples: number } | null;
 };
 
 
@@ -330,6 +334,10 @@ export function SolarRoofTab({
   const [showOverlay, setShowOverlay] = useState(true);
   const [showCoverageGaps, setShowCoverageGaps] = useState(false);
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
+  const [measureSource, setMeasureSource] = useState<"ai" | "corrected" | null>(null);
+  const [calibrationInfo, setCalibrationInfo] = useState<{ factor: number; samples: number } | null>(
+    null,
+  );
   const [showHandoff, setShowHandoff] = useState(false);
   const [noCoverage, setNoCoverage] = useState(false);
 
@@ -427,13 +435,40 @@ export function SolarRoofTab({
         created_by: userId,
       });
       if (error) throw error;
+
+      // Remember the corrected footprint for this house so future AI runs
+      // (even after clearing measurements, and for teammates) reuse it.
+      const { data: prof } = userId
+        ? await supabase.from("profiles").select("company_id").eq("id", userId).maybeSingle()
+        : { data: null };
+      const { error: cErr } = await supabase.from("roof_corrections").insert({
+        company_id: (prof?.company_id as string | null) ?? null,
+        property_id: propertyId ?? null,
+        job_id: jobId ?? null,
+        lat: pin.lat,
+        lng: pin.lng,
+        pin_name: pin.name,
+        pitch: pin.pitch,
+        kind: pin.kind,
+        corrected_facets: facets,
+        ai_facets: original,
+        corrected_plan_sqft: Math.round(pin.plan_area_sqft || 0),
+        ai_plan_sqft: Math.round(originalArea),
+        created_by: userId,
+      });
+      if (cErr) console.error("roof_corrections insert failed", cErr);
+
       // Keep the corrected geometry as the saved measurement too.
       try {
         await persistPins(pinsStateRef.current);
       } catch (e) {
         console.error("persist corrected geometry failed", e);
       }
-      toast.success("Corrections saved to AI training");
+      toast.success(
+        cErr
+          ? "Corrections saved to AI training"
+          : "Corrections saved — AI will reuse this footprint here",
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't save correction");
     }
@@ -939,7 +974,10 @@ export function SolarRoofTab({
    * building outline, so what comes back already tiles the roof — we just keep
    * the outline for the Mapbox hand-off.
    */
-  async function measurePinAt(pin: Pin): Promise<{ ok: boolean; reason?: string }> {
+  async function measurePinAt(
+    pin: Pin,
+    opts?: { forceRaw?: boolean },
+  ): Promise<{ ok: boolean; reason?: string }> {
     const { data: s } = await supabase.auth.getSession();
     const accessToken = s.session?.access_token;
     if (!accessToken) return { ok: false, reason: "Not authenticated" };
@@ -952,6 +990,7 @@ export function SolarRoofTab({
         property_id: propertyId ?? undefined,
         job_id: jobId ?? undefined,
         tuning: tuningRef.current,
+        force_raw: opts?.forceRaw === true,
       }),
     });
     if (!r.ok) {
@@ -967,6 +1006,8 @@ export function SolarRoofTab({
     const data = (await r.json()) as SolarResponse;
     if (!data.segments?.length) return { ok: false, reason: "No structure detected here" };
 
+    setMeasureSource(data.source ?? "ai");
+    setCalibrationInfo(data.calibration ?? null);
     setImageryQuality(data.imagery_quality);
     setEstimatedPitch(Boolean(data.pitch_estimated));
 
@@ -1154,13 +1195,13 @@ export function SolarRoofTab({
 
 
   const measureAll = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { forceRaw?: boolean }) => {
       // Measure ONLY the structures the user pinned — nothing else on the lot.
       const targets = pins.filter((p) => p.kind !== "ignore");
       let success = 0;
       let failed = 0;
       for (const pin of targets) {
-        const res = await measurePinAt(pin);
+        const res = await measurePinAt(pin, { forceRaw: opts?.forceRaw });
         if (res.ok) success++;
         else failed++;
       }
@@ -1207,10 +1248,34 @@ export function SolarRoofTab({
       setActivePinId(null);
       setShowHandoff(false);
       setCalibration(null);
+      setMeasureSource(null);
       toast.success(n > 0 ? "All saved measurements deleted for this address" : "No saved measurements to delete");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't clear measurements"),
   });
+
+  /** Forget the hand-corrected footprints saved for this address. */
+  const forgetCorrections = useMutation({
+    mutationFn: async () => {
+      if (!propertyId) return 0;
+      const { data, error } = await supabase
+        .from("roof_corrections")
+        .delete()
+        .eq("property_id", propertyId)
+        .select("id");
+      if (error) throw error;
+      return (data ?? []).length;
+    },
+    onSuccess: (n) => {
+      setMeasureSource(null);
+      toast.success(
+        n > 0 ? "Saved corrections forgotten for this address" : "No saved corrections here",
+      );
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't forget corrections"),
+  });
+
+
 
 
   function startDraw(pinId: string) {
@@ -1368,13 +1433,28 @@ export function SolarRoofTab({
             disabled={clearSaved.isPending || !propertyId}
             className="inline-flex h-10 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-red-500 hover:bg-red-500/10 disabled:opacity-40"
             style={{ borderColor: "var(--border)" }}
-            title="Delete every saved measurement for this address"
+            title="Delete every saved measurement for this address (saved corrections are kept)"
           >
             {clearSaved.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
             Clear all measurements
           </button>
           <button
-            onClick={() => measureAll.mutate()}
+            onClick={() => forgetCorrections.mutate()}
+            disabled={forgetCorrections.isPending || !propertyId}
+            className="inline-flex h-10 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-muted-foreground hover:bg-[var(--surface-hover)] disabled:opacity-40"
+            style={{ borderColor: "var(--border)" }}
+            title="Also forget the hand-corrected footprints saved for this address"
+          >
+            {forgetCorrections.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Brain className="h-3.5 w-3.5" />
+            )}
+            Forget corrections
+          </button>
+
+          <button
+            onClick={() => measureAll.mutate({})}
             disabled={measureAll.isPending || pins.filter((p) => p.kind !== "ignore").length === 0}
             className="btn-brand inline-flex h-10 items-center gap-2 rounded-md px-5 text-xs font-semibold disabled:opacity-40"
           >
@@ -1388,7 +1468,38 @@ export function SolarRoofTab({
         </div>
       </div>
 
+      {/* Saved-correction / learned-calibration status */}
+      {measureSource === "corrected" && (
+        <div
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 text-xs"
+          style={{
+            borderColor: "color-mix(in oklab, var(--brand) 35%, transparent)",
+            background: "color-mix(in oklab, var(--brand) 8%, var(--bg-card))",
+          }}
+        >
+          <span className="inline-flex items-center gap-2 font-semibold text-foreground">
+            <Brain className="h-4 w-4" /> Using your saved correction for this roof
+          </span>
+          <button
+            onClick={() => measureAll.mutate({ forceRaw: true })}
+            disabled={measureAll.isPending}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 font-semibold text-foreground hover:bg-[var(--surface-hover)] disabled:opacity-40"
+            style={{ borderColor: "var(--border)" }}
+          >
+            {measureAll.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+            Re-run raw AI instead
+          </button>
+        </div>
+      )}
+      {measureSource === "ai" && calibrationInfo && calibrationInfo.samples >= 3 && (
+        <div className="text-xs text-muted-foreground">
+          Learned calibration applied: {calibrationInfo.factor}x from {calibrationInfo.samples} saved
+          corrections. Turn it off in AI settings.
+        </div>
+      )}
+
       {/* No-coverage empty state — shown when Google Solar has no building data here */}
+
       {noCoverage && (
         <div
           className="flex flex-wrap items-start justify-between gap-3 rounded-xl border p-4"
@@ -1413,7 +1524,7 @@ export function SolarRoofTab({
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => measureAll.mutate()}
+              onClick={() => measureAll.mutate({})}
               disabled={measureAll.isPending}
               className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs text-foreground hover:bg-[var(--surface-hover)] disabled:opacity-40"
               style={{ borderColor: "var(--border)" }}
@@ -1890,7 +2001,7 @@ export function SolarRoofTab({
             </h4>
             {pins.some((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0) && (
               <button
-                onClick={() => measureAll.mutate()}
+                onClick={() => measureAll.mutate({})}
                 disabled={measureAll.isPending}
                 className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-white/5 disabled:opacity-40"
                 style={{ borderColor: "var(--border)" }}

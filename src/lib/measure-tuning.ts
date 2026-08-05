@@ -17,6 +17,8 @@ export type MeasureTuning = {
   max_facet_radius_ft: number;
   /** Lowest imagery quality allowed. HIGH = strictest, LOW = most permissive. */
   imagery_quality: "HIGH" | "MEDIUM" | "LOW";
+  /** Apply the area calibration learned from saved corrections. */
+  use_calibration: boolean;
 };
 
 export const DEFAULT_MEASURE_TUNING: MeasureTuning = {
@@ -26,6 +28,7 @@ export const DEFAULT_MEASURE_TUNING: MeasureTuning = {
   min_facet_sqft: 25,
   max_facet_radius_ft: 150,
   imagery_quality: "LOW",
+  use_calibration: true,
 };
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -58,6 +61,7 @@ export function normalizeTuning(raw: unknown): MeasureTuning {
       TUNING_BOUNDS.max_facet_radius_ft.max,
     ),
     imagery_quality: q === "HIGH" || q === "MEDIUM" || q === "LOW" ? q : DEFAULT_MEASURE_TUNING.imagery_quality,
+    use_calibration: t.use_calibration !== false,
   };
 }
 
