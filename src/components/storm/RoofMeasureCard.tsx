@@ -7,7 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { autoMeasurePropertyRoof } from "@/lib/auto-measure.functions";
 import { ensureStormProperty } from "@/lib/storm-mailer.functions";
 import { roofMathFromPlan, PITCH_FACTOR, WASTE_FACTOR, type RoofMath } from "@/lib/storm-config";
-import { FootprintOverlayEditor, type EditableFootprint } from "@/components/roof/FootprintOverlayEditor";
+import {
+  FootprintOverlayEditor,
+  type EditableFootprint,
+} from "@/components/roof/FootprintOverlayEditor";
 import { polygonAreaSqft } from "@/lib/roof-math";
 
 const EPS = 0.00008; // ~9 m box for matching a clicked roof to a saved property
@@ -33,13 +36,20 @@ type Props = {
 
 const fmt = (n: number) => Math.round(n).toLocaleString();
 
-export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange, onSections, map }: Props) {
+export function RoofMeasureCard({
+  lat,
+  lng,
+  address,
+  footprint = null,
+  onChange,
+  onSections,
+  map,
+}: Props) {
   const qc = useQueryClient();
   const key = ["storm-roof", lat.toFixed(5), lng.toFixed(5)];
 
   const measureFn = useServerFn(autoMeasurePropertyRoof);
   const ensureFn = useServerFn(ensureStormProperty);
-
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: key,
@@ -78,11 +88,7 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
     0,
   );
   const planEstimated = planSqft <= 0 && !!data?.measurement;
-  const math = data?.measurement
-    ? planSqft > 0
-      ? roofMathFromPlan(planSqft)
-      : null
-    : null;
+  const math = data?.measurement ? (planSqft > 0 ? roofMathFromPlan(planSqft) : null) : null;
   const editableFootprints: EditableFootprint[] = (data?.sections ?? []).flatMap((section: any) => {
     const ring = section.polygon_geojson?.coordinates?.[0];
     return Array.isArray(ring) && ring.length >= 3
@@ -91,31 +97,49 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
   });
 
   const updateEditableFootprints = (next: EditableFootprint[]) => {
-    onSections(next.map((item) => ({
-      type: "Feature",
-      geometry: { type: "Polygon", coordinates: [item.ring] },
-      properties: { id: item.id, color: "#facc15" },
-    })));
-    qc.setQueryData(key, (current: any) => current ? {
-      ...current,
-      sections: current.sections.map((section: any) => {
-        const edited = next.find((item) => item.id === section.id);
-        return edited ? { ...section, plan_area_sqft: polygonAreaSqft(edited.ring), polygon_geojson: { type: "Polygon", coordinates: [edited.ring] } } : section;
-      }),
-    } : current);
+    onSections(
+      next.map((item) => ({
+        type: "Feature",
+        geometry: { type: "Polygon", coordinates: [item.ring] },
+        properties: { id: item.id, color: "#facc15" },
+      })),
+    );
+    qc.setQueryData(key, (current: any) =>
+      current
+        ? {
+            ...current,
+            sections: current.sections.map((section: any) => {
+              const edited = next.find((item) => item.id === section.id);
+              return edited
+                ? {
+                    ...section,
+                    plan_area_sqft: polygonAreaSqft(edited.ring),
+                    polygon_geojson: { type: "Polygon", coordinates: [edited.ring] },
+                  }
+                : section;
+            }),
+          }
+        : current,
+    );
   };
 
   const saveEditableFootprints = async (next: EditableFootprint[]) => {
     for (const item of next) {
-      const { error: sectionError } = await supabase.from("roof_sections").update({
-        polygon_geojson: { type: "Polygon", coordinates: [item.ring] },
-        plan_area_sqft: polygonAreaSqft(item.ring),
-      }).eq("id", item.id);
+      const { error: sectionError } = await supabase
+        .from("roof_sections")
+        .update({
+          polygon_geojson: { type: "Polygon", coordinates: [item.ring] },
+          plan_area_sqft: polygonAreaSqft(item.ring),
+        })
+        .eq("id", item.id);
       if (sectionError) throw sectionError;
     }
     const total = Math.round(next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0));
     if (data?.measurement?.id) {
-      const { error: measurementError } = await supabase.from("roof_measurements").update({ total_area_sqft: total }).eq("id", data.measurement.id);
+      const { error: measurementError } = await supabase
+        .from("roof_measurements")
+        .update({ total_area_sqft: total })
+        .eq("id", data.measurement.id);
       if (measurementError) throw measurementError;
     }
     const { data: session } = await supabase.auth.getSession();
@@ -124,7 +148,12 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
       lat,
       lng,
       source: "vertex_edit",
-      ground_truth: { footprints: next, total_plan_sqft: total, property_id: data?.property?.id ?? null, workflow: "storm_intelligence" },
+      ground_truth: {
+        footprints: next,
+        total_plan_sqft: total,
+        property_id: data?.property?.id ?? null,
+        workflow: "storm_intelligence",
+      },
       solar_response: { ai_footprints: next.map((item) => item.originalRing ?? item.ring) },
       notes: "Storm Intelligence exterior footprint correction",
       created_by: session.session?.user.id ?? null,
@@ -196,7 +225,10 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
       )}
 
       {!!error && !isLoading && (
-        <div className="flex items-center justify-between gap-2 text-[11px]" style={{ color: "var(--danger)" }}>
+        <div
+          className="flex items-center justify-between gap-2 text-[11px]"
+          style={{ color: "var(--danger)" }}
+        >
           <span className="flex items-center gap-1.5">
             <AlertTriangle className="h-3 w-3" /> Could not load measurement
           </span>
@@ -209,8 +241,8 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
       {!isLoading && !error && !data?.measurement && (
         <>
           <p className="mb-2 text-[11px] opacity-75">
-            No measurement saved for this roof yet. Running one uses a paid aerial lookup, so it only
-            happens when you ask for it.
+            No measurement saved for this roof yet. Running one uses a paid aerial lookup, so it
+            only happens when you ask for it.
           </p>
           <button
             type="button"
@@ -219,7 +251,11 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
             className="flex w-full items-center justify-center gap-1.5 rounded-md px-2 py-2 text-xs font-semibold disabled:opacity-60"
             style={{ background: "var(--success)", color: "#fff" }}
           >
-            {measure.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ruler className="h-3.5 w-3.5" />}
+            {measure.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Ruler className="h-3.5 w-3.5" />
+            )}
             {measure.isPending ? "Measuring…" : "Measure this roof"}
           </button>
           {measure.isPending && (
@@ -229,12 +265,19 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
           )}
 
           {measure.isError && (
-            <div className="mt-2 flex items-center justify-between gap-2 text-[11px]" style={{ color: "var(--danger)" }}>
+            <div
+              className="mt-2 flex items-center justify-between gap-2 text-[11px]"
+              style={{ color: "var(--danger)" }}
+            >
               <span className="flex items-center gap-1.5">
                 <AlertTriangle className="h-3 w-3" />
                 {(measure.error as Error).message}
               </span>
-              <button type="button" onClick={() => measure.mutate(false)} className="flex items-center gap-1 underline">
+              <button
+                type="button"
+                onClick={() => measure.mutate(false)}
+                className="flex items-center gap-1 underline"
+              >
                 <RefreshCw className="h-3 w-3" /> Retry
               </button>
             </div>
@@ -247,8 +290,14 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
           {math ? (
             <>
               <Row label="Footprint" value={`${fmt(math.planSqft)} sq ft`} />
-              <Row label={`+ ${Math.round((PITCH_FACTOR - 1) * 100)}% pitch`} value={`${fmt(math.pitchedSqft)} sq ft`} />
-              <Row label={`+ ${Math.round((WASTE_FACTOR - 1) * 100)}% waste`} value={`${fmt(math.finalSqft)} sq ft`} />
+              <Row
+                label={`+ ${Math.round((PITCH_FACTOR - 1) * 100)}% pitch`}
+                value={`${fmt(math.pitchedSqft)} sq ft`}
+              />
+              <Row
+                label={`+ ${Math.round((WASTE_FACTOR - 1) * 100)}% waste`}
+                value={`${fmt(math.finalSqft)} sq ft`}
+              />
               <div
                 className="mt-1 flex items-center justify-between border-t pt-1 text-xs font-semibold text-foreground"
                 style={{ borderColor: "var(--border)" }}
@@ -257,7 +306,8 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
                 <span className="font-mono">{math.squares.toFixed(1)} squares</span>
               </div>
               <p className="pt-1 text-[10px] opacity-60">
-                {(data.sections ?? []).length} facet(s) · pitch {data.measurement.predominant_pitch ?? "—"}
+                {(data.sections ?? []).length} facet(s) · pitch{" "}
+                {data.measurement.predominant_pitch ?? "—"}
               </p>
             </>
           ) : (
@@ -267,8 +317,8 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
                 value={`${fmt(Number(data.measurement.total_area_sqft ?? 0))} sq ft`}
               />
               <p className="pt-1 text-[10px]" style={{ color: "var(--warning)" }}>
-                This measurement has no per-facet footprint data, so the pitch and waste breakdown cannot
-                be recomputed from the footprint.
+                This measurement has no per-facet footprint data, so the pitch and waste breakdown
+                cannot be recomputed from the footprint.
               </p>
             </>
           )}
@@ -295,7 +345,6 @@ export function RoofMeasureCard({ lat, lng, address, footprint = null, onChange,
           />
         </div>
       )}
-
     </section>
   );
 }

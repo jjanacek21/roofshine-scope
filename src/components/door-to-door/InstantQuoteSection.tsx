@@ -1,36 +1,51 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { Calculator, Home, Save, Check, Sparkles, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { PitchSelector } from '@/components/shared/PitchSelector';
-import { GoodBetterBestCards } from './GoodBetterBestCards';
+import { useState, useEffect, useCallback, useRef } from "react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { Calculator, Home, Save, Check, Sparkles, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { PitchSelector } from "@/components/shared/PitchSelector";
+import { GoodBetterBestCards } from "./GoodBetterBestCards";
+import { COMPLEXITY_OPTIONS, type PitchBucket, type ComplexityLevel } from "@/lib/roofMeasurements";
 import {
-  COMPLEXITY_OPTIONS,
-  type PitchBucket,
-  type ComplexityLevel,
-} from '@/lib/roofMeasurements';
-import { buildMeasurement, buildGBB, type SystemType, type TierPricing, type MeasurementSummary } from '@/lib/d2d-gbb';
-import { cn } from '@/lib/utils';
-import { useMapboxToken } from '@/hooks/useMapboxToken';
-import { FootprintOverlayEditor, type EditableFootprint } from '@/components/roof/FootprintOverlayEditor';
-import { polygonAreaSqft } from '@/lib/roof-math';
+  buildMeasurement,
+  buildGBB,
+  type SystemType,
+  type TierPricing,
+  type MeasurementSummary,
+} from "@/lib/d2d-gbb";
+import { cn } from "@/lib/utils";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
+import {
+  FootprintOverlayEditor,
+  type EditableFootprint,
+} from "@/components/roof/FootprintOverlayEditor";
+import { polygonAreaSqft } from "@/lib/roof-math";
 
 interface InstantQuoteSectionProps {
   propertyId?: string;
   lat: number;
   lng: number;
   address?: string;
-  initialMeasurement?: { baseSqFt?: number; squares?: number; pitchBucket?: PitchBucket; complexity?: ComplexityLevel } | null;
+  initialMeasurement?: {
+    baseSqFt?: number;
+    squares?: number;
+    pitchBucket?: PitchBucket;
+    complexity?: ComplexityLevel;
+  } | null;
   initialSystem?: SystemType | null;
-  initialTier?: 'good' | 'better' | 'best' | null;
-  onPackageSelect?: (pkg: TierPricing, tier: 'good' | 'better' | 'best', measurement: MeasurementSummary, system: SystemType) => void;
+  initialTier?: "good" | "better" | "best" | null;
+  onPackageSelect?: (
+    pkg: TierPricing,
+    tier: "good" | "better" | "best",
+    measurement: MeasurementSummary,
+    system: SystemType,
+  ) => void;
 }
 
 export function InstantQuoteSection({
@@ -43,11 +58,17 @@ export function InstantQuoteSection({
   initialTier,
   onPackageSelect,
 }: InstantQuoteSectionProps) {
-  const [baseSqFt, setBaseSqFt] = useState<string>(initialMeasurement?.baseSqFt ? String(initialMeasurement.baseSqFt) : '2000');
-  const [pitch, setPitch] = useState<PitchBucket>(initialMeasurement?.pitchBucket ?? 'standard');
-  const [complexity, setComplexity] = useState<ComplexityLevel>(initialMeasurement?.complexity ?? 'gable');
-  const [system, setSystem] = useState<SystemType>(initialSystem ?? 'shingle');
-  const [selectedTier, setSelectedTier] = useState<'good' | 'better' | 'best' | null>(initialTier ?? null);
+  const [baseSqFt, setBaseSqFt] = useState<string>(
+    initialMeasurement?.baseSqFt ? String(initialMeasurement.baseSqFt) : "2000",
+  );
+  const [pitch, setPitch] = useState<PitchBucket>(initialMeasurement?.pitchBucket ?? "standard");
+  const [complexity, setComplexity] = useState<ComplexityLevel>(
+    initialMeasurement?.complexity ?? "gable",
+  );
+  const [system, setSystem] = useState<SystemType>(initialSystem ?? "shingle");
+  const [selectedTier, setSelectedTier] = useState<"good" | "better" | "best" | null>(
+    initialTier ?? null,
+  );
   const [saving, setSaving] = useState(false);
   const [aiMeasuring, setAiMeasuring] = useState(false);
   const [aiSource, setAiSource] = useState<string | null>(null);
@@ -58,16 +79,17 @@ export function InstantQuoteSection({
   const { data: mapboxToken } = useMapboxToken();
 
   useEffect(() => {
-    if (!mapboxToken || !mapContainerRef.current || mapRef.current || footprints.length === 0) return;
+    if (!mapboxToken || !mapContainerRef.current || mapRef.current || footprints.length === 0)
+      return;
     mapboxgl.accessToken = mapboxToken;
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/satellite-streets-v12',
+      style: "mapbox://styles/mapbox/satellite-streets-v12",
       center: [lng, lat],
       zoom: 20,
       attributionControl: false,
     });
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), 'top-right');
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
     mapRef.current = map;
     setMapInstance(map);
     return () => {
@@ -79,55 +101,65 @@ export function InstantQuoteSection({
 
   const pitchStringToBucket = (p: string | null): PitchBucket | null => {
     if (!p) return null;
-    const rise = parseInt(p.split('/')[0] ?? '', 10);
+    const rise = parseInt(p.split("/")[0] ?? "", 10);
     if (Number.isNaN(rise)) return null;
-    if (rise <= 2) return 'flat';
-    if (rise <= 4) return 'low';
-    if (rise <= 6) return 'standard';
-    if (rise <= 8) return 'steep';
-    return 'verysteep';
+    if (rise <= 2) return "flat";
+    if (rise <= 4) return "low";
+    if (rise <= 6) return "standard";
+    if (rise <= 8) return "steep";
+    return "verysteep";
   };
 
   const handleAiMeasure = useCallback(async () => {
     if (lat == null || lng == null) {
-      toast.error('No coordinates on this property');
+      toast.error("No coordinates on this property");
       return;
     }
     setAiMeasuring(true);
     try {
       const { data: s } = await supabase.auth.getSession();
       const accessToken = s.session?.access_token;
-      if (!accessToken) throw new Error('Not authenticated');
-      const res = await fetch('/api/solar-roof-extract', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      if (!accessToken) throw new Error("Not authenticated");
+      const res = await fetch("/api/solar-roof-extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ lat, lng, property_id: propertyId }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (data?.error === 'no_coverage') {
-          toast.error('No aerial AI coverage here', {
-            description: 'Try entering the footprint manually.',
+        if (data?.error === "no_coverage") {
+          toast.error("No aerial AI coverage here", {
+            description: "Try entering the footprint manually.",
           });
         } else {
-          toast.error('AI measurement failed', { description: data?.message ?? data?.detail ?? `Status ${res.status}` });
+          toast.error("AI measurement failed", {
+            description: data?.message ?? data?.detail ?? `Status ${res.status}`,
+          });
         }
         return;
       }
       const sqft = Math.round(Number(data.total_plan_sqft ?? 0));
       if (sqft <= 0) {
-        toast.error('AI returned no roof area');
+        toast.error("AI returned no roof area");
         return;
       }
       setBaseSqFt(String(sqft));
-      const segmentRings = ((data.segments ?? []) as Array<{ ring?: number[][] }>).flatMap((segment, index) =>
-        Array.isArray(segment.ring) && segment.ring.length >= 3
-          ? [{ id: `d2d-${index}`, ring: segment.ring, originalRing: segment.ring }]
-          : [],
+      const segmentRings = ((data.segments ?? []) as Array<{ ring?: number[][] }>).flatMap(
+        (segment, index) =>
+          Array.isArray(segment.ring) && segment.ring.length >= 3
+            ? [{ id: `d2d-${index}`, ring: segment.ring, originalRing: segment.ring }]
+            : [],
       );
-      const exterior = Array.isArray(data.footprint) && data.footprint.length >= 3
-        ? [{ id: 'd2d-footprint', ring: data.footprint as number[][], originalRing: data.footprint as number[][] }]
-        : segmentRings;
+      const exterior =
+        Array.isArray(data.footprint) && data.footprint.length >= 3
+          ? [
+              {
+                id: "d2d-footprint",
+                ring: data.footprint as number[][],
+                originalRing: data.footprint as number[][],
+              },
+            ]
+          : segmentRings;
       setFootprints(exterior);
       // Derive predominant pitch bucket from segments
       const segs = (data.segments ?? []) as Array<{ pitch: string; plan_area_sqft: number }>;
@@ -136,12 +168,14 @@ export function InstantQuoteSection({
       const dominant = Object.entries(totals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
       const bucket = pitchStringToBucket(dominant);
       if (bucket) setPitch(bucket);
-      setAiSource(`Google Solar AI · ${data.imagery_quality ?? data.used_quality ?? ''}`.trim());
+      setAiSource(`Google Solar AI · ${data.imagery_quality ?? data.used_quality ?? ""}`.trim());
       toast.success(`Measured ${sqft.toLocaleString()} sq ft via AI`, {
         description: dominant ? `Predominant pitch ${dominant}` : undefined,
       });
     } catch (e) {
-      toast.error('AI measurement failed', { description: e instanceof Error ? e.message : 'Unknown error' });
+      toast.error("AI measurement failed", {
+        description: e instanceof Error ? e.message : "Unknown error",
+      });
     } finally {
       setAiMeasuring(false);
     }
@@ -149,59 +183,82 @@ export function InstantQuoteSection({
 
   const updateFootprints = useCallback((next: EditableFootprint[]) => {
     setFootprints(next);
-    setBaseSqFt(String(Math.round(next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0))));
+    setBaseSqFt(
+      String(Math.round(next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0))),
+    );
   }, []);
 
-  const saveFootprints = useCallback(async (next: EditableFootprint[]) => {
-    const area = Math.round(next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0));
-    if (propertyId) {
-      const { error } = await supabase.from('property_dispositions').update({
-        measurement: { ...buildMeasurement(area, pitch, complexity), baseSqFt: area, footprints: next, corrected_at: new Date().toISOString() } as any,
-      }).eq('id', propertyId);
-      if (error) throw error;
-    }
-    const { data: session } = await supabase.auth.getSession();
-    const { error: trainingError } = await supabase.from('training_examples').insert({
-      address: address ?? `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-      lat,
-      lng,
-      source: 'vertex_edit',
-      ground_truth: { footprints: next, total_plan_sqft: area, property_disposition_id: propertyId ?? null, workflow: 'door_to_door' },
-      solar_response: { ai_footprints: next.map((item) => item.originalRing ?? item.ring) },
-      notes: 'Door-to-Door exterior footprint correction',
-      created_by: session.session?.user.id ?? null,
-    });
-    if (trainingError) throw trainingError;
-    toast.success('Corrections saved to AI training');
-  }, [address, complexity, lat, lng, pitch, propertyId]);
+  const saveFootprints = useCallback(
+    async (next: EditableFootprint[]) => {
+      const area = Math.round(next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0));
+      if (propertyId) {
+        const { error } = await supabase
+          .from("property_dispositions")
+          .update({
+            measurement: {
+              ...buildMeasurement(area, pitch, complexity),
+              baseSqFt: area,
+              footprints: next,
+              corrected_at: new Date().toISOString(),
+            } as any,
+          })
+          .eq("id", propertyId);
+        if (error) throw error;
+      }
+      const { data: session } = await supabase.auth.getSession();
+      const { error: trainingError } = await supabase.from("training_examples").insert({
+        address: address ?? `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        lat,
+        lng,
+        source: "vertex_edit",
+        ground_truth: {
+          footprints: next,
+          total_plan_sqft: area,
+          property_disposition_id: propertyId ?? null,
+          workflow: "door_to_door",
+        },
+        solar_response: { ai_footprints: next.map((item) => item.originalRing ?? item.ring) },
+        notes: "Door-to-Door exterior footprint correction",
+        created_by: session.session?.user.id ?? null,
+      });
+      if (trainingError) throw trainingError;
+      toast.success("Corrections saved to AI training");
+    },
+    [address, complexity, lat, lng, pitch, propertyId],
+  );
 
-  const baseNum = Math.max(0, parseInt(baseSqFt || '0', 10) || 0);
+  const baseNum = Math.max(0, parseInt(baseSqFt || "0", 10) || 0);
   const measurement = buildMeasurement(baseNum, pitch, complexity);
   const pricing = baseNum > 0 ? buildGBB(measurement.squares, system) : null;
 
-  const handlePackageSelect = useCallback(async (pkg: TierPricing, tier: 'good' | 'better' | 'best') => {
-    setSelectedTier(tier);
-    if (onPackageSelect) onPackageSelect(pkg, tier, measurement, system);
+  const handlePackageSelect = useCallback(
+    async (pkg: TierPricing, tier: "good" | "better" | "best") => {
+      setSelectedTier(tier);
+      if (onPackageSelect) onPackageSelect(pkg, tier, measurement, system);
 
-    if (propertyId) {
-      setSaving(true);
-      const { error } = await supabase
-        .from('property_dispositions')
-        .update({
-          measurement: measurement as any,
-          selected_system_type: system,
-          selected_tier: tier,
-          selected_quote: pkg as any,
-        })
-        .eq('id', propertyId);
-      setSaving(false);
-      if (error) {
-        toast.error('Could not save quote', { description: error.message });
-      } else {
-        toast.success(`${pkg.packageName} selected`, { description: `$${pkg.totalLow.toLocaleString()} – $${pkg.totalHigh.toLocaleString()}` });
+      if (propertyId) {
+        setSaving(true);
+        const { error } = await supabase
+          .from("property_dispositions")
+          .update({
+            measurement: measurement as any,
+            selected_system_type: system,
+            selected_tier: tier,
+            selected_quote: pkg as any,
+          })
+          .eq("id", propertyId);
+        setSaving(false);
+        if (error) {
+          toast.error("Could not save quote", { description: error.message });
+        } else {
+          toast.success(`${pkg.packageName} selected`, {
+            description: `$${pkg.totalLow.toLocaleString()} – $${pkg.totalHigh.toLocaleString()}`,
+          });
+        }
       }
-    }
-  }, [measurement, propertyId, system, onPackageSelect]);
+    },
+    [measurement, propertyId, system, onPackageSelect],
+  );
 
   // Reset selection when system changes
   useEffect(() => {
@@ -226,16 +283,21 @@ export function InstantQuoteSection({
               disabled={aiMeasuring || lat == null || lng == null}
               className="h-7 gap-1.5 text-xs"
             >
-              {aiMeasuring ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-primary" />}
-              {aiMeasuring ? 'Measuring…' : 'Auto-Measure with AI'}
+              {aiMeasuring ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Sparkles className="w-3 h-3 text-primary" />
+              )}
+              {aiMeasuring ? "Measuring…" : "Auto-Measure with AI"}
             </Button>
           </div>
-          {aiSource && (
-            <p className="text-[10px] text-muted-foreground -mt-1">{aiSource}</p>
-          )}
+          {aiSource && <p className="text-[10px] text-muted-foreground -mt-1">{aiSource}</p>}
           {footprints.length > 0 && (
             <div className="space-y-2">
-              <div ref={mapContainerRef} className="h-56 w-full overflow-hidden rounded-md border border-border" />
+              <div
+                ref={mapContainerRef}
+                className="h-56 w-full overflow-hidden rounded-md border border-border"
+              />
               <FootprintOverlayEditor
                 map={mapInstance}
                 footprints={footprints}
@@ -281,23 +343,36 @@ export function InstantQuoteSection({
                   type="button"
                   onClick={() => setComplexity(option.id as ComplexityLevel)}
                   className={cn(
-                    'flex flex-col items-center p-2 rounded-lg border-2 transition-all',
+                    "flex flex-col items-center p-2 rounded-lg border-2 transition-all",
                     complexity === option.id
-                      ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
-                      : 'border-muted bg-background hover:bg-muted/50',
+                      ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                      : "border-muted bg-background hover:bg-muted/50",
                   )}
                 >
-                  <span className="text-xs font-medium text-center leading-tight">{option.label.split(' ')[0]}</span>
-                  <span className="text-[10px] text-muted-foreground">+{Math.round(option.wastePct * 100)}%</span>
+                  <span className="text-xs font-medium text-center leading-tight">
+                    {option.label.split(" ")[0]}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    +{Math.round(option.wastePct * 100)}%
+                  </span>
                 </button>
               ))}
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2 text-xs pt-2 border-t">
-            <div><span className="text-muted-foreground">Base:</span> <span className="font-mono">{baseNum.toLocaleString()}</span></div>
-            <div><span className="text-muted-foreground">Pitch:</span> <span className="font-mono">{measurement.trueSqft.toLocaleString()}</span></div>
-            <div><span className="text-muted-foreground">+Waste:</span> <span className="font-mono">{measurement.totalWithWaste.toLocaleString()}</span></div>
+            <div>
+              <span className="text-muted-foreground">Base:</span>{" "}
+              <span className="font-mono">{baseNum.toLocaleString()}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Pitch:</span>{" "}
+              <span className="font-mono">{measurement.trueSqft.toLocaleString()}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">+Waste:</span>{" "}
+              <span className="font-mono">{measurement.totalWithWaste.toLocaleString()}</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -325,8 +400,12 @@ export function InstantQuoteSection({
 
       {selectedTier && (
         <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-          {saving ? <Save className="w-3 h-3 animate-pulse" /> : <Check className="w-3 h-3 text-green-600" />}
-          {saving ? 'Saving…' : 'Quote saved to property'}
+          {saving ? (
+            <Save className="w-3 h-3 animate-pulse" />
+          ) : (
+            <Check className="w-3 h-3 text-green-600" />
+          )}
+          {saving ? "Saving…" : "Quote saved to property"}
         </div>
       )}
     </div>

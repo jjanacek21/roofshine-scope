@@ -3,7 +3,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useServerFn } from "@tanstack/react-start";
-import { Sparkles, MapPin, Loader2, RotateCcw, Save, Check, ChevronsUpDown, FileDown } from "lucide-react";
+import {
+  Sparkles,
+  MapPin,
+  Loader2,
+  RotateCcw,
+  Save,
+  Check,
+  ChevronsUpDown,
+  FileDown,
+} from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
@@ -11,11 +20,21 @@ import { useLeads } from "@/hooks/useLeads";
 import { fmtNum } from "@/lib/leads";
 import { analyzeRoofWithAI } from "@/lib/lead-ai.functions";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { FootprintOverlayEditor, type EditableFootprint } from "@/components/roof/FootprintOverlayEditor";
+import {
+  FootprintOverlayEditor,
+  type EditableFootprint,
+} from "@/components/roof/FootprintOverlayEditor";
 import { polygonAreaSqft } from "@/lib/roof-math";
 
 export const Route = createFileRoute("/_app/leads/wizard")({
@@ -48,17 +67,56 @@ interface PlaceResult {
 
 // US state name → 2-letter code, for normalizing messy CSV imports.
 const US_STATE_CODES: Record<string, string> = {
-  alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA",
-  colorado: "CO", connecticut: "CT", delaware: "DE", "district of columbia": "DC",
-  florida: "FL", georgia: "GA", hawaii: "HI", idaho: "ID", illinois: "IL",
-  indiana: "IN", iowa: "IA", kansas: "KS", kentucky: "KY", louisiana: "LA",
-  maine: "ME", maryland: "MD", massachusetts: "MA", michigan: "MI", minnesota: "MN",
-  mississippi: "MS", missouri: "MO", montana: "MT", nebraska: "NE", nevada: "NV",
-  "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
-  "north carolina": "NC", "north dakota": "ND", ohio: "OH", oklahoma: "OK",
-  oregon: "OR", pennsylvania: "PA", "rhode island": "RI", "south carolina": "SC",
-  "south dakota": "SD", tennessee: "TN", texas: "TX", utah: "UT", vermont: "VT",
-  virginia: "VA", washington: "WA", "west virginia": "WV", wisconsin: "WI",
+  alabama: "AL",
+  alaska: "AK",
+  arizona: "AZ",
+  arkansas: "AR",
+  california: "CA",
+  colorado: "CO",
+  connecticut: "CT",
+  delaware: "DE",
+  "district of columbia": "DC",
+  florida: "FL",
+  georgia: "GA",
+  hawaii: "HI",
+  idaho: "ID",
+  illinois: "IL",
+  indiana: "IN",
+  iowa: "IA",
+  kansas: "KS",
+  kentucky: "KY",
+  louisiana: "LA",
+  maine: "ME",
+  maryland: "MD",
+  massachusetts: "MA",
+  michigan: "MI",
+  minnesota: "MN",
+  mississippi: "MS",
+  missouri: "MO",
+  montana: "MT",
+  nebraska: "NE",
+  nevada: "NV",
+  "new hampshire": "NH",
+  "new jersey": "NJ",
+  "new mexico": "NM",
+  "new york": "NY",
+  "north carolina": "NC",
+  "north dakota": "ND",
+  ohio: "OH",
+  oklahoma: "OK",
+  oregon: "OR",
+  pennsylvania: "PA",
+  "rhode island": "RI",
+  "south carolina": "SC",
+  "south dakota": "SD",
+  tennessee: "TN",
+  texas: "TX",
+  utah: "UT",
+  vermont: "VT",
+  virginia: "VA",
+  washington: "WA",
+  "west virginia": "WV",
+  wisconsin: "WI",
   wyoming: "WY",
 };
 
@@ -87,7 +145,10 @@ function normZip(s: string | null | undefined): string {
 // know about these and they routinely cause "no match" results.
 function stripUnit(street: string): string {
   return street
-    .replace(/\b(apt|apartment|unit|ste|suite|#|no\.?|number|fl|floor|bldg|building|lot|trlr|trailer|rm|room)\s*\.?\s*\S+/gi, "")
+    .replace(
+      /\b(apt|apartment|unit|ste|suite|#|no\.?|number|fl|floor|bldg|building|lot|trlr|trailer|rm|room)\s*\.?\s*\S+/gi,
+      "",
+    )
     .replace(/\s+#\S+/g, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -103,9 +164,7 @@ function formatAddressForGeocoding(parts: {
   const city = clean(parts.city);
   const state = normState(parts.state);
   const zip = normZip(parts.zip);
-  const cityStateZip = [city, [state, zip].filter(Boolean).join(" ")]
-    .filter(Boolean)
-    .join(", ");
+  const cityStateZip = [city, [state, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   return [street, cityStateZip, "USA"].filter(Boolean).join(", ");
 }
 
@@ -121,7 +180,9 @@ function AIRoofWizard() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pins, setPins] = useState<Pin[]>([]);
   const [measurements, setMeasurements] = useState<Measurements | null>(null);
-  const [pinStatus, setPinStatus] = useState<Record<string, { status: "pending" | "ok" | "error"; sqft?: number; message?: string }>>({});
+  const [pinStatus, setPinStatus] = useState<
+    Record<string, { status: "pending" | "ok" | "error"; sqft?: number; message?: string }>
+  >({});
   const [analysis, setAnalysis] = useState<string>("");
   const [analysisImage, setAnalysisImage] = useState<string>("");
   const [loading, setLoading] = useState<"none" | "measure" | "analyze">("none");
@@ -181,7 +242,11 @@ function AIRoofWizard() {
     mapRef.current = map;
     setMapInstance(map);
     return () => {
-      try { map.remove(); } catch { /* noop */ }
+      try {
+        map.remove();
+      } catch {
+        /* noop */
+      }
       mapRef.current = null;
       setMapInstance(null);
     };
@@ -197,13 +262,16 @@ function AIRoofWizard() {
         map.flyTo({ center: [lng, lat], zoom, essential: true });
       } catch (err) {
         console.warn("flyTo failed", err);
-        try { map.jumpTo({ center: [lng, lat], zoom }); } catch { /* noop */ }
+        try {
+          map.jumpTo({ center: [lng, lat], zoom });
+        } catch {
+          /* noop */
+        }
       }
     };
     if (map.isStyleLoaded()) go();
     else map.once("load", go);
   }
-
 
   // Debounced Mapbox forward-geocode for the search input
   useEffect(() => {
@@ -367,11 +435,17 @@ function AIRoofWizard() {
       const accessToken = sessionData.session?.access_token;
       if (!accessToken) throw new Error("Please sign in again to get measurements.");
 
-      const targets = pins.length > 0 ? pins : [{ id: "selected", lat: center.lat, lng: center.lng }];
+      const targets =
+        pins.length > 0 ? pins : [{ id: "selected", lat: center.lat, lng: center.lng }];
       const results: Measurements[] = [];
       const failures: string[] = [];
-      const nextStatus: Record<string, { status: "pending" | "ok" | "error"; sqft?: number; message?: string }> = {};
-      targets.forEach((t) => { nextStatus[t.id] = { status: "pending" }; });
+      const nextStatus: Record<
+        string,
+        { status: "pending" | "ok" | "error"; sqft?: number; message?: string }
+      > = {};
+      targets.forEach((t) => {
+        nextStatus[t.id] = { status: "pending" };
+      });
       setPinStatus(nextStatus);
 
       for (const target of targets) {
@@ -381,7 +455,11 @@ function AIRoofWizard() {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ lat: target.lat, lng: target.lng, property_id: selectedLeadId || undefined }),
+          body: JSON.stringify({
+            lat: target.lat,
+            lng: target.lng,
+            property_id: selectedLeadId || undefined,
+          }),
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
@@ -390,23 +468,44 @@ function AIRoofWizard() {
           setPinStatus((prev) => ({ ...prev, [target.id]: { status: "error", message: msg } }));
           continue;
         }
-        const rawSegments = (payload.segments ?? []) as Array<{ pitch_degrees?: number; azimuth_degrees?: number; plan_area_sqft?: number; ring?: number[][] }>;
+        const rawSegments = (payload.segments ?? []) as Array<{
+          pitch_degrees?: number;
+          azimuth_degrees?: number;
+          plan_area_sqft?: number;
+          ring?: number[][];
+        }>;
         const segments = rawSegments.map((segment) => ({
           pitch: Number(segment.pitch_degrees ?? 0),
           azimuth: Number(segment.azimuth_degrees ?? 0),
           area_sqft: Number(segment.plan_area_sqft ?? 0),
         }));
-        const avgPitch = segments.length > 0
-          ? segments.reduce((sum, segment) => sum + segment.pitch, 0) / segments.length
-          : 0;
+        const avgPitch =
+          segments.length > 0
+            ? segments.reduce((sum, segment) => sum + segment.pitch, 0) / segments.length
+            : 0;
         const totalSqft = Number(payload.total_plan_sqft ?? 0);
         const responseRings = rawSegments
           .filter((segment) => Array.isArray(segment.ring) && (segment.ring?.length ?? 0) >= 3)
-          .map((segment, index) => ({ id: `${target.id}-${index}`, ring: segment.ring ?? [], originalRing: segment.ring ?? [] }));
-        const footprintRing = Array.isArray(payload.footprint) && payload.footprint.length >= 3
-          ? [{ id: target.id, ring: payload.footprint as number[][], originalRing: payload.footprint as number[][] }]
-          : responseRings;
-        setPins((current) => current.map((pin) => pin.id === target.id ? { ...pin, footprints: footprintRing } : pin));
+          .map((segment, index) => ({
+            id: `${target.id}-${index}`,
+            ring: segment.ring ?? [],
+            originalRing: segment.ring ?? [],
+          }));
+        const footprintRing =
+          Array.isArray(payload.footprint) && payload.footprint.length >= 3
+            ? [
+                {
+                  id: target.id,
+                  ring: payload.footprint as number[][],
+                  originalRing: payload.footprint as number[][],
+                },
+              ]
+            : responseRings;
+        setPins((current) =>
+          current.map((pin) =>
+            pin.id === target.id ? { ...pin, footprints: footprintRing } : pin,
+          ),
+        );
         results.push({
           total_sqft: totalSqft,
           sun_hours_per_year: Number(payload.max_sunshine_hours_per_year ?? 0),
@@ -425,9 +524,10 @@ function AIRoofWizard() {
       const merged: Measurements = {
         total_sqft: results.reduce((sum, result) => sum + result.total_sqft, 0),
         sun_hours_per_year: Math.max(...results.map((result) => result.sun_hours_per_year)),
-        avg_pitch: allSegments.length > 0
-          ? allSegments.reduce((sum, segment) => sum + segment.pitch, 0) / allSegments.length
-          : 0,
+        avg_pitch:
+          allSegments.length > 0
+            ? allSegments.reduce((sum, segment) => sum + segment.pitch, 0) / allSegments.length
+            : 0,
         segments: allSegments,
       };
       setMeasurements(merged);
@@ -450,7 +550,7 @@ function AIRoofWizard() {
                 sun_hours_per_year: Math.round(merged.sun_hours_per_year),
                 avg_pitch: Number(merged.avg_pitch.toFixed(2)),
                 segment_count: merged.segments.length,
-                 pins: pins.map((p) => ({ lat: p.lat, lng: p.lng, footprints: p.footprints ?? [] })),
+                pins: pins.map((p) => ({ lat: p.lat, lng: p.lng, footprints: p.footprints ?? [] })),
                 generated_at: new Date().toISOString(),
               },
             },
@@ -468,7 +568,11 @@ function AIRoofWizard() {
           qc.invalidateQueries({ queryKey: ["lead-activities", selectedLeadId] });
         }
       }
-      toast.success(failures.length > 0 ? `Measurements ready for ${results.length} pin${results.length === 1 ? "" : "s"}` : "Measurements ready");
+      toast.success(
+        failures.length > 0
+          ? `Measurements ready for ${results.length} pin${results.length === 1 ? "" : "s"}`
+          : "Measurements ready",
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to measure");
     } finally {
@@ -478,11 +582,20 @@ function AIRoofWizard() {
 
   const footprints = pins.flatMap((pin) => pin.footprints ?? []);
   const updateFootprints = (next: EditableFootprint[]) => {
-    setPins((current) => current.map((pin) => {
-      const ids = new Set((pin.footprints ?? []).map((item) => item.id));
-      return { ...pin, footprints: next.filter((item) => ids.has(item.id)) };
-    }));
-    setMeasurements((current) => current ? { ...current, total_sqft: next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0) } : current);
+    setPins((current) =>
+      current.map((pin) => {
+        const ids = new Set((pin.footprints ?? []).map((item) => item.id));
+        return { ...pin, footprints: next.filter((item) => ids.has(item.id)) };
+      }),
+    );
+    setMeasurements((current) =>
+      current
+        ? {
+            ...current,
+            total_sqft: next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0),
+          }
+        : current,
+    );
   };
 
   async function saveFootprintCorrections(next: EditableFootprint[]) {
@@ -490,13 +603,28 @@ function AIRoofWizard() {
       toast.success("Footprint updated for this report");
       return;
     }
-    const { data: existing } = await supabase.from("leads").select("ai_report").eq("id", selectedLeadId).single();
+    const { data: existing } = await supabase
+      .from("leads")
+      .select("ai_report")
+      .eq("id", selectedLeadId)
+      .single();
     const report = (existing?.ai_report as Record<string, any> | null) ?? {};
     const totalSqft = Math.round(next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0));
-    const { error } = await supabase.from("leads").update({
-      sqft: totalSqft,
-      ai_report: { ...report, measurements: { ...(report.measurements ?? {}), total_sqft: totalSqft, footprints: next, corrected_at: new Date().toISOString() } },
-    }).eq("id", selectedLeadId);
+    const { error } = await supabase
+      .from("leads")
+      .update({
+        sqft: totalSqft,
+        ai_report: {
+          ...report,
+          measurements: {
+            ...(report.measurements ?? {}),
+            total_sqft: totalSqft,
+            footprints: next,
+            corrected_at: new Date().toISOString(),
+          },
+        },
+      })
+      .eq("id", selectedLeadId);
     if (error) throw error;
     const { data: session } = await supabase.auth.getSession();
     await supabase.from("training_examples").insert({
@@ -504,7 +632,12 @@ function AIRoofWizard() {
       lat: center?.lat ?? null,
       lng: center?.lng ?? null,
       source: "vertex_edit",
-      ground_truth: { footprints: next, total_plan_sqft: totalSqft, lead_id: selectedLeadId, workflow: "roof_king_report" },
+      ground_truth: {
+        footprints: next,
+        total_plan_sqft: totalSqft,
+        lead_id: selectedLeadId,
+        workflow: "roof_king_report",
+      },
       solar_response: { ai_footprints: next.map((item) => item.originalRing ?? item.ring) },
       notes: "User-corrected exterior roof footprint",
       created_by: session.session?.user.id ?? null,
@@ -600,7 +733,10 @@ function AIRoofWizard() {
       }
 
       if (analysis) {
-        if (y > 680) { doc.addPage(); y = 56; }
+        if (y > 680) {
+          doc.addPage();
+          y = 56;
+        }
         doc.setFont("helvetica", "bold");
         doc.setFontSize(13);
         doc.text("AI Vision Analysis", M, y);
@@ -609,13 +745,18 @@ function AIRoofWizard() {
         doc.setFontSize(10.5);
         const lines = doc.splitTextToSize(analysis, W - M * 2);
         for (const line of lines) {
-          if (y > 740) { doc.addPage(); y = 56; }
+          if (y > 740) {
+            doc.addPage();
+            y = 56;
+          }
           doc.text(line, M, y);
           y += 13;
         }
       }
 
-      const safe = (selectedLead?.address ?? "ai-roof-report").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+      const safe = (selectedLead?.address ?? "ai-roof-report")
+        .replace(/[^a-z0-9]+/gi, "-")
+        .toLowerCase();
       const blob = doc.output("blob");
       const url = URL.createObjectURL(blob);
       const win = window.open(url, "_blank", "noopener,noreferrer");
@@ -636,13 +777,15 @@ function AIRoofWizard() {
           .from("lead-reports")
           .upload(path, blob, { contentType: "application/pdf", upsert: false });
         if (!upErr) {
-          await supabase.from("lead_reports").insert([{
-            lead_id: selectedLeadId,
-            company_id: selectedLead.company_id,
-            kind: "ai_roof",
-            name: `AI Roof Report — ${selectedLead.address}`,
-            pdf_path: path,
-          }]);
+          await supabase.from("lead_reports").insert([
+            {
+              lead_id: selectedLeadId,
+              company_id: selectedLead.company_id,
+              kind: "ai_roof",
+              name: `AI Roof Report — ${selectedLead.address}`,
+              pdf_path: path,
+            },
+          ]);
           await supabase.from("lead_activities").insert({
             lead_id: selectedLeadId,
             type: "report_generated",
@@ -660,7 +803,8 @@ function AIRoofWizard() {
     }
   }
 
-  const triggerLabel = selectedLead?.address ?? manualPlace?.label ?? "Search any address or pick a lead…";
+  const triggerLabel =
+    selectedLead?.address ?? manualPlace?.label ?? "Search any address or pick a lead…";
 
   return (
     <div className="space-y-5">
@@ -697,7 +841,12 @@ function AIRoofWizard() {
                   className="flex w-full items-center justify-between rounded-md border bg-[var(--bg-elevated)] px-2 py-1.5 text-left text-sm"
                   style={{ borderColor: "var(--border)" }}
                 >
-                  <span className={cn("truncate", !selectedLead && !manualPlace && "text-[var(--text-dim)]")}>
+                  <span
+                    className={cn(
+                      "truncate",
+                      !selectedLead && !manualPlace && "text-[var(--text-dim)]",
+                    )}
+                  >
                     {triggerLabel}
                   </span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -745,7 +894,8 @@ function AIRoofWizard() {
                           .filter((l) => {
                             const q = searchInput.trim().toLowerCase();
                             if (!q) return true;
-                            const hay = `${l.address ?? ""} ${l.owner ?? ""} ${l.reported_owner ?? ""} ${l.city ?? ""}`.toLowerCase();
+                            const hay =
+                              `${l.address ?? ""} ${l.owner ?? ""} ${l.reported_owner ?? ""} ${l.city ?? ""}`.toLowerCase();
                             return hay.includes(q);
                           })
                           .slice(0, 25)
@@ -771,7 +921,7 @@ function AIRoofWizard() {
                                 <div className="min-w-0 flex-1">
                                   <div className="truncate text-sm">{l.address}</div>
                                   <div className="truncate text-xs text-[var(--text-dim)]">
-                                    {(l.owner ?? l.reported_owner ?? "Unknown owner")}
+                                    {l.owner ?? l.reported_owner ?? "Unknown owner"}
                                     {l.city ? ` · ${l.city}, ${l.state ?? ""}` : ""}
                                     {!hasCoords ? " · no coords" : ""}
                                   </div>
@@ -787,7 +937,8 @@ function AIRoofWizard() {
             </Popover>
             {selectedLead && (
               <div className="mt-2 text-xs text-[var(--text-dim)]">
-                {selectedLead.city}, {selectedLead.state} · {fmtNum(selectedLead.sqft)} sq ft on file
+                {selectedLead.city}, {selectedLead.state} · {fmtNum(selectedLead.sqft)} sq ft on
+                file
               </div>
             )}
             {!selectedLead && manualPlace && (
@@ -817,7 +968,10 @@ function AIRoofWizard() {
               {pins.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => { setPins([]); setPinStatus({}); }}
+                  onClick={() => {
+                    setPins([]);
+                    setPinStatus({});
+                  }}
                   className="flex items-center gap-1 text-[11px] text-[var(--text-dim)] hover:text-foreground"
                 >
                   <RotateCcw className="h-3 w-3" /> Clear
@@ -833,25 +987,30 @@ function AIRoofWizard() {
               <ul className="space-y-1.5 text-xs">
                 {pins.map((p, i) => {
                   const st = pinStatus[p.id];
-                  const dot = st?.status === "ok"
-                    ? "bg-emerald-500"
-                    : st?.status === "error"
-                    ? "bg-red-500"
-                    : st?.status === "pending"
-                    ? "bg-amber-400 animate-pulse"
-                    : "bg-[var(--border)]";
-                  const label = st?.status === "ok"
-                    ? `${fmtNum(Math.round(st.sqft ?? 0))} sqft`
-                    : st?.status === "error"
-                    ? "Error"
-                    : st?.status === "pending"
-                    ? "Measuring…"
-                    : "Not measured";
+                  const dot =
+                    st?.status === "ok"
+                      ? "bg-emerald-500"
+                      : st?.status === "error"
+                        ? "bg-red-500"
+                        : st?.status === "pending"
+                          ? "bg-amber-400 animate-pulse"
+                          : "bg-[var(--border)]";
+                  const label =
+                    st?.status === "ok"
+                      ? `${fmtNum(Math.round(st.sqft ?? 0))} sqft`
+                      : st?.status === "error"
+                        ? "Error"
+                        : st?.status === "pending"
+                          ? "Measuring…"
+                          : "Not measured";
                   return (
                     <li
                       key={p.id}
                       className="flex items-center gap-2 rounded-md border px-2 py-1.5"
-                      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
+                      style={{
+                        borderColor: "var(--border)",
+                        backgroundColor: "var(--bg-elevated)",
+                      }}
                     >
                       <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
                       <button
@@ -872,7 +1031,11 @@ function AIRoofWizard() {
                         type="button"
                         onClick={() => {
                           setPins((prev) => prev.filter((x) => x.id !== p.id));
-                          setPinStatus((prev) => { const n = { ...prev }; delete n[p.id]; return n; });
+                          setPinStatus((prev) => {
+                            const n = { ...prev };
+                            delete n[p.id];
+                            return n;
+                          });
                         }}
                         className="text-[var(--text-dim)] hover:text-foreground"
                         aria-label="Remove pin"
@@ -894,7 +1057,11 @@ function AIRoofWizard() {
               className="flex h-10 w-full items-center justify-center gap-2 rounded-md border text-sm font-semibold disabled:opacity-40"
               style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
             >
-              {loading === "measure" ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
+              {loading === "measure" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MapPin className="h-4 w-4" />
+              )}
               Get measurements
             </button>
             <button
@@ -903,7 +1070,11 @@ function AIRoofWizard() {
               disabled={loading !== "none" || !center}
               className="btn-brand flex h-10 w-full items-center justify-center gap-2 rounded-md text-sm font-semibold disabled:opacity-40"
             >
-              {loading === "analyze" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {loading === "analyze" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
               Run AI analysis
             </button>
             <button
@@ -946,8 +1117,14 @@ function AIRoofWizard() {
                 Google Solar — Building Insights
               </p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Stat label="Total roof" value={`${fmtNum(Math.round(measurements.total_sqft))} sqft`} />
-                <Stat label="Sun hours / yr" value={fmtNum(Math.round(measurements.sun_hours_per_year))} />
+                <Stat
+                  label="Total roof"
+                  value={`${fmtNum(Math.round(measurements.total_sqft))} sqft`}
+                />
+                <Stat
+                  label="Sun hours / yr"
+                  value={fmtNum(Math.round(measurements.sun_hours_per_year))}
+                />
                 <Stat label="Avg pitch" value={`${measurements.avg_pitch.toFixed(1)}°`} />
                 <Stat label="Segments" value={fmtNum(measurements.segments.length)} />
               </div>
@@ -971,7 +1148,9 @@ function AIRoofWizard() {
                     style={{ borderColor: "var(--border)" }}
                   />
                 )}
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{analysis}</p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                  {analysis}
+                </p>
               </div>
             </div>
           )}

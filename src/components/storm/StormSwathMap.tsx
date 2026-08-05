@@ -12,7 +12,6 @@ import { HOUSE_CIRCLE_MIN_ZOOM } from "@/lib/storm-config";
 import { RoofMeasureCard, type MeasureSnapshot } from "@/components/storm/RoofMeasureCard";
 import { StormMailerModal } from "@/components/storm/StormMailerModal";
 
-
 type FC = { type: "FeatureCollection"; features: any[] };
 const EMPTY_FC: FC = { type: "FeatureCollection", features: [] };
 
@@ -43,7 +42,6 @@ const WIND_BANDS: { band: string; label: string; color: string; min: number; max
 // Satellite imagery is what canvassers need — they identify the actual roof.
 const SAFE_BASE_STYLE = "mapbox://styles/mapbox/satellite-streets-v12";
 
-
 type SearchPoint = {
   lng: number;
   lat: number;
@@ -56,7 +54,12 @@ type Bbox = { minLon: number; minLat: number; maxLon: number; maxLat: number };
 type StormReport = {
   max_hail_in: number | null;
   max_wind_mph: number | null;
-  hail_dates: { date: string; size_in: number | null; band?: string | null; color?: string | null }[];
+  hail_dates: {
+    date: string;
+    size_in: number | null;
+    band?: string | null;
+    color?: string | null;
+  }[];
   wind_dates: {
     date: string;
     wind_mph: number | null;
@@ -73,8 +76,9 @@ interface Props {
 }
 
 function escapeHtml(v: unknown) {
-  return String(v ?? "").replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
+  return String(v ?? "").replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
   );
 }
 
@@ -87,16 +91,20 @@ function fmtDate(d?: string | null) {
 
 function toCsv(rows: Record<string, any>[]) {
   if (rows.length === 0) return "";
-  const headers = Array.from(rows.reduce<Set<string>>((set, r) => {
-    Object.keys(r).forEach((k) => set.add(k));
-    return set;
-  }, new Set()));
+  const headers = Array.from(
+    rows.reduce<Set<string>>((set, r) => {
+      Object.keys(r).forEach((k) => set.add(k));
+      return set;
+    }, new Set()),
+  );
   const cell = (v: any) => {
     if (v == null) return "";
     const s = typeof v === "object" ? JSON.stringify(v) : String(v);
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  return [headers.join(","), ...rows.map((r) => headers.map((h) => cell(r[h])).join(","))].join("\r\n");
+  return [headers.join(","), ...rows.map((r) => headers.map((h) => cell(r[h])).join(","))].join(
+    "\r\n",
+  );
 }
 
 export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props) {
@@ -130,8 +138,6 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const [measure, setMeasure] = useState<MeasureSnapshot | null>(null);
   const [facets, setFacets] = useState<any[]>([]);
   const [mailerOpen, setMailerOpen] = useState(false);
-
-
 
   const days = rangeDays(rangeKey);
   const hailDays = Math.min(days, HAIL_MAX_DAYS);
@@ -214,12 +220,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   // The point RPC misses swath coverage in some areas, so derive hail for the
   // panel from the same swath layer the map paints, using a tiny bbox at the point.
   const { data: pointHail = [] } = useQuery({
-    queryKey: [
-      "storm-point-hail",
-      point?.lat?.toFixed(4),
-      point?.lng?.toFixed(4),
-      HAIL_MAX_DAYS,
-    ],
+    queryKey: ["storm-point-hail", point?.lat?.toFixed(4), point?.lng?.toFixed(4), HAIL_MAX_DAYS],
     enabled: !!point,
     staleTime: 60 * 1000,
     queryFn: async () => {
@@ -257,16 +258,19 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   // Merge swath-derived hail into the point report (swaths win when present).
   const mergedReport = useMemo<StormReport | null>(() => {
     if (!report && pointHail.length === 0) return report ?? null;
-    const base: StormReport =
-      report ?? { max_hail_in: null, max_wind_mph: null, hail_dates: [], wind_dates: [] };
-    const hailDates = pointHail.length > 0 ? pointHail : base.hail_dates ?? [];
+    const base: StormReport = report ?? {
+      max_hail_in: null,
+      max_wind_mph: null,
+      hail_dates: [],
+      wind_dates: [],
+    };
+    const hailDates = pointHail.length > 0 ? pointHail : (base.hail_dates ?? []);
     const maxHail = hailDates.reduce<number | null>(
       (m, h) => (h.size_in != null && (m == null || h.size_in > m) ? h.size_in : m),
       base.max_hail_in ?? null,
     );
     return { ...base, hail_dates: hailDates, max_hail_in: maxHail };
   }, [report, pointHail]);
-
 
   // Reverse-geocode the selected house so the panel shows a real street address.
   const { data: resolvedAddress } = useQuery({
@@ -297,8 +301,6 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
 
   const pointLabel = resolvedAddress?.full || point?.label || "";
 
-
-
   const { data: savedRows = [], isFetching: savedLoading } = useQuery({
     queryKey: ["storm-saved-dispositions"],
     enabled: savedOpen && !!user,
@@ -325,13 +327,21 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       watchdogRef.current = null;
       if (readyTimerRef.current) clearTimeout(readyTimerRef.current);
       readyTimerRef.current = null;
-      try { roRef.current?.disconnect(); } catch { /* noop */ }
+      try {
+        roRef.current?.disconnect();
+      } catch {
+        /* noop */
+      }
       roRef.current = null;
       markerRef.current?.remove();
       markerRef.current = null;
       swathPopupRef.current?.remove();
       swathPopupRef.current = null;
-      try { mapRef.current?.remove(); } catch { /* noop */ }
+      try {
+        mapRef.current?.remove();
+      } catch {
+        /* noop */
+      }
       mapRef.current = null;
       readyRef.current = false;
       setStyleReady(false);
@@ -413,7 +423,10 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           if (!geom || (geom.type !== "Polygon" && geom.type !== "MultiPolygon")) continue;
           const rings: number[][][] =
             geom.type === "Polygon" ? geom.coordinates : geom.coordinates.flat();
-          let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+          let minLng = Infinity,
+            minLat = Infinity,
+            maxLng = -Infinity,
+            maxLat = -Infinity;
           for (const ring of rings) {
             for (const [x, y] of ring) {
               if (x < minLng) minLng = x;
@@ -446,7 +459,9 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         let footprint: [number, number, number, number] | null = null;
         try {
           footprint = JSON.parse(String((f.properties as any)?.bbox ?? "null"));
-        } catch { /* noop */ }
+        } catch {
+          /* noop */
+        }
         setPointRef.current?.({
           lng,
           lat,
@@ -457,10 +472,6 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       });
       map.on("mouseenter", "house-pins-layer", () => (map.getCanvas().style.cursor = "pointer"));
       map.on("mouseleave", "house-pins-layer", () => (map.getCanvas().style.cursor = ""));
-
-
-
-
 
       for (const key of ["hail", "wind"] as const) {
         addLyr({
@@ -504,7 +515,6 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       map.on("mouseenter", "house-footprints", () => (map.getCanvas().style.cursor = "pointer"));
       map.on("mouseleave", "house-footprints", () => (map.getCanvas().style.cursor = ""));
 
-
       for (const layer of ["hail-fill", "wind-fill"]) {
         map.on("click", layer, (e) => {
           const f = e.features?.[0];
@@ -536,7 +546,10 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           const geom: any = houseFeats[0].geometry;
           const rings: number[][][] =
             geom?.type === "Polygon" ? geom.coordinates : (geom?.coordinates ?? []).flat();
-          let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+          let minLng = Infinity,
+            minLat = Infinity,
+            maxLng = -Infinity,
+            maxLat = -Infinity;
           for (const ring of rings) {
             for (const [x, y] of ring) {
               if (x < minLng) minLng = x;
@@ -562,7 +575,6 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           label: `${e.lngLat.lat.toFixed(5)}, ${e.lngLat.lng.toFixed(5)}`,
         });
       });
-
 
       map.on("moveend", () => publishBounds(map));
 
@@ -598,11 +610,21 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       map.addControl(new mapboxgl.ScaleControl({ unit: "imperial" }), "bottom-right");
 
       const ro = new ResizeObserver(() => {
-        try { map.resize(); } catch { /* noop */ }
+        try {
+          map.resize();
+        } catch {
+          /* noop */
+        }
       });
       ro.observe(c);
       roRef.current = ro;
-      requestAnimationFrame(() => { try { map.resize(); } catch { /* noop */ } });
+      requestAnimationFrame(() => {
+        try {
+          map.resize();
+        } catch {
+          /* noop */
+        }
+      });
 
       map.on("error", (e: any) => console.error("[StormMap] map error:", e?.error ?? e));
 
@@ -625,7 +647,9 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           if (readyRef.current) return;
           try {
             if (map.isStyleLoaded() || map.loaded()) markReady();
-          } catch { /* noop */ }
+          } catch {
+            /* noop */
+          }
         }, MAP_READY_TIMEOUT_MS);
       };
 
@@ -704,7 +728,6 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
       features: point ? facets : [],
     } as any);
   }, [facets, point, styleReady]);
-
 
   // ---- marker for the active point ------------------------------------
   useEffect(() => {
@@ -829,7 +852,11 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           style={{ borderColor: "var(--border)", color: "var(--text)" }}
         >
           {RANGE_OPTIONS.map((r) => (
-            <option key={r.key} value={r.key} style={{ background: "var(--bg-card)", color: "var(--text)" }}>
+            <option
+              key={r.key}
+              value={r.key}
+              style={{ background: "var(--bg-card)", color: "var(--text)" }}
+            >
               {r.label}
             </option>
           ))}
@@ -842,11 +869,19 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
 
         <div className="flex items-center gap-3 pt-1">
           <label className="flex items-center gap-1.5">
-            <input type="checkbox" checked={showHail} onChange={(e) => setShowHail(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={showHail}
+              onChange={(e) => setShowHail(e.target.checked)}
+            />
             Hail
           </label>
           <label className="flex items-center gap-1.5">
-            <input type="checkbox" checked={showWind} onChange={(e) => setShowWind(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={showWind}
+              onChange={(e) => setShowWind(e.target.checked)}
+            />
             Wind
           </label>
           {dataLoading && <Loader2 className="ml-auto h-3 w-3 animate-spin" />}
@@ -920,7 +955,6 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
             </button>
           </div>
 
-
           {reportLoading && (
             <div className="flex items-center gap-2">
               <Loader2 className="h-3 w-3 animate-spin" /> Loading storm history…
@@ -930,8 +964,14 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           {!reportLoading && mergedReport && (
             <>
               <div className="flex gap-3 font-mono text-foreground">
-                <span>Max hail: {mergedReport.max_hail_in != null ? `${mergedReport.max_hail_in}"` : "—"}</span>
-                <span>Max wind: {mergedReport.max_wind_mph != null ? `${mergedReport.max_wind_mph} mph` : "—"}</span>
+                <span>
+                  Max hail:{" "}
+                  {mergedReport.max_hail_in != null ? `${mergedReport.max_hail_in}"` : "—"}
+                </span>
+                <span>
+                  Max wind:{" "}
+                  {mergedReport.max_wind_mph != null ? `${mergedReport.max_wind_mph} mph` : "—"}
+                </span>
               </div>
 
               <div>
@@ -947,7 +987,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
                       />
                       <span className="flex-1">{fmtDate(h.date)}</span>
                       <span className="font-mono text-foreground">
-                        {h.size_in != null ? `${h.size_in}"` : h.band ?? ""}
+                        {h.size_in != null ? `${h.size_in}"` : (h.band ?? "")}
                       </span>
                     </div>
                   ))
@@ -1001,7 +1041,11 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
                 className="mt-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold"
                 style={{ background: "var(--success)", color: "#fff" }}
               >
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {saving ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Save className="h-3.5 w-3.5" />
+                )}
                 Save as storm damage lead
               </button>
               <button
@@ -1031,7 +1075,6 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         />
       )}
 
-
       {/* Saved properties panel */}
       {savedOpen && (
         <div
@@ -1045,14 +1088,14 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           <div className="flex items-center gap-2">
             <span className="flex-1 text-xs font-semibold text-foreground">Saved properties</span>
             {user ? (
-            <button
-              type="button"
-              onClick={handleExportCsv}
-              className="flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold text-foreground"
-              style={{ borderColor: "var(--border)" }}
-            >
-              <Download className="h-3 w-3" /> Export CSV
-            </button>
+              <button
+                type="button"
+                onClick={handleExportCsv}
+                className="flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold text-foreground"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <Download className="h-3 w-3" /> Export CSV
+              </button>
             ) : (
               <span className="text-[11px] opacity-70">Sign in to save leads</span>
             )}
@@ -1086,7 +1129,11 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
         >
           <div
             className="flex items-center gap-3 rounded-full border px-4 py-2 text-xs font-semibold shadow-lg"
-            style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)", color: "var(--danger)" }}
+            style={{
+              borderColor: "var(--border)",
+              backgroundColor: "var(--bg-card)",
+              color: "var(--danger)",
+            }}
           >
             <span>{initError}</span>
             <button
