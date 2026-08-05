@@ -448,6 +448,8 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
 
         return Response.json({
           run_id: runId,
+          source: "ai",
+          calibration: { factor: cal, samples: calibration.samples },
           imagery_quality: data.imageryQuality ?? success.usedQuality,
           imagery_date: data.imageryDate ?? null,
           total_plan_sqft: totalPlanSqFt,
