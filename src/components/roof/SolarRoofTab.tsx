@@ -1415,7 +1415,7 @@ export function SolarRoofTab({
             Clear all measurements
           </button>
           <button
-            onClick={() => measureAll.mutate()}
+            onClick={() => measureAll.mutate({})}
             disabled={measureAll.isPending || pins.filter((p) => p.kind !== "ignore").length === 0}
             className="btn-brand inline-flex h-10 items-center gap-2 rounded-md px-5 text-xs font-semibold disabled:opacity-40"
           >
@@ -1454,7 +1454,7 @@ export function SolarRoofTab({
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => measureAll.mutate()}
+              onClick={() => measureAll.mutate({})}
               disabled={measureAll.isPending}
               className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs text-foreground hover:bg-[var(--surface-hover)] disabled:opacity-40"
               style={{ borderColor: "var(--border)" }}
@@ -1931,7 +1931,7 @@ export function SolarRoofTab({
             </h4>
             {pins.some((p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) === 0) && (
               <button
-                onClick={() => measureAll.mutate()}
+                onClick={() => measureAll.mutate({})}
                 disabled={measureAll.isPending}
                 className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-white/5 disabled:opacity-40"
                 style={{ borderColor: "var(--border)" }}
