@@ -411,45 +411,17 @@ function BusinessInfoTab({
         </Field>
       </div>
 
-      <div className="rounded-lg border border-border bg-muted/20 p-4">
-        <div className="flex items-center gap-4">
-          {form.logo_url ? (
-            <img
-              src={form.logo_url}
-              alt="Company logo"
-              className="h-16 w-16 rounded-md bg-white object-contain p-1"
-            />
-          ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-md border border-dashed border-border text-xs text-muted-foreground">
-              No logo
-            </div>
-          )}
-          <div className="flex-1">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-accent">
-              <Upload className="h-4 w-4" />
-              {uploading ? "Uploading…" : "Upload logo"}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) uploadLogo(f);
-                }}
-              />
-            </label>
-            <input
-              className="field-input mt-2"
-              placeholder="…or paste a logo URL"
-              value={form.logo_url}
-              onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
-            />
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Used on this company's estimates, reports, invoices and contracts.
-            </p>
-          </div>
-        </div>
-      </div>
+      <CompanyLogoUploader
+        companyId={company.id}
+        userId={userId}
+        value={form.logo_url || null}
+        onChange={async (url) => {
+          setForm((f) => ({ ...f, logo_url: url ?? "" }));
+          await onSave({ logo_url: url });
+          toast.success(url ? "Logo saved" : "Logo removed");
+        }}
+      />
+
 
       <button
         type="submit"
