@@ -966,7 +966,10 @@ export function SolarRoofTab({
    * building outline, so what comes back already tiles the roof — we just keep
    * the outline for the Mapbox hand-off.
    */
-  async function measurePinAt(pin: Pin): Promise<{ ok: boolean; reason?: string }> {
+  async function measurePinAt(
+    pin: Pin,
+    opts?: { forceRaw?: boolean },
+  ): Promise<{ ok: boolean; reason?: string }> {
     const { data: s } = await supabase.auth.getSession();
     const accessToken = s.session?.access_token;
     if (!accessToken) return { ok: false, reason: "Not authenticated" };
@@ -979,6 +982,7 @@ export function SolarRoofTab({
         property_id: propertyId ?? undefined,
         job_id: jobId ?? undefined,
         tuning: tuningRef.current,
+        force_raw: opts?.forceRaw === true,
       }),
     });
     if (!r.ok) {
@@ -994,6 +998,8 @@ export function SolarRoofTab({
     const data = (await r.json()) as SolarResponse;
     if (!data.segments?.length) return { ok: false, reason: "No structure detected here" };
 
+    setMeasureSource(data.source ?? "ai");
+    setCalibrationInfo(data.calibration ?? null);
     setImageryQuality(data.imagery_quality);
     setEstimatedPitch(Boolean(data.pitch_estimated));
 
