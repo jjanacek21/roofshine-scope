@@ -295,7 +295,7 @@ function BusinessInfoTab({
     license_numbers: (company.license_numbers ?? []).join(", "),
   });
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  
 
   async function save(e: FormEvent) {
     e.preventDefault();
