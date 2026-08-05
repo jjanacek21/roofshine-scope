@@ -218,7 +218,10 @@ function CompanyTab() {
             .from("companies")
             .update({ logo_url: url })
             .eq("id", company.id);
-          if (error) return toast.error(error.message);
+          if (error) {
+            toast.error(error.message);
+            return;
+          }
           qc.invalidateQueries({ queryKey: ["company"] });
           qc.invalidateQueries({ queryKey: ["my-company"] });
           toast.success(url ? "Logo saved" : "Logo removed");
