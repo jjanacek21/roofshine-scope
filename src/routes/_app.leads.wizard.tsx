@@ -15,6 +15,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { FootprintOverlayEditor, type EditableFootprint } from "@/components/roof/FootprintOverlayEditor";
+import { polygonAreaSqft } from "@/lib/roof-math";
 
 export const Route = createFileRoute("/_app/leads/wizard")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -27,6 +29,7 @@ interface Pin {
   id: string;
   lat: number;
   lng: number;
+  footprints?: EditableFootprint[];
 }
 
 interface Measurements {
@@ -112,6 +115,7 @@ function AIRoofWizard() {
   const search = Route.useSearch();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const [mapInstance, setMapInstance] = useState<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const [selectedLeadId, setSelectedLeadId] = useState<string | "">("");
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -175,9 +179,11 @@ function AIRoofWizard() {
       ]);
     });
     mapRef.current = map;
+    setMapInstance(map);
     return () => {
       try { map.remove(); } catch { /* noop */ }
       mapRef.current = null;
+      setMapInstance(null);
     };
   }, [token]);
 
@@ -384,7 +390,8 @@ function AIRoofWizard() {
           setPinStatus((prev) => ({ ...prev, [target.id]: { status: "error", message: msg } }));
           continue;
         }
-        const segments = ((payload.segments ?? []) as Array<{ pitch_degrees?: number; azimuth_degrees?: number; plan_area_sqft?: number }>).map((segment) => ({
+        const rawSegments = (payload.segments ?? []) as Array<{ pitch_degrees?: number; azimuth_degrees?: number; plan_area_sqft?: number; ring?: number[][] }>;
+        const segments = rawSegments.map((segment) => ({
           pitch: Number(segment.pitch_degrees ?? 0),
           azimuth: Number(segment.azimuth_degrees ?? 0),
           area_sqft: Number(segment.plan_area_sqft ?? 0),
@@ -393,6 +400,13 @@ function AIRoofWizard() {
           ? segments.reduce((sum, segment) => sum + segment.pitch, 0) / segments.length
           : 0;
         const totalSqft = Number(payload.total_plan_sqft ?? 0);
+        const responseRings = rawSegments
+          .filter((segment) => Array.isArray(segment.ring) && (segment.ring?.length ?? 0) >= 3)
+          .map((segment, index) => ({ id: `${target.id}-${index}`, ring: segment.ring ?? [], originalRing: segment.ring ?? [] }));
+        const footprintRing = Array.isArray(payload.footprint) && payload.footprint.length >= 3
+          ? [{ id: target.id, ring: payload.footprint as number[][], originalRing: payload.footprint as number[][] }]
+          : responseRings;
+        setPins((current) => current.map((pin) => pin.id === target.id ? { ...pin, footprints: footprintRing } : pin));
         results.push({
           total_sqft: totalSqft,
           sun_hours_per_year: Number(payload.max_sunshine_hours_per_year ?? 0),
@@ -436,7 +450,7 @@ function AIRoofWizard() {
                 sun_hours_per_year: Math.round(merged.sun_hours_per_year),
                 avg_pitch: Number(merged.avg_pitch.toFixed(2)),
                 segment_count: merged.segments.length,
-                pins: pins.map((p) => ({ lat: p.lat, lng: p.lng })),
+                 pins: pins.map((p) => ({ lat: p.lat, lng: p.lng, footprints: p.footprints ?? [] })),
                 generated_at: new Date().toISOString(),
               },
             },
@@ -460,6 +474,43 @@ function AIRoofWizard() {
     } finally {
       setLoading("none");
     }
+  }
+
+  const footprints = pins.flatMap((pin) => pin.footprints ?? []);
+  const updateFootprints = (next: EditableFootprint[]) => {
+    setPins((current) => current.map((pin) => {
+      const ids = new Set((pin.footprints ?? []).map((item) => item.id));
+      return { ...pin, footprints: next.filter((item) => ids.has(item.id)) };
+    }));
+    setMeasurements((current) => current ? { ...current, total_sqft: next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0) } : current);
+  };
+
+  async function saveFootprintCorrections(next: EditableFootprint[]) {
+    if (!selectedLeadId) {
+      toast.success("Footprint updated for this report");
+      return;
+    }
+    const { data: existing } = await supabase.from("leads").select("ai_report").eq("id", selectedLeadId).single();
+    const report = (existing?.ai_report as Record<string, any> | null) ?? {};
+    const totalSqft = Math.round(next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0));
+    const { error } = await supabase.from("leads").update({
+      sqft: totalSqft,
+      ai_report: { ...report, measurements: { ...(report.measurements ?? {}), total_sqft: totalSqft, footprints: next, corrected_at: new Date().toISOString() } },
+    }).eq("id", selectedLeadId);
+    if (error) throw error;
+    const { data: session } = await supabase.auth.getSession();
+    await supabase.from("training_examples").insert({
+      address: selectedLead?.address ?? `${center?.lat ?? 0}, ${center?.lng ?? 0}`,
+      lat: center?.lat ?? null,
+      lng: center?.lng ?? null,
+      source: "vertex_edit",
+      ground_truth: { footprints: next, total_plan_sqft: totalSqft, lead_id: selectedLeadId, workflow: "roof_king_report" },
+      solar_response: { ai_footprints: next.map((item) => item.originalRing ?? item.ring) },
+      notes: "User-corrected exterior roof footprint",
+      created_by: session.session?.user.id ?? null,
+    });
+    await qc.invalidateQueries({ queryKey: ["lead", selectedLeadId] });
+    toast.success("Corrections saved to AI training");
   }
 
   async function runAnalysis() {
@@ -869,6 +920,13 @@ function AIRoofWizard() {
                 <Save className="h-3 w-3" /> Saved to lead automatically.
               </p>
             )}
+            <FootprintOverlayEditor
+              map={mapInstance}
+              footprints={footprints}
+              onChange={updateFootprints}
+              onSave={saveFootprintCorrections}
+              compact
+            />
           </div>
         </aside>
 
