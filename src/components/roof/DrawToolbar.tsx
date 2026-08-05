@@ -99,15 +99,16 @@ export function DrawToolbar({
         >
           {EDGE_TYPES.map((t) => {
             const isActive = activeEdge === t;
+            const key = SHORTCUTS[t];
             return (
               <button
                 key={t}
                 onClick={() => onChooseEdge(isActive ? null : t)}
-                title={EDGE_LABELS[t]}
-                className={`flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11px] transition ${
+                title={key ? `${EDGE_LABELS[t]} (${key.toUpperCase()})` : EDGE_LABELS[t]}
+                className={`flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium transition ${
                   isActive
-                    ? "border-white/40 bg-white/10 text-foreground"
-                    : "border-transparent text-foreground/80 hover:bg-white/10"
+                    ? "border-[var(--brand)] bg-[var(--brand)] text-white"
+                    : "border-transparent text-foreground/80 hover:bg-[var(--bg-hover)]"
                 }`}
               >
                 <span
@@ -115,9 +116,15 @@ export function DrawToolbar({
                   style={{ backgroundColor: EDGE_COLORS[t] }}
                 />
                 {EDGE_LABELS[t]}
+                {isActive && paintedCount > 0 && (
+                  <span className="ml-0.5 rounded bg-white/25 px-1 font-mono text-[10px]">
+                    {paintedCount}
+                  </span>
+                )}
               </button>
             );
           })}
+
           <div className="mx-1 h-5 w-px bg-white/15" />
           <button
             onClick={() => onChooseEdge(activeEdge === "clear" ? null : "clear")}
