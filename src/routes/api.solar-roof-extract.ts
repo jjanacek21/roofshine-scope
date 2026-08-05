@@ -94,6 +94,7 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
           property_id?: string;
           job_id?: string;
           tuning?: unknown;
+          force_raw?: boolean;
         };
         try {
           body = await request.json();
@@ -118,6 +119,66 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
         } catch {
           // ignore
         }
+
+        // Corrections memory: a saved hand-corrected footprint for this house
+        // beats anything the satellite fit can produce, so reuse it first.
+        const admin = SUPABASE_SERVICE_ROLE_KEY
+          ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+              auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+            })
+          : null;
+
+        let calibration = { factor: 1, samples: 0 };
+        if (admin) {
+          try {
+            if (!body.force_raw) {
+              const hit = await findNearbyCorrection(admin, {
+                lat,
+                lng,
+                companyId: callerCompanyId,
+                propertyId: property_id ?? null,
+              });
+              if (hit) {
+                const facets = hit.corrected_facets;
+                const total =
+                  Number(hit.corrected_plan_sqft) ||
+                  facets.reduce((s, f) => s + Number(f.plan_area_sqft || 0), 0);
+                const allPoints = facets.flatMap((f) => f.ring ?? []);
+                return Response.json({
+                  run_id: null,
+                  source: "corrected",
+                  correction_id: hit.id,
+                  correction_saved_at: hit.created_at,
+                  imagery_quality: null,
+                  imagery_date: null,
+                  total_plan_sqft: Math.round(total),
+                  pitch_estimated: false,
+                  facet_source: "saved_correction",
+                  max_sunshine_hours_per_year: 0,
+                  segment_count: facets.length,
+                  footprint: allPoints.length >= 3 ? facets[0].ring : [],
+                  footprint_source: "saved_correction",
+                  segments: facets.map((f, i) => ({
+                    index: i,
+                    name: `Facet ${i + 1}`,
+                    plan_area_sqft: f.plan_area_sqft,
+                    pitch: f.pitch,
+                    pitch_degrees: f.pitch_degrees,
+                    pitch_known: true,
+                    azimuth_degrees: 0,
+                    ring: f.ring,
+                    center: null,
+                  })),
+                  used_quality: "SAVED_CORRECTION",
+                });
+              }
+            }
+            calibration = await companyCalibration(admin, callerCompanyId);
+          } catch (err) {
+            console.error("roof_corrections lookup failed:", err);
+          }
+        }
+
 
         // Build attempt order: quality fallback at the original point, then
         // small offsets (~10 m) around the point at MEDIUM quality. This
