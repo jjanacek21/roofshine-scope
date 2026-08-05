@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { Calculator, Home, Save, Check, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,6 +18,9 @@ import {
 } from '@/lib/roofMeasurements';
 import { buildMeasurement, buildGBB, type SystemType, type TierPricing, type MeasurementSummary } from '@/lib/d2d-gbb';
 import { cn } from '@/lib/utils';
+import { useMapboxToken } from '@/hooks/useMapboxToken';
+import { FootprintOverlayEditor, type EditableFootprint } from '@/components/roof/FootprintOverlayEditor';
+import { polygonAreaSqft } from '@/lib/roof-math';
 
 interface InstantQuoteSectionProps {
   propertyId?: string;
@@ -45,6 +50,31 @@ export function InstantQuoteSection({
   const [saving, setSaving] = useState(false);
   const [aiMeasuring, setAiMeasuring] = useState(false);
   const [aiSource, setAiSource] = useState<string | null>(null);
+  const [footprints, setFootprints] = useState<EditableFootprint[]>([]);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const [mapInstance, setMapInstance] = useState<mapboxgl.Map | null>(null);
+  const { data: mapboxToken } = useMapboxToken();
+
+  useEffect(() => {
+    if (!mapboxToken || !mapContainerRef.current || mapRef.current || footprints.length === 0) return;
+    mapboxgl.accessToken = mapboxToken;
+    const map = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: 'mapbox://styles/mapbox/satellite-streets-v12',
+      center: [lng, lat],
+      zoom: 20,
+      attributionControl: false,
+    });
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), 'top-right');
+    mapRef.current = map;
+    setMapInstance(map);
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      setMapInstance(null);
+    };
+  }, [mapboxToken, lat, lng, footprints.length]);
 
   const pitchStringToBucket = (p: string | null): PitchBucket | null => {
     if (!p) return null;
@@ -89,6 +119,15 @@ export function InstantQuoteSection({
         return;
       }
       setBaseSqFt(String(sqft));
+      const segmentRings = ((data.segments ?? []) as Array<{ ring?: number[][] }>).flatMap((segment, index) =>
+        Array.isArray(segment.ring) && segment.ring.length >= 3
+          ? [{ id: `d2d-${index}`, ring: segment.ring, originalRing: segment.ring }]
+          : [],
+      );
+      const exterior = Array.isArray(data.footprint) && data.footprint.length >= 3
+        ? [{ id: 'd2d-footprint', ring: data.footprint as number[][], originalRing: data.footprint as number[][] }]
+        : segmentRings;
+      setFootprints(exterior);
       // Derive predominant pitch bucket from segments
       const segs = (data.segments ?? []) as Array<{ pitch: string; plan_area_sqft: number }>;
       const totals: Record<string, number> = {};
@@ -106,6 +145,34 @@ export function InstantQuoteSection({
       setAiMeasuring(false);
     }
   }, [lat, lng, propertyId]);
+
+  const updateFootprints = useCallback((next: EditableFootprint[]) => {
+    setFootprints(next);
+    setBaseSqFt(String(Math.round(next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0))));
+  }, []);
+
+  const saveFootprints = useCallback(async (next: EditableFootprint[]) => {
+    const area = Math.round(next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0));
+    if (propertyId) {
+      const { error } = await supabase.from('property_dispositions').update({
+        measurement: { ...measurement, baseSqFt: area, footprints: next, corrected_at: new Date().toISOString() } as any,
+      }).eq('id', propertyId);
+      if (error) throw error;
+    }
+    const { data: session } = await supabase.auth.getSession();
+    const { error: trainingError } = await supabase.from('training_examples').insert({
+      address: address ?? `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+      lat,
+      lng,
+      source: 'vertex_edit',
+      ground_truth: { footprints: next, total_plan_sqft: area, property_disposition_id: propertyId ?? null, workflow: 'door_to_door' },
+      solar_response: { ai_footprints: next.map((item) => item.originalRing ?? item.ring) },
+      notes: 'Door-to-Door exterior footprint correction',
+      created_by: session.session?.user.id ?? null,
+    });
+    if (trainingError) throw trainingError;
+    toast.success('Corrections saved to AI training');
+  }, [address, lat, lng, measurement, propertyId]);
 
   const baseNum = Math.max(0, parseInt(baseSqFt || '0', 10) || 0);
   const measurement = buildMeasurement(baseNum, pitch, complexity);
@@ -164,6 +231,18 @@ export function InstantQuoteSection({
           </div>
           {aiSource && (
             <p className="text-[10px] text-muted-foreground -mt-1">{aiSource}</p>
+          )}
+          {footprints.length > 0 && (
+            <div className="space-y-2">
+              <div ref={mapContainerRef} className="h-56 w-full overflow-hidden rounded-md border border-border" />
+              <FootprintOverlayEditor
+                map={mapInstance}
+                footprints={footprints}
+                onChange={updateFootprints}
+                onSave={saveFootprints}
+                compact
+              />
+            </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
