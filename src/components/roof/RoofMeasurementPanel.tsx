@@ -446,7 +446,7 @@ export function RoofMeasurementPanel({
       <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: "var(--border)" }}>
         {(Object.entries(TAB_LABELS) as [Tab, typeof TAB_LABELS[Tab]][]).map(([k, v]) => {
           const Icon = v.icon;
-          const disabled = (k === "mapbox" || k === "solar" || k === "condition") && !center;
+          const disabled = (k === "mapbox" || k === "solar") && !center;
           return (
             <button
               key={k}
@@ -505,13 +505,6 @@ export function RoofMeasurementPanel({
         <div className="rounded-xl border p-12 text-center text-sm text-muted-foreground" style={{ borderColor: "var(--border)" }}>
           Property has no coordinates — add an address first.
         </div>
-      )}
-      {tab === "condition" && (
-        <ConditionAITab
-          propertyId={propertyId}
-          center={center}
-          initial={existing?.ai_analysis as Record<string, unknown> | undefined}
-        />
       )}
       {tab === "report" && (
         <div className="rounded-xl border p-12 text-center text-sm text-muted-foreground" style={{ borderColor: "var(--border)" }}>
