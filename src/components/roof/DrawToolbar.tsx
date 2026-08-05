@@ -10,6 +10,7 @@ export function DrawToolbar({
   onClearAll,
   activeEdge,
   onChooseEdge,
+  paintedCount = 0,
 }: {
   active: Tool | null;
   onChoose: (t: Tool) => void;
@@ -17,6 +18,7 @@ export function DrawToolbar({
   onClearAll: () => void;
   activeEdge?: EdgeType | "clear" | null;
   onChooseEdge?: (e: EdgeType | "clear" | null) => void;
+  paintedCount?: number;
 }) {
   const tools: Array<{ key: Tool; label: string; Icon: typeof Pentagon }> = [
     { key: "polygon", label: "Polygon", Icon: Pentagon },
@@ -37,11 +39,12 @@ export function DrawToolbar({
             ? "Click to drop a penetration"
             : active === "label"
               ? activeEdge && activeEdge !== "clear"
-                ? `Painting ${EDGE_LABELS[activeEdge]} — click any segment to label it. Switch type anytime.`
+                ? `${EDGE_LABELS[activeEdge]} armed — keep clicking edges${paintedCount ? ` · ${paintedCount} labeled` : ""} · Esc to disarm`
                 : activeEdge === "clear"
-                  ? "Eraser active — click any labeled segment to clear it."
-                  : "Pick a type below, then click segments to paint that label."
+                  ? "Eraser armed — click any labeled segment to clear it. Esc to disarm."
+                  : "Pick a type below (or press E/R/V/H/I), then click every matching edge."
               : null;
+
 
   return (
     <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">
