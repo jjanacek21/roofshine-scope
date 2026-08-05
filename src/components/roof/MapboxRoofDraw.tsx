@@ -1136,7 +1136,11 @@ export function MapboxRoofDraw({
         unlabeledLines={unlabeledLines}
         onUnlabeledLineClick={(lineId) => {
           setActiveTool("label");
-          openLineLabelPrompt(lineId);
+          if (activeEdge !== null) {
+            applyWholeLineLabel(lineId, activeEdge === "clear" ? null : activeEdge);
+          } else {
+            openLineLabelPrompt(lineId);
+          }
         }}
       />
 
