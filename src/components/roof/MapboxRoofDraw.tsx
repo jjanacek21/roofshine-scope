@@ -511,6 +511,10 @@ export function MapboxRoofDraw({
         // Labeling lines is segment-based; the line-segs overlay handles clicks.
         // Deselect immediately so direct_select doesn't kick in and show midpoints.
         if (activeToolRef.current === "label") {
+          const ae = activeEdgeRef.current;
+          if (ae !== null && ae !== undefined) {
+            applyWholeLineLabelRef.current?.(String(selected.id), ae === "clear" ? null : ae);
+          }
           setTimeout(() => drawRef.current?.changeMode("simple_select"), 0);
         }
       } else if (selected.geometry?.type === "Point") {
@@ -518,6 +522,7 @@ export function MapboxRoofDraw({
           openPointLabelPromptRef.current?.(String(selected.id));
         }
       }
+
     });
 
     // ---- Vertex-only snapping while drawing interior lines ----
