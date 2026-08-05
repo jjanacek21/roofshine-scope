@@ -759,6 +759,16 @@ export function SolarRoofTab({
 
   /** Normalized facet list for a pin (falls back to its single ring). */
   function facetsOf(p: Pin): Facet[] {
+    // The instant-measurement editor intentionally exposes one exterior
+    // footprint, not Google's internal roof-face subdivision.
+    if (p.footprint && p.footprint.length >= 3) {
+      return [{
+        ring: p.footprint,
+        pitch: p.pitch,
+        plan_area_sqft: polygonAreaSqft(p.footprint),
+        pitch_degrees: pitchStringToDegrees(p.pitch),
+      }];
+    }
     if (p.facets && p.facets.length > 0) return p.facets;
     if (p.ring && p.ring.length >= 3) {
       return [{ ring: p.ring, pitch: p.pitch, plan_area_sqft: p.plan_area_sqft, pitch_degrees: pitchStringToDegrees(p.pitch) }];
@@ -786,6 +796,7 @@ export function SolarRoofTab({
     const total = nextFacets.reduce((s, ff) => s + ff.plan_area_sqft, 0);
     updatePin(pinId, {
       facets: nextFacets,
+      footprint: nextFacets.length === 1 ? nextFacets[0]?.ring : current.footprint,
       ring: nextFacets[facetIndex]?.ring ?? current.ring,
       plan_area_sqft: Math.round(total),
     });
