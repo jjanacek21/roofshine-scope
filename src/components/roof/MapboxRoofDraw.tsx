@@ -1110,7 +1110,11 @@ export function MapboxRoofDraw({
           onUndo={handleUndo}
           onClearAll={handleClearAll}
           activeEdge={activeEdge}
-          onChooseEdge={setActiveEdge}
+          onChooseEdge={(e) => {
+            setActiveEdge(e);
+            setPaintedCount(0);
+          }}
+          paintedCount={paintedCount}
         />
       </div>
 
