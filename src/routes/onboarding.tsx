@@ -9,7 +9,7 @@ import { ArrowRight, Building2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/onboarding")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { invite?: string; pending?: boolean } => ({
     invite: typeof search.invite === "string" ? search.invite : undefined,
     pending: search.pending === "1" || search.pending === 1 ? true : undefined,
   }),

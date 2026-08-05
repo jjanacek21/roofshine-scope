@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Building2, UserPlus, KeyRound } from "lucide-react";
 
 export const Route = createFileRoute("/signup")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { invite?: string } => ({
     invite: typeof search.invite === "string" ? search.invite : undefined,
   }),
   component: SignupPage,
