@@ -75,6 +75,10 @@ type SolarResponse = {
   footprint_source?: string;
   /** Pitch was assumed because Google had no roof data here. */
   pitch_estimated?: boolean;
+  /** "corrected" when a saved hand-corrected footprint was reused. */
+  source?: "ai" | "corrected";
+  correction_saved_at?: string | null;
+  calibration?: { factor: number; samples: number } | null;
 };
 
 
