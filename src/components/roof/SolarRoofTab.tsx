@@ -427,13 +427,40 @@ export function SolarRoofTab({
         created_by: userId,
       });
       if (error) throw error;
+
+      // Remember the corrected footprint for this house so future AI runs
+      // (even after clearing measurements, and for teammates) reuse it.
+      const { data: prof } = userId
+        ? await supabase.from("profiles").select("company_id").eq("id", userId).maybeSingle()
+        : { data: null };
+      const { error: cErr } = await supabase.from("roof_corrections").insert({
+        company_id: (prof?.company_id as string | null) ?? null,
+        property_id: propertyId ?? null,
+        job_id: jobId ?? null,
+        lat: pin.lat,
+        lng: pin.lng,
+        pin_name: pin.name,
+        pitch: pin.pitch,
+        kind: pin.kind,
+        corrected_facets: facets,
+        ai_facets: original,
+        corrected_plan_sqft: Math.round(pin.plan_area_sqft || 0),
+        ai_plan_sqft: Math.round(originalArea),
+        created_by: userId,
+      });
+      if (cErr) console.error("roof_corrections insert failed", cErr);
+
       // Keep the corrected geometry as the saved measurement too.
       try {
         await persistPins(pinsStateRef.current);
       } catch (e) {
         console.error("persist corrected geometry failed", e);
       }
-      toast.success("Corrections saved to AI training");
+      toast.success(
+        cErr
+          ? "Corrections saved to AI training"
+          : "Corrections saved — AI will reuse this footprint here",
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't save correction");
     }
