@@ -74,6 +74,7 @@ export function MapboxRoofDraw({
   const [features, setFeatures] = useState<AnyFeature[]>(initialFeatures ?? []);
   const [activeTool, setActiveTool] = useState<Tool | null>("select");
   const [activeEdge, setActiveEdge] = useState<EdgeType | "clear" | null>(null);
+  const [paintedCount, setPaintedCount] = useState(0);
   const [bearing, setBearing] = useState(0);
   const activeToolRef = useRef<Tool | null>(activeTool);
   const activeEdgeRef = useRef<EdgeType | "clear" | null>(activeEdge);
@@ -510,6 +511,10 @@ export function MapboxRoofDraw({
         // Labeling lines is segment-based; the line-segs overlay handles clicks.
         // Deselect immediately so direct_select doesn't kick in and show midpoints.
         if (activeToolRef.current === "label") {
+          const ae = activeEdgeRef.current;
+          if (ae !== null && ae !== undefined) {
+            applyWholeLineLabelRef.current?.(String(selected.id), ae === "clear" ? null : ae);
+          }
           setTimeout(() => drawRef.current?.changeMode("simple_select"), 0);
         }
       } else if (selected.geometry?.type === "Point") {
@@ -517,6 +522,7 @@ export function MapboxRoofDraw({
           openPointLabelPromptRef.current?.(String(selected.id));
         }
       }
+
     });
 
     // ---- Vertex-only snapping while drawing interior lines ----
@@ -733,6 +739,7 @@ export function MapboxRoofDraw({
       while (current.length < segCount) current.push(null);
       current[segIdx] = edge;
       draw.setFeatureProperty(polygonId, "perimeter_edges", current);
+      setPaintedCount((n) => n + 1);
       syncFromDraw(draw);
     },
     [syncFromDraw],
@@ -776,6 +783,27 @@ export function MapboxRoofDraw({
       while (current.length < segCount) current.push(null);
       current[segIdx] = edge;
       draw.setFeatureProperty(lineId, "segment_edges", current);
+      setPaintedCount((n) => n + 1);
+      syncFromDraw(draw);
+    },
+    [syncFromDraw],
+  );
+
+  // Label an entire line (all of its segments) with the armed edge type.
+  const applyWholeLineLabel = useCallback(
+    (lineId: string, edge: EdgeType | null) => {
+      const draw = drawRef.current;
+      if (!draw) return;
+      const f = draw.get(lineId);
+      const coords = (f?.geometry as LineString | undefined)?.coordinates ?? [];
+      const segCount = Math.max(0, coords.length - 1);
+      draw.setFeatureProperty(lineId, "edge_type", edge);
+      draw.setFeatureProperty(
+        lineId,
+        "segment_edges",
+        Array.from({ length: segCount }, () => edge),
+      );
+      setPaintedCount((n) => n + 1);
       syncFromDraw(draw);
     },
     [syncFromDraw],
@@ -788,12 +816,49 @@ export function MapboxRoofDraw({
   const applyPerimLabelRef = useRef(applyPerimLabel);
   const openLineSegLabelPromptRef = useRef(openLineSegLabelPrompt);
   const applyLineSegLabelRef = useRef(applyLineSegLabel);
+  const applyWholeLineLabelRef = useRef(applyWholeLineLabel);
   openLineLabelPromptRef.current = openLineLabelPrompt;
   openPointLabelPromptRef.current = openPointLabelPrompt;
   openPerimeterLabelPromptRef.current = openPerimeterLabelPrompt;
   applyPerimLabelRef.current = applyPerimLabel;
   openLineSegLabelPromptRef.current = openLineSegLabelPrompt;
   applyLineSegLabelRef.current = applyLineSegLabel;
+  applyWholeLineLabelRef.current = applyWholeLineLabel;
+
+  // Keyboard shortcuts while the Label tool is active: arm a type once and
+  // keep clicking. Esc disarms.
+  useEffect(() => {
+    if (activeTool !== "label") return;
+    const keyMap: Record<string, EdgeType | "clear"> = {
+      e: "eave",
+      r: "rake",
+      v: "valley",
+      h: "hip",
+      i: "ridge",
+      g: "gutter",
+      w: "wall_flashing",
+      s: "step_flashing",
+      t: "transition",
+      x: "clear",
+    };
+    const onKey = (ev: KeyboardEvent) => {
+      const el = ev.target as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+      if (ev.key === "Escape") {
+        setActiveEdge(null);
+        return;
+      }
+      const next = keyMap[ev.key.toLowerCase()];
+      if (!next) return;
+      ev.preventDefault();
+      setActiveEdge(next);
+      setPaintedCount(0);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeTool]);
+
 
   // Keep the perimeter overlay source in sync with current polygon features.
   useEffect(() => {
@@ -1045,7 +1110,11 @@ export function MapboxRoofDraw({
           onUndo={handleUndo}
           onClearAll={handleClearAll}
           activeEdge={activeEdge}
-          onChooseEdge={setActiveEdge}
+          onChooseEdge={(e) => {
+            setActiveEdge(e);
+            setPaintedCount(0);
+          }}
+          paintedCount={paintedCount}
         />
       </div>
 
@@ -1067,7 +1136,11 @@ export function MapboxRoofDraw({
         unlabeledLines={unlabeledLines}
         onUnlabeledLineClick={(lineId) => {
           setActiveTool("label");
-          openLineLabelPrompt(lineId);
+          if (activeEdge !== null) {
+            applyWholeLineLabel(lineId, activeEdge === "clear" ? null : activeEdge);
+          } else {
+            openLineLabelPrompt(lineId);
+          }
         }}
       />
 

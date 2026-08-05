@@ -3,6 +3,18 @@ import { EDGE_LABELS, EDGE_COLORS, type EdgeType, EDGE_TYPES } from "@/lib/roof-
 
 type Tool = "polygon" | "line" | "point" | "select" | "label";
 
+const SHORTCUTS: Partial<Record<EdgeType, string>> = {
+  eave: "e",
+  rake: "r",
+  valley: "v",
+  hip: "h",
+  ridge: "i",
+  gutter: "g",
+  wall_flashing: "w",
+  step_flashing: "s",
+  transition: "t",
+};
+
 export function DrawToolbar({
   active,
   onChoose,
@@ -10,6 +22,7 @@ export function DrawToolbar({
   onClearAll,
   activeEdge,
   onChooseEdge,
+  paintedCount = 0,
 }: {
   active: Tool | null;
   onChoose: (t: Tool) => void;
@@ -17,6 +30,7 @@ export function DrawToolbar({
   onClearAll: () => void;
   activeEdge?: EdgeType | "clear" | null;
   onChooseEdge?: (e: EdgeType | "clear" | null) => void;
+  paintedCount?: number;
 }) {
   const tools: Array<{ key: Tool; label: string; Icon: typeof Pentagon }> = [
     { key: "polygon", label: "Polygon", Icon: Pentagon },
@@ -37,11 +51,12 @@ export function DrawToolbar({
             ? "Click to drop a penetration"
             : active === "label"
               ? activeEdge && activeEdge !== "clear"
-                ? `Painting ${EDGE_LABELS[activeEdge]} — click any segment to label it. Switch type anytime.`
+                ? `${EDGE_LABELS[activeEdge]} armed — keep clicking edges${paintedCount ? ` · ${paintedCount} labeled` : ""} · Esc to disarm`
                 : activeEdge === "clear"
-                  ? "Eraser active — click any labeled segment to clear it."
-                  : "Pick a type below, then click segments to paint that label."
+                  ? "Eraser armed — click any labeled segment to clear it. Esc to disarm."
+                  : "Pick a type below (or press E/R/V/H/I), then click every matching edge."
               : null;
+
 
   return (
     <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">
@@ -96,15 +111,16 @@ export function DrawToolbar({
         >
           {EDGE_TYPES.map((t) => {
             const isActive = activeEdge === t;
+            const key = SHORTCUTS[t];
             return (
               <button
                 key={t}
                 onClick={() => onChooseEdge(isActive ? null : t)}
-                title={EDGE_LABELS[t]}
-                className={`flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11px] transition ${
+                title={key ? `${EDGE_LABELS[t]} (${key.toUpperCase()})` : EDGE_LABELS[t]}
+                className={`flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium transition ${
                   isActive
-                    ? "border-white/40 bg-white/10 text-foreground"
-                    : "border-transparent text-foreground/80 hover:bg-white/10"
+                    ? "border-[var(--brand)] bg-[var(--brand)] text-white"
+                    : "border-transparent text-foreground/80 hover:bg-[var(--bg-hover)]"
                 }`}
               >
                 <span
@@ -112,9 +128,15 @@ export function DrawToolbar({
                   style={{ backgroundColor: EDGE_COLORS[t] }}
                 />
                 {EDGE_LABELS[t]}
+                {isActive && paintedCount > 0 && (
+                  <span className="ml-0.5 rounded bg-white/25 px-1 font-mono text-[10px]">
+                    {paintedCount}
+                  </span>
+                )}
               </button>
             );
           })}
+
           <div className="mx-1 h-5 w-px bg-white/15" />
           <button
             onClick={() => onChooseEdge(activeEdge === "clear" ? null : "clear")}

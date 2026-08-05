@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { MaterialsTemplatesTab } from "@/components/settings/MaterialsTemplatesTab";
 import { LaborRatesTab } from "@/components/settings/LaborRatesTab";
 import { ReportBrandingTab } from "@/components/settings/ReportBrandingTab";
+import { CompanyLogoUploader } from "@/components/settings/CompanyLogoUploader";
 
 
 const TABS = ["Company", "Branding", "Defaults", "Trades", "Rules", "Materials", "Labor", "Users", "Integrations"] as const;
@@ -207,13 +208,26 @@ function CompanyTab() {
       <Field label="Email" value={email} onChange={setEmail} type="email" />
       <Field label="Address" value={address} onChange={setAddress} />
       <Field label="Website" value={website} onChange={setWebsite} />
-      <Field label="Logo URL" value={logoUrl} onChange={setLogoUrl} />
-      {logoUrl && (
-        <div className="rounded-lg border border-border bg-card p-3">
-          <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Logo preview</div>
-          <img src={logoUrl} alt="Logo" className="h-16 w-auto object-contain" />
-        </div>
-      )}
+      <CompanyLogoUploader
+        companyId={company.id}
+        userId={user?.id ?? null}
+        value={logoUrl || null}
+        onChange={async (url) => {
+          setLogoUrl(url ?? "");
+          const { error } = await supabase
+            .from("companies")
+            .update({ logo_url: url })
+            .eq("id", company.id);
+          if (error) {
+            toast.error(error.message);
+            return;
+          }
+          qc.invalidateQueries({ queryKey: ["company"] });
+          qc.invalidateQueries({ queryKey: ["my-company"] });
+          toast.success(url ? "Logo saved" : "Logo removed");
+        }}
+      />
+
       <button
         onClick={() => save.mutate()}
         disabled={save.isPending}
