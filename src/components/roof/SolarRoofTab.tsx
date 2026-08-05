@@ -1248,10 +1248,34 @@ export function SolarRoofTab({
       setActivePinId(null);
       setShowHandoff(false);
       setCalibration(null);
+      setMeasureSource(null);
       toast.success(n > 0 ? "All saved measurements deleted for this address" : "No saved measurements to delete");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't clear measurements"),
   });
+
+  /** Forget the hand-corrected footprints saved for this address. */
+  const forgetCorrections = useMutation({
+    mutationFn: async () => {
+      if (!propertyId) return 0;
+      const { data, error } = await supabase
+        .from("roof_corrections")
+        .delete()
+        .eq("property_id", propertyId)
+        .select("id");
+      if (error) throw error;
+      return (data ?? []).length;
+    },
+    onSuccess: (n) => {
+      setMeasureSource(null);
+      toast.success(
+        n > 0 ? "Saved corrections forgotten for this address" : "No saved corrections here",
+      );
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't forget corrections"),
+  });
+
+
 
 
   function startDraw(pinId: string) {
