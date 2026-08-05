@@ -1195,13 +1195,13 @@ export function SolarRoofTab({
 
 
   const measureAll = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { forceRaw?: boolean }) => {
       // Measure ONLY the structures the user pinned — nothing else on the lot.
       const targets = pins.filter((p) => p.kind !== "ignore");
       let success = 0;
       let failed = 0;
       for (const pin of targets) {
-        const res = await measurePinAt(pin);
+        const res = await measurePinAt(pin, { forceRaw: opts?.forceRaw });
         if (res.ok) success++;
         else failed++;
       }
