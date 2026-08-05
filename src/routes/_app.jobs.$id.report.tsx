@@ -828,9 +828,12 @@ function DamageSection({ ctx }: { ctx: RenderCtx }) {
 function MeasurementSection({ ctx }: { ctx: RenderCtx }) {
   const { section, measurement, staticMapUrl } = ctx;
   if (!measurement) return (<><H2>{section.title}</H2><p className="text-[13px] text-neutral-500">No measurement on file.</p></>);
+  const pitchMult = pitchMultiplier(String(measurement.predominant_pitch ?? "0/12"));
+  const roofAreaSf = Number(measurement.total_area_sqft ?? 0) * pitchMult;
+  const wasteSquares = (roofAreaSf * (1 + Number(measurement.waste_pct ?? 0) / 100)) / 100;
   const stats: Array<[string, string]> = [
-    ["Squares", Number(measurement.squares ?? 0).toFixed(1)],
-    ["Area SF", Number(measurement.total_area_sqft ?? 0).toFixed(0)],
+    ["Roof Area SF", Math.round(roofAreaSf).toLocaleString()],
+    ["With Waste (SQ)", wasteSquares.toFixed(1)],
     ["Eaves LF", Number(measurement.eaves_lf ?? 0).toFixed(0)],
     ["Ridges LF", Number(measurement.ridges_lf ?? 0).toFixed(0)],
     ["Hips LF", Number(measurement.hips_lf ?? 0).toFixed(0)],
