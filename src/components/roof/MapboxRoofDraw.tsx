@@ -74,6 +74,7 @@ export function MapboxRoofDraw({
   const [features, setFeatures] = useState<AnyFeature[]>(initialFeatures ?? []);
   const [activeTool, setActiveTool] = useState<Tool | null>("select");
   const [activeEdge, setActiveEdge] = useState<EdgeType | "clear" | null>(null);
+  const [paintedCount, setPaintedCount] = useState(0);
   const [bearing, setBearing] = useState(0);
   const activeToolRef = useRef<Tool | null>(activeTool);
   const activeEdgeRef = useRef<EdgeType | "clear" | null>(activeEdge);
