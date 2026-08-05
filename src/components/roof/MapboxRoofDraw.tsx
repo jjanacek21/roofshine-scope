@@ -734,6 +734,7 @@ export function MapboxRoofDraw({
       while (current.length < segCount) current.push(null);
       current[segIdx] = edge;
       draw.setFeatureProperty(polygonId, "perimeter_edges", current);
+      setPaintedCount((n) => n + 1);
       syncFromDraw(draw);
     },
     [syncFromDraw],
