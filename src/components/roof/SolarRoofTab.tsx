@@ -1433,11 +1433,26 @@ export function SolarRoofTab({
             disabled={clearSaved.isPending || !propertyId}
             className="inline-flex h-10 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-red-500 hover:bg-red-500/10 disabled:opacity-40"
             style={{ borderColor: "var(--border)" }}
-            title="Delete every saved measurement for this address"
+            title="Delete every saved measurement for this address (saved corrections are kept)"
           >
             {clearSaved.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
             Clear all measurements
           </button>
+          <button
+            onClick={() => forgetCorrections.mutate()}
+            disabled={forgetCorrections.isPending || !propertyId}
+            className="inline-flex h-10 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-muted-foreground hover:bg-[var(--surface-hover)] disabled:opacity-40"
+            style={{ borderColor: "var(--border)" }}
+            title="Also forget the hand-corrected footprints saved for this address"
+          >
+            {forgetCorrections.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Brain className="h-3.5 w-3.5" />
+            )}
+            Forget corrections
+          </button>
+
           <button
             onClick={() => measureAll.mutate({})}
             disabled={measureAll.isPending || pins.filter((p) => p.kind !== "ignore").length === 0}
