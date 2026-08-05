@@ -4306,6 +4306,63 @@ export type Database = {
           },
         ]
       }
+      roof_corrections: {
+        Row: {
+          ai_facets: Json
+          ai_plan_sqft: number
+          company_id: string | null
+          corrected_facets: Json
+          corrected_plan_sqft: number
+          created_at: string
+          created_by: string | null
+          id: string
+          job_id: string | null
+          kind: string | null
+          lat: number
+          lng: number
+          pin_name: string | null
+          pitch: string | null
+          property_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_facets?: Json
+          ai_plan_sqft?: number
+          company_id?: string | null
+          corrected_facets?: Json
+          corrected_plan_sqft?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id?: string | null
+          kind?: string | null
+          lat: number
+          lng: number
+          pin_name?: string | null
+          pitch?: string | null
+          property_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_facets?: Json
+          ai_plan_sqft?: number
+          company_id?: string | null
+          corrected_facets?: Json
+          corrected_plan_sqft?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id?: string | null
+          kind?: string | null
+          lat?: number
+          lng?: number
+          pin_name?: string | null
+          pitch?: string | null
+          property_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       roof_edges: {
         Row: {
           created_at: string
