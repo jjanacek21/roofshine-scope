@@ -8,6 +8,11 @@ import {
   consolidateSegmentCenters,
 } from "@/lib/roof-geometry";
 import { fetchBuildingFootprint } from "@/lib/footprint.server";
+import {
+  companyCalibration,
+  findNearbyCorrection,
+  scaleRing,
+} from "@/lib/roof-corrections.server";
 
 
 type SolarApiResponse = {
