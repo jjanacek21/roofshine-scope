@@ -37,6 +37,7 @@ export function InstantQuoteSection({
   propertyId,
   lat,
   lng,
+  address,
   initialMeasurement,
   initialSystem,
   initialTier,
@@ -155,7 +156,7 @@ export function InstantQuoteSection({
     const area = Math.round(next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0));
     if (propertyId) {
       const { error } = await supabase.from('property_dispositions').update({
-        measurement: { ...measurement, baseSqFt: area, footprints: next, corrected_at: new Date().toISOString() } as any,
+        measurement: { ...buildMeasurement(area, pitch, complexity), baseSqFt: area, footprints: next, corrected_at: new Date().toISOString() } as any,
       }).eq('id', propertyId);
       if (error) throw error;
     }
@@ -172,7 +173,7 @@ export function InstantQuoteSection({
     });
     if (trainingError) throw trainingError;
     toast.success('Corrections saved to AI training');
-  }, [address, lat, lng, measurement, propertyId]);
+  }, [address, complexity, lat, lng, pitch, propertyId]);
 
   const baseNum = Math.max(0, parseInt(baseSqFt || '0', 10) || 0);
   const measurement = buildMeasurement(baseNum, pitch, complexity);
