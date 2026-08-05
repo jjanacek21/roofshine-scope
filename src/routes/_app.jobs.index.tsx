@@ -44,11 +44,13 @@ function JobsKanban() {
   const [scope, setScope] = useState<"all" | "mine">(isAdmin ? "all" : "mine");
 
   const { data: jobs = [], isLoading } = useQuery({
-    queryKey: ["jobs"],
+    queryKey: ["jobs", profile?.company_id],
+    enabled: !!profile?.company_id,
     queryFn: async () => {
       const { data } = await supabase
         .from("jobs")
         .select("id, name, job_number, status, primary_trade, total_estimate, property_address, client_id, created_by, assigned_to")
+        .eq("company_id", profile!.company_id!)
         .order("created_at", { ascending: false });
       return (data ?? []) as Job[];
     },
