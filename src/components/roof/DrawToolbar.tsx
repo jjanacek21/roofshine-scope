@@ -3,6 +3,18 @@ import { EDGE_LABELS, EDGE_COLORS, type EdgeType, EDGE_TYPES } from "@/lib/roof-
 
 type Tool = "polygon" | "line" | "point" | "select" | "label";
 
+const SHORTCUTS: Partial<Record<EdgeType, string>> = {
+  eave: "e",
+  rake: "r",
+  valley: "v",
+  hip: "h",
+  ridge: "i",
+  gutter: "g",
+  wall_flashing: "w",
+  step_flashing: "s",
+  transition: "t",
+};
+
 export function DrawToolbar({
   active,
   onChoose,
