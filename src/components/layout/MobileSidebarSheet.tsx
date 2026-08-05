@@ -65,11 +65,13 @@ export function MobileSidebarSheet() {
 
 
   const { data: jobsCount = 0 } = useQuery({
-    queryKey: ["sidebar-jobs-count"],
+    queryKey: ["sidebar-jobs-count", profile?.company_id],
+    enabled: !!profile?.company_id,
     queryFn: async () => {
       const { count } = await supabase
         .from("jobs")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("company_id", profile!.company_id!);
       return count ?? 0;
     },
   });
