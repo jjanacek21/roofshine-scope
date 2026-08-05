@@ -41,7 +41,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("first_name, last_name")
+        .select("first_name, last_name, company_id")
         .eq("id", user!.id)
         .maybeSingle();
       return data;
@@ -49,13 +49,15 @@ function Dashboard() {
   });
 
   const { data: jobs = [] } = useQuery({
-    queryKey: ["jobs-dashboard"],
+    queryKey: ["jobs-dashboard", profile?.company_id],
+    enabled: !!profile?.company_id,
     queryFn: async () => {
       const { data } = await supabase
         .from("jobs")
         .select(
           "id, name, job_number, status, primary_trade, total_estimate, property_address, updated_at, client_id",
         )
+        .eq("company_id", profile!.company_id!)
         .order("updated_at", { ascending: false })
         .limit(50);
       return data ?? [];

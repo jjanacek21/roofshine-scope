@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/useProfile";
 import { Plus, Search, Receipt } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
@@ -27,13 +28,16 @@ function InvoicesListPage() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const { data: profile } = useProfile();
 
   const { data: invoices = [], isLoading } = useQuery({
-    queryKey: ["invoices"],
+    queryKey: ["invoices", profile?.company_id],
+    enabled: !!profile?.company_id,
     queryFn: async () => {
       const { data } = await supabase
         .from("invoices")
         .select("id, invoice_number, status, customer_name, total, amount_paid, amount_due, issue_date, due_date, currency")
+        .eq("company_id", profile!.company_id!)
         .order("issue_date", { ascending: false })
         .limit(200);
       return data ?? [];

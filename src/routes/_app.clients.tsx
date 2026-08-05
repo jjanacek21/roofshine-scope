@@ -21,11 +21,13 @@ function ClientsPage() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", notes: "" });
 
   const { data: clients = [], isLoading } = useQuery({
-    queryKey: ["clients"],
+    queryKey: ["clients", profile?.company_id],
+    enabled: !!profile?.company_id,
     queryFn: async () => {
       const { data } = await supabase
         .from("clients")
         .select("id, name, email, phone, address, created_at")
+        .eq("company_id", profile!.company_id!)
         .order("created_at", { ascending: false });
       return data ?? [];
     },

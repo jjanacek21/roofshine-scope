@@ -1,10 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { LeadRow, LeadContact } from "@/lib/leads";
+import { useProfile } from "@/hooks/useProfile";
 
 export function useLeads() {
+  const { data: profile } = useProfile();
+  const companyId = profile?.company_id ?? null;
   return useQuery({
-    queryKey: ["leads"],
+    queryKey: ["leads", companyId],
+    enabled: !!companyId,
     queryFn: async () => {
       // Supabase caps any single .select() at 1000 rows. Page through with
       // .range() so dashboards/list/map see every lead.
@@ -14,6 +18,7 @@ export function useLeads() {
         const { data, error } = await supabase
           .from("leads")
           .select("*")
+          .eq("company_id", companyId!)
           .order("created_at", { ascending: false })
           .range(from, from + PAGE - 1);
         if (error) throw error;
@@ -33,12 +38,16 @@ export interface LeadStatusCounts {
 }
 
 export function useLeadStats() {
+  const { data: profile } = useProfile();
+  const companyId = profile?.company_id ?? null;
   return useQuery({
-    queryKey: ["lead-stats"],
+    queryKey: ["lead-stats", companyId],
+    enabled: !!companyId,
     queryFn: async (): Promise<LeadStatusCounts> => {
       const { count: total, error: totalErr } = await supabase
         .from("leads")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("company_id", companyId!);
       if (totalErr) throw totalErr;
 
       const statuses = [
@@ -56,6 +65,7 @@ export function useLeadStats() {
           const { count, error } = await supabase
             .from("leads")
             .select("*", { count: "exact", head: true })
+            .eq("company_id", companyId!)
             .eq("status", s);
           if (error) throw error;
           return [s, count ?? 0] as const;
@@ -70,6 +80,7 @@ export function useLeadStats() {
         const { data, error } = await supabase
           .from("leads")
           .select("estimated_value")
+          .eq("company_id", companyId!)
           .eq("status", "won")
           .range(from, from + PAGE - 1);
         if (error) throw error;
