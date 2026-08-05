@@ -318,21 +318,8 @@ function BusinessInfoTab({
     if (ok) toast.success("Company info saved");
   }
 
-  async function uploadLogo(file: File) {
-    if (!userId) return toast.error("Not signed in");
-    setUploading(true);
-    const ext = file.name.split(".").pop() ?? "png";
-    const path = `${userId}/company-logos/${company.id}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage
-      .from("rep-card-assets")
-      .upload(path, file, { upsert: true, contentType: file.type });
-    setUploading(false);
-    if (error) return toast.error(error.message);
-    const { data } = supabase.storage.from("rep-card-assets").getPublicUrl(path);
-    setForm((f) => ({ ...f, logo_url: data.publicUrl }));
-    await onSave({ logo_url: data.publicUrl });
-    toast.success("Logo uploaded");
-  }
+
+
 
   return (
     <form onSubmit={save} className="space-y-5 rounded-xl border border-border bg-card p-5">
