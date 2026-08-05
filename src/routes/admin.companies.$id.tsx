@@ -21,6 +21,7 @@ import {
   Plus,
 } from "lucide-react";
 import { toast } from "sonner";
+import { CompanyLogoUploader } from "@/components/settings/CompanyLogoUploader";
 
 export const Route = createFileRoute("/admin/companies/$id")({
   component: AdminCompanyDetail,
