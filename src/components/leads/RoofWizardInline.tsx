@@ -16,7 +16,11 @@ import {
 } from "@/components/roof/FootprintOverlayEditor";
 import { polygonAreaSqft } from "@/lib/roof-math";
 
-interface Pin { id: string; lat: number; lng: number; }
+interface Pin {
+  id: string;
+  lat: number;
+  lng: number;
+}
 interface Measurements {
   total_sqft: number;
   sun_hours_per_year: number;
@@ -24,7 +28,10 @@ interface Measurements {
   segments: { pitch: number; azimuth: number; area_sqft: number }[];
   footprints?: EditableFootprint[];
 }
-type PinStatus = Record<string, { status: "pending" | "ok" | "error"; sqft?: number; message?: string }>;
+type PinStatus = Record<
+  string,
+  { status: "pending" | "ok" | "error"; sqft?: number; message?: string }
+>;
 
 interface Props {
   lead: LeadRow;
@@ -45,10 +52,16 @@ export function RoofWizardInline({ lead }: Props) {
   };
 
   const [pins, setPins] = useState<Pin[]>(
-    (savedReport.measurements?.pins ?? []).map((p) => ({ id: crypto.randomUUID(), lat: p.lat, lng: p.lng })),
+    (savedReport.measurements?.pins ?? []).map((p) => ({
+      id: crypto.randomUUID(),
+      lat: p.lat,
+      lng: p.lng,
+    })),
   );
   const [pinStatus, setPinStatus] = useState<PinStatus>({});
-  const [measurements, setMeasurements] = useState<Measurements | null>(savedReport.measurements ?? null);
+  const [measurements, setMeasurements] = useState<Measurements | null>(
+    savedReport.measurements ?? null,
+  );
   const [footprints, setFootprints] = useState<EditableFootprint[]>(
     savedReport.measurements?.footprints ?? [],
   );
@@ -89,14 +102,21 @@ export function RoofWizardInline({ lead }: Props) {
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
     map.on("error", (e) => console.warn("Mapbox event error:", e?.error?.message ?? e));
     map.on("click", (e) => {
-      setPins((prev) => [...prev, { id: crypto.randomUUID(), lat: e.lngLat.lat, lng: e.lngLat.lng }]);
+      setPins((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), lat: e.lngLat.lat, lng: e.lngLat.lng },
+      ]);
     });
     const t = setTimeout(() => map.resize(), 250);
     mapRef.current = map;
     setMapInstance(map);
     return () => {
       clearTimeout(t);
-      try { map.remove(); } catch { /* noop */ }
+      try {
+        map.remove();
+      } catch {
+        /* noop */
+      }
       mapRef.current = null;
       setMapInstance(null);
     };
@@ -114,7 +134,11 @@ export function RoofWizardInline({ lead }: Props) {
       el.onclick = (ev) => {
         ev.stopPropagation();
         setPins((prev) => prev.filter((x) => x.id !== p.id));
-        setPinStatus((prev) => { const n = { ...prev }; delete n[p.id]; return n; });
+        setPinStatus((prev) => {
+          const n = { ...prev };
+          delete n[p.id];
+          return n;
+        });
       };
       const m = new mapboxgl.Marker(el).setLngLat([p.lng, p.lat]).addTo(mapRef.current!);
       markersRef.current.push(m);
@@ -132,12 +156,15 @@ export function RoofWizardInline({ lead }: Props) {
       const accessToken = sessionData.session?.access_token;
       if (!accessToken) throw new Error("Please sign in again.");
 
-      const targets = pins.length > 0 ? pins : [{ id: "selected", lat: center.lat, lng: center.lng }];
+      const targets =
+        pins.length > 0 ? pins : [{ id: "selected", lat: center.lat, lng: center.lng }];
       const results: Measurements[] = [];
       const measuredFootprints: EditableFootprint[] = [];
       const failures: string[] = [];
       const nextStatus: PinStatus = {};
-      targets.forEach((t) => { nextStatus[t.id] = { status: "pending" }; });
+      targets.forEach((t) => {
+        nextStatus[t.id] = { status: "pending" };
+      });
       setPinStatus(nextStatus);
 
       for (const target of targets) {
@@ -153,16 +180,21 @@ export function RoofWizardInline({ lead }: Props) {
           setPinStatus((prev) => ({ ...prev, [target.id]: { status: "error", message: msg } }));
           continue;
         }
-        const segments = ((payload.segments ?? []) as Array<{ pitch_degrees?: number; azimuth_degrees?: number; plan_area_sqft?: number }>).map((s) => ({
+        const segments = (
+          (payload.segments ?? []) as Array<{
+            pitch_degrees?: number;
+            azimuth_degrees?: number;
+            plan_area_sqft?: number;
+          }>
+        ).map((s) => ({
           pitch: Number(s.pitch_degrees ?? 0),
           azimuth: Number(s.azimuth_degrees ?? 0),
           area_sqft: Number(s.plan_area_sqft ?? 0),
         }));
-        const avgPitch = segments.length > 0 ? segments.reduce((a, s) => a + s.pitch, 0) / segments.length : 0;
+        const avgPitch =
+          segments.length > 0 ? segments.reduce((a, s) => a + s.pitch, 0) / segments.length : 0;
         const totalSqft = Number(payload.total_plan_sqft ?? 0);
-        const outline = Array.isArray(payload.footprint)
-          ? (payload.footprint as number[][])
-          : [];
+        const outline = Array.isArray(payload.footprint) ? (payload.footprint as number[][]) : [];
         if (outline.length >= 3) {
           measuredFootprints.push({
             id: target.id,
@@ -190,7 +222,10 @@ export function RoofWizardInline({ lead }: Props) {
             ? measuredFootprints.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0)
             : results.reduce((s, r) => s + r.total_sqft, 0),
         sun_hours_per_year: Math.max(...results.map((r) => r.sun_hours_per_year)),
-        avg_pitch: allSegments.length > 0 ? allSegments.reduce((a, s) => a + s.pitch, 0) / allSegments.length : 0,
+        avg_pitch:
+          allSegments.length > 0
+            ? allSegments.reduce((a, s) => a + s.pitch, 0) / allSegments.length
+            : 0,
         segments: allSegments,
         footprints: measuredFootprints,
       };
@@ -198,21 +233,24 @@ export function RoofWizardInline({ lead }: Props) {
       setFootprints(measuredFootprints);
 
       const prev = (lead.ai_report as Record<string, unknown> | null) ?? {};
-      await supabase.from("leads").update({
-        ai_report: {
-          ...prev,
-          measurements: {
-            total_sqft: Math.round(merged.total_sqft),
-            sun_hours_per_year: Math.round(merged.sun_hours_per_year),
-            avg_pitch: Number(merged.avg_pitch.toFixed(2)),
-            segment_count: merged.segments.length,
-            pins: pins.map((p) => ({ lat: p.lat, lng: p.lng })),
-            footprints: measuredFootprints,
-            generated_at: new Date().toISOString(),
+      await supabase
+        .from("leads")
+        .update({
+          ai_report: {
+            ...prev,
+            measurements: {
+              total_sqft: Math.round(merged.total_sqft),
+              sun_hours_per_year: Math.round(merged.sun_hours_per_year),
+              avg_pitch: Number(merged.avg_pitch.toFixed(2)),
+              segment_count: merged.segments.length,
+              pins: pins.map((p) => ({ lat: p.lat, lng: p.lng })),
+              footprints: measuredFootprints,
+              generated_at: new Date().toISOString(),
+            },
           },
-        },
-        sqft: Math.round(merged.total_sqft) || undefined,
-      }).eq("id", lead.id);
+          sqft: Math.round(merged.total_sqft) || undefined,
+        })
+        .eq("id", lead.id);
       qc.invalidateQueries({ queryKey: ["lead", lead.id] });
       qc.invalidateQueries({ queryKey: ["leads"] });
       toast.success(`Measurements ready (${fmtNum(Math.round(merged.total_sqft))} sqft)`);
@@ -238,9 +276,7 @@ export function RoofWizardInline({ lead }: Props) {
 
   const saveFootprints = useCallback(
     async (next: EditableFootprint[]) => {
-      const totalSqft = Math.round(
-        next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0),
-      );
+      const totalSqft = Math.round(next.reduce((sum, item) => sum + polygonAreaSqft(item.ring), 0));
       const previous = (lead.ai_report as Record<string, unknown> | null) ?? {};
       const previousMeasurements =
         previous.measurements && typeof previous.measurements === "object"
@@ -289,8 +325,12 @@ export function RoofWizardInline({ lead }: Props) {
   );
 
   async function runAnalysis() {
-    const target = center ?? (lead.lat != null && lead.lng != null ? { lat: lead.lat, lng: lead.lng } : null);
-    if (!target) { toast.error("Lead has no coordinates"); return; }
+    const target =
+      center ?? (lead.lat != null && lead.lng != null ? { lat: lead.lat, lng: lead.lng } : null);
+    if (!target) {
+      toast.error("Lead has no coordinates");
+      return;
+    }
     setLoading("analyze");
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -312,7 +352,8 @@ export function RoofWizardInline({ lead }: Props) {
       toast.success("AI analysis complete");
     } catch (e) {
       let msg = e instanceof Error ? e.message : "Failed to analyze";
-      if (e instanceof Response) msg = (await e.text().catch(() => "")) || `Server error ${e.status}`;
+      if (e instanceof Response)
+        msg = (await e.text().catch(() => "")) || `Server error ${e.status}`;
       toast.error(msg);
     } finally {
       setLoading("none");
@@ -325,7 +366,10 @@ export function RoofWizardInline({ lead }: Props) {
 
   if (lead.lat == null || lead.lng == null) {
     return (
-      <div className="flex h-48 items-center justify-center rounded-lg border text-sm text-muted-foreground" style={{ borderColor: "var(--border)" }}>
+      <div
+        className="flex h-48 items-center justify-center rounded-lg border text-sm text-muted-foreground"
+        style={{ borderColor: "var(--border)" }}
+      >
         No coordinates — geocoding…
       </div>
     );
@@ -350,12 +394,20 @@ export function RoofWizardInline({ lead }: Props) {
       />
 
       {pins.length > 0 && (
-        <div className="rounded-lg border p-2" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}>
+        <div
+          className="rounded-lg border p-2"
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
+        >
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Pins ({pins.length})</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Pins ({pins.length})
+            </span>
             <button
               type="button"
-              onClick={() => { setPins([]); setPinStatus({}); }}
+              onClick={() => {
+                setPins([]);
+                setPinStatus({});
+              }}
               className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
             >
               <RotateCcw className="h-3 w-3" /> Clear
@@ -364,14 +416,22 @@ export function RoofWizardInline({ lead }: Props) {
           <ul className="space-y-1 text-xs">
             {pins.map((p, i) => {
               const st = pinStatus[p.id];
-              const dot = st?.status === "ok" ? "bg-emerald-500"
-                : st?.status === "error" ? "bg-red-500"
-                : st?.status === "pending" ? "bg-amber-400 animate-pulse"
-                : "bg-[var(--border)]";
-              const label = st?.status === "ok" ? `${fmtNum(Math.round(st.sqft ?? 0))} sqft`
-                : st?.status === "error" ? "Error"
-                : st?.status === "pending" ? "Measuring…"
-                : "Not measured";
+              const dot =
+                st?.status === "ok"
+                  ? "bg-emerald-500"
+                  : st?.status === "error"
+                    ? "bg-red-500"
+                    : st?.status === "pending"
+                      ? "bg-amber-400 animate-pulse"
+                      : "bg-[var(--border)]";
+              const label =
+                st?.status === "ok"
+                  ? `${fmtNum(Math.round(st.sqft ?? 0))} sqft`
+                  : st?.status === "error"
+                    ? "Error"
+                    : st?.status === "pending"
+                      ? "Measuring…"
+                      : "Not measured";
               return (
                 <li key={p.id} className="flex items-center gap-2">
                   <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
@@ -394,7 +454,14 @@ export function RoofWizardInline({ lead }: Props) {
       )}
 
       {analysis && (
-        <div className="rounded-lg border p-3 text-xs leading-relaxed text-muted-foreground" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)", whiteSpace: "pre-wrap" }}>
+        <div
+          className="rounded-lg border p-3 text-xs leading-relaxed text-muted-foreground"
+          style={{
+            borderColor: "var(--border)",
+            backgroundColor: "var(--bg-elevated)",
+            whiteSpace: "pre-wrap",
+          }}
+        >
           {analysis}
         </div>
       )}
@@ -407,7 +474,11 @@ export function RoofWizardInline({ lead }: Props) {
           className="flex h-10 items-center justify-center gap-2 rounded-md border text-sm font-semibold disabled:opacity-40"
           style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
         >
-          {loading === "measure" ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
+          {loading === "measure" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <MapPin className="h-4 w-4" />
+          )}
           Get measurements
         </button>
         <button
@@ -417,7 +488,11 @@ export function RoofWizardInline({ lead }: Props) {
           className="flex h-10 items-center justify-center gap-2 rounded-md text-sm font-semibold text-white disabled:opacity-40"
           style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)" }}
         >
-          {loading === "analyze" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {loading === "analyze" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
           Run analysis & generate report
         </button>
       </div>
@@ -437,7 +512,10 @@ export function RoofWizardInline({ lead }: Props) {
 
 function Mini({ k, v }: { k: string; v: string }) {
   return (
-    <div className="rounded-lg border p-2" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}>
+    <div
+      className="rounded-lg border p-2"
+      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-elevated)" }}
+    >
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{k}</div>
       <div className="mt-0.5 font-mono-num text-sm font-medium text-foreground">{v}</div>
     </div>
