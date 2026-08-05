@@ -384,12 +384,12 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
           pitch_degrees: f.pitch_degrees,
           pitch_known: (f as { pitch_known?: boolean }).pitch_known !== false,
           azimuth_degrees: f.azimuth_degrees,
-          ring: f.ring,
+          ring: cal === 1 ? f.ring : scaleRing(f.ring, cal),
           center: null as { latitude: number; longitude: number } | null,
         }));
 
         const pitchUnknown = segments.some((s) => !s.pitch_known);
-        const totalPlanSqFt = fit.plan_area_sqft || totalPlanSqFtReported;
+        const totalPlanSqFt = (fit.plan_area_sqft || totalPlanSqFtReported) * cal;
 
 
 
