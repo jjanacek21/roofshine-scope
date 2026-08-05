@@ -189,18 +189,24 @@ function ensureOverlayLayers(map: mapboxgl.Map) {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
+  }
+  if (!map.getLayer("ai-draw-fill")) {
     map.addLayer({
       id: "ai-draw-fill",
       type: "fill",
       source: "ai-draw",
       paint: { "fill-color": "#3b82f6", "fill-opacity": 0.25 },
     });
+  }
+  if (!map.getLayer("ai-draw-line")) {
     map.addLayer({
       id: "ai-draw-line",
       type: "line",
       source: "ai-draw",
       paint: { "line-color": "#3b82f6", "line-width": 2, "line-dasharray": [2, 2] },
     });
+  }
+  if (!map.getLayer("ai-draw-points")) {
     map.addLayer({
       id: "ai-draw-points",
       type: "circle",
@@ -221,6 +227,8 @@ function ensureOverlayLayers(map: mapboxgl.Map) {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
+  }
+  if (!map.getLayer("facet-footprint-line")) {
     map.addLayer({
       id: "facet-footprint-line",
       type: "line",
@@ -242,6 +250,8 @@ function ensureOverlayLayers(map: mapboxgl.Map) {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       });
+    }
+    if (!map.getLayer(`${srcId}-fill`)) {
       map.addLayer({
         id: `${srcId}-fill`,
         type: "fill",
@@ -251,6 +261,8 @@ function ensureOverlayLayers(map: mapboxgl.Map) {
           "fill-opacity": kind === "ignore" ? 0 : 0.32,
         },
       });
+    }
+    if (!map.getLayer(`${srcId}-line`)) {
       map.addLayer({
         id: `${srcId}-line`,
         type: "line",
@@ -270,6 +282,8 @@ function ensureOverlayLayers(map: mapboxgl.Map) {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
+  }
+  if (!map.getLayer("facet-labels-text")) {
     map.addLayer({
       id: "facet-labels-text",
       type: "symbol",
@@ -328,6 +342,7 @@ export function SolarRoofTab({
   const [estimatedPitch, setEstimatedPitch] = useState(false);
 
   const [showOverlay, setShowOverlay] = useState(true);
+  const showOverlayRef = useRef(true);
   const [showCoverageGaps, setShowCoverageGaps] = useState(false);
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
   const [showHandoff, setShowHandoff] = useState(false);
@@ -373,6 +388,7 @@ export function SolarRoofTab({
   const drawPointsRef = useRef<number[][]>([]);
 
   useEffect(() => { pinsStateRef.current = pins; }, [pins]);
+  useEffect(() => { showOverlayRef.current = showOverlay; }, [showOverlay]);
   useEffect(() => { drawingPinIdRef.current = drawingPinId; }, [drawingPinId]);
   useEffect(() => { drawPointsRef.current = drawPoints; }, [drawPoints]);
 
@@ -600,8 +616,8 @@ export function SolarRoofTab({
       const kinds: Record<string, GeoJSON.Feature[]> = { pitched: [], flat: [], ignore: [] };
       for (const kind of ["pitched", "flat", "ignore"] as PinKind[]) {
         const features: GeoJSON.Feature[] = [];
-        if (showOverlay) {
-          for (const pin of pins) {
+        if (showOverlayRef.current) {
+          for (const pin of pinsStateRef.current) {
             if (pin.kind !== kind) continue;
             const rings = pin.facets && pin.facets.length > 0
               ? pin.facets.map((f) => f.ring)
@@ -625,8 +641,8 @@ export function SolarRoofTab({
       }
 
       const foot: GeoJSON.Feature[] = [];
-      if (showOverlay) {
-        for (const pin of pins) {
+      if (showOverlayRef.current) {
+        for (const pin of pinsStateRef.current) {
           const fp = pin.footprint;
           if (!fp || fp.length < 3 || pin.kind === "ignore") continue;
           const closed =
@@ -636,8 +652,8 @@ export function SolarRoofTab({
       }
 
       const labels: GeoJSON.Feature[] = [];
-      if (showOverlay) {
-        for (const pin of pins) {
+      if (showOverlayRef.current) {
+        for (const pin of pinsStateRef.current) {
           if (pin.kind === "ignore") continue;
           if ((pin.plan_area_sqft || 0) === 0) continue;
           const sqft = Math.round(pin.plan_area_sqft).toLocaleString();
@@ -1117,9 +1133,11 @@ export function SolarRoofTab({
 
   /** Make sure freshly measured facets are visible: turn the overlay on, repaint, fit. */
   function revealMeasuredFacets() {
+    showOverlayRef.current = true;
     setShowOverlay(true);
     const map = mapRef.current;
     paintRef.current?.();
+    requestAnimationFrame(() => paintRef.current?.());
     if (!map) return;
     const coords: number[][] = [];
     for (const p of pinsStateRef.current) {
