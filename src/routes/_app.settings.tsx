@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { MaterialsTemplatesTab } from "@/components/settings/MaterialsTemplatesTab";
 import { LaborRatesTab } from "@/components/settings/LaborRatesTab";
 import { ReportBrandingTab } from "@/components/settings/ReportBrandingTab";
+import { CompanyLogoUploader } from "@/components/settings/CompanyLogoUploader";
 
 
 const TABS = ["Company", "Branding", "Defaults", "Trades", "Rules", "Materials", "Labor", "Users", "Integrations"] as const;
