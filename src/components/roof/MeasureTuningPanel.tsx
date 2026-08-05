@@ -108,6 +108,15 @@ export function MeasureTuningPanel({
               hint="Straightens near-90° corners so the outline reads as a building."
             />
 
+            <Toggle
+              label="Learn from my corrections"
+              checked={tuning.use_calibration}
+              onChange={(v) => set("use_calibration", v)}
+              hint="Applies the area calibration learned from the footprints your team has hand-corrected."
+            />
+
+
+
 
             <div>
               <div className="flex items-center justify-between">
