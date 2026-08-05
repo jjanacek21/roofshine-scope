@@ -1429,7 +1429,38 @@ export function SolarRoofTab({
         </div>
       </div>
 
+      {/* Saved-correction / learned-calibration status */}
+      {measureSource === "corrected" && (
+        <div
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 text-xs"
+          style={{
+            borderColor: "color-mix(in oklab, var(--brand) 35%, transparent)",
+            background: "color-mix(in oklab, var(--brand) 8%, var(--bg-card))",
+          }}
+        >
+          <span className="inline-flex items-center gap-2 font-semibold text-foreground">
+            <Brain className="h-4 w-4" /> Using your saved correction for this roof
+          </span>
+          <button
+            onClick={() => measureAll.mutate({ forceRaw: true })}
+            disabled={measureAll.isPending}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 font-semibold text-foreground hover:bg-[var(--surface-hover)] disabled:opacity-40"
+            style={{ borderColor: "var(--border)" }}
+          >
+            {measureAll.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+            Re-run raw AI instead
+          </button>
+        </div>
+      )}
+      {measureSource === "ai" && calibrationInfo && calibrationInfo.samples >= 3 && (
+        <div className="text-xs text-muted-foreground">
+          Learned calibration applied: {calibrationInfo.factor}x from {calibrationInfo.samples} saved
+          corrections. Turn it off in AI settings.
+        </div>
+      )}
+
       {/* No-coverage empty state — shown when Google Solar has no building data here */}
+
       {noCoverage && (
         <div
           className="flex flex-wrap items-start justify-between gap-3 rounded-xl border p-4"
