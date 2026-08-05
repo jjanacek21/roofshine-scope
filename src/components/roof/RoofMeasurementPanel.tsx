@@ -15,7 +15,6 @@ import { MapboxRoofDraw, type MapboxRoofData, type AnyFeature } from "./MapboxRo
 import { SolarRoofTab } from "./SolarRoofTab";
 import { PropertyLocationPicker } from "./PropertyLocationPicker";
 
-import { ConditionAITab } from "./ConditionAITab";
 import {
   squares, polygonEdgeLengths,
   type EdgeType,
@@ -23,13 +22,12 @@ import {
 import type { FeatureProps } from "@/lib/measurement-utils";
 import { getMeasureHandoff, clearMeasureHandoff } from "@/lib/measure-handoff";
 
-type Tab = "manual" | "mapbox" | "solar" | "condition" | "report";
+type Tab = "manual" | "mapbox" | "solar" | "report";
 
 const TAB_LABELS: Record<Tab, { label: string; icon: typeof MapIcon }> = {
   manual: { label: "Manual Entry", icon: Pencil },
   mapbox: { label: "Mapbox Draw", icon: MapIcon },
   solar: { label: "AI Measurements", icon: Sparkles },
-  condition: { label: "AI Condition", icon: Sparkles },
   report: { label: "Upload Report", icon: FileText },
 };
 
