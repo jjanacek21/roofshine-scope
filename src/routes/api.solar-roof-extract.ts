@@ -373,10 +373,13 @@ export const Route = createFileRoute("/api/solar-roof-extract")({
               )
             : { facets: [], footprint: [], plan_area_sqft: 0 });
 
+        // Learned area calibration from this company's saved corrections.
+        const cal = tuning.use_calibration === false ? 1 : calibration.factor;
+
         const segments = fit.facets.map((f, i) => ({
           index: i,
           name: `Facet ${i + 1}`,
-          plan_area_sqft: f.plan_area_sqft,
+          plan_area_sqft: Math.round(f.plan_area_sqft * cal),
           pitch: f.pitch,
           pitch_degrees: f.pitch_degrees,
           pitch_known: (f as { pitch_known?: boolean }).pitch_known !== false,
