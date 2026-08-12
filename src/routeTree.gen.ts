@@ -20,6 +20,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as CbIndexRouteImport } from './routes/cb.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as PayTokenRouteImport } from './routes/pay.$token'
 import { Route as CbSignupRouteImport } from './routes/cb.signup'
 import { Route as CbOnboardingRouteImport } from './routes/cb.onboarding'
@@ -77,6 +78,7 @@ import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
 import { Route as AppInvoicesIndexRouteImport } from './routes/_app.invoices.index'
 import { Route as AppDoorToDoorIndexRouteImport } from './routes/_app.door-to-door.index'
 import { Route as ApiPublicSignRouteImport } from './routes/api/public/sign'
+import { Route as ApiPublicCbShareRouteImport } from './routes/api/public/cb-share'
 import { Route as AdminPriceBooksNewRouteImport } from './routes/admin.price-books.new'
 import { Route as AdminCompaniesIdRouteImport } from './routes/admin.companies.$id'
 import { Route as AdminAssembliesImportRouteImport } from './routes/admin.assemblies.import'
@@ -111,8 +113,10 @@ import { Route as CbJobIdTakeoffRouteImport } from './routes/cb.job.$id.takeoff'
 import { Route as CbJobIdScopeRouteImport } from './routes/cb.job.$id.scope'
 import { Route as CbJobIdRoofRouteImport } from './routes/cb.job.$id.roof'
 import { Route as CbJobIdReviewRouteImport } from './routes/cb.job.$id.review'
+import { Route as CbJobIdReportRouteImport } from './routes/cb.job.$id.report'
 import { Route as CbJobIdMeasureRouteImport } from './routes/cb.job.$id.measure'
 import { Route as CbJobIdInteriorRouteImport } from './routes/cb.job.$id.interior'
+import { Route as CbJobIdGeneratingRouteImport } from './routes/cb.job.$id.generating'
 import { Route as CbJobIdExteriorRouteImport } from './routes/cb.job.$id.exterior'
 import { Route as CbJobIdCustomerRouteImport } from './routes/cb.job.$id.customer'
 import { Route as CbJobIdCoverRouteImport } from './routes/cb.job.$id.cover'
@@ -179,6 +183,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const RTokenRoute = RTokenRouteImport.update({
+  id: '/r/$token',
+  path: '/r/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PayTokenRoute = PayTokenRouteImport.update({
   id: '/pay/$token',
@@ -466,6 +475,11 @@ const ApiPublicSignRoute = ApiPublicSignRouteImport.update({
   path: '/api/public/sign',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCbShareRoute = ApiPublicCbShareRouteImport.update({
+  id: '/api/public/cb-share',
+  path: '/api/public/cb-share',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminPriceBooksNewRoute = AdminPriceBooksNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -637,6 +651,11 @@ const CbJobIdReviewRoute = CbJobIdReviewRouteImport.update({
   path: '/cb/job/$id/review',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbJobIdReportRoute = CbJobIdReportRouteImport.update({
+  id: '/cb/job/$id/report',
+  path: '/cb/job/$id/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CbJobIdMeasureRoute = CbJobIdMeasureRouteImport.update({
   id: '/cb/job/$id/measure',
   path: '/cb/job/$id/measure',
@@ -645,6 +664,11 @@ const CbJobIdMeasureRoute = CbJobIdMeasureRouteImport.update({
 const CbJobIdInteriorRoute = CbJobIdInteriorRouteImport.update({
   id: '/cb/job/$id/interior',
   path: '/cb/job/$id/interior',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdGeneratingRoute = CbJobIdGeneratingRouteImport.update({
+  id: '/cb/job/$id/generating',
+  path: '/cb/job/$id/generating',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CbJobIdExteriorRoute = CbJobIdExteriorRouteImport.update({
@@ -767,6 +791,7 @@ export interface FileRoutesByFullPath {
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
+  '/r/$token': typeof RTokenRoute
   '/admin/': typeof AdminIndexRoute
   '/cb/': typeof CbIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
@@ -798,6 +823,7 @@ export interface FileRoutesByFullPath {
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
+  '/api/public/cb-share': typeof ApiPublicCbShareRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
@@ -818,8 +844,10 @@ export interface FileRoutesByFullPath {
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
+  '/cb/job/$id/generating': typeof CbJobIdGeneratingRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/measure': typeof CbJobIdMeasureRoute
+  '/cb/job/$id/report': typeof CbJobIdReportRoute
   '/cb/job/$id/review': typeof CbJobIdReviewRoute
   '/cb/job/$id/roof': typeof CbJobIdRoofRoute
   '/cb/job/$id/scope': typeof CbJobIdScopeRoute
@@ -877,6 +905,7 @@ export interface FileRoutesByTo {
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
+  '/r/$token': typeof RTokenRoute
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
   '/cb': typeof CbIndexRoute
@@ -908,6 +937,7 @@ export interface FileRoutesByTo {
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
+  '/api/public/cb-share': typeof ApiPublicCbShareRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/door-to-door': typeof AppDoorToDoorIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
@@ -928,8 +958,10 @@ export interface FileRoutesByTo {
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
+  '/cb/job/$id/generating': typeof CbJobIdGeneratingRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/measure': typeof CbJobIdMeasureRoute
+  '/cb/job/$id/report': typeof CbJobIdReportRoute
   '/cb/job/$id/review': typeof CbJobIdReviewRoute
   '/cb/job/$id/roof': typeof CbJobIdRoofRoute
   '/cb/job/$id/scope': typeof CbJobIdScopeRoute
@@ -995,6 +1027,7 @@ export interface FileRoutesById {
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
+  '/r/$token': typeof RTokenRoute
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/cb/': typeof CbIndexRoute
@@ -1027,6 +1060,7 @@ export interface FileRoutesById {
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
+  '/api/public/cb-share': typeof ApiPublicCbShareRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/_app/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
@@ -1047,8 +1081,10 @@ export interface FileRoutesById {
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
+  '/cb/job/$id/generating': typeof CbJobIdGeneratingRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/measure': typeof CbJobIdMeasureRoute
+  '/cb/job/$id/report': typeof CbJobIdReportRoute
   '/cb/job/$id/review': typeof CbJobIdReviewRoute
   '/cb/job/$id/roof': typeof CbJobIdRoofRoute
   '/cb/job/$id/scope': typeof CbJobIdScopeRoute
@@ -1115,6 +1151,7 @@ export interface FileRouteTypes {
     | '/cb/onboarding'
     | '/cb/signup'
     | '/pay/$token'
+    | '/r/$token'
     | '/admin/'
     | '/cb/'
     | '/clients/$id'
@@ -1146,6 +1183,7 @@ export interface FileRouteTypes {
     | '/admin/assemblies/import'
     | '/admin/companies/$id'
     | '/admin/price-books/new'
+    | '/api/public/cb-share'
     | '/api/public/sign'
     | '/door-to-door/'
     | '/invoices/'
@@ -1166,8 +1204,10 @@ export interface FileRouteTypes {
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/cb/job/$id/exterior'
+    | '/cb/job/$id/generating'
     | '/cb/job/$id/interior'
     | '/cb/job/$id/measure'
+    | '/cb/job/$id/report'
     | '/cb/job/$id/review'
     | '/cb/job/$id/roof'
     | '/cb/job/$id/scope'
@@ -1225,6 +1265,7 @@ export interface FileRouteTypes {
     | '/cb/onboarding'
     | '/cb/signup'
     | '/pay/$token'
+    | '/r/$token'
     | '/'
     | '/admin'
     | '/cb'
@@ -1256,6 +1297,7 @@ export interface FileRouteTypes {
     | '/admin/assemblies/import'
     | '/admin/companies/$id'
     | '/admin/price-books/new'
+    | '/api/public/cb-share'
     | '/api/public/sign'
     | '/door-to-door'
     | '/invoices'
@@ -1276,8 +1318,10 @@ export interface FileRouteTypes {
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/cb/job/$id/exterior'
+    | '/cb/job/$id/generating'
     | '/cb/job/$id/interior'
     | '/cb/job/$id/measure'
+    | '/cb/job/$id/report'
     | '/cb/job/$id/review'
     | '/cb/job/$id/roof'
     | '/cb/job/$id/scope'
@@ -1342,6 +1386,7 @@ export interface FileRouteTypes {
     | '/cb/onboarding'
     | '/cb/signup'
     | '/pay/$token'
+    | '/r/$token'
     | '/_app/'
     | '/admin/'
     | '/cb/'
@@ -1374,6 +1419,7 @@ export interface FileRouteTypes {
     | '/admin/assemblies/import'
     | '/admin/companies/$id'
     | '/admin/price-books/new'
+    | '/api/public/cb-share'
     | '/api/public/sign'
     | '/_app/door-to-door/'
     | '/_app/invoices/'
@@ -1394,8 +1440,10 @@ export interface FileRouteTypes {
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/cb/job/$id/exterior'
+    | '/cb/job/$id/generating'
     | '/cb/job/$id/interior'
     | '/cb/job/$id/measure'
+    | '/cb/job/$id/report'
     | '/cb/job/$id/review'
     | '/cb/job/$id/roof'
     | '/cb/job/$id/scope'
@@ -1433,14 +1481,18 @@ export interface RootRouteChildren {
   CbOnboardingRoute: typeof CbOnboardingRoute
   CbSignupRoute: typeof CbSignupRoute
   PayTokenRoute: typeof PayTokenRoute
+  RTokenRoute: typeof RTokenRoute
   CbIndexRoute: typeof CbIndexRoute
+  ApiPublicCbShareRoute: typeof ApiPublicCbShareRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   CbJobIdCoverRoute: typeof CbJobIdCoverRoute
   CbJobIdCustomerRoute: typeof CbJobIdCustomerRoute
   CbJobIdExteriorRoute: typeof CbJobIdExteriorRoute
+  CbJobIdGeneratingRoute: typeof CbJobIdGeneratingRoute
   CbJobIdInteriorRoute: typeof CbJobIdInteriorRoute
   CbJobIdMeasureRoute: typeof CbJobIdMeasureRoute
+  CbJobIdReportRoute: typeof CbJobIdReportRoute
   CbJobIdReviewRoute: typeof CbJobIdReviewRoute
   CbJobIdRoofRoute: typeof CbJobIdRoofRoute
   CbJobIdScopeRoute: typeof CbJobIdScopeRoute
@@ -1525,6 +1577,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/r/$token': {
+      id: '/r/$token'
+      path: '/r/$token'
+      fullPath: '/r/$token'
+      preLoaderRoute: typeof RTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/pay/$token': {
       id: '/pay/$token'
@@ -1925,6 +1984,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSignRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cb-share': {
+      id: '/api/public/cb-share'
+      path: '/api/public/cb-share'
+      fullPath: '/api/public/cb-share'
+      preLoaderRoute: typeof ApiPublicCbShareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/price-books/new': {
       id: '/admin/price-books/new'
       path: '/new'
@@ -2163,6 +2229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbJobIdReviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/job/$id/report': {
+      id: '/cb/job/$id/report'
+      path: '/cb/job/$id/report'
+      fullPath: '/cb/job/$id/report'
+      preLoaderRoute: typeof CbJobIdReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cb/job/$id/measure': {
       id: '/cb/job/$id/measure'
       path: '/cb/job/$id/measure'
@@ -2175,6 +2248,13 @@ declare module '@tanstack/react-router' {
       path: '/cb/job/$id/interior'
       fullPath: '/cb/job/$id/interior'
       preLoaderRoute: typeof CbJobIdInteriorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/generating': {
+      id: '/cb/job/$id/generating'
+      path: '/cb/job/$id/generating'
+      fullPath: '/cb/job/$id/generating'
+      preLoaderRoute: typeof CbJobIdGeneratingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cb/job/$id/exterior': {
@@ -2549,14 +2629,18 @@ const rootRouteChildren: RootRouteChildren = {
   CbOnboardingRoute: CbOnboardingRoute,
   CbSignupRoute: CbSignupRoute,
   PayTokenRoute: PayTokenRoute,
+  RTokenRoute: RTokenRoute,
   CbIndexRoute: CbIndexRoute,
+  ApiPublicCbShareRoute: ApiPublicCbShareRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   CbJobIdCoverRoute: CbJobIdCoverRoute,
   CbJobIdCustomerRoute: CbJobIdCustomerRoute,
   CbJobIdExteriorRoute: CbJobIdExteriorRoute,
+  CbJobIdGeneratingRoute: CbJobIdGeneratingRoute,
   CbJobIdInteriorRoute: CbJobIdInteriorRoute,
   CbJobIdMeasureRoute: CbJobIdMeasureRoute,
+  CbJobIdReportRoute: CbJobIdReportRoute,
   CbJobIdReviewRoute: CbJobIdReviewRoute,
   CbJobIdRoofRoute: CbJobIdRoofRoute,
   CbJobIdScopeRoute: CbJobIdScopeRoute,
