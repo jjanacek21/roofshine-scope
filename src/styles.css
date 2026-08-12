@@ -977,3 +977,49 @@
   [data-cb] .cb-word,
   [data-cb] .cb-page { opacity: 1 !important; transform: none !important; }
 }
+
+/* ---- Claim Buddy: inspection flow chrome ---- */
+[data-cb] .cb-pending-pill {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 16px; border-radius: 999px; z-index: 60;
+  font-size: 13px; font-weight: 600; letter-spacing: .01em;
+  color: var(--cb-text); background: var(--cb-surface);
+  border: 1px solid var(--cb-border);
+  box-shadow: 0 12px 30px rgba(0,0,0,.22);
+}
+[data-cb] .cb-pending-dot {
+  width: 8px; height: 8px; border-radius: 999px; background: var(--cb-accent);
+  animation: cb-pulse 1.4s ease-in-out infinite;
+}
+@keyframes cb-pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+[data-cb] .cb-carrier-menu {
+  position: absolute; z-index: 50; left: 0; right: 0; top: calc(100% - 14px);
+  overflow: hidden; border-radius: 12px;
+  background: var(--cb-surface); border: 1px solid var(--cb-border);
+  box-shadow: 0 18px 40px rgba(0,0,0,.24);
+}
+[data-cb] .cb-carrier-menu button {
+  display: block; width: 100%; text-align: left;
+  padding: 11px 14px; font-size: 14.5px; color: var(--cb-text);
+  border-bottom: 1px solid var(--cb-border);
+}
+[data-cb] .cb-carrier-menu button:last-child { border-bottom: 0; }
+[data-cb] .cb-carrier-menu button:hover { background: rgba(127,127,127,.12); }
+
+[data-cb] .cb-camera-frame {
+  position: relative; overflow: hidden; border-radius: 14px;
+  aspect-ratio: 3 / 4; background: #0c0e11;
+  border: 1px solid var(--cb-border);
+}
+[data-cb] .cb-camera-media { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+[data-cb] .cb-scope-card { transition: transform .18s var(--cb-ease), box-shadow .18s var(--cb-ease); }
+[data-cb] button:active .cb-scope-card { transform: scale(.985); }
+[data-cb] .cb-scope-card.is-selected { border-color: var(--cb-accent); }
+[data-cb] .cb-scope-icon {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px;
+  color: var(--cb-accent); background: rgba(127,127,127,.10);
+  border: 1px solid var(--cb-border);
+}
