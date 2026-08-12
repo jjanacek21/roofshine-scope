@@ -24,6 +24,7 @@ import { Route as PayTokenRouteImport } from './routes/pay.$token'
 import { Route as CbSignupRouteImport } from './routes/cb.signup'
 import { Route as CbOnboardingRouteImport } from './routes/cb.onboarding'
 import { Route as CbLoginRouteImport } from './routes/cb.login'
+import { Route as CbCompaniesRouteImport } from './routes/cb.companies'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
@@ -188,6 +189,11 @@ const CbOnboardingRoute = CbOnboardingRouteImport.update({
 const CbLoginRoute = CbLoginRouteImport.update({
   id: '/cb/login',
   path: '/cb/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbCompaniesRoute = CbCompaniesRouteImport.update({
+  id: '/cb/companies',
+  path: '/cb/companies',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CSlugRoute = CSlugRouteImport.update({
@@ -702,6 +708,7 @@ export interface FileRoutesByFullPath {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
@@ -802,6 +809,7 @@ export interface FileRoutesByTo {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
@@ -910,6 +918,7 @@ export interface FileRoutesById {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
@@ -1020,6 +1029,7 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/companies'
     | '/cb/login'
     | '/cb/onboarding'
     | '/cb/signup'
@@ -1120,6 +1130,7 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/companies'
     | '/cb/login'
     | '/cb/onboarding'
     | '/cb/signup'
@@ -1227,6 +1238,7 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/companies'
     | '/cb/login'
     | '/cb/onboarding'
     | '/cb/signup'
@@ -1308,6 +1320,7 @@ export interface RootRouteChildren {
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
   CSlugRoute: typeof CSlugRoute
+  CbCompaniesRoute: typeof CbCompaniesRoute
   CbLoginRoute: typeof CbLoginRoute
   CbOnboardingRoute: typeof CbOnboardingRoute
   CbSignupRoute: typeof CbSignupRoute
@@ -1422,6 +1435,13 @@ declare module '@tanstack/react-router' {
       path: '/cb/login'
       fullPath: '/cb/login'
       preLoaderRoute: typeof CbLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/companies': {
+      id: '/cb/companies'
+      path: '/cb/companies'
+      fullPath: '/cb/companies'
+      preLoaderRoute: typeof CbCompaniesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/c/$slug': {
@@ -2344,6 +2364,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
   CSlugRoute: CSlugRoute,
+  CbCompaniesRoute: CbCompaniesRoute,
   CbLoginRoute: CbLoginRoute,
   CbOnboardingRoute: CbOnboardingRoute,
   CbSignupRoute: CbSignupRoute,
