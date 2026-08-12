@@ -404,7 +404,7 @@ function CbEstimatePage() {
               <label className="flex items-center gap-3 text-sm">
                 <input
                   type="checkbox"
-                  className="h-5 w-5"
+                  className="cb-checkbox"
                   checked={attach}
                   onChange={(e) => setAttach(e.target.checked)}
                 />
@@ -416,11 +416,8 @@ function CbEstimatePage() {
           {inputs ? <CbConvertAction jobId={id} /> : null}
         </div>
 
-        <div
-          className="fixed inset-x-0 bottom-0 z-30 border-t px-5 py-4"
-          style={{ background: "var(--cb-surface)", borderColor: "var(--cb-border)" }}
-        >
-          <div className="mx-auto flex max-w-[820px] items-center gap-3">
+        <div className="cb-dock">
+          <div className="mx-auto flex w-full max-w-[820px] items-center gap-3">
             <CbButton variant="ghost" onClick={() => void download()} disabled={busy === "pdf"}>
               {busy === "pdf" ? (
                 <Loader2 className="mr-1 h-4 w-4 animate-spin" />

@@ -183,7 +183,7 @@ function CbJobCustomerPage() {
                 }
               />
             </div>
-            <div className="mt-3 grid gap-3" style={{ gridTemplateColumns: "1.4fr .6fr .8fr" }}>
+            <div className="mt-3 grid gap-3 grid-cols-1 sm:grid-cols-[1.4fr_.6fr_.8fr]">
               <CbField
                 label="City"
                 value={form.city ?? ""}
@@ -283,6 +283,16 @@ function CbJobCustomerPage() {
           <div className="grid gap-2 pt-1">
             <CbButton
               block
+              variant="ghost"
+              onClick={() => navigate({ to: "/cb/job/$id/cover", params: { id } })}
+            >
+              Skip — I'll add this later
+            </CbButton>
+          </div>
+          <div aria-hidden className="cb-has-dock" />
+          <div className="cb-dock">
+            <CbButton
+              block
               loading={saving}
               loadingText="Saving…"
               onClick={async () => {
@@ -290,13 +300,6 @@ function CbJobCustomerPage() {
               }}
             >
               Continue to cover photo
-            </CbButton>
-            <CbButton
-              block
-              variant="ghost"
-              onClick={() => navigate({ to: "/cb/job/$id/cover", params: { id } })}
-            >
-              Skip — I'll add this later
             </CbButton>
           </div>
         </div>

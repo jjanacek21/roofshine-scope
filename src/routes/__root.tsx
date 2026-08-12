@@ -43,22 +43,42 @@ function NotFoundComponent() {
 
 export const Route = createRootRoute({
   loader: () => ({ surface: resolveSurfaceFromHost(getRequestHostname()) }),
-  head: ({ loaderData }) => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      ...surfaceMeta(loaderData?.surface ?? "platform"),
-    ],
-    links: [
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Bricolage+Grotesque:wght@600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap",
-      },
-      { rel: "stylesheet", href: appCss },
-    ],
-  }),
+  head: ({ loaderData }) => {
+    const surface = loaderData?.surface ?? "platform";
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        {
+          name: "viewport",
+          content: "width=device-width, initial-scale=1, viewport-fit=cover",
+        },
+        ...surfaceMeta(surface),
+        ...(surface === "standalone"
+          ? [
+              { name: "mobile-web-app-capable", content: "yes" },
+              { name: "apple-mobile-web-app-capable", content: "yes" },
+              { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+            ]
+          : []),
+      ],
+      links: [
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+        {
+          rel: "stylesheet",
+          href: "https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Bricolage+Grotesque:wght@600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap",
+        },
+        { rel: "stylesheet", href: appCss },
+        ...(surface === "standalone"
+          ? [
+              { rel: "manifest", href: "/claim-buddy.webmanifest" },
+              { rel: "apple-touch-icon", href: "/cb-icon-192.png" },
+              { rel: "icon", href: "/cb-icon-192.png", type: "image/png" },
+            ]
+          : []),
+      ],
+    };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

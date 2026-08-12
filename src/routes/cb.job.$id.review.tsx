@@ -45,9 +45,9 @@ function Thumb({ path }: { path: string | null }) {
   return (
     <span
       style={{
-        width: 58,
-        height: 58,
-        borderRadius: 10,
+        width: "100%",
+        aspectRatio: "1 / 1",
+        borderRadius: 12,
         flexShrink: 0,
         overflow: "hidden",
         display: "block",
@@ -269,7 +269,7 @@ function CbReviewPage() {
                       {byElevation[e].length}
                     </span>
                   </div>
-                  <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                  <div className="cb-photo-grid mt-2">
                     {byElevation[e].slice(0, 12).map((p) => (
                       <Thumb key={p.id} path={p.thumb_path ?? p.storage_path} />
                     ))}
@@ -413,7 +413,8 @@ function CbReviewPage() {
           ) : null}
 
           {/* CREATE REPORT */}
-          <div className="mt-6 grid gap-2">
+          <div aria-hidden className="cb-has-dock" />
+          <div className="cb-dock">
             <CbButton
               block
               disabled={blockers.length > 0}

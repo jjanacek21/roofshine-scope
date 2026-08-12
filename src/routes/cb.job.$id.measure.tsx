@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -8,7 +8,10 @@ import { CbCard, CbButton, CbBadge, CbLoading } from "@/components/cb/primitives
 import { CbField } from "@/components/cb/forms";
 import { CbCountUp, CbReveal, cbHaptic } from "@/components/cb/motion";
 import { CbJobStepShell } from "@/components/claim-buddy/CbJobStepShell";
-import { CbRoofPlanEditor } from "@/components/cb/CbRoofPlanEditor";
+/* Deferred: the Mapbox plan editor is a heavy bundle — load it only when a plan exists. */
+const CbRoofPlanEditor = lazy(() =>
+  import("@/components/cb/CbRoofPlanEditor").then((m) => ({ default: m.CbRoofPlanEditor })),
+);
 import {
   loadCbRoofPlan,
   saveCbRoofPlan,
@@ -279,6 +282,7 @@ function CbJobMeasurePage() {
             </CbCard>
 
             {center || plan.sections.length ? (
+              <Suspense fallback={<CbLoading label="Loading roof plan editor…" />}>
               <CbRoofPlanEditor
                 plan={plan}
                 onPlanChange={handlePlanChange}
@@ -287,6 +291,7 @@ function CbJobMeasurePage() {
                 onReset={resetPlan}
                 canReset={!!originalPlanRef.current?.sections.length}
               />
+              </Suspense>
             ) : null}
 
 
