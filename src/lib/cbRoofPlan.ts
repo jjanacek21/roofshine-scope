@@ -1,0 +1,369 @@
+import { supabase } from "@/integrations/supabase/client";
+import {
+  EDGE_COLORS,
+  EDGE_LABELS,
+  EDGE_TYPES,
+  haversineFeet,
+  lineStringLengthFeet,
+  pitchMultiplier,
+  polygonAreaSqft,
+  polygonEdgeLengths,
+  PITCH_OPTIONS,
+  type EdgeType,
+} from "@/lib/roof-math";
+
+export { EDGE_COLORS, EDGE_LABELS, EDGE_TYPES, PITCH_OPTIONS };
+export type { EdgeType };
+
+/** One structure on the plan. `ring` is an OPEN ring of [lng,lat] pairs. */
+export interface CbPlanSection {
+  id: string;
+  name: string;
+  color: string;
+  ring: number[][];
+  pitch: string;
+  edges: EdgeType[];
+}
+
+export interface CbPlanLine {
+  id: string;
+  coords: number[][];
+  type: EdgeType;
+}
+
+export interface CbPlan {
+  sections: CbPlanSection[];
+  lines: CbPlanLine[];
+}
+
+export interface CbPlanTotals {
+  total_area_sqft: number;
+  total_squares: number;
+  facets: number;
+  pitch: string | null;
+  ridge_lf: number;
+  hip_lf: number;
+  valley_lf: number;
+  rake_lf: number;
+  eave_lf: number;
+  gutter_lf: number;
+  wall_flashing_lf: number;
+  step_flashing_lf: number;
+}
+
+export const CB_SECTION_COLORS = [
+  "#f97316",
+  "#22d3ee",
+  "#a78bfa",
+  "#facc15",
+  "#34d399",
+  "#fb7185",
+];
+
+export const CB_EMPTY_PLAN: CbPlan = { sections: [], lines: [] };
+
+export function cbSectionColor(i: number): string {
+  return CB_SECTION_COLORS[i % CB_SECTION_COLORS.length];
+}
+
+/* ------------------------------ geometry ------------------------------ */
+
+/** Feet-per-degree scale around a latitude. */
+export function ftPerDeg(lat: number) {
+  const ftLat = 364320;
+  return { lat: ftLat, lng: ftLat * Math.cos((lat * Math.PI) / 180) };
+}
+
+/** Open a ring (drop the duplicated closing point). */
+export function openRing(ring: number[][]): number[][] {
+  if (ring.length > 1) {
+    const a = ring[0];
+    const b = ring[ring.length - 1];
+    if (a[0] === b[0] && a[1] === b[1]) return ring.slice(0, -1);
+  }
+  return ring;
+}
+
+export function closeRing(ring: number[][]): number[][] {
+  if (!ring.length) return ring;
+  return [...ring, ring[0]];
+}
+
+export function sectionPlanAreaSqft(s: CbPlanSection): number {
+  return polygonAreaSqft(closeRing(s.ring));
+}
+
+export function sectionActualAreaSqft(s: CbPlanSection): number {
+  return sectionPlanAreaSqft(s) * pitchMultiplier(s.pitch);
+}
+
+export function sectionEdgeLengths(s: CbPlanSection): number[] {
+  return polygonEdgeLengths(closeRing(s.ring));
+}
+
+export function edgeCenter(ring: number[][], i: number): [number, number] {
+  const a = ring[i];
+  const b = ring[(i + 1) % ring.length];
+  return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+}
+
+export function ringCentroid(ring: number[][]): [number, number] {
+  let x = 0;
+  let y = 0;
+  for (const p of ring) {
+    x += p[0];
+    y += p[1];
+  }
+  return [x / ring.length, y / ring.length];
+}
+
+/** Bearing of an edge in degrees, normalised into 0–180. */
+function edgeAzimuth(a: number[], b: number[]): number {
+  const s = ftPerDeg((a[1] + b[1]) / 2);
+  const dx = (b[0] - a[0]) * s.lng;
+  const dy = (b[1] - a[1]) * s.lat;
+  let deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+  if (deg < 0) deg += 180;
+  if (deg >= 180) deg -= 180;
+  return deg;
+}
+
+/**
+ * Auto-classify perimeter edges: the dominant run of the roof is the low side
+ * (eave), edges running up the slope are rakes.
+ */
+export function autoClassifyEdges(ring: number[][]): EdgeType[] {
+  const n = ring.length;
+  if (n < 3) return [];
+  const lens = polygonEdgeLengths(closeRing(ring));
+  let dominant = 0;
+  let best = -1;
+  for (let i = 0; i < n; i++) {
+    if (lens[i] > best) {
+      best = lens[i];
+      dominant = edgeAzimuth(ring[i], ring[(i + 1) % n]);
+    }
+  }
+  return ring.map((_, i) => {
+    const az = edgeAzimuth(ring[i], ring[(i + 1) % n]);
+    let d = Math.abs(az - dominant);
+    if (d > 90) d = 180 - d;
+    return d <= 30 ? ("eave" as EdgeType) : ("rake" as EdgeType);
+  });
+}
+
+/** Keep the edge-type array the same length as the ring after an edit. */
+export function normalizeEdges(ring: number[][], edges: EdgeType[]): EdgeType[] {
+  const auto = autoClassifyEdges(ring);
+  return ring.map((_, i) => edges[i] ?? auto[i] ?? "eave");
+}
+
+/**
+ * Snap a dragged vertex so the two edges touching it land on 15° increments
+ * when they are already close to one.
+ */
+export function snapVertex(
+  ring: number[][],
+  index: number,
+  point: [number, number],
+  toleranceDeg = 5,
+): [number, number] {
+  const n = ring.length;
+  if (n < 3) return point;
+  const anchors = [ring[(index - 1 + n) % n], ring[(index + 1) % n]];
+  let out: [number, number] = point;
+  for (const anchor of anchors) {
+    const s = ftPerDeg(anchor[1]);
+    const dx = (out[0] - anchor[0]) * s.lng;
+    const dy = (out[1] - anchor[1]) * s.lat;
+    const len = Math.hypot(dx, dy);
+    if (len < 1) continue;
+    const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+    const snapped = Math.round(deg / 15) * 15;
+    if (Math.abs(deg - snapped) > toleranceDeg) continue;
+    const rad = (snapped * Math.PI) / 180;
+    out = [
+      anchor[0] + (Math.cos(rad) * len) / s.lng,
+      anchor[1] + (Math.sin(rad) * len) / s.lat,
+    ];
+    break;
+  }
+  return out;
+}
+
+/** A square structure of `sizeFt` centred on a point. */
+export function squareRing(center: [number, number], sizeFt = 32): number[][] {
+  const s = ftPerDeg(center[1]);
+  const dx = sizeFt / 2 / s.lng;
+  const dy = sizeFt / 2 / s.lat;
+  return [
+    [center[0] - dx, center[1] - dy],
+    [center[0] + dx, center[1] - dy],
+    [center[0] + dx, center[1] + dy],
+    [center[0] - dx, center[1] + dy],
+  ];
+}
+
+export function lineLengthFeet(coords: number[][]): number {
+  return lineStringLengthFeet(coords);
+}
+
+export function pointDistanceFeet(a: number[], b: number[]): number {
+  return haversineFeet({ lng: a[0], lat: a[1] }, { lng: b[0], lat: b[1] });
+}
+
+/* ------------------------------- totals ------------------------------- */
+
+export function planTotals(plan: CbPlan): CbPlanTotals {
+  const byType: Record<string, number> = {};
+  for (const t of EDGE_TYPES) byType[t] = 0;
+
+  let area = 0;
+  const pitchArea: Record<string, number> = {};
+
+  for (const s of plan.sections) {
+    const plan_area = sectionPlanAreaSqft(s);
+    const actual = plan_area * pitchMultiplier(s.pitch);
+    area += actual;
+    pitchArea[s.pitch] = (pitchArea[s.pitch] ?? 0) + actual;
+    const lens = sectionEdgeLengths(s);
+    const edges = normalizeEdges(s.ring, s.edges);
+    edges.forEach((t, i) => {
+      byType[t] = (byType[t] ?? 0) + (lens[i] ?? 0);
+    });
+  }
+
+  for (const l of plan.lines) {
+    byType[l.type] = (byType[l.type] ?? 0) + lineLengthFeet(l.coords);
+  }
+
+  const predominant =
+    Object.entries(pitchArea).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+  const r = (n: number) => Math.round(n * 10) / 10;
+
+  return {
+    total_area_sqft: Math.round(area),
+    total_squares: Math.round((area / 100) * 100) / 100,
+    facets: plan.sections.length,
+    pitch: predominant,
+    ridge_lf: r(byType.ridge),
+    hip_lf: r(byType.hip),
+    valley_lf: r(byType.valley),
+    rake_lf: r(byType.rake),
+    eave_lf: r(byType.eave),
+    gutter_lf: r(byType.gutter || byType.eave),
+    wall_flashing_lf: r(byType.wall_flashing),
+    step_flashing_lf: r(byType.step_flashing),
+  };
+}
+
+/* ----------------------------- persistence ---------------------------- */
+
+type RawSection = {
+  id: string;
+  name: string;
+  color: string;
+  polygon_geojson: unknown;
+  pitch: string;
+  edges: { edge_index: number; edge_type: EdgeType; length_lf: number }[];
+};
+
+function ringFromGeoJson(g: unknown): number[][] {
+  const o = g as { type?: string; coordinates?: unknown; geometry?: unknown } | null;
+  if (!o) return [];
+  if (o.geometry) return ringFromGeoJson(o.geometry);
+  const c = o.coordinates as number[][][] | number[][] | undefined;
+  if (!c) return [];
+  const ring = Array.isArray((c as number[][][])[0]?.[0])
+    ? ((c as number[][][])[0] as number[][])
+    : (c as number[][]);
+  return openRing(ring.filter((p) => Array.isArray(p) && p.length >= 2));
+}
+
+/** Make sure the Claim Buddy job has a roof_measurements row to hang the plan off. */
+export async function ensureCbRoofMeasurement(jobId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("cb_ensure_roof_measurement", { _job: jobId });
+  if (error) return null;
+  return (data as string | null) ?? null;
+}
+
+export async function loadCbRoofPlan(jobId: string): Promise<CbPlan> {
+  await ensureCbRoofMeasurement(jobId);
+  const { data, error } = await supabase.rpc("cb_roof_plan", { _job: jobId });
+  if (error || !data) return { sections: [], lines: [] };
+  const payload = data as { sections?: RawSection[]; lines?: unknown[] };
+
+  const sections: CbPlanSection[] = (payload.sections ?? []).map((s, i) => {
+    const ring = ringFromGeoJson(s.polygon_geojson);
+    const edges = (s.edges ?? [])
+      .slice()
+      .sort((a, b) => a.edge_index - b.edge_index)
+      .map((e) => e.edge_type);
+    return {
+      id: s.id,
+      name: s.name || `Structure ${i + 1}`,
+      color: s.color || cbSectionColor(i),
+      ring,
+      pitch: s.pitch || "6/12",
+      edges: normalizeEdges(ring, edges),
+    };
+  });
+
+  const lines: CbPlanLine[] = (payload.lines ?? []).map((raw) => {
+    const l = raw as { id: string; line_geojson: unknown; line_type: EdgeType };
+    const g = l.line_geojson as { coordinates?: number[][]; geometry?: { coordinates?: number[][] } };
+    const coords = (g?.coordinates ?? g?.geometry?.coordinates ?? []) as number[][];
+    return { id: l.id, coords, type: l.line_type };
+  });
+
+  return { sections: sections.filter((s) => s.ring.length >= 3), lines };
+}
+
+export async function saveCbRoofPlan(
+  jobId: string,
+  plan: CbPlan,
+  opts: { repAdjusted: boolean },
+): Promise<CbPlanTotals> {
+  const totals = planTotals(plan);
+  const sections = plan.sections.map((s, i) => {
+    const planArea = sectionPlanAreaSqft(s);
+    const mult = pitchMultiplier(s.pitch);
+    const lens = sectionEdgeLengths(s);
+    const edges = normalizeEdges(s.ring, s.edges);
+    return {
+      name: s.name,
+      color: s.color,
+      polygon_geojson: { type: "Polygon", coordinates: [closeRing(s.ring)] },
+      plan_area_sqft: Math.round(planArea),
+      pitch: s.pitch,
+      pitch_multiplier: Math.round(mult * 1000) / 1000,
+      actual_area_sqft: Math.round(planArea * mult),
+      sort_order: i,
+      edges: edges.map((t, idx) => ({
+        edge_index: idx,
+        edge_type: t,
+        length_lf: Math.round((lens[idx] ?? 0) * 10) / 10,
+      })),
+    };
+  });
+
+  const lines = plan.lines.map((l) => ({
+    line_geojson: { type: "LineString", coordinates: l.coords },
+    line_type: l.type,
+    length_lf: Math.round(lineLengthFeet(l.coords) * 10) / 10,
+  }));
+
+  const { error } = await supabase.rpc("cb_save_roof_plan", {
+    _job: jobId,
+    _sections: sections as never,
+    _lines: lines as never,
+    _totals: {
+      ...totals,
+      rep_adjusted: opts.repAdjusted,
+      source: opts.repAdjusted ? "manual" : undefined,
+    } as never,
+  });
+  if (error) throw error;
+  return totals;
+}
