@@ -29,6 +29,8 @@ import type { MapboxRoofData } from "./MapboxRoofDraw";
 import { MeasureTuningPanel } from "./MeasureTuningPanel";
 import { DEFAULT_MEASURE_TUNING, normalizeTuning, type MeasureTuning } from "@/lib/measure-tuning";
 import { PITCH_OPTIONS, pitchMultiplier, withWaste, squares, polygonAreaSqft, haversineFeet } from "@/lib/roof-math";
+import { roofTotals } from "@/lib/roof-measurement-save";
+
 import { setMeasureHandoff } from "@/lib/measure-handoff";
 
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -1058,14 +1060,16 @@ export function SolarRoofTab({
     );
     if (active.length === 0) return;
 
-    const planTotal = active.reduce((s, p) => s + (p.plan_area_sqft || 0), 0);
-    const slopedTotal = active.reduce((s, p) => {
-      const mult = p.kind === "flat" ? 1 : pitchMultiplier(p.pitch);
-      return s + (p.plan_area_sqft || 0) * mult;
-    }, 0);
-    const biggest = active.reduce((best, p) =>
-      (p.plan_area_sqft || 0) > (best.plan_area_sqft || 0) ? p : best,
+    // Shared math (src/lib/roof-measurement-save.ts) — same helper Claim Buddy uses.
+    const totals = roofTotals(
+      active.map((p) => ({
+        pitch: p.pitch,
+        plan_area_sqft: p.plan_area_sqft || 0,
+        flat: p.kind === "flat",
+      })),
+      wastePct,
     );
+    const planTotal = totals.planTotal;
 
     const { data: m, error: mErr } = await supabase
       .from("roof_measurements")
@@ -1075,10 +1079,11 @@ export function SolarRoofTab({
           company_id: profile.company_id,
 
           source: "google_solar" as const,
-          predominant_pitch: /^\d+\s*\/\s*\d+$/.test(biggest.pitch) ? biggest.pitch : null,
+          predominant_pitch: totals.predominantPitch,
           waste_pct: wastePct,
-          total_area_sqft: slopedTotal,
-          squares: withWaste(slopedTotal, wastePct) / 100,
+          total_area_sqft: totals.slopedTotal,
+          squares: totals.squares,
+
           created_by: profile?.id ?? null,
           ai_run_id: active.find((p) => p.run_id)?.run_id ?? null,
           ai_geometry: {
