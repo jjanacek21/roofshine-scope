@@ -5,6 +5,8 @@ import { useCbSession } from "@/components/auth/CbSessionProvider";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbLoading } from "@/components/cb/primitives";
 import { CbDashboard } from "@/components/claim-buddy/CbDashboard";
+import { getSurface } from "@/lib/cbMode";
+
 
 export const Route = createFileRoute("/cb/")({
   head: () => ({
