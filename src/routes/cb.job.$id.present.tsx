@@ -531,7 +531,7 @@ function PropertySlide({
           </p>
           <p className="cb-present-deductible-note">
             {property.deductible
-              ? `On an approved claim, ${companyName || "we"} bill the carrier for the balance of the approved scope. ${money(
+              ? `On an approved claim, ${companyName ? `${companyName} bills` : "we bill"} the carrier for the balance of the approved scope. ${money(
                   property.deductible,
                 )} is what you pay.`
               : "Your deductible amount is on your policy declarations page — we'll add it here."}
