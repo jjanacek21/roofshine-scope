@@ -1,51 +1,56 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { ClaimBuddyPlaceholder } from "@/components/claim-buddy/ClaimBuddyPlaceholder";
+import { useCbSession } from "@/components/auth/CbSessionProvider";
+import { CbSurface } from "@/components/cb/CbSurface";
 import { CbLoading } from "@/components/cb/primitives";
+import { CbDashboard } from "@/components/claim-buddy/CbDashboard";
 
 export const Route = createFileRoute("/cb/")({
   head: () => ({
     meta: [
-      { title: "Claim Buddy — Roof Inspections & Damage Reports" },
+      { title: "Inspections — Claim Buddy" },
       {
         name: "description",
         content:
-          "Run storm damage inspections, capture photo documentation, measure roofs, and get contingencies signed — all from the field.",
+          "Start a roof inspection, track report status, and see every claim your team is working — from the driveway.",
       },
-      { property: "og:title", content: "Claim Buddy — Roof Inspections & Damage Reports" },
+      { property: "og:title", content: "Inspections — Claim Buddy" },
       {
         property: "og:description",
-        content: "Field inspection and insurance-restoration sales tool for roofing contractors.",
+        content: "Field inspection and insurance-restoration tooling for roofing contractors.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: CbHome,
+  component: CbHomePage,
 });
 
-function CbHome() {
-  const { user, loading } = useAuth();
+function CbHomePage() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { workspaces, loading } = useCbSession();
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/cb/login" });
-  }, [user, loading, navigate]);
+    if (!authLoading && !user) navigate({ to: "/cb/login" });
+  }, [authLoading, user, navigate]);
 
-  if (loading || !user) {
-    return (
-      <div data-cb className="flex min-h-screen items-center justify-center px-6">
-        <div className="w-full max-w-xs">
-          <CbLoading label="Checking your session…" />
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!loading && user && workspaces.length === 0) navigate({ to: "/cb/onboarding", replace: true });
+  }, [loading, user, workspaces.length, navigate]);
 
   return (
-    <div className="min-h-screen px-6 py-8" style={{ background: "var(--bg)" }}>
-      <ClaimBuddyPlaceholder />
-    </div>
+    <CbSurface>
+      <div className="min-h-screen" style={{ background: "var(--cb-bg)" }}>
+        {authLoading || loading || !user ? (
+          <div className="mx-auto w-full max-w-[840px] px-5 py-10">
+            <CbLoading label="Loading Claim Buddy…" />
+          </div>
+        ) : (
+          <CbDashboard />
+        )}
+      </div>
+    </CbSurface>
   );
 }
