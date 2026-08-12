@@ -119,6 +119,7 @@ import { Route as CbJobIdMeasureRouteImport } from './routes/cb.job.$id.measure'
 import { Route as CbJobIdInteriorRouteImport } from './routes/cb.job.$id.interior'
 import { Route as CbJobIdGeneratingRouteImport } from './routes/cb.job.$id.generating'
 import { Route as CbJobIdExteriorRouteImport } from './routes/cb.job.$id.exterior'
+import { Route as CbJobIdEstimateRouteImport } from './routes/cb.job.$id.estimate'
 import { Route as CbJobIdCustomerRouteImport } from './routes/cb.job.$id.customer'
 import { Route as CbJobIdCoverRouteImport } from './routes/cb.job.$id.cover'
 import { Route as CbJobIdContractRouteImport } from './routes/cb.job.$id.contract'
@@ -683,6 +684,11 @@ const CbJobIdExteriorRoute = CbJobIdExteriorRouteImport.update({
   path: '/cb/job/$id/exterior',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbJobIdEstimateRoute = CbJobIdEstimateRouteImport.update({
+  id: '/cb/job/$id/estimate',
+  path: '/cb/job/$id/estimate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CbJobIdCustomerRoute = CbJobIdCustomerRouteImport.update({
   id: '/cb/job/$id/customer',
   path: '/cb/job/$id/customer',
@@ -856,6 +862,7 @@ export interface FileRoutesByFullPath {
   '/cb/job/$id/contract': typeof CbJobIdContractRoute
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
+  '/cb/job/$id/estimate': typeof CbJobIdEstimateRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
   '/cb/job/$id/generating': typeof CbJobIdGeneratingRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
@@ -972,6 +979,7 @@ export interface FileRoutesByTo {
   '/cb/job/$id/contract': typeof CbJobIdContractRoute
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
+  '/cb/job/$id/estimate': typeof CbJobIdEstimateRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
   '/cb/job/$id/generating': typeof CbJobIdGeneratingRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
@@ -1097,6 +1105,7 @@ export interface FileRoutesById {
   '/cb/job/$id/contract': typeof CbJobIdContractRoute
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
+  '/cb/job/$id/estimate': typeof CbJobIdEstimateRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
   '/cb/job/$id/generating': typeof CbJobIdGeneratingRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
@@ -1222,6 +1231,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/contract'
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
+    | '/cb/job/$id/estimate'
     | '/cb/job/$id/exterior'
     | '/cb/job/$id/generating'
     | '/cb/job/$id/interior'
@@ -1338,6 +1348,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/contract'
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
+    | '/cb/job/$id/estimate'
     | '/cb/job/$id/exterior'
     | '/cb/job/$id/generating'
     | '/cb/job/$id/interior'
@@ -1462,6 +1473,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/contract'
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
+    | '/cb/job/$id/estimate'
     | '/cb/job/$id/exterior'
     | '/cb/job/$id/generating'
     | '/cb/job/$id/interior'
@@ -1513,6 +1525,7 @@ export interface RootRouteChildren {
   CbJobIdContractRoute: typeof CbJobIdContractRoute
   CbJobIdCoverRoute: typeof CbJobIdCoverRoute
   CbJobIdCustomerRoute: typeof CbJobIdCustomerRoute
+  CbJobIdEstimateRoute: typeof CbJobIdEstimateRoute
   CbJobIdExteriorRoute: typeof CbJobIdExteriorRoute
   CbJobIdGeneratingRoute: typeof CbJobIdGeneratingRoute
   CbJobIdInteriorRoute: typeof CbJobIdInteriorRoute
@@ -2297,6 +2310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbJobIdExteriorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/job/$id/estimate': {
+      id: '/cb/job/$id/estimate'
+      path: '/cb/job/$id/estimate'
+      fullPath: '/cb/job/$id/estimate'
+      preLoaderRoute: typeof CbJobIdEstimateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cb/job/$id/customer': {
       id: '/cb/job/$id/customer'
       path: '/cb/job/$id/customer'
@@ -2677,6 +2697,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbJobIdContractRoute: CbJobIdContractRoute,
   CbJobIdCoverRoute: CbJobIdCoverRoute,
   CbJobIdCustomerRoute: CbJobIdCustomerRoute,
+  CbJobIdEstimateRoute: CbJobIdEstimateRoute,
   CbJobIdExteriorRoute: CbJobIdExteriorRoute,
   CbJobIdGeneratingRoute: CbJobIdGeneratingRoute,
   CbJobIdInteriorRoute: CbJobIdInteriorRoute,

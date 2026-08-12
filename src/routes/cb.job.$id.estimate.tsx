@@ -207,12 +207,12 @@ function CbEstimatePage() {
             <button
               type="button"
               className="text-sm opacity-70"
-              onClick={() => navigate({ to: "/cb/job/$id/report", params: { id } })}
+              onClick={() => navigate({ to: "/cb/job/$id/report", params: { id }, search: {} })}
             >
               ← Report
             </button>
             <span className="text-sm font-semibold">Estimate</span>
-            <CbButton size="sm" variant="ghost" onClick={() => void regenerate(mode)} disabled={building}>
+            <CbButton size="md" variant="ghost" onClick={() => void regenerate(mode)} disabled={building}>
               {building ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </CbButton>
           </div>
@@ -225,14 +225,14 @@ function CbEstimatePage() {
               onChange={(v) => changeMode(v as CbEstimateMode)}
               options={[
                 {
-                  value: "per_square",
-                  label: "Price per square",
-                  hint: "One number, quoted from the driveway",
+                  value: "per_square" as const,
+                  title: "Price per square",
+                  body: "One number, quoted from the driveway",
                 },
                 {
-                  value: "line_item",
-                  label: "Full line item",
-                  hint: "Carrier-style build with codes and pricing",
+                  value: "line_item" as const,
+                  title: "Full line item",
+                  body: "Carrier-style build with codes and pricing",
                 },
               ]}
             />
@@ -342,7 +342,7 @@ function CbEstimatePage() {
               )}
 
               <div className="px-5 py-4">
-                <CbButton variant="ghost" size="sm" onClick={addLine}>
+                <CbButton variant="ghost" size="md" onClick={addLine}>
                   <Plus className="mr-1 h-4 w-4" /> Add a line
                 </CbButton>
               </div>
