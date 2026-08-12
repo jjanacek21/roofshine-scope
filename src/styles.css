@@ -774,6 +774,7 @@
 [data-cb] .cb-reveal.is-in { opacity: 1; transform: translate3d(0, 0, 0); }
 
 [data-cb] .cb-word-wrap { display: inline-block; overflow: hidden; }
+[data-cb] .cb-word-wrap + .cb-word-wrap { margin-left: .26em; }
 [data-cb] .cb-word {
   display: inline-block;
   opacity: 0;
