@@ -45,9 +45,9 @@ function Thumb({ path }: { path: string | null }) {
   return (
     <span
       style={{
-        width: 58,
-        height: 58,
-        borderRadius: 10,
+        width: "100%",
+        aspectRatio: "1 / 1",
+        borderRadius: 12,
         flexShrink: 0,
         overflow: "hidden",
         display: "block",
