@@ -1,10 +1,21 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import {
+  Outlet,
+  Link,
+  createRootRoute,
+  HeadContent,
+  Scripts,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
+import { CbSessionProvider } from "@/components/auth/CbSessionProvider";
+import { getSurface, isClaimBuddyPath } from "@/lib/cbMode";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
+
 
 function NotFoundComponent() {
   return (
