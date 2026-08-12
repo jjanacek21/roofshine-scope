@@ -38,7 +38,7 @@ const WORKSPACE_NAV = [
   { to: "/leads", label: "SPF Prospecting", icon: Target, badgeKey: null },
   { to: "/door-to-door", label: "Door to Door", icon: DoorOpen, badgeKey: null },
   { to: "/storm-intelligence", label: "Storm Intel", icon: CloudLightning, badgeKey: null },
-  { to: "/claim-buddy", label: "Claim Buddy", icon: ShieldCheck, badgeKey: null },
+  { to: "/claim-buddy", label: "Claim Buddy", icon: ShieldCheck, badgeKey: "cb" as const },
   { to: "/card", label: "My Card", icon: IdCard, badgeKey: null },
 ] as const;
 
@@ -65,6 +65,18 @@ export function AppSidebar() {
         .from("jobs")
         .select("*", { count: "exact", head: true })
         .eq("company_id", profile!.company_id!);
+      return count ?? 0;
+    },
+  });
+
+  const { data: cbOpenCount = 0 } = useQuery({
+    queryKey: ["cb-open-inspections", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("cb_jobs")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["draft", "inspecting", "report_ready", "presented", "signed"]);
       return count ?? 0;
     },
   });
@@ -142,14 +154,16 @@ export function AppSidebar() {
                 >
                   <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
                   {!collapsed && <span>{item.label}</span>}
-                  {!collapsed && item.badgeKey === "jobs" && jobsCount > 0 && (
-                    <span
-                      className="ml-auto rounded font-mono-num text-[10px] font-bold text-white"
-                      style={{ background: "var(--brand)", padding: "2px 6px" }}
-                    >
-                      {jobsCount}
-                    </span>
-                  )}
+                  {!collapsed &&
+                    ((item.badgeKey === "jobs" && jobsCount > 0) ||
+                      (item.badgeKey === "cb" && cbOpenCount > 0)) && (
+                      <span
+                        className="ml-auto rounded font-mono-num text-[10px] font-bold text-white"
+                        style={{ background: "var(--brand)", padding: "2px 6px" }}
+                      >
+                        {item.badgeKey === "cb" ? cbOpenCount : jobsCount}
+                      </span>
+                    )}
                 </Link>
               );
               return collapsed ? (
