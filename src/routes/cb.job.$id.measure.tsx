@@ -1,14 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbBadge, CbLoading } from "@/components/cb/primitives";
 import { CbField } from "@/components/cb/forms";
 import { CbCountUp, CbReveal, cbHaptic } from "@/components/cb/motion";
 import { CbJobStepShell } from "@/components/claim-buddy/CbJobStepShell";
+import { CbRoofPlanEditor } from "@/components/cb/CbRoofPlanEditor";
+import {
+  loadCbRoofPlan,
+  saveCbRoofPlan,
+  planTotals,
+  type CbPlan,
+} from "@/lib/cbRoofPlan";
 import {
   CB_BLANK_MEASUREMENT,
   CB_LINEAR_FIELDS,
@@ -16,6 +22,7 @@ import {
   saveCbMeasurement,
   type CbMeasurement,
 } from "@/lib/cbMeasure";
+
 
 export const Route = createFileRoute("/cb/job/$id/measure")({
   head: () => ({
@@ -48,7 +55,10 @@ const STEPS = [
 function CbJobMeasurePage() {
   const { id } = useParams({ from: "/cb/job/$id/measure" });
   const navigate = useNavigate();
-  const { data: mapToken } = useMapboxToken();
+  const [plan, setPlan] = useState<CbPlan>({ sections: [], lines: [] });
+  const originalPlanRef = useRef<CbPlan | null>(null);
+  const [planDirty, setPlanDirty] = useState(false);
+
 
   const [phase, setPhase] = useState<"idle" | "running" | "result" | "manual">("idle");
   const [stepIdx, setStepIdx] = useState(0);
@@ -113,10 +123,68 @@ function CbJobMeasurePage() {
       .join(", ");
   }, [job]);
 
-  const thumb =
-    mapToken && job?.lat != null && job?.lng != null
-      ? `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/pin-l-home+1e90ff(${job.lng},${job.lat})/${job.lng},${job.lat},19,0/640x360@2x?access_token=${mapToken}`
+  const center =
+    job?.lat != null && job?.lng != null
+      ? { lat: Number(job.lat), lng: Number(job.lng) }
       : null;
+
+  const { data: planData, refetch: refetchPlan } = useQuery({
+    queryKey: ["cb-roof-plan", id],
+    enabled: !!job,
+    queryFn: () => loadCbRoofPlan(id),
+  });
+
+  useEffect(() => {
+    if (!planData) return;
+    setPlan(planData);
+    if (!originalPlanRef.current) originalPlanRef.current = planData;
+  }, [planData]);
+
+  const { data: reportCount } = useQuery({
+    queryKey: ["cb-report-count", id],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("cb_reports")
+        .select("id", { count: "exact", head: true })
+        .eq("job_id", id);
+      return count ?? 0;
+    },
+  });
+  const planReadOnly = (reportCount ?? 0) > 0;
+
+  function handlePlanChange(next: CbPlan, opts: { user: boolean }) {
+    setPlan(next);
+    if (!opts.user) return;
+    setPlanDirty(true);
+    setRepAdjusted(true);
+    const t = planTotals(next);
+    setValues((v) => ({
+      ...v,
+      total_squares: t.total_squares,
+      total_area_sqft: t.total_area_sqft,
+      facets: t.facets,
+      pitch: t.pitch ?? v.pitch,
+      ridge_lf: t.ridge_lf,
+      hip_lf: t.hip_lf,
+      valley_lf: t.valley_lf,
+      rake_lf: t.rake_lf,
+      eave_lf: t.eave_lf,
+      gutter_lf: t.gutter_lf,
+      wall_flashing_lf: t.wall_flashing_lf,
+      step_flashing_lf: t.step_flashing_lf,
+      drip_edge_lf: Math.round((t.eave_lf + t.rake_lf) * 10) / 10,
+      starter_lf: t.eave_lf,
+      ridge_cap_lf: Math.round((t.ridge_lf + t.hip_lf) * 10) / 10,
+    }));
+  }
+
+  function resetPlan() {
+    const original = originalPlanRef.current;
+    if (!original) return;
+    handlePlanChange(JSON.parse(JSON.stringify(original)) as CbPlan, { user: true });
+    toast.message("Restored the satellite shape");
+  }
+
 
   async function run() {
     if (!job?.workspace_id) return;
@@ -138,6 +206,10 @@ function CbJobMeasurePage() {
       setValues(res.measurement);
       setRepAdjusted(false);
       setPhase("result");
+      originalPlanRef.current = null;
+      setPlanDirty(false);
+      const fresh = await refetchPlan();
+      if (fresh.data) originalPlanRef.current = fresh.data;
       return;
     }
     setUpgrade(res.reason === "no_credits");
@@ -158,7 +230,11 @@ function CbJobMeasurePage() {
   async function save() {
     setSaving(true);
     try {
-      await saveCbMeasurement(id, values, repAdjusted || phase === "manual");
+      const handEdited = repAdjusted || phase === "manual";
+      if (!planReadOnly && (planDirty || plan.sections.length)) {
+        await saveCbRoofPlan(id, plan, { repAdjusted: handEdited });
+      }
+      await saveCbMeasurement(id, values, handEdited);
       cbHaptic();
       toast.success("Measurement saved");
       navigate({ to: "/cb/job/$id/scope", params: { id } });
@@ -168,6 +244,7 @@ function CbJobMeasurePage() {
       setSaving(false);
     }
   }
+
 
   const editable = phase === "manual" || adjust;
 
@@ -188,24 +265,31 @@ function CbJobMeasurePage() {
                 Property
               </p>
               <p className="mt-1 text-[16px] font-semibold">{fullAddress || "No address yet"}</p>
-              {thumb ? (
-                <img
-                  src={thumb}
-                  alt={`Satellite view of ${fullAddress || "the property"}`}
-                  loading="lazy"
-                  className="mt-3 block w-full rounded-[12px]"
-                />
-              ) : (
+              {!center ? (
                 <p className="mt-3 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
                   No coordinates on this job yet — you can still enter measurements by hand.
                 </p>
-              )}
+              ) : null}
+
               {remaining != null ? (
                 <p className="mt-3 cb-num text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
                   {remaining} measurement credits left
                 </p>
               ) : null}
             </CbCard>
+
+            {center || plan.sections.length ? (
+              <CbRoofPlanEditor
+                plan={plan}
+                onPlanChange={handlePlanChange}
+                center={center}
+                readOnly={planReadOnly}
+                onReset={resetPlan}
+                canReset={!!originalPlanRef.current?.sections.length}
+              />
+            ) : null}
+
+
 
             {phase === "idle" ? (
               <div className="space-y-3">

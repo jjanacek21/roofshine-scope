@@ -710,6 +710,7 @@ export type Database = {
           drip_edge_lf: number
           eave_lf: number
           facets: number | null
+          gc_roof_measurement_id: string | null
           gutter_lf: number
           hip_lf: number
           id: string
@@ -736,6 +737,7 @@ export type Database = {
           drip_edge_lf?: number
           eave_lf?: number
           facets?: number | null
+          gc_roof_measurement_id?: string | null
           gutter_lf?: number
           hip_lf?: number
           id?: string
@@ -762,6 +764,7 @@ export type Database = {
           drip_edge_lf?: number
           eave_lf?: number
           facets?: number | null
+          gc_roof_measurement_id?: string | null
           gutter_lf?: number
           hip_lf?: number
           id?: string
@@ -784,6 +787,13 @@ export type Database = {
           waste_pct?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_measurements_gc_roof_measurement_id_fkey"
+            columns: ["gc_roof_measurement_id"]
+            isOneToOne: false
+            referencedRelation: "roof_measurements"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_measurements_job_id_fkey"
             columns: ["job_id"]
@@ -6771,12 +6781,18 @@ export type Database = {
         Returns: string
       }
       cb_ensure_platform_workspace: { Args: never; Returns: Json }
+      cb_ensure_roof_measurement: { Args: { _job: string }; Returns: string }
       cb_gc_company_id: { Args: never; Returns: string }
       cb_has_gc_access: { Args: never; Returns: boolean }
       cb_is_admin: { Args: { _ws: string }; Returns: boolean }
       cb_my_context: { Args: never; Returns: Json }
       cb_report_by_token: { Args: { _token: string }; Returns: Json }
       cb_role: { Args: { _ws: string }; Returns: string }
+      cb_roof_plan: { Args: { _job: string }; Returns: Json }
+      cb_save_roof_plan: {
+        Args: { _job: string; _lines: Json; _sections: Json; _totals: Json }
+        Returns: Json
+      }
       cb_sees_all: { Args: { _ws: string }; Returns: boolean }
       cb_workspace_ids: { Args: never; Returns: string[] }
       create_company_as_super_admin: {
