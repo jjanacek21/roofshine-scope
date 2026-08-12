@@ -149,9 +149,8 @@ export function CbHeadline({
             className={`cb-word ${on ? "is-in" : ""}`}
             style={{ transitionDelay: reduced ? "0ms" : `${i * step}ms` }}
           >
-            {w}
+            {i < words.length - 1 ? `${w}\u00a0` : w}
           </span>
-          {i < words.length - 1 ? " " : null}
         </span>
       ))}
     </Tag>
