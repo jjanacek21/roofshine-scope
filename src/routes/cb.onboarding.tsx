@@ -33,6 +33,7 @@ export const Route = createFileRoute("/cb/onboarding")({
 });
 
 interface License {
+  [key: string]: string;
   state: string;
   number: string;
   label: string;

@@ -22,6 +22,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as PayTokenRouteImport } from './routes/pay.$token'
 import { Route as CbSignupRouteImport } from './routes/cb.signup'
+import { Route as CbOnboardingRouteImport } from './routes/cb.onboarding'
 import { Route as CbLoginRouteImport } from './routes/cb.login'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
@@ -177,6 +178,11 @@ const PayTokenRoute = PayTokenRouteImport.update({
 const CbSignupRoute = CbSignupRouteImport.update({
   id: '/cb/signup',
   path: '/cb/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbOnboardingRoute = CbOnboardingRouteImport.update({
+  id: '/cb/onboarding',
+  path: '/cb/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CbLoginRoute = CbLoginRouteImport.update({
@@ -697,6 +703,7 @@ export interface FileRoutesByFullPath {
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
   '/cb/login': typeof CbLoginRoute
+  '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
   '/admin/': typeof AdminIndexRoute
@@ -796,6 +803,7 @@ export interface FileRoutesByTo {
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
   '/cb/login': typeof CbLoginRoute
+  '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
   '/': typeof AppIndexRoute
@@ -903,6 +911,7 @@ export interface FileRoutesById {
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
   '/cb/login': typeof CbLoginRoute
+  '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
   '/_app/': typeof AppIndexRoute
@@ -1012,6 +1021,7 @@ export interface FileRouteTypes {
     | '/api/train-from-pdf'
     | '/c/$slug'
     | '/cb/login'
+    | '/cb/onboarding'
     | '/cb/signup'
     | '/pay/$token'
     | '/admin/'
@@ -1111,6 +1121,7 @@ export interface FileRouteTypes {
     | '/api/train-from-pdf'
     | '/c/$slug'
     | '/cb/login'
+    | '/cb/onboarding'
     | '/cb/signup'
     | '/pay/$token'
     | '/'
@@ -1217,6 +1228,7 @@ export interface FileRouteTypes {
     | '/api/train-from-pdf'
     | '/c/$slug'
     | '/cb/login'
+    | '/cb/onboarding'
     | '/cb/signup'
     | '/pay/$token'
     | '/_app/'
@@ -1297,6 +1309,7 @@ export interface RootRouteChildren {
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
   CSlugRoute: typeof CSlugRoute
   CbLoginRoute: typeof CbLoginRoute
+  CbOnboardingRoute: typeof CbOnboardingRoute
   CbSignupRoute: typeof CbSignupRoute
   PayTokenRoute: typeof PayTokenRoute
   CbIndexRoute: typeof CbIndexRoute
@@ -1395,6 +1408,13 @@ declare module '@tanstack/react-router' {
       path: '/cb/signup'
       fullPath: '/cb/signup'
       preLoaderRoute: typeof CbSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/onboarding': {
+      id: '/cb/onboarding'
+      path: '/cb/onboarding'
+      fullPath: '/cb/onboarding'
+      preLoaderRoute: typeof CbOnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cb/login': {
@@ -2325,6 +2345,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
   CSlugRoute: CSlugRoute,
   CbLoginRoute: CbLoginRoute,
+  CbOnboardingRoute: CbOnboardingRoute,
   CbSignupRoute: CbSignupRoute,
   PayTokenRoute: PayTokenRoute,
   CbIndexRoute: CbIndexRoute,
