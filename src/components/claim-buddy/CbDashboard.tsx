@@ -9,6 +9,7 @@ import { useCbCompany } from "@/components/auth/CbCompanyProvider";
 import { useCbLogoUrl } from "@/lib/cbLogo";
 import { CbCard, CbTile, CbButton, CbChip, CbBadge, CbLoading, CbEmptyState, CbSkeleton } from "@/components/cb/primitives";
 import { CbReveal, CbStagger } from "@/components/cb/motion";
+import { CbConvertAction } from "@/components/cb/CbConvertAction";
 import { Search, Camera, ChevronRight, Building2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -282,6 +283,12 @@ export function CbDashboard() {
                         </span>
                       </div>
                     </div>
+                    {job.status === "report_ready" ||
+                    job.status === "presented" ||
+                    job.status === "signed" ||
+                    job.status === "converted" ? (
+                      <CbConvertAction jobId={job.id} size="compact" />
+                    ) : null}
                     {job.status === "report_ready" || job.status === "presented" ? (
                       <CbButton
                         size="md"

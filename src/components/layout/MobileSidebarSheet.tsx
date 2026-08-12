@@ -41,7 +41,7 @@ const WORKSPACE_NAV = [
   { to: "/clients", label: "Clients", icon: Users, badgeKey: null },
   { to: "/door-to-door", label: "Door to Door", icon: DoorOpen, badgeKey: null },
   { to: "/storm-intelligence", label: "Storm Intel", icon: CloudLightning, badgeKey: null },
-  { to: "/claim-buddy", label: "Claim Buddy", icon: ShieldCheck, badgeKey: null },
+  { to: "/claim-buddy", label: "Claim Buddy", icon: ShieldCheck, badgeKey: "cb" as const },
   { to: "/card", label: "My Card", icon: IdCard, badgeKey: null },
 ] as const;
 
@@ -74,6 +74,18 @@ export function MobileSidebarSheet() {
         .from("jobs")
         .select("*", { count: "exact", head: true })
         .eq("company_id", profile!.company_id!);
+      return count ?? 0;
+    },
+  });
+
+  const { data: cbOpenCount = 0 } = useQuery({
+    queryKey: ["cb-open-inspections", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("cb_jobs")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["draft", "inspecting", "report_ready", "presented", "signed"]);
       return count ?? 0;
     },
   });
