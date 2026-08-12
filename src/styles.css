@@ -1023,3 +1023,62 @@
   color: var(--cb-accent); background: rgba(127,127,127,.10);
   border: 1px solid var(--cb-border);
 }
+
+/* ---- Claim Buddy: guided walks ---- */
+[data-cb] .cb-item-row { border: 1px solid var(--cb-border); border-radius: 12px; overflow: hidden; }
+[data-cb] .cb-item-row.is-on { border-color: var(--cb-accent); }
+[data-cb] .cb-item-head {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 14px; text-align: left; min-height: 52px;
+}
+[data-cb] .cb-item-box {
+  display: grid; place-items: center; width: 24px; height: 24px; flex: none;
+  border-radius: 7px; border: 1.5px solid var(--cb-border); color: #fff;
+}
+[data-cb] .cb-item-row.is-on .cb-item-box { background: var(--cb-accent); border-color: var(--cb-accent); }
+[data-cb] .cb-item-label { flex: 1; font-size: 15px; color: var(--cb-text); }
+[data-cb] .cb-item-unit { font-size: 12px; color: var(--cb-text-muted); }
+[data-cb] .cb-item-body { padding: 0 14px 14px; }
+[data-cb] .cb-inline-field { display: grid; gap: 4px; }
+[data-cb] .cb-input-sm { height: 44px; padding: 0 12px; font-size: 14.5px; }
+
+[data-cb] .cb-pick {
+  padding: 9px 14px; border-radius: 999px; font-size: 14px;
+  color: var(--cb-text); background: var(--cb-surface);
+  border: 1px solid var(--cb-border); transition: all .16s var(--cb-ease);
+}
+[data-cb] .cb-pick.is-on { border-color: var(--cb-accent); color: var(--cb-accent); }
+[data-cb] .cb-pick:active { transform: scale(.96); }
+
+[data-cb] .cb-warn {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px;
+  font-size: 15px; font-weight: 700; color: var(--cb-warning, #b45309);
+  background: rgba(180,83,9,.10); border: 1px solid rgba(180,83,9,.30);
+}
+
+/* Camera */
+[data-cb] .cb-cam-root {
+  position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column;
+  background: #07090c; color: #fff;
+}
+[data-cb] .cb-cam-head { display: flex; gap: 12px; align-items: flex-start; padding: 16px 16px 10px; }
+[data-cb] .cb-cam-x { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 999px; background: rgba(255,255,255,.12); color: #fff; flex: none; }
+[data-cb] .cb-cam-title { font-size: 15px; font-weight: 700; margin: 0; }
+[data-cb] .cb-cam-instruction { font-size: 13px; margin: 2px 0 0; color: rgba(255,255,255,.66); }
+[data-cb] .cb-cam-stage { position: relative; flex: 1; overflow: hidden; }
+[data-cb] .cb-cam-video { width: 100%; height: 100%; object-fit: cover; }
+[data-cb] .cb-cam-flash { position: absolute; inset: 0; background: #fff; animation: cb-flash .14s linear; }
+@keyframes cb-flash { from { opacity: .85; } to { opacity: 0; } }
+[data-cb] .cb-cam-error { position: absolute; inset: 0; display: grid; place-items: center; font-size: 14px; color: rgba(255,255,255,.7); }
+[data-cb] .cb-cam-strip { display: flex; gap: 8px; overflow-x: auto; padding: 10px 14px; }
+[data-cb] .cb-cam-thumb { width: 56px; height: 56px; flex: none; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,.22); }
+[data-cb] .cb-cam-thumb img { width: 100%; height: 100%; object-fit: cover; }
+[data-cb] .cb-cam-actions { display: flex; align-items: center; gap: 14px; padding: 12px 16px 26px; }
+[data-cb] .cb-cam-shutter {
+  width: 68px; height: 68px; border-radius: 999px; flex: none; display: grid; place-items: center;
+  background: #fff; color: #101317; box-shadow: 0 0 0 4px rgba(255,255,255,.22);
+}
+[data-cb] .cb-cam-shutter:active { transform: scale(.94); }
+[data-cb] .cb-cam-shutter:disabled { opacity: .4; }
+[data-cb] .cb-cam-side { display: grid; gap: 8px; flex: 1; }
+[data-cb] .cb-cam-editpreview { width: 100%; border-radius: 12px; max-height: 240px; object-fit: cover; }

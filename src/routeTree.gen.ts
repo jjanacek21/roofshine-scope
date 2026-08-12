@@ -109,6 +109,7 @@ import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
 import { Route as CbJobIdScopeRouteImport } from './routes/cb.job.$id.scope'
 import { Route as CbJobIdRoofRouteImport } from './routes/cb.job.$id.roof'
+import { Route as CbJobIdInteriorRouteImport } from './routes/cb.job.$id.interior'
 import { Route as CbJobIdExteriorRouteImport } from './routes/cb.job.$id.exterior'
 import { Route as CbJobIdCustomerRouteImport } from './routes/cb.job.$id.customer'
 import { Route as CbJobIdCoverRouteImport } from './routes/cb.job.$id.cover'
@@ -623,6 +624,11 @@ const CbJobIdRoofRoute = CbJobIdRoofRouteImport.update({
   path: '/cb/job/$id/roof',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbJobIdInteriorRoute = CbJobIdInteriorRouteImport.update({
+  id: '/cb/job/$id/interior',
+  path: '/cb/job/$id/interior',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CbJobIdExteriorRoute = CbJobIdExteriorRouteImport.update({
   id: '/cb/job/$id/exterior',
   path: '/cb/job/$id/exterior',
@@ -794,6 +800,7 @@ export interface FileRoutesByFullPath {
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
+  '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/roof': typeof CbJobIdRoofRoute
   '/cb/job/$id/scope': typeof CbJobIdScopeRoute
   '/jobs/$id/': typeof AppJobsIdIndexRoute
@@ -900,6 +907,7 @@ export interface FileRoutesByTo {
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
+  '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/roof': typeof CbJobIdRoofRoute
   '/cb/job/$id/scope': typeof CbJobIdScopeRoute
   '/jobs/$id': typeof AppJobsIdIndexRoute
@@ -1015,6 +1023,7 @@ export interface FileRoutesById {
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
+  '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/roof': typeof CbJobIdRoofRoute
   '/cb/job/$id/scope': typeof CbJobIdScopeRoute
   '/_app/jobs/$id/': typeof AppJobsIdIndexRoute
@@ -1130,6 +1139,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/cb/job/$id/exterior'
+    | '/cb/job/$id/interior'
     | '/cb/job/$id/roof'
     | '/cb/job/$id/scope'
     | '/jobs/$id/'
@@ -1236,6 +1246,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/cb/job/$id/exterior'
+    | '/cb/job/$id/interior'
     | '/cb/job/$id/roof'
     | '/cb/job/$id/scope'
     | '/jobs/$id'
@@ -1350,6 +1361,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/cb/job/$id/exterior'
+    | '/cb/job/$id/interior'
     | '/cb/job/$id/roof'
     | '/cb/job/$id/scope'
     | '/_app/jobs/$id/'
@@ -1391,6 +1403,7 @@ export interface RootRouteChildren {
   CbJobIdCoverRoute: typeof CbJobIdCoverRoute
   CbJobIdCustomerRoute: typeof CbJobIdCustomerRoute
   CbJobIdExteriorRoute: typeof CbJobIdExteriorRoute
+  CbJobIdInteriorRoute: typeof CbJobIdInteriorRoute
   CbJobIdRoofRoute: typeof CbJobIdRoofRoute
   CbJobIdScopeRoute: typeof CbJobIdScopeRoute
 }
@@ -2097,6 +2110,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbJobIdRoofRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/job/$id/interior': {
+      id: '/cb/job/$id/interior'
+      path: '/cb/job/$id/interior'
+      fullPath: '/cb/job/$id/interior'
+      preLoaderRoute: typeof CbJobIdInteriorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cb/job/$id/exterior': {
       id: '/cb/job/$id/exterior'
       path: '/cb/job/$id/exterior'
@@ -2475,6 +2495,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbJobIdCoverRoute: CbJobIdCoverRoute,
   CbJobIdCustomerRoute: CbJobIdCustomerRoute,
   CbJobIdExteriorRoute: CbJobIdExteriorRoute,
+  CbJobIdInteriorRoute: CbJobIdInteriorRoute,
   CbJobIdRoofRoute: CbJobIdRoofRoute,
   CbJobIdScopeRoute: CbJobIdScopeRoute,
 }
