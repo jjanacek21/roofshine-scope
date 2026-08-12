@@ -110,6 +110,7 @@ import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index
 import { Route as CbJobIdTakeoffRouteImport } from './routes/cb.job.$id.takeoff'
 import { Route as CbJobIdScopeRouteImport } from './routes/cb.job.$id.scope'
 import { Route as CbJobIdRoofRouteImport } from './routes/cb.job.$id.roof'
+import { Route as CbJobIdReviewRouteImport } from './routes/cb.job.$id.review'
 import { Route as CbJobIdMeasureRouteImport } from './routes/cb.job.$id.measure'
 import { Route as CbJobIdInteriorRouteImport } from './routes/cb.job.$id.interior'
 import { Route as CbJobIdExteriorRouteImport } from './routes/cb.job.$id.exterior'
@@ -631,6 +632,11 @@ const CbJobIdRoofRoute = CbJobIdRoofRouteImport.update({
   path: '/cb/job/$id/roof',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbJobIdReviewRoute = CbJobIdReviewRouteImport.update({
+  id: '/cb/job/$id/review',
+  path: '/cb/job/$id/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CbJobIdMeasureRoute = CbJobIdMeasureRouteImport.update({
   id: '/cb/job/$id/measure',
   path: '/cb/job/$id/measure',
@@ -814,6 +820,7 @@ export interface FileRoutesByFullPath {
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/measure': typeof CbJobIdMeasureRoute
+  '/cb/job/$id/review': typeof CbJobIdReviewRoute
   '/cb/job/$id/roof': typeof CbJobIdRoofRoute
   '/cb/job/$id/scope': typeof CbJobIdScopeRoute
   '/cb/job/$id/takeoff': typeof CbJobIdTakeoffRoute
@@ -923,6 +930,7 @@ export interface FileRoutesByTo {
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/measure': typeof CbJobIdMeasureRoute
+  '/cb/job/$id/review': typeof CbJobIdReviewRoute
   '/cb/job/$id/roof': typeof CbJobIdRoofRoute
   '/cb/job/$id/scope': typeof CbJobIdScopeRoute
   '/cb/job/$id/takeoff': typeof CbJobIdTakeoffRoute
@@ -1041,6 +1049,7 @@ export interface FileRoutesById {
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/measure': typeof CbJobIdMeasureRoute
+  '/cb/job/$id/review': typeof CbJobIdReviewRoute
   '/cb/job/$id/roof': typeof CbJobIdRoofRoute
   '/cb/job/$id/scope': typeof CbJobIdScopeRoute
   '/cb/job/$id/takeoff': typeof CbJobIdTakeoffRoute
@@ -1159,6 +1168,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/exterior'
     | '/cb/job/$id/interior'
     | '/cb/job/$id/measure'
+    | '/cb/job/$id/review'
     | '/cb/job/$id/roof'
     | '/cb/job/$id/scope'
     | '/cb/job/$id/takeoff'
@@ -1268,6 +1278,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/exterior'
     | '/cb/job/$id/interior'
     | '/cb/job/$id/measure'
+    | '/cb/job/$id/review'
     | '/cb/job/$id/roof'
     | '/cb/job/$id/scope'
     | '/cb/job/$id/takeoff'
@@ -1385,6 +1396,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/exterior'
     | '/cb/job/$id/interior'
     | '/cb/job/$id/measure'
+    | '/cb/job/$id/review'
     | '/cb/job/$id/roof'
     | '/cb/job/$id/scope'
     | '/cb/job/$id/takeoff'
@@ -1429,6 +1441,7 @@ export interface RootRouteChildren {
   CbJobIdExteriorRoute: typeof CbJobIdExteriorRoute
   CbJobIdInteriorRoute: typeof CbJobIdInteriorRoute
   CbJobIdMeasureRoute: typeof CbJobIdMeasureRoute
+  CbJobIdReviewRoute: typeof CbJobIdReviewRoute
   CbJobIdRoofRoute: typeof CbJobIdRoofRoute
   CbJobIdScopeRoute: typeof CbJobIdScopeRoute
   CbJobIdTakeoffRoute: typeof CbJobIdTakeoffRoute
@@ -2143,6 +2156,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbJobIdRoofRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/job/$id/review': {
+      id: '/cb/job/$id/review'
+      path: '/cb/job/$id/review'
+      fullPath: '/cb/job/$id/review'
+      preLoaderRoute: typeof CbJobIdReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cb/job/$id/measure': {
       id: '/cb/job/$id/measure'
       path: '/cb/job/$id/measure'
@@ -2537,6 +2557,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbJobIdExteriorRoute: CbJobIdExteriorRoute,
   CbJobIdInteriorRoute: CbJobIdInteriorRoute,
   CbJobIdMeasureRoute: CbJobIdMeasureRoute,
+  CbJobIdReviewRoute: CbJobIdReviewRoute,
   CbJobIdRoofRoute: CbJobIdRoofRoute,
   CbJobIdScopeRoute: CbJobIdScopeRoute,
   CbJobIdTakeoffRoute: CbJobIdTakeoffRoute,
