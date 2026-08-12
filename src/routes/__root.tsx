@@ -89,6 +89,23 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * On the standalone Claim Buddy domain (gcn.claims) the rest of the app is
+ * unreachable — every other path lands on the Claim Buddy home.
+ */
+function StandaloneGate() {
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => {
+    if (getSurface() !== "standalone") return;
+    if (isClaimBuddyPath(pathname)) return;
+    navigate({ to: "/cb", replace: true });
+  }, [pathname, navigate]);
+
+  return null;
+}
+
 function RootComponent() {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -97,9 +114,13 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Outlet />
-        <Toaster />
+        <CbSessionProvider>
+          <StandaloneGate />
+          <Outlet />
+          <Toaster />
+        </CbSessionProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
 }
+
