@@ -1082,3 +1082,14 @@
 [data-cb] .cb-cam-shutter:disabled { opacity: .4; }
 [data-cb] .cb-cam-side { display: grid; gap: 8px; flex: 1; }
 [data-cb] .cb-cam-editpreview { width: 100%; border-radius: 12px; max-height: 240px; object-fit: cover; }
+
+/* Claim Buddy report — inline line-item controls and print-safe blocks */
+[data-cb] .cb-icon-btn {
+  display: inline-grid; place-items: center;
+  width: 28px; height: 28px; border-radius: 8px;
+  border: 1px solid var(--cb-border); background: var(--cb-surface);
+  color: var(--cb-text-muted); font-size: 13px; line-height: 1;
+  transition: background .15s ease, color .15s ease;
+}
+[data-cb] .cb-icon-btn:hover { background: var(--cb-surface-2, rgba(0,0,0,.04)); color: var(--cb-text); }
+[data-cb] .cb-report-section, [data-cb] .cb-report-photo { break-inside: avoid; page-break-inside: avoid; }

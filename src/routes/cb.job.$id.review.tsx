@@ -414,7 +414,11 @@ function CbReviewPage() {
 
           {/* CREATE REPORT */}
           <div className="mt-6 grid gap-2">
-            <CbButton block disabled={blockers.length > 0} onClick={() => navigate({ to: "/cb" })}>
+            <CbButton
+              block
+              disabled={blockers.length > 0}
+              onClick={() => navigate({ to: "/cb/job/$id/generating", params: { id } })}
+            >
               Create Report
             </CbButton>
             {blockers.length > 0 ? (

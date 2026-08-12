@@ -20,6 +20,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as CbIndexRouteImport } from './routes/cb.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as PayTokenRouteImport } from './routes/pay.$token'
 import { Route as CbSignupRouteImport } from './routes/cb.signup'
 import { Route as CbOnboardingRouteImport } from './routes/cb.onboarding'
@@ -182,6 +183,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const RTokenRoute = RTokenRouteImport.update({
+  id: '/r/$token',
+  path: '/r/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PayTokenRoute = PayTokenRouteImport.update({
   id: '/pay/$token',
@@ -785,6 +791,7 @@ export interface FileRoutesByFullPath {
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
+  '/r/$token': typeof RTokenRoute
   '/admin/': typeof AdminIndexRoute
   '/cb/': typeof CbIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
@@ -898,6 +905,7 @@ export interface FileRoutesByTo {
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
+  '/r/$token': typeof RTokenRoute
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
   '/cb': typeof CbIndexRoute
@@ -1019,6 +1027,7 @@ export interface FileRoutesById {
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
+  '/r/$token': typeof RTokenRoute
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/cb/': typeof CbIndexRoute
@@ -1142,6 +1151,7 @@ export interface FileRouteTypes {
     | '/cb/onboarding'
     | '/cb/signup'
     | '/pay/$token'
+    | '/r/$token'
     | '/admin/'
     | '/cb/'
     | '/clients/$id'
@@ -1255,6 +1265,7 @@ export interface FileRouteTypes {
     | '/cb/onboarding'
     | '/cb/signup'
     | '/pay/$token'
+    | '/r/$token'
     | '/'
     | '/admin'
     | '/cb'
@@ -1375,6 +1386,7 @@ export interface FileRouteTypes {
     | '/cb/onboarding'
     | '/cb/signup'
     | '/pay/$token'
+    | '/r/$token'
     | '/_app/'
     | '/admin/'
     | '/cb/'
@@ -1469,6 +1481,7 @@ export interface RootRouteChildren {
   CbOnboardingRoute: typeof CbOnboardingRoute
   CbSignupRoute: typeof CbSignupRoute
   PayTokenRoute: typeof PayTokenRoute
+  RTokenRoute: typeof RTokenRoute
   CbIndexRoute: typeof CbIndexRoute
   ApiPublicCbShareRoute: typeof ApiPublicCbShareRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
@@ -1564,6 +1577,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/r/$token': {
+      id: '/r/$token'
+      path: '/r/$token'
+      fullPath: '/r/$token'
+      preLoaderRoute: typeof RTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/pay/$token': {
       id: '/pay/$token'
@@ -2609,6 +2629,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbOnboardingRoute: CbOnboardingRoute,
   CbSignupRoute: CbSignupRoute,
   PayTokenRoute: PayTokenRoute,
+  RTokenRoute: RTokenRoute,
   CbIndexRoute: CbIndexRoute,
   ApiPublicCbShareRoute: ApiPublicCbShareRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
