@@ -59,6 +59,8 @@ export function CbRoofPlanEditor({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [ready, setReady] = useState(false);
+  const centerRef = useRef(center);
+  centerRef.current = center ?? centerRef.current;
   const [tick, setTick] = useState(0);
 
   const planRef = useRef(plan);
@@ -119,8 +121,10 @@ export function CbRoofPlanEditor({
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/satellite-streets-v12",
-      center: center ? [center.lng, center.lat] : [-98.5, 39.5],
-      zoom: center ? 19.5 : 3,
+      center: centerRef.current
+        ? [centerRef.current.lng, centerRef.current.lat]
+        : [-98.5, 39.5],
+      zoom: centerRef.current ? 19.5 : 3,
       pitch: 0,
       attributionControl: false,
       preserveDrawingBuffer: true,
@@ -199,14 +203,14 @@ export function CbRoofPlanEditor({
       map.remove();
       mapRef.current = null;
     };
-  }, [token, center]);
+  }, [token]);
 
   // Recentre once coordinates arrive.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !center || plan.sections.length) return;
     map.jumpTo({ center: [center.lng, center.lat], zoom: 19.5 });
-  }, [center, plan.sections.length]);
+  }, [center?.lat, center?.lng, plan.sections.length]);
 
   // Fit the first time geometry shows up.
   const fittedRef = useRef(false);
