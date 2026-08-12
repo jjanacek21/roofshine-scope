@@ -340,25 +340,28 @@ export function CbDashboard() {
                         </span>
                       </div>
                     </div>
-                    {job.status === "report_ready" ||
-                    job.status === "presented" ||
-                    job.status === "signed" ||
-                    job.status === "converted" ? (
-                      <CbConvertAction jobId={job.id} size="compact" />
-                    ) : null}
-                    {job.status === "report_ready" || job.status === "presented" ? (
-                      <CbButton
-                        size="md"
-                        variant="secondary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate({ to: "/cb/job/$id/present", params: { id: job.id } });
-                        }}
-                      >
-                        Present
-                      </CbButton>
-                    ) : null}
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      {job.status === "report_ready" ||
+                      job.status === "presented" ||
+                      job.status === "signed" ||
+                      job.status === "converted" ? (
+                        <CbConvertAction jobId={job.id} size="compact" />
+                      ) : null}
+                      {job.status === "report_ready" || job.status === "presented" ? (
+                        <CbButton
+                          size="md"
+                          variant="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({ to: "/cb/job/$id/present", params: { id: job.id } });
+                          }}
+                        >
+                          Present
+                        </CbButton>
+                      ) : null}
+                    </div>
                     <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--cb-text-muted)" }} />
+
                   </div>
                 </CbCard>
               );
