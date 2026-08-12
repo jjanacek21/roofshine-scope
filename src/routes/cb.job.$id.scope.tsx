@@ -185,6 +185,20 @@ function CbJobScopePage() {
           >
             {selected.length === 0 ? "Pick at least one" : "Start inspecting"}
           </CbButton>
+          <CbButton
+            block
+            variant="secondary"
+            onClick={() => navigate({ to: "/cb/job/$id/takeoff", params: { id } })}
+          >
+            Open the roof takeoff sheet
+          </CbButton>
+          <CbButton
+            block
+            variant="ghost"
+            onClick={() => navigate({ to: "/cb/job/$id/review", params: { id } })}
+          >
+            Pre-flight review
+          </CbButton>
         </div>
       </CbJobStepShell>
     </CbSurface>
