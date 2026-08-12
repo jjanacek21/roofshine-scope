@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,7 @@ import { useCbLogoUrl } from "@/lib/cbLogo";
 import { CbCard, CbTile, CbButton, CbChip, CbBadge, CbLoading, CbEmptyState, CbSkeleton } from "@/components/cb/primitives";
 import { CbReveal, CbStagger } from "@/components/cb/motion";
 import { CbConvertAction } from "@/components/cb/CbConvertAction";
-import { Search, Camera, ChevronRight, Building2 } from "lucide-react";
+import { Search, Camera, ChevronRight, Building2, Settings, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUSES: { value: string; label: string; tone: "neutral" | "success" | "warning" | "danger" | "accent" }[] = [
@@ -110,6 +110,27 @@ export function CbDashboard() {
     });
   }, [jobs, filter, search]);
 
+  /* A brand-new workspace gets one demo inspection so the whole flow is walkable. */
+  useEffect(() => {
+    if (!workspace?.id || jobsQuery.isLoading || jobs.length > 0) return;
+    let cancelled = false;
+    void supabase.rpc("cb_ensure_demo_job", { _ws: workspace.id }).then(({ data }) => {
+      if (cancelled) return;
+      if ((data as { created?: boolean } | null)?.created) void jobsQuery.refetch();
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspace?.id, jobsQuery.isLoading, jobs.length]);
+
+  /* The job the rep was last in the middle of. */
+  const resumeJob = useMemo(
+    () => jobs.find((j) => j.status === "inspecting" || j.status === "draft") ?? null,
+    [jobs],
+  );
+
+
   async function startInspection() {
     if (!workspace || !company || !user) return;
     setStarting(true);
@@ -169,6 +190,16 @@ export function CbDashboard() {
             </p>
           </div>
           {surface === "platform" ? <CbChip>Inside GlobalContractor</CbChip> : null}
+          <button
+            type="button"
+            aria-label="Settings"
+            onClick={() => navigate({ to: "/cb/settings" })}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px]"
+            style={{ border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))" }}
+          >
+            <Settings className="h-4.5 w-4.5" />
+          </button>
+
         </div>
       </CbReveal>
 
@@ -193,6 +224,32 @@ export function CbDashboard() {
         <CbTile label="Reports ready" value={stats.reportsReady} />
         <CbTile label="Signed this month" value={stats.signedThisMonth} />
       </CbStagger>
+
+      {/* Resume where I left off */}
+      {resumeJob ? (
+        <CbReveal delay={70}>
+          <CbCard
+            elevation="raised"
+            className="mt-5 cursor-pointer"
+            style={{ padding: 16 }}
+            onClick={() => navigate({ to: "/cb/job/$id/customer", params: { id: resumeJob.id } })}
+          >
+            <div className="flex items-center gap-3">
+              <PlayCircle className="h-6 w-6 shrink-0" style={{ color: "var(--cb-accent)" }} />
+              <div className="min-w-0 flex-1">
+                <p className="cb-microlabel">Pick up where you left off</p>
+                <p className="truncate text-[15px] font-semibold">
+                  {resumeJob.address || "New inspection"}
+                </p>
+                <p className="truncate text-[12.5px]" style={{ color: "var(--cb-text-muted)" }}>
+                  {resumeJob.customer_name || "No customer yet"}
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--cb-text-muted)" }} />
+            </div>
+          </CbCard>
+        </CbReveal>
+      ) : null}
 
       {/* Primary action */}
       <CbReveal delay={80}>
@@ -283,25 +340,28 @@ export function CbDashboard() {
                         </span>
                       </div>
                     </div>
-                    {job.status === "report_ready" ||
-                    job.status === "presented" ||
-                    job.status === "signed" ||
-                    job.status === "converted" ? (
-                      <CbConvertAction jobId={job.id} size="compact" />
-                    ) : null}
-                    {job.status === "report_ready" || job.status === "presented" ? (
-                      <CbButton
-                        size="md"
-                        variant="secondary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate({ to: "/cb/job/$id/present", params: { id: job.id } });
-                        }}
-                      >
-                        Present
-                      </CbButton>
-                    ) : null}
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      {job.status === "report_ready" ||
+                      job.status === "presented" ||
+                      job.status === "signed" ||
+                      job.status === "converted" ? (
+                        <CbConvertAction jobId={job.id} size="compact" />
+                      ) : null}
+                      {job.status === "report_ready" || job.status === "presented" ? (
+                        <CbButton
+                          size="md"
+                          variant="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({ to: "/cb/job/$id/present", params: { id: job.id } });
+                          }}
+                        >
+                          Present
+                        </CbButton>
+                      ) : null}
+                    </div>
                     <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--cb-text-muted)" }} />
+
                   </div>
                 </CbCard>
               );

@@ -99,9 +99,10 @@ export function CbConvertAction({
           block={size === "full"}
           onClick={() => setOpen(true)}
         >
-          <span className="inline-flex items-center gap-2">
-            <ArrowUpRight size={17} /> {size === "compact" ? "Add to GlobalContractor" : LABEL}
+          <span className="inline-flex items-center gap-2 whitespace-nowrap">
+            <ArrowUpRight size={17} /> {size === "compact" ? "Add to GC" : LABEL}
           </span>
+
         </CbButton>
         {size === "full" && gate.gc_company_name ? (
           <p className="mt-2 text-center text-[12.5px]" style={{ color: "var(--cb-text-muted)" }}>

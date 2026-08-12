@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { CbPageTransition } from "./motion";
+import { CbErrorBoundary } from "./CbErrorBoundary";
+
 
 /**
  * Root wrapper for every Claim Buddy screen.
@@ -18,7 +20,10 @@ export function CbSurface({
 }) {
   return (
     <div data-cb data-cb-theme={theme} className={`cb-root ${className}`}>
-      <CbPageTransition>{children}</CbPageTransition>
+      <CbErrorBoundary>
+        <CbPageTransition>{children}</CbPageTransition>
+      </CbErrorBoundary>
+
     </div>
   );
 }
