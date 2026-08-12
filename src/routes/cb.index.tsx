@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { ClaimBuddyPlaceholder } from "@/components/claim-buddy/ClaimBuddyPlaceholder";
+import { CbLoading } from "@/components/cb/primitives";
 
 export const Route = createFileRoute("/cb/")({
   head: () => ({
