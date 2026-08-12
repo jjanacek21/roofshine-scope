@@ -44,8 +44,7 @@ export function isStandalone(): boolean {
 /** Routes that stay reachable on the standalone surface. */
 export function isClaimBuddyPath(pathname: string): boolean {
   return (
-    pathname === "/claim-buddy" ||
-    pathname.startsWith("/claim-buddy/") ||
+    pathname === "/cb" ||
     pathname.startsWith("/cb/") ||
     pathname.startsWith("/r/")
   );
