@@ -298,6 +298,8 @@ function CompanySheet({
         .map((a) => a.trim())
         .filter(Boolean),
       team_photo_url: teamPhotoPath,
+      default_doc_type: docType,
+
     };
     const { error } = company
       ? await supabase.from("cb_companies").update(payload).eq("id", company.id)
