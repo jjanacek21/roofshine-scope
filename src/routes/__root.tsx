@@ -13,6 +13,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { CbSessionProvider } from "@/components/auth/CbSessionProvider";
 import { CbCompanyProvider } from "@/components/auth/CbCompanyProvider";
 import { getSurface, isClaimBuddyPath } from "@/lib/cbMode";
+import { getRequestHostname, resolveSurfaceFromHost, surfaceMeta } from "@/lib/surfaceHead";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
