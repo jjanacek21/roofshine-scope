@@ -1093,3 +1093,132 @@
 }
 [data-cb] .cb-icon-btn:hover { background: var(--cb-surface-2, rgba(0,0,0,.04)); color: var(--cb-text); }
 [data-cb] .cb-report-section, [data-cb] .cb-report-photo { break-inside: avoid; page-break-inside: avoid; }
+
+/* ---------------- Claim Buddy presentation deck ----------------
+   Presenter-safe: large type, high contrast, readable at arm's length
+   on a tablet in a bright kitchen. */
+[data-cb] .cb-present {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(120% 80% at 50% -10%, rgba(var(--cb-accent-rgb), 0.10), transparent 60%), var(--cb-bg);
+  color: var(--cb-text);
+  overflow-x: hidden;
+}
+[data-cb] .cb-present-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--cb-hairline);
+  background: color-mix(in srgb, var(--cb-surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+  position: sticky; top: 0; z-index: 20;
+}
+[data-cb] .cb-present-logo { height: 40px; max-width: 190px; object-fit: contain; }
+[data-cb] .cb-present-company { font-weight: 700; font-size: 18px; }
+[data-cb] .cb-present-icon {
+  display: inline-grid; place-items: center;
+  height: 48px; width: 48px; border-radius: 14px;
+  border: 1px solid var(--cb-hairline); background: var(--cb-surface); color: var(--cb-text);
+  box-shadow: var(--cb-shadow-card);
+  transition: transform .18s var(--cb-ease);
+}
+[data-cb] .cb-present-icon:active { transform: scale(.94); }
+
+/* Home menu */
+[data-cb] .cb-present-menu { flex: 1; padding: 40px 24px 64px; max-width: 1100px; margin: 0 auto; width: 100%; }
+[data-cb] .cb-present-h1 { font-size: clamp(32px, 5vw, 54px); line-height: 1.04; letter-spacing: -0.03em; margin: 0; }
+[data-cb] .cb-present-sub { margin-top: 10px; font-size: clamp(17px, 2.2vw, 22px); color: var(--cb-text-muted); }
+[data-cb] .cb-present-grid {
+  margin-top: 30px; display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+[data-cb] .cb-present-menu-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 22px; min-height: 140px; cursor: pointer;
+}
+[data-cb] .cb-present-index { font-size: 15px; letter-spacing: .16em; color: var(--cb-accent); font-weight: 700; }
+[data-cb] .cb-present-menu-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+[data-cb] .cb-present-menu-blurb { font-size: 15.5px; color: var(--cb-text-muted); }
+
+/* Slide stage */
+[data-cb] .cb-present-stage {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 36px 24px 24px; overflow-y: auto;
+}
+[data-cb] .cb-slide { width: 100%; max-width: 1000px; margin: 0 auto; }
+[data-cb] .cb-slide-enter { animation: cb-slide-in .42s var(--cb-ease) both; }
+@keyframes cb-slide-in { from { opacity: 0; transform: translate3d(22px, 0, 0); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { [data-cb] .cb-slide-enter { animation: none; } }
+
+[data-cb] .cb-present-kicker {
+  font-size: 14.5px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--cb-accent); font-weight: 700; margin: 0 0 10px;
+}
+[data-cb] .cb-present-title {
+  font-size: clamp(30px, 4.6vw, 52px); line-height: 1.05; letter-spacing: -0.03em; margin: 0;
+}
+[data-cb] .cb-present-lead {
+  margin-top: 18px; font-size: clamp(18px, 2.1vw, 24px); line-height: 1.45;
+  color: var(--cb-text-dim); max-width: 46ch;
+}
+[data-cb] .cb-present-photo {
+  margin-top: 22px; width: 100%; max-height: 46vh; object-fit: cover;
+  border-radius: var(--cb-radius); border: 1px solid var(--cb-hairline); box-shadow: var(--cb-shadow-raised);
+}
+[data-cb] .cb-present-stats {
+  margin-top: 24px; display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+[data-cb] .cb-present-stat { padding: 20px; display: flex; flex-direction: column; gap: 4px; }
+[data-cb] .cb-present-stat-value {
+  font-size: clamp(34px, 4.4vw, 48px); font-weight: 800; letter-spacing: -0.03em; color: var(--cb-accent);
+}
+[data-cb] .cb-present-stat-label { font-size: 15.5px; color: var(--cb-text-muted); }
+
+[data-cb] .cb-present-list { margin-top: 22px; display: grid; gap: 14px; }
+[data-cb] .cb-present-list-tight { gap: 10px; }
+[data-cb] .cb-present-list li {
+  display: flex; gap: 12px; align-items: flex-start;
+  font-size: clamp(17px, 1.9vw, 22px); line-height: 1.38;
+}
+[data-cb] .cb-present-bullet-dot {
+  margin-top: .55em; height: 9px; width: 9px; flex: none; border-radius: 999px;
+  background: var(--cb-accent);
+}
+[data-cb] .cb-present-cols {
+  margin-top: 24px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+[data-cb] .cb-present-col { padding: 22px; height: 100%; }
+[data-cb] .cb-present-col-head { font-size: 20px; font-weight: 700; margin: 0 0 10px; }
+[data-cb] .cb-present-col li { font-size: 17px; line-height: 1.5; color: var(--cb-text-dim); }
+[data-cb] .cb-present-note { margin-top: 20px; font-size: 16px; color: var(--cb-text-muted); }
+
+[data-cb] .cb-present-claim {
+  margin-top: 22px; padding: 20px; display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+[data-cb] .cb-present-claim p { font-size: 20px; font-weight: 650; margin-top: 4px; }
+[data-cb] .cb-present-deductible { margin-top: 24px; padding: 26px; border: 1px solid var(--cb-accent); }
+[data-cb] .cb-present-deductible-value {
+  margin-top: 6px; font-size: clamp(26px, 3.6vw, 40px); font-weight: 800; letter-spacing: -0.02em;
+}
+[data-cb] .cb-present-deductible-note { margin-top: 10px; font-size: 16.5px; color: var(--cb-text-muted); max-width: 52ch; }
+[data-cb] .cb-present-cta { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* Footer nav */
+[data-cb] .cb-present-foot {
+  position: sticky; bottom: 0; z-index: 20;
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--cb-hairline);
+  background: color-mix(in srgb, var(--cb-surface) 90%, transparent);
+  backdrop-filter: blur(10px);
+}
+[data-cb] .cb-present-dots { display: flex; gap: 8px; }
+[data-cb] .cb-present-dot {
+  height: 10px; width: 10px; border-radius: 999px; background: var(--cb-hairline-strong);
+  transition: width .2s var(--cb-ease), background .2s var(--cb-ease);
+}
+[data-cb] .cb-present-dot.is-on { width: 28px; background: var(--cb-accent); }
+[data-cb] .cb-present-where { margin-left: auto; font-size: 15px; color: var(--cb-text-muted); }

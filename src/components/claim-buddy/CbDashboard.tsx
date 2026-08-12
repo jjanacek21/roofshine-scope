@@ -282,6 +282,18 @@ export function CbDashboard() {
                         </span>
                       </div>
                     </div>
+                    {job.status === "report_ready" || job.status === "presented" ? (
+                      <CbButton
+                        size="md"
+                        variant="secondary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate({ to: "/cb/job/$id/present", params: { id: job.id } });
+                        }}
+                      >
+                        Present
+                      </CbButton>
+                    ) : null}
                     <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--cb-text-muted)" }} />
                   </div>
                 </CbCard>
