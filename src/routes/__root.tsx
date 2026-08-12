@@ -13,6 +13,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { CbSessionProvider } from "@/components/auth/CbSessionProvider";
 import { CbCompanyProvider } from "@/components/auth/CbCompanyProvider";
 import { getSurface, isClaimBuddyPath } from "@/lib/cbMode";
+import { getRequestHostname, resolveSurfaceFromHost, surfaceMeta } from "@/lib/surfaceHead";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
@@ -41,25 +42,12 @@ function NotFoundComponent() {
 }
 
 export const Route = createRootRoute({
-  head: () => ({
+  loader: () => ({ surface: resolveSurfaceFromHost(getRequestHostname()) }),
+  head: ({ loaderData }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "GCN App — Multi-Trade Estimating for Contractors" },
-      {
-        name: "description",
-        content:
-          "Estimate roofing, exterior, windows, interior, HVAC, plumbing, electrical, and mitigation work — all in one platform.",
-      },
-      { property: "og:title", content: "GCN App — Multi-Trade Estimating for Contractors" },
-      { name: "twitter:title", content: "GCN App — Multi-Trade Estimating for Contractors" },
-      { name: "description", content: "Global Contractor App manages leads, generates roof reports, and facilitates property analysis." },
-      { property: "og:description", content: "Global Contractor App manages leads, generates roof reports, and facilitates property analysis." },
-      { name: "twitter:description", content: "Global Contractor App manages leads, generates roof reports, and facilitates property analysis." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/g4If15kXRDOjVQ3KUjFeHCxuPqy2/social-images/social-1778006021379-Image_4-28-26_at_1.11_PM.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/g4If15kXRDOjVQ3KUjFeHCxuPqy2/social-images/social-1778006021379-Image_4-28-26_at_1.11_PM.webp" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:type", content: "website" },
+      ...surfaceMeta(loaderData?.surface ?? "platform"),
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
