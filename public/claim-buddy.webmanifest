@@ -1,0 +1,17 @@
+{
+  "name": "Claim Buddy",
+  "short_name": "Claim Buddy",
+  "description": "Walk the roof, document the damage, generate the report and close the job — all from your phone.",
+  "start_url": "/cb",
+  "id": "/cb",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b0f14",
+  "theme_color": "#0b0f14",
+  "icons": [
+    { "src": "/cb-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/cb-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/cb-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
