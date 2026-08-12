@@ -1222,3 +1222,111 @@
 }
 [data-cb] .cb-present-dot.is-on { width: 28px; background: var(--cb-accent); }
 [data-cb] .cb-present-where { margin-left: auto; font-size: 15px; color: var(--cb-text-muted); }
+
+/* ---------------- Claim Buddy: agreement + signature ---------------- */
+[data-cb] .cb-page-pad { padding-bottom: env(safe-area-inset-bottom); }
+
+[data-cb] .cb-h2 {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--cb-text);
+}
+
+[data-cb] .cb-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  border: 1px solid var(--cb-hairline);
+  background: var(--cb-surface);
+  color: var(--cb-text);
+  flex: 0 0 auto;
+}
+[data-cb] .cb-iconbtn:active { transform: translateY(1px); }
+
+[data-cb] .cb-factgrid { display: grid; gap: 2px; }
+[data-cb] .cb-factrow {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--cb-hairline);
+  font-size: 14.5px;
+}
+[data-cb] .cb-factrow:last-child { border-bottom: 0; }
+[data-cb] .cb-factrow dt { color: var(--cb-text-muted); font-weight: 600; }
+[data-cb] .cb-factrow dd { color: var(--cb-text); }
+
+[data-cb] .cb-scopelist { display: grid; gap: 2px; list-style: none; padding: 0; margin: 0; }
+[data-cb] .cb-scopelist li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--cb-hairline);
+  font-size: 14.5px;
+}
+[data-cb] .cb-scopelist li:last-child { border-bottom: 0; }
+
+[data-cb] .cb-actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--cb-bg) 62%, transparent);
+}
+
+[data-cb] .cb-sigpad { display: grid; gap: 10px; }
+[data-cb] .cb-sigpad-frame {
+  position: relative;
+  border-radius: 16px;
+  border: 1px solid var(--cb-hairline);
+  background: #fff;
+  box-shadow: inset 0 2px 10px rgb(0 0 0 / 0.05);
+  overflow: hidden;
+  touch-action: none;
+}
+[data-cb] .cb-sigpad-canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+[data-cb] .cb-sigpad-rule {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 46px;
+  height: 1px;
+  background: repeating-linear-gradient(to right, rgb(0 0 0 / 0.22) 0 8px, transparent 8px 14px);
+  pointer-events: none;
+}
+[data-cb] .cb-sigpad-hint {
+  position: absolute;
+  left: 22px;
+  bottom: 22px;
+  font-size: 13px;
+  color: rgb(0 0 0 / 0.4);
+  pointer-events: none;
+}
+[data-cb] .cb-sigpad-done {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cb-accent);
+  pointer-events: none;
+}
+[data-cb] .cb-sigpad-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+[data-cb] .cb-signed-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--cb-accent);
+  box-shadow: 0 10px 24px -10px var(--cb-accent);
+}

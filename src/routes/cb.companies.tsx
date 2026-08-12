@@ -8,7 +8,7 @@ import { useCbCompany, type CbCompany } from "@/components/auth/CbCompanyProvide
 import { useCbLogoUrl, cbLogoSignedUrl, CB_LOGO_BUCKET } from "@/lib/cbLogo";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbSheet, CbLoading, CbChip } from "@/components/cb/primitives";
-import { CbField, CbTextarea } from "@/components/cb/forms";
+import { CbField, CbSegmentedCards, CbTextarea } from "@/components/cb/forms";
 import { CbHeadline, CbReveal, CbStagger } from "@/components/cb/motion";
 import { Building2, Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
@@ -225,8 +225,10 @@ function CompanySheet({
   const [areas, setAreas] = useState("");
   const [teamPhotoPath, setTeamPhotoPath] = useState<string | null>(null);
   const [teamPhotoUrl, setTeamPhotoUrl] = useState<string | null>(null);
+  const [docType, setDocType] = useState<"contingency" | "retail">("contingency");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+
 
   useEffect(() => {
     if (!open) return;
@@ -244,14 +246,17 @@ function CompanySheet({
       founded_year?: number | null;
       service_areas?: unknown;
       team_photo_url?: string | null;
+      default_doc_type?: string | null;
     };
     setAboutHeadline(extra.about_headline ?? "");
     setAboutStory(extra.about_story ?? "");
     setFounded(extra.founded_year ? String(extra.founded_year) : "");
     setAreas(Array.isArray(extra.service_areas) ? extra.service_areas.map(String).join(", ") : "");
     setTeamPhotoPath(extra.team_photo_url ?? null);
+    setDocType(extra.default_doc_type === "retail" ? "retail" : "contingency");
     setTeamPhotoUrl(null);
     void cbLogoSignedUrl(extra.team_photo_url).then(setTeamPhotoUrl);
+
   }, [open, company]);
 
   async function uploadTeamPhoto(file: File) {
@@ -293,6 +298,8 @@ function CompanySheet({
         .map((a) => a.trim())
         .filter(Boolean),
       team_photo_url: teamPhotoPath,
+      default_doc_type: docType,
+
     };
     const { error } = company
       ? await supabase.from("cb_companies").update(payload).eq("id", company.id)
@@ -335,6 +342,20 @@ function CompanySheet({
           <CbField label="State" value={state} onChange={(e) => setState(e.target.value)} />
           <CbField label="ZIP" value={zip} onChange={(e) => setZip(e.target.value)} />
         </div>
+
+        <div className="pt-1">
+          <CbSegmentedCards<"contingency" | "retail">
+            label="Default agreement"
+            value={docType}
+            onChange={setDocType}
+            options={[
+              { value: "contingency", title: "Contingency", body: "Signed before the claim is filed" },
+              { value: "retail", title: "Retail", body: "No claim — the homeowner pays" },
+            ]}
+          />
+        </div>
+
+
 
         <div className="pt-2">
           <p className="cb-microlabel">Your story — shown in the presentation</p>

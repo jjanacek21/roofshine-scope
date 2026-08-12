@@ -400,6 +400,7 @@ export type Database = {
           address: string | null
           city: string | null
           created_at: string
+          default_doc_type: string
           email: string | null
           founded_year: number | null
           gc_company_id: string | null
@@ -429,6 +430,7 @@ export type Database = {
           address?: string | null
           city?: string | null
           created_at?: string
+          default_doc_type?: string
           email?: string | null
           founded_year?: number | null
           gc_company_id?: string | null
@@ -458,6 +460,7 @@ export type Database = {
           address?: string | null
           city?: string | null
           created_at?: string
+          default_doc_type?: string
           email?: string | null
           founded_year?: number | null
           gc_company_id?: string | null
