@@ -206,6 +206,10 @@ function CbJobMeasurePage() {
       setValues(res.measurement);
       setRepAdjusted(false);
       setPhase("result");
+      originalPlanRef.current = null;
+      setPlanDirty(false);
+      const fresh = await refetchPlan();
+      if (fresh.data) originalPlanRef.current = fresh.data;
       return;
     }
     setUpgrade(res.reason === "no_credits");
@@ -226,7 +230,11 @@ function CbJobMeasurePage() {
   async function save() {
     setSaving(true);
     try {
-      await saveCbMeasurement(id, values, repAdjusted || phase === "manual");
+      const handEdited = repAdjusted || phase === "manual";
+      if (!planReadOnly && (planDirty || plan.sections.length)) {
+        await saveCbRoofPlan(id, plan, { repAdjusted: handEdited });
+      }
+      await saveCbMeasurement(id, values, handEdited);
       cbHaptic();
       toast.success("Measurement saved");
       navigate({ to: "/cb/job/$id/scope", params: { id } });
@@ -236,6 +244,7 @@ function CbJobMeasurePage() {
       setSaving(false);
     }
   }
+
 
   const editable = phase === "manual" || adjust;
 
