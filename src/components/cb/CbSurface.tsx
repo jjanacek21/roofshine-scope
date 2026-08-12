@@ -9,11 +9,11 @@ import { CbPageTransition } from "./motion";
 export function CbSurface({
   children,
   className = "",
-  theme = "dark",
+  theme = "light",
 }: {
   children: ReactNode;
   className?: string;
-  /** Field screens default to dark; reports and presentations pass "light". */
+  /** Surface theme. Palette values live in the `[data-cb]` block of src/styles.css. */
   theme?: "dark" | "light";
 }) {
   return (
