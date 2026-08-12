@@ -41,7 +41,10 @@ export async function cbDrainEdits(): Promise<void> {
         await del(key);
         continue;
       }
-      const { error } = await supabase.from(item.table).update(item.patch).eq("id", item.rowId);
+      const q = supabase.from(item.table) as unknown as {
+        update: (p: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+      };
+      const { error } = await q.update(item.patch).eq("id", item.rowId);
       if (error) break;
       await del(key);
     }
@@ -58,7 +61,10 @@ export async function cbQueueUpdate(
   patch: Record<string, unknown>,
 ): Promise<{ queued: boolean }> {
   if (typeof navigator !== "undefined" && navigator.onLine) {
-    const { error } = await supabase.from(table).update(patch).eq("id", rowId);
+    const q = supabase.from(table) as unknown as {
+      update: (p: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+    };
+    const { error } = await q.update(patch).eq("id", rowId);
     if (!error) return { queued: false };
   }
   const id = crypto.randomUUID();
