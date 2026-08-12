@@ -65,6 +65,7 @@ import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppDoorToDoorRouteImport } from './routes/_app.door-to-door'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
+import { Route as AppClaimBuddyRouteImport } from './routes/_app.claim-buddy'
 import { Route as AppCardRouteImport } from './routes/_app.card'
 import { Route as AdminCompaniesIndexRouteImport } from './routes/admin.companies.index'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
@@ -394,6 +395,11 @@ const AppClientsRoute = AppClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => AppRoute,
 } as any)
+const AppClaimBuddyRoute = AppClaimBuddyRouteImport.update({
+  id: '/claim-buddy',
+  path: '/claim-buddy',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCardRoute = AppCardRouteImport.update({
   id: '/card',
   path: '/card',
@@ -647,6 +653,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/card': typeof AppCardRoute
+  '/claim-buddy': typeof AppClaimBuddyRoute
   '/clients': typeof AppClientsRouteWithChildren
   '/door-to-door': typeof AppDoorToDoorRouteWithChildren
   '/leads': typeof AppLeadsRouteWithChildren
@@ -750,6 +757,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/card': typeof AppCardRoute
+  '/claim-buddy': typeof AppClaimBuddyRoute
   '/clients': typeof AppClientsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
@@ -851,6 +859,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_app/card': typeof AppCardRoute
+  '/_app/claim-buddy': typeof AppClaimBuddyRoute
   '/_app/clients': typeof AppClientsRouteWithChildren
   '/_app/door-to-door': typeof AppDoorToDoorRouteWithChildren
   '/_app/leads': typeof AppLeadsRouteWithChildren
@@ -959,6 +968,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/card'
+    | '/claim-buddy'
     | '/clients'
     | '/door-to-door'
     | '/leads'
@@ -1062,6 +1072,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/card'
+    | '/claim-buddy'
     | '/clients'
     | '/price-books'
     | '/settings'
@@ -1162,6 +1173,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_app/card'
+    | '/_app/claim-buddy'
     | '/_app/clients'
     | '/_app/door-to-door'
     | '/_app/leads'
@@ -1686,6 +1698,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/claim-buddy': {
+      id: '/_app/claim-buddy'
+      path: '/claim-buddy'
+      fullPath: '/claim-buddy'
+      preLoaderRoute: typeof AppClaimBuddyRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/card': {
       id: '/_app/card'
       path: '/card'
@@ -2166,6 +2185,7 @@ const AppJobsIdRouteWithChildren = AppJobsIdRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppCardRoute: typeof AppCardRoute
+  AppClaimBuddyRoute: typeof AppClaimBuddyRoute
   AppClientsRoute: typeof AppClientsRouteWithChildren
   AppDoorToDoorRoute: typeof AppDoorToDoorRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
@@ -2186,6 +2206,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppCardRoute: AppCardRoute,
+  AppClaimBuddyRoute: AppClaimBuddyRoute,
   AppClientsRoute: AppClientsRouteWithChildren,
   AppDoorToDoorRoute: AppDoorToDoorRouteWithChildren,
   AppLeadsRoute: AppLeadsRouteWithChildren,
