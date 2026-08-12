@@ -18,6 +18,7 @@ import {
   DoorOpen,
   Crown,
   CloudLightning,
+  ShieldCheck,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,6 +38,7 @@ const WORKSPACE_NAV = [
   { to: "/leads", label: "SPF Prospecting", icon: Target, badgeKey: null },
   { to: "/door-to-door", label: "Door to Door", icon: DoorOpen, badgeKey: null },
   { to: "/storm-intelligence", label: "Storm Intel", icon: CloudLightning, badgeKey: null },
+  { to: "/claim-buddy", label: "Claim Buddy", icon: ShieldCheck, badgeKey: null },
   { to: "/card", label: "My Card", icon: IdCard, badgeKey: null },
 ] as const;
 

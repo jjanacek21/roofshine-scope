@@ -351,6 +351,678 @@ export type Database = {
         }
         Relationships: []
       }
+      cb_audit_log: {
+        Row: {
+          action: string
+          actor: string | null
+          created_at: string
+          entity: string | null
+          entity_id: string | null
+          id: string
+          meta: Json
+          workspace_id: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          created_at?: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          meta?: Json
+          workspace_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          created_at?: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          meta?: Json
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_audit_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_companies: {
+        Row: {
+          about_headline: string | null
+          about_story: string | null
+          accent_color: string
+          address: string | null
+          city: string | null
+          created_at: string
+          email: string | null
+          founded_year: number | null
+          gc_company_id: string | null
+          id: string
+          insurance_note: string | null
+          is_locked: boolean
+          is_template: boolean
+          legal_name: string | null
+          license_numbers: Json
+          logo_url: string | null
+          name: string
+          phone: string | null
+          primary_color: string
+          service_areas: Json
+          state: string | null
+          team_photo_url: string | null
+          updated_at: string
+          warranty_years: number | null
+          website: string | null
+          workspace_id: string
+          zip: string | null
+        }
+        Insert: {
+          about_headline?: string | null
+          about_story?: string | null
+          accent_color?: string
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          founded_year?: number | null
+          gc_company_id?: string | null
+          id?: string
+          insurance_note?: string | null
+          is_locked?: boolean
+          is_template?: boolean
+          legal_name?: string | null
+          license_numbers?: Json
+          logo_url?: string | null
+          name: string
+          phone?: string | null
+          primary_color?: string
+          service_areas?: Json
+          state?: string | null
+          team_photo_url?: string | null
+          updated_at?: string
+          warranty_years?: number | null
+          website?: string | null
+          workspace_id: string
+          zip?: string | null
+        }
+        Update: {
+          about_headline?: string | null
+          about_story?: string | null
+          accent_color?: string
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          founded_year?: number | null
+          gc_company_id?: string | null
+          id?: string
+          insurance_note?: string | null
+          is_locked?: boolean
+          is_template?: boolean
+          legal_name?: string | null
+          license_numbers?: Json
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          primary_color?: string
+          service_areas?: Json
+          state?: string | null
+          team_photo_url?: string | null
+          updated_at?: string
+          warranty_years?: number | null
+          website?: string | null
+          workspace_id?: string
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_companies_gc_company_id_fkey"
+            columns: ["gc_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_companies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_contracts: {
+        Row: {
+          body_html: string | null
+          created_at: string
+          doc_type: string
+          id: string
+          ip: unknown
+          job_id: string
+          pdf_path: string | null
+          signature_png: string | null
+          signed_at: string | null
+          signer_email: string | null
+          signer_name: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          body_html?: string | null
+          created_at?: string
+          doc_type?: string
+          id?: string
+          ip?: unknown
+          job_id: string
+          pdf_path?: string | null
+          signature_png?: string | null
+          signed_at?: string | null
+          signer_email?: string | null
+          signer_name?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          body_html?: string | null
+          created_at?: string
+          doc_type?: string
+          id?: string
+          ip?: unknown
+          job_id?: string
+          pdf_path?: string | null
+          signature_png?: string | null
+          signed_at?: string | null
+          signer_email?: string | null
+          signer_name?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_contracts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "cb_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_item_catalog: {
+        Row: {
+          active: boolean
+          group_name: string
+          id: string
+          item_key: string
+          label: string
+          requires_qty: boolean
+          scope: string
+          sort_order: number
+          unit: string
+        }
+        Insert: {
+          active?: boolean
+          group_name: string
+          id?: string
+          item_key: string
+          label: string
+          requires_qty?: boolean
+          scope: string
+          sort_order?: number
+          unit?: string
+        }
+        Update: {
+          active?: boolean
+          group_name?: string
+          id?: string
+          item_key?: string
+          label?: string
+          requires_qty?: boolean
+          scope?: string
+          sort_order?: number
+          unit?: string
+        }
+        Relationships: []
+      }
+      cb_jobs: {
+        Row: {
+          address: string | null
+          adjuster_name: string | null
+          adjuster_phone: string | null
+          carrier: string | null
+          city: string | null
+          claim_number: string | null
+          company_id: string
+          converted_at: string | null
+          converted_by: string | null
+          cover_photo_path: string | null
+          created_at: string
+          created_by: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          date_of_loss: string | null
+          deductible: number | null
+          gc_job_id: string | null
+          id: string
+          inspection_date: string | null
+          lat: number | null
+          lng: number | null
+          scopes: Json
+          state: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          adjuster_name?: string | null
+          adjuster_phone?: string | null
+          carrier?: string | null
+          city?: string | null
+          claim_number?: string | null
+          company_id: string
+          converted_at?: string | null
+          converted_by?: string | null
+          cover_photo_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          date_of_loss?: string | null
+          deductible?: number | null
+          gc_job_id?: string | null
+          id?: string
+          inspection_date?: string | null
+          lat?: number | null
+          lng?: number | null
+          scopes?: Json
+          state?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          adjuster_name?: string | null
+          adjuster_phone?: string | null
+          carrier?: string | null
+          city?: string | null
+          claim_number?: string | null
+          company_id?: string
+          converted_at?: string | null
+          converted_by?: string | null
+          cover_photo_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          date_of_loss?: string | null
+          deductible?: number | null
+          gc_job_id?: string | null
+          id?: string
+          inspection_date?: string | null
+          lat?: number | null
+          lng?: number | null
+          scopes?: Json
+          state?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "cb_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_jobs_gc_job_id_fkey"
+            columns: ["gc_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_measurements: {
+        Row: {
+          created_at: string
+          drip_edge_lf: number
+          eave_lf: number
+          facets: number | null
+          gutter_lf: number
+          hip_lf: number
+          id: string
+          job_id: string
+          pitch: string | null
+          rake_lf: number
+          raw: Json
+          rep_adjusted: boolean
+          ridge_cap_lf: number
+          ridge_lf: number
+          source: string
+          starter_lf: number
+          step_flashing_lf: number
+          stories: number | null
+          total_area_sqft: number
+          total_squares: number
+          updated_at: string
+          valley_lf: number
+          wall_flashing_lf: number
+          waste_pct: number
+        }
+        Insert: {
+          created_at?: string
+          drip_edge_lf?: number
+          eave_lf?: number
+          facets?: number | null
+          gutter_lf?: number
+          hip_lf?: number
+          id?: string
+          job_id: string
+          pitch?: string | null
+          rake_lf?: number
+          raw?: Json
+          rep_adjusted?: boolean
+          ridge_cap_lf?: number
+          ridge_lf?: number
+          source?: string
+          starter_lf?: number
+          step_flashing_lf?: number
+          stories?: number | null
+          total_area_sqft?: number
+          total_squares?: number
+          updated_at?: string
+          valley_lf?: number
+          wall_flashing_lf?: number
+          waste_pct?: number
+        }
+        Update: {
+          created_at?: string
+          drip_edge_lf?: number
+          eave_lf?: number
+          facets?: number | null
+          gutter_lf?: number
+          hip_lf?: number
+          id?: string
+          job_id?: string
+          pitch?: string | null
+          rake_lf?: number
+          raw?: Json
+          rep_adjusted?: boolean
+          ridge_cap_lf?: number
+          ridge_lf?: number
+          source?: string
+          starter_lf?: number
+          step_flashing_lf?: number
+          stories?: number | null
+          total_area_sqft?: number
+          total_squares?: number
+          updated_at?: string
+          valley_lf?: number
+          wall_flashing_lf?: number
+          waste_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_measurements_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "cb_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_photos: {
+        Row: {
+          caption: string | null
+          category: string
+          created_at: string
+          elevation: string | null
+          id: string
+          item_key: string | null
+          job_id: string
+          lat: number | null
+          lng: number | null
+          shot_type: string | null
+          sort_order: number
+          storage_path: string
+          taken_at: string | null
+          thumb_path: string | null
+          uploaded_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          caption?: string | null
+          category?: string
+          created_at?: string
+          elevation?: string | null
+          id?: string
+          item_key?: string | null
+          job_id: string
+          lat?: number | null
+          lng?: number | null
+          shot_type?: string | null
+          sort_order?: number
+          storage_path: string
+          taken_at?: string | null
+          thumb_path?: string | null
+          uploaded_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          caption?: string | null
+          category?: string
+          created_at?: string
+          elevation?: string | null
+          id?: string
+          item_key?: string | null
+          job_id?: string
+          lat?: number | null
+          lng?: number | null
+          shot_type?: string | null
+          sort_order?: number
+          storage_path?: string
+          taken_at?: string | null
+          thumb_path?: string | null
+          uploaded_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_photos_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "cb_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_photos_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_reports: {
+        Row: {
+          generated_at: string
+          generated_by: string | null
+          id: string
+          job_id: string
+          line_items: Json
+          narrative: Json
+          pdf_path: string | null
+          share_expires_at: string | null
+          share_token: string | null
+          ventilation: Json
+          version: number
+        }
+        Insert: {
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          job_id: string
+          line_items?: Json
+          narrative?: Json
+          pdf_path?: string | null
+          share_expires_at?: string | null
+          share_token?: string | null
+          ventilation?: Json
+          version?: number
+        }
+        Update: {
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          job_id?: string
+          line_items?: Json
+          narrative?: Json
+          pdf_path?: string | null
+          share_expires_at?: string | null
+          share_token?: string | null
+          ventilation?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_reports_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "cb_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_takeoffs: {
+        Row: {
+          completeness: number
+          data: Json
+          elevations: Json
+          id: string
+          job_id: string
+          updated_at: string
+        }
+        Insert: {
+          completeness?: number
+          data?: Json
+          elevations?: Json
+          id?: string
+          job_id: string
+          updated_at?: string
+        }
+        Update: {
+          completeness?: number
+          data?: Json
+          elevations?: Json
+          id?: string
+          job_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_takeoffs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "cb_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_workspace_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_workspaces: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          gc_company_id: string | null
+          id: string
+          measure_credits: number
+          name: string
+          origin: string
+          plan: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          gc_company_id?: string | null
+          id?: string
+          measure_credits?: number
+          name: string
+          origin?: string
+          plan?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          gc_company_id?: string | null
+          id?: string
+          measure_credits?: number
+          name?: string
+          origin?: string
+          plan?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_workspaces_gc_company_id_fkey"
+            columns: ["gc_company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_participants: {
         Row: {
           challenge_id: string
@@ -6083,6 +6755,27 @@ export type Database = {
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
       auth_company_id: { Args: never; Returns: string }
       auth_tenant_id: { Args: never; Returns: string }
+      cb_bootstrap_workspace: {
+        Args: { _company?: Json; _workspace_name: string }
+        Returns: Json
+      }
+      cb_can_access_job: { Args: { _job: string }; Returns: boolean }
+      cb_can_convert: { Args: { _job: string }; Returns: Json }
+      cb_consume_measure_credit: { Args: { _ws: string }; Returns: Json }
+      cb_convert_to_job: { Args: { _job: string }; Returns: Json }
+      cb_create_share_link: {
+        Args: { _days?: number; _report: string }
+        Returns: string
+      }
+      cb_ensure_platform_workspace: { Args: never; Returns: Json }
+      cb_gc_company_id: { Args: never; Returns: string }
+      cb_has_gc_access: { Args: never; Returns: boolean }
+      cb_is_admin: { Args: { _ws: string }; Returns: boolean }
+      cb_my_context: { Args: never; Returns: Json }
+      cb_report_by_token: { Args: { _token: string }; Returns: Json }
+      cb_role: { Args: { _ws: string }; Returns: string }
+      cb_sees_all: { Args: { _ws: string }; Returns: boolean }
+      cb_workspace_ids: { Args: never; Returns: string[] }
       create_company_as_super_admin: {
         Args: {
           _address?: string

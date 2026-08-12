@@ -17,9 +17,12 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as CbIndexRouteImport } from './routes/cb.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as PayTokenRouteImport } from './routes/pay.$token'
+import { Route as CbSignupRouteImport } from './routes/cb.signup'
+import { Route as CbLoginRouteImport } from './routes/cb.login'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
@@ -62,6 +65,7 @@ import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppDoorToDoorRouteImport } from './routes/_app.door-to-door'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
+import { Route as AppClaimBuddyRouteImport } from './routes/_app.claim-buddy'
 import { Route as AppCardRouteImport } from './routes/_app.card'
 import { Route as AdminCompaniesIndexRouteImport } from './routes/admin.companies.index'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
@@ -150,6 +154,11 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbIndexRoute = CbIndexRouteImport.update({
+  id: '/cb/',
+  path: '/cb/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -163,6 +172,16 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const PayTokenRoute = PayTokenRouteImport.update({
   id: '/pay/$token',
   path: '/pay/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbSignupRoute = CbSignupRouteImport.update({
+  id: '/cb/signup',
+  path: '/cb/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbLoginRoute = CbLoginRouteImport.update({
+  id: '/cb/login',
+  path: '/cb/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CSlugRoute = CSlugRouteImport.update({
@@ -374,6 +393,11 @@ const AppDoorToDoorRoute = AppDoorToDoorRouteImport.update({
 const AppClientsRoute = AppClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClaimBuddyRoute = AppClaimBuddyRouteImport.update({
+  id: '/claim-buddy',
+  path: '/claim-buddy',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCardRoute = AppCardRouteImport.update({
@@ -629,6 +653,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/card': typeof AppCardRoute
+  '/claim-buddy': typeof AppClaimBuddyRoute
   '/clients': typeof AppClientsRouteWithChildren
   '/door-to-door': typeof AppDoorToDoorRouteWithChildren
   '/leads': typeof AppLeadsRouteWithChildren
@@ -671,8 +696,11 @@ export interface FileRoutesByFullPath {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/login': typeof CbLoginRoute
+  '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
   '/admin/': typeof AdminIndexRoute
+  '/cb/': typeof CbIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
   '/door-to-door/dispositions': typeof AppDoorToDoorDispositionsRoute
   '/door-to-door/profile': typeof AppDoorToDoorProfileRoute
@@ -729,6 +757,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/card': typeof AppCardRoute
+  '/claim-buddy': typeof AppClaimBuddyRoute
   '/clients': typeof AppClientsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
@@ -766,9 +795,12 @@ export interface FileRoutesByTo {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/login': typeof CbLoginRoute
+  '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
   '/': typeof AppIndexRoute
   '/admin': typeof AdminIndexRoute
+  '/cb': typeof CbIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
   '/door-to-door/dispositions': typeof AppDoorToDoorDispositionsRoute
   '/door-to-door/profile': typeof AppDoorToDoorProfileRoute
@@ -827,6 +859,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_app/card': typeof AppCardRoute
+  '/_app/claim-buddy': typeof AppClaimBuddyRoute
   '/_app/clients': typeof AppClientsRouteWithChildren
   '/_app/door-to-door': typeof AppDoorToDoorRouteWithChildren
   '/_app/leads': typeof AppLeadsRouteWithChildren
@@ -869,9 +902,12 @@ export interface FileRoutesById {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/login': typeof CbLoginRoute
+  '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
   '/_app/': typeof AppIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/cb/': typeof CbIndexRoute
   '/_app/clients/$id': typeof AppClientsIdRoute
   '/_app/door-to-door/dispositions': typeof AppDoorToDoorDispositionsRoute
   '/_app/door-to-door/profile': typeof AppDoorToDoorProfileRoute
@@ -932,6 +968,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/card'
+    | '/claim-buddy'
     | '/clients'
     | '/door-to-door'
     | '/leads'
@@ -974,8 +1011,11 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/login'
+    | '/cb/signup'
     | '/pay/$token'
     | '/admin/'
+    | '/cb/'
     | '/clients/$id'
     | '/door-to-door/dispositions'
     | '/door-to-door/profile'
@@ -1032,6 +1072,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/card'
+    | '/claim-buddy'
     | '/clients'
     | '/price-books'
     | '/settings'
@@ -1069,9 +1110,12 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/login'
+    | '/cb/signup'
     | '/pay/$token'
     | '/'
     | '/admin'
+    | '/cb'
     | '/clients/$id'
     | '/door-to-door/dispositions'
     | '/door-to-door/profile'
@@ -1129,6 +1173,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_app/card'
+    | '/_app/claim-buddy'
     | '/_app/clients'
     | '/_app/door-to-door'
     | '/_app/leads'
@@ -1171,9 +1216,12 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/login'
+    | '/cb/signup'
     | '/pay/$token'
     | '/_app/'
     | '/admin/'
+    | '/cb/'
     | '/_app/clients/$id'
     | '/_app/door-to-door/dispositions'
     | '/_app/door-to-door/profile'
@@ -1248,7 +1296,10 @@ export interface RootRouteChildren {
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
   CSlugRoute: typeof CSlugRoute
+  CbLoginRoute: typeof CbLoginRoute
+  CbSignupRoute: typeof CbSignupRoute
   PayTokenRoute: typeof PayTokenRoute
+  CbIndexRoute: typeof CbIndexRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
@@ -1311,6 +1362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/': {
+      id: '/cb/'
+      path: '/cb'
+      fullPath: '/cb/'
+      preLoaderRoute: typeof CbIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
@@ -1330,6 +1388,20 @@ declare module '@tanstack/react-router' {
       path: '/pay/$token'
       fullPath: '/pay/$token'
       preLoaderRoute: typeof PayTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/signup': {
+      id: '/cb/signup'
+      path: '/cb/signup'
+      fullPath: '/cb/signup'
+      preLoaderRoute: typeof CbSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/login': {
+      id: '/cb/login'
+      path: '/cb/login'
+      fullPath: '/cb/login'
+      preLoaderRoute: typeof CbLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/c/$slug': {
@@ -1624,6 +1696,13 @@ declare module '@tanstack/react-router' {
       path: '/clients'
       fullPath: '/clients'
       preLoaderRoute: typeof AppClientsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/claim-buddy': {
+      id: '/_app/claim-buddy'
+      path: '/claim-buddy'
+      fullPath: '/claim-buddy'
+      preLoaderRoute: typeof AppClaimBuddyRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/card': {
@@ -2106,6 +2185,7 @@ const AppJobsIdRouteWithChildren = AppJobsIdRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppCardRoute: typeof AppCardRoute
+  AppClaimBuddyRoute: typeof AppClaimBuddyRoute
   AppClientsRoute: typeof AppClientsRouteWithChildren
   AppDoorToDoorRoute: typeof AppDoorToDoorRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
@@ -2126,6 +2206,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppCardRoute: AppCardRoute,
+  AppClaimBuddyRoute: AppClaimBuddyRoute,
   AppClientsRoute: AppClientsRouteWithChildren,
   AppDoorToDoorRoute: AppDoorToDoorRouteWithChildren,
   AppLeadsRoute: AppLeadsRouteWithChildren,
@@ -2243,20 +2324,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
   CSlugRoute: CSlugRoute,
+  CbLoginRoute: CbLoginRoute,
+  CbSignupRoute: CbSignupRoute,
   PayTokenRoute: PayTokenRoute,
+  CbIndexRoute: CbIndexRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

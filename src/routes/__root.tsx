@@ -1,10 +1,21 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import {
+  Outlet,
+  Link,
+  createRootRoute,
+  HeadContent,
+  Scripts,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
+import { CbSessionProvider } from "@/components/auth/CbSessionProvider";
+import { getSurface, isClaimBuddyPath } from "@/lib/cbMode";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
+
 
 function NotFoundComponent() {
   return (
@@ -78,6 +89,23 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * On the standalone Claim Buddy domain (gcn.claims) the rest of the app is
+ * unreachable — every other path lands on the Claim Buddy home.
+ */
+function StandaloneGate() {
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => {
+    if (getSurface() !== "standalone") return;
+    if (isClaimBuddyPath(pathname)) return;
+    navigate({ to: "/cb", replace: true });
+  }, [pathname, navigate]);
+
+  return null;
+}
+
 function RootComponent() {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -86,9 +114,13 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Outlet />
-        <Toaster />
+        <CbSessionProvider>
+          <StandaloneGate />
+          <Outlet />
+          <Toaster />
+        </CbSessionProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
 }
+
