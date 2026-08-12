@@ -404,7 +404,7 @@ function CbEstimatePage() {
               <label className="flex items-center gap-3 text-sm">
                 <input
                   type="checkbox"
-                  className="h-5 w-5"
+                  className="cb-checkbox"
                   checked={attach}
                   onChange={(e) => setAttach(e.target.checked)}
                 />
