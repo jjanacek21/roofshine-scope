@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CbAuthShell } from "@/components/claim-buddy/CbAuthShell";
+import { CbButton } from "@/components/cb/primitives";
+import { CbField, CbProgressRail, focusFirstError } from "@/components/cb/forms";
 
 export const Route = createFileRoute("/cb/signup")({
   head: () => ({
@@ -25,16 +27,31 @@ export const Route = createFileRoute("/cb/signup")({
   component: CbSignupPage,
 });
 
+const STEPS = ["Your details", "Confirm email"];
+
 function CbSignupPage() {
   const navigate = useNavigate();
+  const formRef = useRef<HTMLFormElement | null>(null);
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<{ companyName?: string; email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+
+    const next: typeof errors = {};
+    if (companyName.trim().length < 2) next.companyName = "Tell us the company name so we can label the workspace.";
+    if (!email.includes("@")) next.email = "That doesn't look like an email address yet.";
+    if (password.length < 8) next.password = "Use at least 8 characters — it protects your claims.";
+    setErrors(next);
+    if (Object.keys(next).length) {
+      requestAnimationFrame(() => focusFirstError(formRef.current));
+      return;
+    }
+
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -72,11 +89,13 @@ function CbSignupPage() {
         title="Check your email"
         subtitle="We sent a confirmation link. Open it to activate your Claim Buddy account."
       >
-        <Link
-          to="/cb/login"
-          className="btn-brand flex h-10 w-full items-center justify-center rounded-lg text-[13px] font-semibold"
-        >
-          Back to sign in
+        <div className="mb-6">
+          <CbProgressRail steps={STEPS} current={1} />
+        </div>
+        <Link to="/cb/login">
+          <CbButton variant="secondary" block>
+            Back to sign in
+          </CbButton>
         </Link>
       </CbAuthShell>
     );
@@ -84,56 +103,45 @@ function CbSignupPage() {
 
   return (
     <CbAuthShell title="Create your account" subtitle="Set up your Claim Buddy workspace">
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
-            Company name
-          </label>
-          <input
-            type="text"
-            required
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            className="field-input"
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
-            Email
-          </label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="field-input"
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
-            Password
-          </label>
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="field-input"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="btn-brand mt-2 h-10 w-full rounded-lg text-[13px] font-semibold"
-        >
-          {loading ? "Creating…" : "Create account"}
-        </button>
+      <div className="mb-6">
+        <CbProgressRail steps={STEPS} current={0} />
+      </div>
+      <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
+        <CbField
+          label="Company name"
+          value={companyName}
+          error={errors.companyName}
+          onChange={(e) => setCompanyName(e.target.value)}
+        />
+        <CbField
+          label="Email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          error={errors.email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <CbField
+          label="Password"
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          error={errors.password}
+          hint="At least 8 characters."
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <CbButton type="submit" block loading={loading} loadingText="Creating…">
+          Create account
+        </CbButton>
       </form>
 
-      <p className="mt-7 text-center text-[13px]" style={{ color: "var(--text-muted)" }}>
+      <p className="mt-7 text-center text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
         Already have an account?{" "}
-        <Link to="/cb/login" className="font-semibold text-[var(--brand)] hover:underline">
+        <Link
+          to="/cb/login"
+          className="font-semibold hover:underline"
+          style={{ color: "var(--cb-accent-deep)" }}
+        >
           Sign in
         </Link>
       </p>
