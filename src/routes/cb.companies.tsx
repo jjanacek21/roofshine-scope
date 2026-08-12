@@ -225,8 +225,10 @@ function CompanySheet({
   const [areas, setAreas] = useState("");
   const [teamPhotoPath, setTeamPhotoPath] = useState<string | null>(null);
   const [teamPhotoUrl, setTeamPhotoUrl] = useState<string | null>(null);
+  const [docType, setDocType] = useState<"contingency" | "retail">("contingency");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+
 
   useEffect(() => {
     if (!open) return;
