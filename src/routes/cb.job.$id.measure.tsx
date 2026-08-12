@@ -269,6 +269,19 @@ function CbJobMeasurePage() {
               ) : null}
             </CbCard>
 
+            {center || plan.sections.length ? (
+              <CbRoofPlanEditor
+                plan={plan}
+                onPlanChange={handlePlanChange}
+                center={center}
+                readOnly={planReadOnly}
+                onReset={resetPlan}
+                canReset={!!originalPlanRef.current?.sections.length}
+              />
+            ) : null}
+
+
+
             {phase === "idle" ? (
               <div className="space-y-3">
                 <CbButton block onClick={run} disabled={!job?.workspace_id}>
