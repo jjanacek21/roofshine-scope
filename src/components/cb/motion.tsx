@@ -144,16 +144,20 @@ export function CbHeadline({
   return (
     <Tag ref={ref} className={className} style={style}>
       {words.map((w, i) => (
-        <span key={`${w}-${i}`} className="cb-word-wrap">
-          <span
-            className={`cb-word ${on ? "is-in" : ""}`}
-            style={{ transitionDelay: reduced ? "0ms" : `${i * step}ms` }}
-          >
-            {w}
+        <Fragment key={`${w}-${i}`}>
+          <span className="cb-word-wrap">
+            <span
+              className={`cb-word ${on ? "is-in" : ""}`}
+              style={{ transitionDelay: reduced ? "0ms" : `${i * step}ms` }}
+            >
+              {w}
+            </span>
           </span>
-        </span>
+          {i < words.length - 1 ? " " : null}
+        </Fragment>
       ))}
     </Tag>
+
   );
 }
 
