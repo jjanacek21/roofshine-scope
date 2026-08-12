@@ -1549,3 +1549,7 @@
   flex: 0 0 auto;
   accent-color: var(--cb-accent, currentColor);
 }
+
+/* Cards and docks must include padding in their width on narrow screens. */
+[data-cb] .cb-surface,
+[data-cb] .cb-dock { box-sizing: border-box; }
