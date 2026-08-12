@@ -33,7 +33,6 @@ export const Route = createFileRoute("/cb/onboarding")({
 });
 
 interface License {
-  [key: string]: string;
   state: string;
   number: string;
   label: string;
@@ -139,7 +138,7 @@ function CbOnboardingPage() {
           city: city.trim() || null,
           state: state.trim() || null,
           zip: zip.trim() || null,
-          license_numbers: cleanLicenses,
+          license_numbers: cleanLicenses as unknown as Record<string, string>[],
         },
       });
       if (error) throw error;
