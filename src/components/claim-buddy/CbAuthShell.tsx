@@ -1,4 +1,7 @@
 import type { ReactNode } from "react";
+import { CbSurface } from "@/components/cb/CbSurface";
+import { CbCard } from "@/components/cb/primitives";
+import { CbHeadline, CbReveal } from "@/components/cb/motion";
 
 /** Shared framing for the standalone Claim Buddy auth screens. */
 export function CbAuthShell({
@@ -11,45 +14,47 @@ export function CbAuthShell({
   children: ReactNode;
 }) {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center px-5 py-10"
-      style={{
-        background:
-          "radial-gradient(ellipse at top, rgba(21,128,61,.12), transparent 55%), var(--bg)",
-      }}
-    >
+    <CbSurface>
       <div
-        className="relative w-full max-w-[420px] p-10"
+        className="flex min-h-screen items-center justify-center px-5 py-10"
         style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          borderRadius: 20,
-          boxShadow: "var(--shadow-lg)",
+          background:
+            "radial-gradient(ellipse at top, rgba(var(--cb-accent-rgb), .12), transparent 55%), var(--cb-bg)",
         }}
       >
-        <div className="mb-8 flex items-center gap-2.5">
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] text-sm font-black text-white"
-            style={{ background: "var(--brand)" }}
-          >
-            CB
-          </div>
-          <span
-            className="text-[17px] font-extrabold tracking-tight text-foreground"
-          >
-            Claim Buddy
-          </span>
-        </div>
+        <CbCard elevation="floating" className="w-full max-w-[440px]" style={{ padding: 30 }}>
+          <CbReveal>
+            <div className="mb-8 flex items-center gap-2.5">
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-[10px] text-sm font-black"
+                style={{
+                  background:
+                    "linear-gradient(160deg, var(--cb-accent-bright), var(--cb-accent-deep))",
+                  color: "var(--cb-on-accent)",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,.28), var(--cb-shadow-card)",
+                }}
+              >
+                CB
+              </div>
+              <span className="text-[17px] font-extrabold tracking-tight">Claim Buddy</span>
+            </div>
+          </CbReveal>
 
-        <h1 className="font-bold text-foreground" style={{ fontSize: 24, letterSpacing: "-0.5px" }}>
-          {title}
-        </h1>
-        <p className="mb-7 mt-1.5 text-[13px]" style={{ color: "var(--text-muted)" }}>
-          {subtitle}
-        </p>
+          <CbHeadline
+            text={title}
+            as="h1"
+            className="cb-display"
+            style={{ fontSize: 26, lineHeight: 1.15 }}
+          />
+          <CbReveal delay={110}>
+            <p className="mb-7 mt-2 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
+              {subtitle}
+            </p>
+          </CbReveal>
 
-        {children}
+          <CbReveal delay={165}>{children}</CbReveal>
+        </CbCard>
       </div>
-    </div>
+    </CbSurface>
   );
 }

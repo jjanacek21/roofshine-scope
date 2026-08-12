@@ -1,6 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import { ClipboardCheck, Camera, Ruler, FileSignature } from "lucide-react";
 import { useCbSession } from "@/components/auth/CbSessionProvider";
+import { CbSurface } from "@/components/cb/CbSurface";
+import {
+  CbCard,
+  CbChip,
+  CbIcon,
+  CbLoading,
+  CbEmptyState,
+  CbButton,
+  CbSkeleton,
+} from "@/components/cb/primitives";
+import { CbHeadline, CbReveal, CbStickyHeader } from "@/components/cb/motion";
 
 const STEPS = [
   { icon: ClipboardCheck, title: "Inspection intake", body: "Customer, carrier, claim number, and date of loss." },
@@ -14,71 +25,90 @@ export function ClaimBuddyPlaceholder() {
   const { workspace, workspaces, loading, error, hasGcAccess } = useCbSession();
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Claim Buddy</h1>
-        <p className="mt-1.5 text-sm" style={{ color: "var(--text-muted)" }}>
-          Field inspection and insurance-restoration workflow for storm claims.
-        </p>
-      </div>
+    <CbSurface>
+      <div className="mx-auto w-full max-w-3xl">
+        <CbStickyHeader>
+          <CbHeadline text="Claim Buddy" as="h1" className="cb-display" style={{ fontSize: 26 }} />
+        </CbStickyHeader>
 
-      <div
-        className="mb-6 rounded-[14px] p-4 text-sm"
-        style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
-      >
-        {loading ? (
-          <span style={{ color: "var(--text-muted)" }}>Loading your workspace…</span>
-        ) : error ? (
-          <span className="text-destructive">{error}</span>
-        ) : workspace ? (
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-            <span className="font-semibold text-foreground">{workspace.name}</span>
-            <span style={{ color: "var(--text-muted)" }}>Role: {workspace.role}</span>
-            <span style={{ color: "var(--text-muted)" }}>
-              {workspace.origin === "platform"
-                ? "Unlimited measurements"
-                : `${workspace.measure_credits} measure credits`}
-            </span>
-            {workspaces.length > 1 && (
-              <span style={{ color: "var(--text-muted)" }}>{workspaces.length} workspaces</span>
-            )}
-          </div>
-        ) : hasGcAccess ? (
-          <span style={{ color: "var(--text-muted)" }}>Setting up your workspace…</span>
-        ) : (
-          <span style={{ color: "var(--text-muted)" }}>
-            No Claim Buddy workspace yet.{" "}
-            <Link to="/cb/signup" className="font-semibold text-[var(--brand)] hover:underline">
-              Create one
-            </Link>
-            .
-          </span>
-        )}
-      </div>
+        <CbReveal delay={55}>
+          <p className="mb-6 text-sm" style={{ color: "var(--cb-text-muted)" }}>
+            Field inspection and insurance-restoration workflow for storm claims.
+          </p>
+        </CbReveal>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {STEPS.map((s) => {
-          const Icon = s.icon;
-          return (
-            <div
-              key={s.title}
-              className="rounded-[14px] p-4"
-              style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
-            >
-              <Icon className="mb-2.5 h-5 w-5" style={{ color: "var(--brand)" }} strokeWidth={2} />
-              <p className="text-sm font-semibold text-foreground">{s.title}</p>
-              <p className="mt-1 text-[13px]" style={{ color: "var(--text-muted)" }}>
-                {s.body}
-              </p>
+        <CbReveal delay={110}>
+          {loading ? (
+            <CbCard className="mb-6">
+              <CbLoading label="Loading your workspace…" />
+              <div className="mt-3 flex gap-3">
+                <CbSkeleton width={140} height={14} />
+                <CbSkeleton width={90} height={14} />
+              </div>
+            </CbCard>
+          ) : error ? (
+            <CbCard className="mb-6 text-sm" style={{ color: "var(--cb-danger)" }}>
+              {error}
+            </CbCard>
+          ) : workspace ? (
+            <CbCard elevation="raised" tilt className="mb-6">
+              <span className="cb-microlabel">Active workspace</span>
+              <p className="mt-1.5 text-base font-extrabold">{workspace.name}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <CbChip>Role: {workspace.role}</CbChip>
+                <CbChip>
+                  {workspace.origin === "platform"
+                    ? "Unlimited measurements"
+                    : `${workspace.measure_credits} measure credits`}
+                </CbChip>
+                {workspaces.length > 1 && <CbChip>{workspaces.length} workspaces</CbChip>}
+              </div>
+            </CbCard>
+          ) : hasGcAccess ? (
+            <CbCard className="mb-6">
+              <CbLoading label="Setting up your workspace…" />
+            </CbCard>
+          ) : (
+            <div className="mb-6">
+              <CbEmptyState
+                headline="No Claim Buddy workspace yet"
+                body="Spin one up and your inspections, photos and agreements all live in one place."
+                action={
+                  <Link to="/cb/signup">
+                    <CbButton>Create a workspace</CbButton>
+                  </Link>
+                }
+              />
             </div>
-          );
-        })}
-      </div>
+          )}
+        </CbReveal>
 
-      <p className="mt-6 text-[13px]" style={{ color: "var(--text-muted)" }}>
-        The Claim Buddy database, permissions, storage and job-conversion logic are live. Inspection
-        screens are being built on top of it next.
-      </p>
-    </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {STEPS.map((s, i) => {
+            const Icon = s.icon;
+            return (
+              <CbReveal key={s.title} delay={165 + i * 55}>
+                <CbCard tilt className="h-full">
+                  <CbIcon>
+                    <Icon className="mb-2.5 h-5 w-5" style={{ color: "var(--cb-accent)" }} />
+                  </CbIcon>
+                  <p className="text-sm font-bold">{s.title}</p>
+                  <p className="mt-1 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+                    {s.body}
+                  </p>
+                </CbCard>
+              </CbReveal>
+            );
+          })}
+        </div>
+
+        <CbReveal delay={400}>
+          <p className="mt-6 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+            The Claim Buddy database, permissions, storage and job-conversion logic are live.
+            Inspection screens are being built on top of it next.
+          </p>
+        </CbReveal>
+      </div>
+    </CbSurface>
   );
 }
