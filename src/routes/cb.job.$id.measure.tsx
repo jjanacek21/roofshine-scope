@@ -1,14 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbBadge, CbLoading } from "@/components/cb/primitives";
 import { CbField } from "@/components/cb/forms";
 import { CbCountUp, CbReveal, cbHaptic } from "@/components/cb/motion";
 import { CbJobStepShell } from "@/components/claim-buddy/CbJobStepShell";
+import { CbRoofPlanEditor } from "@/components/cb/CbRoofPlanEditor";
+import {
+  loadCbRoofPlan,
+  saveCbRoofPlan,
+  planTotals,
+  type CbPlan,
+} from "@/lib/cbRoofPlan";
 import {
   CB_BLANK_MEASUREMENT,
   CB_LINEAR_FIELDS,
@@ -16,6 +22,7 @@ import {
   saveCbMeasurement,
   type CbMeasurement,
 } from "@/lib/cbMeasure";
+
 
 export const Route = createFileRoute("/cb/job/$id/measure")({
   head: () => ({
