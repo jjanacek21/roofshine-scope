@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Download, Link2, Mail, Loader2, Presentation } from "lucide-react";
+import { Download, Link2, Mail, Loader2, Presentation, Calculator } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
@@ -217,9 +217,13 @@ function CbReportPage() {
                 <CbButton size="md" variant="ghost" onClick={() => email("adjuster")} loading={busy === "adjuster"}>
                   <Mail size={16} /> Adjuster
                 </CbButton>
+                <CbButton size="md" variant="ghost" onClick={() => navigate({ to: "/cb/job/$id/estimate", params: { id } })}>
+                  <Calculator size={16} /> Estimate
+                </CbButton>
                 <CbButton size="md" variant="ghost" onClick={() => navigate({ to: "/cb/job/$id/present", params: { id } })}>
                   <Presentation size={16} /> Present
                 </CbButton>
+
                 <CbButton size="md" variant="ghost" onClick={copyLink} loading={busy === "share"}>
                   <Link2 size={16} /> Copy link
                 </CbButton>
