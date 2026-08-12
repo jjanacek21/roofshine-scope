@@ -110,6 +110,27 @@ export function CbDashboard() {
     });
   }, [jobs, filter, search]);
 
+  /* A brand-new workspace gets one demo inspection so the whole flow is walkable. */
+  useEffect(() => {
+    if (!workspace?.id || jobsQuery.isLoading || jobs.length > 0) return;
+    let cancelled = false;
+    void supabase.rpc("cb_ensure_demo_job", { _ws: workspace.id }).then(({ data }) => {
+      if (cancelled) return;
+      if ((data as { created?: boolean } | null)?.created) void jobsQuery.refetch();
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspace?.id, jobsQuery.isLoading, jobs.length]);
+
+  /* The job the rep was last in the middle of. */
+  const resumeJob = useMemo(
+    () => jobs.find((j) => j.status === "inspecting" || j.status === "draft") ?? null,
+    [jobs],
+  );
+
+
   async function startInspection() {
     if (!workspace || !company || !user) return;
     setStarting(true);
