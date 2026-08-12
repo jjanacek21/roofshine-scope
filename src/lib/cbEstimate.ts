@@ -581,7 +581,7 @@ function planPhotoLines(inputs: CbEstimateInputs): PlannedLine[] {
     | undefined;
   if (!Array.isArray(observed)) return [];
   return observed
-    .map((it, i) => {
+    .map((it, i): PlannedLine | null => {
       const description = String(it.description ?? it.name ?? "").trim();
       const qty = n(it.suggested_qty ?? it.qty);
       if (!description || qty <= 0) return null;
