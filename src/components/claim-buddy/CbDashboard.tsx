@@ -10,7 +10,7 @@ import { useCbLogoUrl } from "@/lib/cbLogo";
 import { CbCard, CbTile, CbButton, CbChip, CbBadge, CbLoading, CbEmptyState, CbSkeleton } from "@/components/cb/primitives";
 import { CbReveal, CbStagger } from "@/components/cb/motion";
 import { CbConvertAction } from "@/components/cb/CbConvertAction";
-import { Search, Camera, ChevronRight, Building2 } from "lucide-react";
+import { Search, Camera, ChevronRight, Building2, Settings, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUSES: { value: string; label: string; tone: "neutral" | "success" | "warning" | "danger" | "accent" }[] = [
