@@ -154,14 +154,16 @@ export function AppSidebar() {
                 >
                   <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
                   {!collapsed && <span>{item.label}</span>}
-                  {!collapsed && item.badgeKey === "jobs" && jobsCount > 0 && (
-                    <span
-                      className="ml-auto rounded font-mono-num text-[10px] font-bold text-white"
-                      style={{ background: "var(--brand)", padding: "2px 6px" }}
-                    >
-                      {jobsCount}
-                    </span>
-                  )}
+                  {!collapsed &&
+                    ((item.badgeKey === "jobs" && jobsCount > 0) ||
+                      (item.badgeKey === "cb" && cbOpenCount > 0)) && (
+                      <span
+                        className="ml-auto rounded font-mono-num text-[10px] font-bold text-white"
+                        style={{ background: "var(--brand)", padding: "2px 6px" }}
+                      >
+                        {item.badgeKey === "cb" ? cbOpenCount : jobsCount}
+                      </span>
+                    )}
                 </Link>
               );
               return collapsed ? (

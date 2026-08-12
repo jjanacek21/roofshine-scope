@@ -160,12 +160,13 @@ export function MobileSidebarSheet() {
                 >
                   <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
                   <span>{item.label}</span>
-                  {item.badgeKey === "jobs" && jobsCount > 0 && (
+                  {((item.badgeKey === "jobs" && jobsCount > 0) ||
+                    (item.badgeKey === "cb" && cbOpenCount > 0)) && (
                     <span
                       className="ml-auto rounded font-mono-num text-[10px] font-bold text-white"
                       style={{ background: "var(--brand)", padding: "2px 6px" }}
                     >
-                      {jobsCount}
+                      {item.badgeKey === "cb" ? cbOpenCount : jobsCount}
                     </span>
                   )}
                 </Link>
