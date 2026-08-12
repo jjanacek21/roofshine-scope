@@ -33,8 +33,12 @@ function CbHomePage() {
   const { workspaces, loading } = useCbSession();
 
   useEffect(() => {
-    if (!authLoading && !user) navigate({ to: "/cb/login" });
+    /* gcn.claims is an acquisition domain: strangers get sign-up, not sign-in. */
+    if (!authLoading && !user) {
+      navigate({ to: getSurface() === "standalone" ? "/cb/signup" : "/cb/login", replace: true });
+    }
   }, [authLoading, user, navigate]);
+
 
   useEffect(() => {
     if (!loading && user && workspaces.length === 0) navigate({ to: "/cb/onboarding", replace: true });
