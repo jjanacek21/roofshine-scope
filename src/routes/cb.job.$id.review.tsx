@@ -103,6 +103,16 @@ function CbReviewPage() {
   const scores = useMemo(() => scoreSheet(sheet, squares), [sheet, squares]);
   const completeness = overallCompleteness(scores);
 
+  /* the pre-flight is the authoritative score */
+  useEffect(() => {
+    if (isLoading || !data?.takeoff) return;
+    void supabase
+      .from("cb_takeoffs")
+      .update({ completeness })
+      .eq("job_id", id)
+      .then(() => undefined);
+  }, [completeness, id, isLoading, data?.takeoff]);
+
   const byCategory = useMemo(() => {
     const map: Record<string, number> = {};
     for (const p of photos) map[p.category ?? "other"] = (map[p.category ?? "other"] ?? 0) + 1;
