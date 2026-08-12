@@ -258,7 +258,6 @@ function CbReportPage() {
           </div>
 
           <div className="mt-6 grid gap-2">
-            <CbConvertAction jobId={id} />
             <CbButton
               block
               variant="secondary"
@@ -269,6 +268,10 @@ function CbReportPage() {
             <CbButton block variant="ghost" onClick={() => navigate({ to: "/cb" })}>
               Back to jobs
             </CbButton>
+          </div>
+          <div aria-hidden className="cb-has-dock" />
+          <div className="cb-dock">
+            <CbConvertAction jobId={id} />
           </div>
         </div>
       </div>

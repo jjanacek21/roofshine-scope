@@ -851,7 +851,8 @@ function CbTakeoffPage() {
             />
           </Section>
 
-          <div className="mt-6 grid gap-2">
+          <div aria-hidden className="cb-has-dock" />
+          <div className="cb-dock">
             <CbButton block onClick={() => navigate({ to: "/cb/job/$id/review", params: { id } })}>
               Go to review
             </CbButton>

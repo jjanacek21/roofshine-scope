@@ -283,6 +283,16 @@ function CbJobCustomerPage() {
           <div className="grid gap-2 pt-1">
             <CbButton
               block
+              variant="ghost"
+              onClick={() => navigate({ to: "/cb/job/$id/cover", params: { id } })}
+            >
+              Skip — I'll add this later
+            </CbButton>
+          </div>
+          <div aria-hidden className="cb-has-dock" />
+          <div className="cb-dock">
+            <CbButton
+              block
               loading={saving}
               loadingText="Saving…"
               onClick={async () => {
@@ -290,13 +300,6 @@ function CbJobCustomerPage() {
               }}
             >
               Continue to cover photo
-            </CbButton>
-            <CbButton
-              block
-              variant="ghost"
-              onClick={() => navigate({ to: "/cb/job/$id/cover", params: { id } })}
-            >
-              Skip — I'll add this later
             </CbButton>
           </div>
         </div>

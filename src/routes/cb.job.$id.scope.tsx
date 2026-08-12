@@ -173,20 +173,6 @@ function CbJobScopePage() {
         <div className="mt-5 grid gap-2">
           <CbButton
             block
-            disabled={selected.length === 0}
-            loading={saving}
-            loadingText="Saving…"
-            onClick={() => {
-              const first = SCOPES.map((s) => s.key).find((k) => selected.includes(k));
-              if (first === "roof") navigate({ to: "/cb/job/$id/roof", params: { id } });
-              else if (first === "exterior") navigate({ to: "/cb/job/$id/exterior", params: { id } });
-              else if (first === "interior") navigate({ to: "/cb/job/$id/interior", params: { id } });
-            }}
-          >
-            {selected.length === 0 ? "Pick at least one" : "Start inspecting"}
-          </CbButton>
-          <CbButton
-            block
             variant="secondary"
             onClick={() => navigate({ to: "/cb/job/$id/takeoff", params: { id } })}
           >
@@ -198,6 +184,23 @@ function CbJobScopePage() {
             onClick={() => navigate({ to: "/cb/job/$id/review", params: { id } })}
           >
             Pre-flight review
+          </CbButton>
+        </div>
+        <div aria-hidden className="cb-has-dock" />
+        <div className="cb-dock">
+          <CbButton
+            block
+            disabled={selected.length === 0}
+            loading={saving}
+            loadingText="Saving…"
+            onClick={() => {
+              const first = SCOPES.map((s) => s.key).find((k) => selected.includes(k));
+              if (first === "roof") navigate({ to: "/cb/job/$id/roof", params: { id } });
+              else if (first === "exterior") navigate({ to: "/cb/job/$id/exterior", params: { id } });
+              else if (first === "interior") navigate({ to: "/cb/job/$id/interior", params: { id } });
+            }}
+          >
+            {selected.length === 0 ? "Pick at least one" : "Start inspecting"}
           </CbButton>
         </div>
       </CbJobStepShell>

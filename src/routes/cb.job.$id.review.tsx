@@ -413,7 +413,8 @@ function CbReviewPage() {
           ) : null}
 
           {/* CREATE REPORT */}
-          <div className="mt-6 grid gap-2">
+          <div aria-hidden className="cb-has-dock" />
+          <div className="cb-dock">
             <CbButton
               block
               disabled={blockers.length > 0}
