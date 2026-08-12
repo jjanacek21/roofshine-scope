@@ -8,7 +8,7 @@ import { useCbCompany, type CbCompany } from "@/components/auth/CbCompanyProvide
 import { useCbLogoUrl, cbLogoSignedUrl, CB_LOGO_BUCKET } from "@/lib/cbLogo";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbSheet, CbLoading, CbChip } from "@/components/cb/primitives";
-import { CbField, CbTextarea } from "@/components/cb/forms";
+import { CbField, CbSegmentedCards, CbTextarea } from "@/components/cb/forms";
 import { CbHeadline, CbReveal, CbStagger } from "@/components/cb/motion";
 import { Building2, Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
