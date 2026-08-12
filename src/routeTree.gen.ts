@@ -107,6 +107,7 @@ import { Route as AppDoorToDoorProfileRouteImport } from './routes/_app.door-to-
 import { Route as AppDoorToDoorDispositionsRouteImport } from './routes/_app.door-to-door.dispositions'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
+import { Route as CbJobIdCustomerRouteImport } from './routes/cb.job.$id.customer'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AppJobsIdReportRouteImport } from './routes/_app.jobs.$id.report'
 import { Route as AppJobsIdPhotosRouteImport } from './routes/_app.jobs.$id.photos'
@@ -608,6 +609,11 @@ const AppJobsIdIndexRoute = AppJobsIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppJobsIdRoute,
 } as any)
+const CbJobIdCustomerRoute = CbJobIdCustomerRouteImport.update({
+  id: '/cb/job/$id/customer',
+  path: '/cb/job/$id/customer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -761,6 +767,7 @@ export interface FileRoutesByFullPath {
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/jobs/$id/': typeof AppJobsIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -862,6 +869,7 @@ export interface FileRoutesByTo {
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/jobs/$id': typeof AppJobsIdIndexRoute
 }
 export interface FileRoutesById {
@@ -972,6 +980,7 @@ export interface FileRoutesById {
   '/_app/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/_app/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/_app/jobs/$id/': typeof AppJobsIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -1082,6 +1091,7 @@ export interface FileRouteTypes {
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
     | '/api/public/payments/webhook'
+    | '/cb/job/$id/customer'
     | '/jobs/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1183,6 +1193,7 @@ export interface FileRouteTypes {
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
     | '/api/public/payments/webhook'
+    | '/cb/job/$id/customer'
     | '/jobs/$id'
   id:
     | '__root__'
@@ -1292,6 +1303,7 @@ export interface FileRouteTypes {
     | '/_app/jobs/$id/photos'
     | '/_app/jobs/$id/report'
     | '/api/public/payments/webhook'
+    | '/cb/job/$id/customer'
     | '/_app/jobs/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -1328,6 +1340,7 @@ export interface RootRouteChildren {
   CbIndexRoute: typeof CbIndexRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
+  CbJobIdCustomerRoute: typeof CbJobIdCustomerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2018,6 +2031,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJobsIdIndexRouteImport
       parentRoute: typeof AppJobsIdRoute
     }
+    '/cb/job/$id/customer': {
+      id: '/cb/job/$id/customer'
+      path: '/cb/job/$id/customer'
+      fullPath: '/cb/job/$id/customer'
+      preLoaderRoute: typeof CbJobIdCustomerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -2372,6 +2392,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbIndexRoute: CbIndexRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
+  CbJobIdCustomerRoute: CbJobIdCustomerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

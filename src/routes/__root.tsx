@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CbSessionProvider } from "@/components/auth/CbSessionProvider";
+import { CbCompanyProvider } from "@/components/auth/CbCompanyProvider";
 import { getSurface, isClaimBuddyPath } from "@/lib/cbMode";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -115,9 +116,11 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CbSessionProvider>
-          <StandaloneGate />
-          <Outlet />
-          <Toaster />
+          <CbCompanyProvider>
+            <StandaloneGate />
+            <Outlet />
+            <Toaster />
+          </CbCompanyProvider>
         </CbSessionProvider>
       </AuthProvider>
     </QueryClientProvider>
