@@ -127,7 +127,7 @@ function CbJobCoverPage() {
     });
     setBusy(false);
     toast.success("Cover photo queued — it uploads in the background.");
-    navigate({ to: "/cb/job/$id/scope", params: { id } });
+    navigate({ to: "/cb/job/$id/measure", params: { id } });
   }
 
   if (isLoading) {
@@ -231,7 +231,7 @@ function CbJobCoverPage() {
               <CbButton
                 block
                 variant="ghost"
-                onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}
+                onClick={() => navigate({ to: "/cb/job/$id/measure", params: { id } })}
               >
                 Skip for now
               </CbButton>
