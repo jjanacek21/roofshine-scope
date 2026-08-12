@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CbAuthShell } from "@/components/claim-buddy/CbAuthShell";
+import { CbButton } from "@/components/cb/primitives";
+import { CbField, focusFirstError } from "@/components/cb/forms";
 
 export const Route = createFileRoute("/cb/login")({
   head: () => ({
@@ -27,17 +29,30 @@ export const Route = createFileRoute("/cb/login")({
 
 function CbLoginPage() {
   const navigate = useNavigate();
+  const formRef = useRef<HTMLFormElement | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+
+    const next: typeof errors = {};
+    if (!email.includes("@")) next.email = "That doesn't look like an email address yet.";
+    if (password.length < 6) next.password = "Passwords are at least 6 characters.";
+    setErrors(next);
+    if (Object.keys(next).length) {
+      requestAnimationFrame(() => focusFirstError(formRef.current));
+      return;
+    }
+
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      setErrors({ password: "We couldn't sign you in with those details." });
+      requestAnimationFrame(() => focusFirstError(formRef.current));
       return;
     }
     toast.success("Welcome back");
@@ -46,51 +61,44 @@ function CbLoginPage() {
 
   return (
     <CbAuthShell title="Welcome back" subtitle="Sign in to your Claim Buddy account">
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
-            Email
-          </label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="field-input"
-          />
+      <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
+        <CbField
+          label="Email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          error={errors.email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <CbField
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          error={errors.password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <div className="flex justify-end">
+          <Link
+            to="/forgot-password"
+            className="text-xs font-semibold hover:underline"
+            style={{ color: "var(--cb-accent-deep)" }}
+          >
+            Forgot password?
+          </Link>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
-              Password
-            </label>
-            <Link
-              to="/forgot-password"
-              className="text-xs font-semibold text-[var(--brand)] hover:underline"
-            >
-              Forgot password?
-            </Link>
-          </div>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="field-input"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="btn-brand mt-2 h-10 w-full rounded-lg text-[13px] font-semibold"
-        >
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
+        <CbButton type="submit" block loading={loading} loadingText="Signing in…">
+          Sign in
+        </CbButton>
       </form>
 
-      <p className="mt-7 text-center text-[13px]" style={{ color: "var(--text-muted)" }}>
+      <p className="mt-7 text-center text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
         New to Claim Buddy?{" "}
-        <Link to="/cb/signup" className="font-semibold text-[var(--brand)] hover:underline">
+        <Link
+          to="/cb/signup"
+          className="font-semibold hover:underline"
+          style={{ color: "var(--cb-accent-deep)" }}
+        >
           Create an account
         </Link>
       </p>
