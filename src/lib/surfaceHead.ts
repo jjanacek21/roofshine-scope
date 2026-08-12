@@ -42,8 +42,7 @@ export const STANDALONE_HEAD: SurfaceHead = {
   description:
     "Walk the roof, document the damage, generate the report and close the job — all from your phone.",
   url: "https://gcn.claims",
-  image:
-    "https://storage.googleapis.com/gpt-engineer-file-uploads/g4If15kXRDOjVQ3KUjFeHCxuPqy2/social-images/social-1778006021379-Image_4-28-26_at_1.11_PM.webp",
+  image: "https://gcn.claims/claim-buddy-social.png",
   themeColor: "#0b0f14",
   appTitle: "Claim Buddy",
 };
