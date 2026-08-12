@@ -217,9 +217,13 @@ function CbReportPage() {
                 <CbButton size="md" variant="ghost" onClick={() => email("adjuster")} loading={busy === "adjuster"}>
                   <Mail size={16} /> Adjuster
                 </CbButton>
+                <CbButton size="md" variant="ghost" onClick={() => navigate({ to: "/cb/job/$id/estimate", params: { id } })}>
+                  <Calculator size={16} /> Estimate
+                </CbButton>
                 <CbButton size="md" variant="ghost" onClick={() => navigate({ to: "/cb/job/$id/present", params: { id } })}>
                   <Presentation size={16} /> Present
                 </CbButton>
+
                 <CbButton size="md" variant="ghost" onClick={copyLink} loading={busy === "share"}>
                   <Link2 size={16} /> Copy link
                 </CbButton>
