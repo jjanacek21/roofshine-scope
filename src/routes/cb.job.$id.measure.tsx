@@ -123,10 +123,68 @@ function CbJobMeasurePage() {
       .join(", ");
   }, [job]);
 
-  const thumb =
-    mapToken && job?.lat != null && job?.lng != null
-      ? `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/pin-l-home+1e90ff(${job.lng},${job.lat})/${job.lng},${job.lat},19,0/640x360@2x?access_token=${mapToken}`
+  const center =
+    job?.lat != null && job?.lng != null
+      ? { lat: Number(job.lat), lng: Number(job.lng) }
       : null;
+
+  const { data: planData, refetch: refetchPlan } = useQuery({
+    queryKey: ["cb-roof-plan", id],
+    enabled: !!job,
+    queryFn: () => loadCbRoofPlan(id),
+  });
+
+  useEffect(() => {
+    if (!planData) return;
+    setPlan(planData);
+    if (!originalPlanRef.current) originalPlanRef.current = planData;
+  }, [planData]);
+
+  const { data: reportCount } = useQuery({
+    queryKey: ["cb-report-count", id],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("cb_reports")
+        .select("id", { count: "exact", head: true })
+        .eq("job_id", id);
+      return count ?? 0;
+    },
+  });
+  const planReadOnly = (reportCount ?? 0) > 0;
+
+  function handlePlanChange(next: CbPlan, opts: { user: boolean }) {
+    setPlan(next);
+    if (!opts.user) return;
+    setPlanDirty(true);
+    setRepAdjusted(true);
+    const t = planTotals(next);
+    setValues((v) => ({
+      ...v,
+      total_squares: t.total_squares,
+      total_area_sqft: t.total_area_sqft,
+      facets: t.facets,
+      pitch: t.pitch ?? v.pitch,
+      ridge_lf: t.ridge_lf,
+      hip_lf: t.hip_lf,
+      valley_lf: t.valley_lf,
+      rake_lf: t.rake_lf,
+      eave_lf: t.eave_lf,
+      gutter_lf: t.gutter_lf,
+      wall_flashing_lf: t.wall_flashing_lf,
+      step_flashing_lf: t.step_flashing_lf,
+      drip_edge_lf: Math.round((t.eave_lf + t.rake_lf) * 10) / 10,
+      starter_lf: t.eave_lf,
+      ridge_cap_lf: Math.round((t.ridge_lf + t.hip_lf) * 10) / 10,
+    }));
+  }
+
+  function resetPlan() {
+    const original = originalPlanRef.current;
+    if (!original) return;
+    handlePlanChange(JSON.parse(JSON.stringify(original)) as CbPlan, { user: true });
+    toast.message("Restored the satellite shape");
+  }
+
 
   async function run() {
     if (!job?.workspace_id) return;
