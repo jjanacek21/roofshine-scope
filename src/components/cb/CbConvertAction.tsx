@@ -198,3 +198,23 @@ function ConvertLines({ s }: { s: CbConvertSummary }) {
 export function CbConvertedChip() {
   return <CbBadge tone="success">Converted</CbBadge>;
 }
+
+/** Warns that further edits no longer flow into the GlobalContractor job. */
+export function CbConvertedNotice({ jobId }: { jobId: string }) {
+  const { data: gate } = useCbCanConvert(jobId);
+  if (gate?.reason !== "already_converted") return null;
+  return (
+    <div
+      className="rounded-[14px] px-4 py-3 text-[13px]"
+      style={{
+        background: "var(--cb-surface-sunken, rgba(0,0,0,.05))",
+        border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))",
+        color: "var(--cb-text-muted)",
+      }}
+      role="status"
+    >
+      This inspection already exists as a job in {gate.gc_company_name ?? "GlobalContractor"}. Edits made
+      here from now on stay in Claim Buddy — update the GlobalContractor job directly.
+    </div>
+  );
+}
