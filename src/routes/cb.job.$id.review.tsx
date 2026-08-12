@@ -269,7 +269,7 @@ function CbReviewPage() {
                       {byElevation[e].length}
                     </span>
                   </div>
-                  <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                  <div className="cb-photo-grid mt-2">
                     {byElevation[e].slice(0, 12).map((p) => (
                       <Thumb key={p.id} path={p.thumb_path ?? p.storage_path} />
                     ))}
