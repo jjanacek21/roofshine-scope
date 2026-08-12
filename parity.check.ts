@@ -21,6 +21,6 @@ const gcTotals = roofTotals(segs.map(s => ({ pitch: s.pitch, plan_area_sqft: s.p
 const cb = await runCbInstantMeasure(sb, userId, { workspace_id: "b5250a64-f8dd-4254-9dc3-9a544fdeef35", address: "parity test", lat, lng });
 
 console.log(JSON.stringify({
-  gc: { squares: gcTotals.squares, total_area_sqft: gcTotals.slopedTotal, plan_area_sqft: gcTotals.planTotal, pitch: gcTotals.predominantPitch, facets: segs.length, run: gc.body.run_id },
+  gc: { squares: gcTotals.squares, total_area_sqft: gcTotals.slopedTotal, plan_area_sqft: gcTotals.planTotal, pitch: gcTotals.predominantPitch, facets: segs.length, fp: gc.body.footprint_source, cal: gc.body.calibration },
   cb: (cb as any).ok ? { squares: (cb as any).measurement.total_squares, total_area_sqft: (cb as any).measurement.total_area_sqft, plan_area_sqft: (cb as any).measurement.plan_area_sqft, pitch: (cb as any).measurement.pitch, facets: (cb as any).measurement.facets, lf: { ridge:(cb as any).measurement.ridge_lf, hip:(cb as any).measurement.hip_lf, valley:(cb as any).measurement.valley_lf, rake:(cb as any).measurement.rake_lf, eave:(cb as any).measurement.eave_lf } } : cb,
 }, null, 1));
