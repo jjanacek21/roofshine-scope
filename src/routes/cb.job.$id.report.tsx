@@ -8,6 +8,7 @@ import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbChip, CbLoading } from "@/components/cb/primitives";
 import { CbStickyHeader } from "@/components/cb/motion";
 import { CbReportDoc } from "@/components/cb/CbReportDoc";
+import { CbConvertAction, CbConvertedNotice } from "@/components/cb/CbConvertAction";
 import { useCbReport } from "@/lib/cbReportView";
 import { cbDocumentSignedUrl, renderAndStoreReportPdf } from "@/lib/cbPdf";
 import { cbEmailReport } from "@/lib/cb-email.functions";
@@ -233,6 +234,10 @@ function CbReportPage() {
           ) : null}
 
           <div className="mt-3">
+            <CbConvertedNotice jobId={id} />
+          </div>
+
+          <div className="mt-3">
             <CbReportDoc
               vm={vm}
               editable
@@ -249,6 +254,7 @@ function CbReportPage() {
           </div>
 
           <div className="mt-6 grid gap-2">
+            <CbConvertAction jobId={id} />
             <CbButton
               block
               variant="secondary"

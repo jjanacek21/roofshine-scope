@@ -8,6 +8,7 @@ import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbChip, CbLoading } from "@/components/cb/primitives";
 import { CbHeadline, CbReveal, CbStagger, CbStickyHeader } from "@/components/cb/motion";
 import { CbField, CbSegmentedCards } from "@/components/cb/forms";
+import { CbConvertAction } from "@/components/cb/CbConvertAction";
 import { CbSignaturePad } from "@/components/cb/CbSignaturePad";
 import { cbDocumentSignedUrl } from "@/lib/cbPdf";
 import { cbSignContract, cbEmailContract } from "@/lib/cb-contract.functions";
@@ -248,6 +249,7 @@ function CbContractPage() {
               </p>
             </CbReveal>
             <div className="mt-6 grid gap-2">
+              <CbConvertAction jobId={id} />
               <CbButton block onClick={openPdf}>
                 <span className="inline-flex items-center gap-2">
                   <Download size={17} /> Open the signed PDF
