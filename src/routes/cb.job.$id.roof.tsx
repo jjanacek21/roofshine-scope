@@ -5,7 +5,7 @@ import { AlertTriangle, Camera, CheckCircle2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbBadge, CbLoading } from "@/components/cb/primitives";
-import { CbProgressRail, CbField, CbStepper } from "@/components/cb/forms";
+import { CbProgressRail, CbStepper } from "@/components/cb/forms";
 import { CbCamera } from "@/components/cb/CbCamera";
 import { CbPendingPill } from "@/components/claim-buddy/CbJobStepShell";
 import { CbDamageChecklist } from "@/components/claim-buddy/CbDamageChecklist";

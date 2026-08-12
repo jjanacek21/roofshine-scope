@@ -145,13 +145,43 @@ function CbJobScopePage() {
           })}
         </div>
 
+        {selected.length > 0 ? (
+          <div className="mt-4 grid gap-2">
+            {SCOPES.filter((s) => selected.includes(s.key)).map((s) => (
+              <CbButton
+                key={s.key}
+                block
+                variant="secondary"
+                onClick={() =>
+                  navigate({
+                    to:
+                      s.key === "roof"
+                        ? "/cb/job/$id/roof"
+                        : s.key === "exterior"
+                          ? "/cb/job/$id/exterior"
+                          : "/cb/job/$id/interior",
+                    params: { id },
+                  })
+                }
+              >
+                Open the {s.title.toLowerCase()} walk
+              </CbButton>
+            ))}
+          </div>
+        ) : null}
+
         <div className="mt-5 grid gap-2">
           <CbButton
             block
             disabled={selected.length === 0}
             loading={saving}
             loadingText="Saving…"
-            onClick={() => navigate({ to: "/cb" })}
+            onClick={() => {
+              const first = SCOPES.map((s) => s.key).find((k) => selected.includes(k));
+              if (first === "roof") navigate({ to: "/cb/job/$id/roof", params: { id } });
+              else if (first === "exterior") navigate({ to: "/cb/job/$id/exterior", params: { id } });
+              else if (first === "interior") navigate({ to: "/cb/job/$id/interior", params: { id } });
+            }}
           >
             {selected.length === 0 ? "Pick at least one" : "Start inspecting"}
           </CbButton>
