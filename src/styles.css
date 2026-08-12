@@ -1543,9 +1543,9 @@
 
 /* --- Mobile: grid children must be allowed to shrink, and checkboxes need a thumb-sized box --- */
 [data-cb] .cb-field { min-width: 0; }
-[data-cb] .cb-checkbox {
-  width: 24px;
-  height: 24px;
+.cb-checkbox {
+  width: 24px !important;
+  height: 24px !important;
   flex: 0 0 auto;
   accent-color: var(--cb-accent, currentColor);
 }
