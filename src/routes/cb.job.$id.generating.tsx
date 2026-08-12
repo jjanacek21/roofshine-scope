@@ -80,9 +80,7 @@ function CbGeneratingPage() {
     <CbSurface>
       <div className="flex min-h-screen items-center px-5 py-16" style={{ background: "var(--cb-bg)" }}>
         <div className="mx-auto w-full max-w-[520px]">
-          <CbHeadline as="h1" style={{ fontSize: 26 }}>
-            Building the report
-          </CbHeadline>
+          <CbHeadline as="h1" text="Building the report" style={{ fontSize: 26 }} />
           <CbCard elevation="floating" className="mt-5" style={{ padding: 24 }}>
             <ul className="grid gap-3">
               {steps.map((label, i) => {
