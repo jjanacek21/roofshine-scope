@@ -246,14 +246,17 @@ function CompanySheet({
       founded_year?: number | null;
       service_areas?: unknown;
       team_photo_url?: string | null;
+      default_doc_type?: string | null;
     };
     setAboutHeadline(extra.about_headline ?? "");
     setAboutStory(extra.about_story ?? "");
     setFounded(extra.founded_year ? String(extra.founded_year) : "");
     setAreas(Array.isArray(extra.service_areas) ? extra.service_areas.map(String).join(", ") : "");
     setTeamPhotoPath(extra.team_photo_url ?? null);
+    setDocType(extra.default_doc_type === "retail" ? "retail" : "contingency");
     setTeamPhotoUrl(null);
     void cbLogoSignedUrl(extra.team_photo_url).then(setTeamPhotoUrl);
+
   }, [open, company]);
 
   async function uploadTeamPhoto(file: File) {
