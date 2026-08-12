@@ -7,6 +7,7 @@
 import {
   forwardRef,
   useEffect,
+  useRef,
   type ButtonHTMLAttributes,
   type CSSProperties,
   type HTMLAttributes,
