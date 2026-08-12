@@ -23,9 +23,11 @@ import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as PayTokenRouteImport } from './routes/pay.$token'
 import { Route as CbSignupRouteImport } from './routes/cb.signup'
+import { Route as CbSettingsRouteImport } from './routes/cb.settings'
 import { Route as CbOnboardingRouteImport } from './routes/cb.onboarding'
 import { Route as CbLoginRouteImport } from './routes/cb.login'
 import { Route as CbCompaniesRouteImport } from './routes/cb.companies'
+import { Route as CbAdminRouteImport } from './routes/cb.admin'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
@@ -70,6 +72,7 @@ import { Route as AppDoorToDoorRouteImport } from './routes/_app.door-to-door'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppClaimBuddyRouteImport } from './routes/_app.claim-buddy'
 import { Route as AppCardRouteImport } from './routes/_app.card'
+import { Route as CbAdminIndexRouteImport } from './routes/cb.admin.index'
 import { Route as AdminCompaniesIndexRouteImport } from './routes/admin.companies.index'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppRoofkingIndexRouteImport } from './routes/_app.roofking.index'
@@ -77,6 +80,9 @@ import { Route as AppLeadsIndexRouteImport } from './routes/_app.leads.index'
 import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
 import { Route as AppInvoicesIndexRouteImport } from './routes/_app.invoices.index'
 import { Route as AppDoorToDoorIndexRouteImport } from './routes/_app.door-to-door.index'
+import { Route as CbAdminTeamRouteImport } from './routes/cb.admin.team'
+import { Route as CbAdminPricingRouteImport } from './routes/cb.admin.pricing'
+import { Route as CbAdminBrandingRouteImport } from './routes/cb.admin.branding'
 import { Route as ApiPublicSignRouteImport } from './routes/api/public/sign'
 import { Route as ApiPublicCbShareRouteImport } from './routes/api/public/cb-share'
 import { Route as AdminPriceBooksNewRouteImport } from './routes/admin.price-books.new'
@@ -202,6 +208,11 @@ const CbSignupRoute = CbSignupRouteImport.update({
   path: '/cb/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbSettingsRoute = CbSettingsRouteImport.update({
+  id: '/cb/settings',
+  path: '/cb/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CbOnboardingRoute = CbOnboardingRouteImport.update({
   id: '/cb/onboarding',
   path: '/cb/onboarding',
@@ -215,6 +226,11 @@ const CbLoginRoute = CbLoginRouteImport.update({
 const CbCompaniesRoute = CbCompaniesRouteImport.update({
   id: '/cb/companies',
   path: '/cb/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbAdminRoute = CbAdminRouteImport.update({
+  id: '/cb/admin',
+  path: '/cb/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CSlugRoute = CSlugRouteImport.update({
@@ -438,6 +454,11 @@ const AppCardRoute = AppCardRouteImport.update({
   path: '/card',
   getParentRoute: () => AppRoute,
 } as any)
+const CbAdminIndexRoute = CbAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CbAdminRoute,
+} as any)
 const AdminCompaniesIndexRoute = AdminCompaniesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -472,6 +493,21 @@ const AppDoorToDoorIndexRoute = AppDoorToDoorIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppDoorToDoorRoute,
+} as any)
+const CbAdminTeamRoute = CbAdminTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => CbAdminRoute,
+} as any)
+const CbAdminPricingRoute = CbAdminPricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => CbAdminRoute,
+} as any)
+const CbAdminBrandingRoute = CbAdminBrandingRouteImport.update({
+  id: '/branding',
+  path: '/branding',
+  getParentRoute: () => CbAdminRoute,
 } as any)
 const ApiPublicSignRoute = ApiPublicSignRouteImport.update({
   id: '/api/public/sign',
@@ -804,9 +840,11 @@ export interface FileRoutesByFullPath {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/admin': typeof CbAdminRouteWithChildren
   '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
   '/cb/onboarding': typeof CbOnboardingRoute
+  '/cb/settings': typeof CbSettingsRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
   '/r/$token': typeof RTokenRoute
@@ -843,6 +881,9 @@ export interface FileRoutesByFullPath {
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/cb-share': typeof ApiPublicCbShareRoute
   '/api/public/sign': typeof ApiPublicSignRoute
+  '/cb/admin/branding': typeof CbAdminBrandingRoute
+  '/cb/admin/pricing': typeof CbAdminPricingRoute
+  '/cb/admin/team': typeof CbAdminTeamRoute
   '/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
   '/jobs/': typeof AppJobsIndexRoute
@@ -850,6 +891,7 @@ export interface FileRoutesByFullPath {
   '/roofking/': typeof AppRoofkingIndexRoute
   '/team/': typeof AppTeamIndexRoute
   '/admin/companies/': typeof AdminCompaniesIndexRoute
+  '/cb/admin/': typeof CbAdminIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -924,6 +966,7 @@ export interface FileRoutesByTo {
   '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
   '/cb/onboarding': typeof CbOnboardingRoute
+  '/cb/settings': typeof CbSettingsRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
   '/r/$token': typeof RTokenRoute
@@ -960,6 +1003,9 @@ export interface FileRoutesByTo {
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/cb-share': typeof ApiPublicCbShareRoute
   '/api/public/sign': typeof ApiPublicSignRoute
+  '/cb/admin/branding': typeof CbAdminBrandingRoute
+  '/cb/admin/pricing': typeof CbAdminPricingRoute
+  '/cb/admin/team': typeof CbAdminTeamRoute
   '/door-to-door': typeof AppDoorToDoorIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
   '/jobs': typeof AppJobsIndexRoute
@@ -967,6 +1013,7 @@ export interface FileRoutesByTo {
   '/roofking': typeof AppRoofkingIndexRoute
   '/team': typeof AppTeamIndexRoute
   '/admin/companies': typeof AdminCompaniesIndexRoute
+  '/cb/admin': typeof CbAdminIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -1046,9 +1093,11 @@ export interface FileRoutesById {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/admin': typeof CbAdminRouteWithChildren
   '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
   '/cb/onboarding': typeof CbOnboardingRoute
+  '/cb/settings': typeof CbSettingsRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
   '/r/$token': typeof RTokenRoute
@@ -1086,6 +1135,9 @@ export interface FileRoutesById {
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
   '/api/public/cb-share': typeof ApiPublicCbShareRoute
   '/api/public/sign': typeof ApiPublicSignRoute
+  '/cb/admin/branding': typeof CbAdminBrandingRoute
+  '/cb/admin/pricing': typeof CbAdminPricingRoute
+  '/cb/admin/team': typeof CbAdminTeamRoute
   '/_app/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
@@ -1093,6 +1145,7 @@ export interface FileRoutesById {
   '/_app/roofking/': typeof AppRoofkingIndexRoute
   '/_app/team/': typeof AppTeamIndexRoute
   '/admin/companies/': typeof AdminCompaniesIndexRoute
+  '/cb/admin/': typeof CbAdminIndexRoute
   '/_app/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/_app/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/_app/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -1173,9 +1226,11 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/admin'
     | '/cb/companies'
     | '/cb/login'
     | '/cb/onboarding'
+    | '/cb/settings'
     | '/cb/signup'
     | '/pay/$token'
     | '/r/$token'
@@ -1212,6 +1267,9 @@ export interface FileRouteTypes {
     | '/admin/price-books/new'
     | '/api/public/cb-share'
     | '/api/public/sign'
+    | '/cb/admin/branding'
+    | '/cb/admin/pricing'
+    | '/cb/admin/team'
     | '/door-to-door/'
     | '/invoices/'
     | '/jobs/'
@@ -1219,6 +1277,7 @@ export interface FileRouteTypes {
     | '/roofking/'
     | '/team/'
     | '/admin/companies/'
+    | '/cb/admin/'
     | '/jobs/$id/contract'
     | '/jobs/$id/documents'
     | '/jobs/$id/estimate'
@@ -1293,6 +1352,7 @@ export interface FileRouteTypes {
     | '/cb/companies'
     | '/cb/login'
     | '/cb/onboarding'
+    | '/cb/settings'
     | '/cb/signup'
     | '/pay/$token'
     | '/r/$token'
@@ -1329,6 +1389,9 @@ export interface FileRouteTypes {
     | '/admin/price-books/new'
     | '/api/public/cb-share'
     | '/api/public/sign'
+    | '/cb/admin/branding'
+    | '/cb/admin/pricing'
+    | '/cb/admin/team'
     | '/door-to-door'
     | '/invoices'
     | '/jobs'
@@ -1336,6 +1399,7 @@ export interface FileRouteTypes {
     | '/roofking'
     | '/team'
     | '/admin/companies'
+    | '/cb/admin'
     | '/jobs/$id/contract'
     | '/jobs/$id/documents'
     | '/jobs/$id/estimate'
@@ -1414,9 +1478,11 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/admin'
     | '/cb/companies'
     | '/cb/login'
     | '/cb/onboarding'
+    | '/cb/settings'
     | '/cb/signup'
     | '/pay/$token'
     | '/r/$token'
@@ -1454,6 +1520,9 @@ export interface FileRouteTypes {
     | '/admin/price-books/new'
     | '/api/public/cb-share'
     | '/api/public/sign'
+    | '/cb/admin/branding'
+    | '/cb/admin/pricing'
+    | '/cb/admin/team'
     | '/_app/door-to-door/'
     | '/_app/invoices/'
     | '/_app/jobs/'
@@ -1461,6 +1530,7 @@ export interface FileRouteTypes {
     | '/_app/roofking/'
     | '/_app/team/'
     | '/admin/companies/'
+    | '/cb/admin/'
     | '/_app/jobs/$id/contract'
     | '/_app/jobs/$id/documents'
     | '/_app/jobs/$id/estimate'
@@ -1512,9 +1582,11 @@ export interface RootRouteChildren {
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
   CSlugRoute: typeof CSlugRoute
+  CbAdminRoute: typeof CbAdminRouteWithChildren
   CbCompaniesRoute: typeof CbCompaniesRoute
   CbLoginRoute: typeof CbLoginRoute
   CbOnboardingRoute: typeof CbOnboardingRoute
+  CbSettingsRoute: typeof CbSettingsRoute
   CbSignupRoute: typeof CbSignupRoute
   PayTokenRoute: typeof PayTokenRoute
   RTokenRoute: typeof RTokenRoute
@@ -1638,6 +1710,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/settings': {
+      id: '/cb/settings'
+      path: '/cb/settings'
+      fullPath: '/cb/settings'
+      preLoaderRoute: typeof CbSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cb/onboarding': {
       id: '/cb/onboarding'
       path: '/cb/onboarding'
@@ -1657,6 +1736,13 @@ declare module '@tanstack/react-router' {
       path: '/cb/companies'
       fullPath: '/cb/companies'
       preLoaderRoute: typeof CbCompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/admin': {
+      id: '/cb/admin'
+      path: '/cb/admin'
+      fullPath: '/cb/admin'
+      preLoaderRoute: typeof CbAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/c/$slug': {
@@ -1967,6 +2053,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/cb/admin/': {
+      id: '/cb/admin/'
+      path: '/'
+      fullPath: '/cb/admin/'
+      preLoaderRoute: typeof CbAdminIndexRouteImport
+      parentRoute: typeof CbAdminRoute
+    }
     '/admin/companies/': {
       id: '/admin/companies/'
       path: '/'
@@ -2015,6 +2108,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/door-to-door/'
       preLoaderRoute: typeof AppDoorToDoorIndexRouteImport
       parentRoute: typeof AppDoorToDoorRoute
+    }
+    '/cb/admin/team': {
+      id: '/cb/admin/team'
+      path: '/team'
+      fullPath: '/cb/admin/team'
+      preLoaderRoute: typeof CbAdminTeamRouteImport
+      parentRoute: typeof CbAdminRoute
+    }
+    '/cb/admin/pricing': {
+      id: '/cb/admin/pricing'
+      path: '/pricing'
+      fullPath: '/cb/admin/pricing'
+      preLoaderRoute: typeof CbAdminPricingRouteImport
+      parentRoute: typeof CbAdminRoute
+    }
+    '/cb/admin/branding': {
+      id: '/cb/admin/branding'
+      path: '/branding'
+      fullPath: '/cb/admin/branding'
+      preLoaderRoute: typeof CbAdminBrandingRouteImport
+      parentRoute: typeof CbAdminRoute
     }
     '/api/public/sign': {
       id: '/api/public/sign'
@@ -2659,6 +2773,23 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface CbAdminRouteChildren {
+  CbAdminBrandingRoute: typeof CbAdminBrandingRoute
+  CbAdminPricingRoute: typeof CbAdminPricingRoute
+  CbAdminTeamRoute: typeof CbAdminTeamRoute
+  CbAdminIndexRoute: typeof CbAdminIndexRoute
+}
+
+const CbAdminRouteChildren: CbAdminRouteChildren = {
+  CbAdminBrandingRoute: CbAdminBrandingRoute,
+  CbAdminPricingRoute: CbAdminPricingRoute,
+  CbAdminTeamRoute: CbAdminTeamRoute,
+  CbAdminIndexRoute: CbAdminIndexRoute,
+}
+
+const CbAdminRouteWithChildren =
+  CbAdminRoute._addFileChildren(CbAdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
@@ -2684,9 +2815,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
   CSlugRoute: CSlugRoute,
+  CbAdminRoute: CbAdminRouteWithChildren,
   CbCompaniesRoute: CbCompaniesRoute,
   CbLoginRoute: CbLoginRoute,
   CbOnboardingRoute: CbOnboardingRoute,
+  CbSettingsRoute: CbSettingsRoute,
   CbSignupRoute: CbSignupRoute,
   PayTokenRoute: PayTokenRoute,
   RTokenRoute: RTokenRoute,

@@ -553,6 +553,50 @@ export type Database = {
           },
         ]
       }
+      cb_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          id: string
+          invited_by: string | null
+          revoked_at: string | null
+          role: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          invited_by?: string | null
+          revoked_at?: string | null
+          role?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string | null
+          revoked_at?: string | null
+          role?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_invites_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cb_item_catalog: {
         Row: {
           active: boolean
@@ -964,6 +1008,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_active: boolean
+          last_active_at: string | null
           role: string
           user_id: string
           workspace_id: string
@@ -971,6 +1017,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_active?: boolean
+          last_active_at?: string | null
           role?: string
           user_id: string
           workspace_id: string
@@ -978,6 +1026,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_active?: boolean
+          last_active_at?: string | null
           role?: string
           user_id?: string
           workspace_id?: string
@@ -996,6 +1046,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          default_price_book_id: string | null
           default_price_per_square: number
           gc_company_id: string | null
           id: string
@@ -1008,6 +1059,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          default_price_book_id?: string | null
           default_price_per_square?: number
           gc_company_id?: string | null
           id?: string
@@ -1020,6 +1072,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          default_price_book_id?: string | null
           default_price_per_square?: number
           gc_company_id?: string | null
           id?: string
@@ -1030,6 +1083,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_workspaces_default_price_book_id_fkey"
+            columns: ["default_price_book_id"]
+            isOneToOne: false
+            referencedRelation: "price_books"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_workspaces_gc_company_id_fkey"
             columns: ["gc_company_id"]
@@ -6793,26 +6853,38 @@ export type Database = {
       }
       cb_can_access_job: { Args: { _job: string }; Returns: boolean }
       cb_can_convert: { Args: { _job: string }; Returns: Json }
+      cb_claim_invites: { Args: never; Returns: Json }
       cb_consume_measure_credit: { Args: { _ws: string }; Returns: Json }
       cb_convert_to_job: { Args: { _job: string }; Returns: Json }
       cb_create_share_link: {
         Args: { _days?: number; _report: string }
         Returns: string
       }
+      cb_ensure_demo_job: { Args: { _ws: string }; Returns: Json }
       cb_ensure_platform_workspace: { Args: never; Returns: Json }
       cb_ensure_roof_measurement: { Args: { _job: string }; Returns: string }
       cb_gc_company_id: { Args: never; Returns: string }
       cb_has_gc_access: { Args: never; Returns: boolean }
+      cb_invite_member: {
+        Args: { _email: string; _role: string; _ws: string }
+        Returns: Json
+      }
       cb_is_admin: { Args: { _ws: string }; Returns: boolean }
       cb_my_context: { Args: never; Returns: Json }
       cb_report_by_token: { Args: { _token: string }; Returns: Json }
+      cb_revoke_invite: { Args: { _id: string }; Returns: Json }
       cb_role: { Args: { _ws: string }; Returns: string }
       cb_roof_plan: { Args: { _job: string }; Returns: Json }
       cb_save_roof_plan: {
         Args: { _job: string; _lines: Json; _sections: Json; _totals: Json }
         Returns: Json
       }
+      cb_seats: { Args: { _ws: string }; Returns: Json }
       cb_sees_all: { Args: { _ws: string }; Returns: boolean }
+      cb_set_member_active: {
+        Args: { _active: boolean; _user: string; _ws: string }
+        Returns: Json
+      }
       cb_workspace_ids: { Args: never; Returns: string[] }
       create_company_as_super_admin: {
         Args: {
