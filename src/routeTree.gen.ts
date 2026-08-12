@@ -108,6 +108,7 @@ import { Route as AppDoorToDoorDispositionsRouteImport } from './routes/_app.doo
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
 import { Route as CbJobIdCustomerRouteImport } from './routes/cb.job.$id.customer'
+import { Route as CbJobIdCoverRouteImport } from './routes/cb.job.$id.cover'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AppJobsIdReportRouteImport } from './routes/_app.jobs.$id.report'
 import { Route as AppJobsIdPhotosRouteImport } from './routes/_app.jobs.$id.photos'
@@ -614,6 +615,11 @@ const CbJobIdCustomerRoute = CbJobIdCustomerRouteImport.update({
   path: '/cb/job/$id/customer',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbJobIdCoverRoute = CbJobIdCoverRouteImport.update({
+  id: '/cb/job/$id/cover',
+  path: '/cb/job/$id/cover',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -767,6 +773,7 @@ export interface FileRoutesByFullPath {
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/jobs/$id/': typeof AppJobsIdIndexRoute
 }
@@ -869,6 +876,7 @@ export interface FileRoutesByTo {
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/jobs/$id': typeof AppJobsIdIndexRoute
 }
@@ -980,6 +988,7 @@ export interface FileRoutesById {
   '/_app/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/_app/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/_app/jobs/$id/': typeof AppJobsIdIndexRoute
 }
@@ -1091,6 +1100,7 @@ export interface FileRouteTypes {
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
     | '/api/public/payments/webhook'
+    | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/jobs/$id/'
   fileRoutesByTo: FileRoutesByTo
@@ -1193,6 +1203,7 @@ export interface FileRouteTypes {
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
     | '/api/public/payments/webhook'
+    | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/jobs/$id'
   id:
@@ -1303,6 +1314,7 @@ export interface FileRouteTypes {
     | '/_app/jobs/$id/photos'
     | '/_app/jobs/$id/report'
     | '/api/public/payments/webhook'
+    | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/_app/jobs/$id/'
   fileRoutesById: FileRoutesById
@@ -1340,6 +1352,7 @@ export interface RootRouteChildren {
   CbIndexRoute: typeof CbIndexRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
+  CbJobIdCoverRoute: typeof CbJobIdCoverRoute
   CbJobIdCustomerRoute: typeof CbJobIdCustomerRoute
 }
 
@@ -2038,6 +2051,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbJobIdCustomerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/job/$id/cover': {
+      id: '/cb/job/$id/cover'
+      path: '/cb/job/$id/cover'
+      fullPath: '/cb/job/$id/cover'
+      preLoaderRoute: typeof CbJobIdCoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -2392,6 +2412,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbIndexRoute: CbIndexRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
+  CbJobIdCoverRoute: CbJobIdCoverRoute,
   CbJobIdCustomerRoute: CbJobIdCustomerRoute,
 }
 export const routeTree = rootRouteImport
