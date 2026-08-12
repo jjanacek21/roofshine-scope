@@ -149,7 +149,11 @@ export function CbIcon({
   return <span className={`cb-icon ${className}`}>{children}</span>;
 }
 
-/** Bottom sheet / modal: scale-from-97% with a blurred scrim. */
+/**
+ * Bottom sheet / modal.
+ * On phone it is a full-height bottom sheet with a drag handle that can be
+ * swiped down to dismiss; scroll stays inside the sheet (overscroll-contain).
+ */
 export function CbSheet({
   open,
   onClose,
@@ -163,24 +167,56 @@ export function CbSheet({
   children: ReactNode;
   footer?: ReactNode;
 }) {
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ y: number; active: boolean }>({ y: 0, active: false });
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
   }, [open, onClose]);
 
   if (!open) return null;
 
+  function startDrag(e: React.TouchEvent) {
+    dragRef.current = { y: e.touches[0].clientY, active: true };
+  }
+  function moveDrag(e: React.TouchEvent) {
+    if (!dragRef.current.active || !sheetRef.current) return;
+    const dy = e.touches[0].clientY - dragRef.current.y;
+    sheetRef.current.style.transform = `translateY(${Math.max(0, dy)}px)`;
+  }
+  function endDrag(e: React.TouchEvent) {
+    if (!dragRef.current.active || !sheetRef.current) return;
+    const dy = e.changedTouches[0].clientY - dragRef.current.y;
+    dragRef.current.active = false;
+    sheetRef.current.style.transform = "";
+    if (dy > 110) onClose();
+  }
+
   return (
     <div className="cb-scrim" onClick={onClose} role="presentation">
       <div
+        ref={sheetRef}
         className="cb-sheet"
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
       >
+        <span
+          className="cb-sheet-handle"
+          aria-hidden
+          onTouchStart={startDrag}
+          onTouchMove={moveDrag}
+          onTouchEnd={endDrag}
+        />
         {title ? <h2 className="cb-sheet-title">{title}</h2> : null}
         <div>{children}</div>
         {footer ? <div className="cb-sheet-footer">{footer}</div> : null}
