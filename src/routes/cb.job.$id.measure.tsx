@@ -55,7 +55,10 @@ const STEPS = [
 function CbJobMeasurePage() {
   const { id } = useParams({ from: "/cb/job/$id/measure" });
   const navigate = useNavigate();
-  const { data: mapToken } = useMapboxToken();
+  const [plan, setPlan] = useState<CbPlan>({ sections: [], lines: [] });
+  const originalPlanRef = useRef<CbPlan | null>(null);
+  const [planDirty, setPlanDirty] = useState(false);
+
 
   const [phase, setPhase] = useState<"idle" | "running" | "result" | "manual">("idle");
   const [stepIdx, setStepIdx] = useState(0);
