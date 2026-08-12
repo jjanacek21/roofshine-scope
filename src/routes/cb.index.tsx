@@ -34,14 +34,16 @@ function CbHome() {
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-sm text-muted-foreground">Loading…</div>
+      <div data-cb className="flex min-h-screen items-center justify-center px-6">
+        <div className="w-full max-w-xs">
+          <CbLoading label="Checking your session…" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background px-6 py-8">
+    <div className="min-h-screen px-6 py-8" style={{ background: "var(--bg)" }}>
       <ClaimBuddyPlaceholder />
     </div>
   );
