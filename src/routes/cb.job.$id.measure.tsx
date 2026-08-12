@@ -256,18 +256,12 @@ function CbJobMeasurePage() {
                 Property
               </p>
               <p className="mt-1 text-[16px] font-semibold">{fullAddress || "No address yet"}</p>
-              {thumb ? (
-                <img
-                  src={thumb}
-                  alt={`Satellite view of ${fullAddress || "the property"}`}
-                  loading="lazy"
-                  className="mt-3 block w-full rounded-[12px]"
-                />
-              ) : (
+              {!center ? (
                 <p className="mt-3 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
                   No coordinates on this job yet — you can still enter measurements by hand.
                 </p>
-              )}
+              ) : null}
+
               {remaining != null ? (
                 <p className="mt-3 cb-num text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
                   {remaining} measurement credits left
