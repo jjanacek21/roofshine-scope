@@ -190,6 +190,16 @@ export function CbDashboard() {
             </p>
           </div>
           {surface === "platform" ? <CbChip>Inside GlobalContractor</CbChip> : null}
+          <button
+            type="button"
+            aria-label="Settings"
+            onClick={() => navigate({ to: "/cb/settings" })}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px]"
+            style={{ border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))" }}
+          >
+            <Settings className="h-4.5 w-4.5" />
+          </button>
+
         </div>
       </CbReveal>
 
