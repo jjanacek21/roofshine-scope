@@ -22,6 +22,8 @@ export interface CbMeasurement {
   gutter_lf: number;
   source: string;
   raw: unknown;
+  /** roof_measurements.id from the shared GC engine, when AI-measured. */
+  gc_roof_measurement_id?: string | null;
 }
 
 export const CB_BLANK_MEASUREMENT: CbMeasurement = {
@@ -44,6 +46,7 @@ export const CB_BLANK_MEASUREMENT: CbMeasurement = {
   gutter_lf: 0,
   source: "manual",
   raw: null,
+  gc_roof_measurement_id: null,
 };
 
 export const CB_LINEAR_FIELDS: { key: keyof CbMeasurement; label: string }[] = [
@@ -105,7 +108,11 @@ export async function getInstantMeasurement({
     return {
       ok: true,
       credit,
-      measurement: { ...res.measurement, raw: res.measurement } as CbMeasurement,
+      measurement: {
+        ...res.measurement,
+        raw: res.measurement,
+        gc_roof_measurement_id: res.roof_measurement_id ?? null,
+      } as CbMeasurement,
     };
   } catch {
     return { ok: false, reason: "engine_error", credit };
@@ -139,6 +146,7 @@ export async function saveCbMeasurement(
       step_flashing_lf: m.step_flashing_lf,
       gutter_lf: m.gutter_lf,
       source: m.source,
+      gc_roof_measurement_id: m.gc_roof_measurement_id ?? null,
       rep_adjusted: repAdjusted,
       raw: (m.raw ?? null) as never,
     },

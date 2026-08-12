@@ -919,6 +919,27 @@ export type Database = {
           },
         ]
       }
+      cb_plan_limits: {
+        Row: {
+          created_at: string
+          measure_credits_grant: number
+          plan: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          measure_credits_grant: number
+          plan: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          measure_credits_grant?: number
+          plan?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cb_reports: {
         Row: {
           generated_at: string
