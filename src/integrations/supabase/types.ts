@@ -996,6 +996,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          default_price_per_square: number
           gc_company_id: string | null
           id: string
           measure_credits: number
@@ -1007,6 +1008,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          default_price_per_square?: number
           gc_company_id?: string | null
           id?: string
           measure_credits?: number
@@ -1018,6 +1020,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          default_price_per_square?: number
           gc_company_id?: string | null
           id?: string
           measure_credits?: number
@@ -1932,20 +1935,23 @@ export type Database = {
       }
       estimates: {
         Row: {
-          company_id: string
+          cb_job_id: string | null
+          cb_mode: string | null
+          company_id: string | null
           coverage_label: string
           created_at: string
           deductible: number
           estimate_number: string | null
           hide_pricing: boolean
           id: string
-          job_id: string
+          job_id: string | null
           manual_total: number | null
           markup_pct: number
           name: string
           notes: string | null
           overhead_pct: number
           price_list_code: string | null
+          price_per_square: number | null
           profit_pct: number
           report_meta: Json
           report_notes: Json
@@ -1961,20 +1967,23 @@ export type Database = {
           use_manual_total: boolean
         }
         Insert: {
-          company_id: string
+          cb_job_id?: string | null
+          cb_mode?: string | null
+          company_id?: string | null
           coverage_label?: string
           created_at?: string
           deductible?: number
           estimate_number?: string | null
           hide_pricing?: boolean
           id?: string
-          job_id: string
+          job_id?: string | null
           manual_total?: number | null
           markup_pct?: number
           name: string
           notes?: string | null
           overhead_pct?: number
           price_list_code?: string | null
+          price_per_square?: number | null
           profit_pct?: number
           report_meta?: Json
           report_notes?: Json
@@ -1990,20 +1999,23 @@ export type Database = {
           use_manual_total?: boolean
         }
         Update: {
-          company_id?: string
+          cb_job_id?: string | null
+          cb_mode?: string | null
+          company_id?: string | null
           coverage_label?: string
           created_at?: string
           deductible?: number
           estimate_number?: string | null
           hide_pricing?: boolean
           id?: string
-          job_id?: string
+          job_id?: string | null
           manual_total?: number | null
           markup_pct?: number
           name?: string
           notes?: string | null
           overhead_pct?: number
           price_list_code?: string | null
+          price_per_square?: number | null
           profit_pct?: number
           report_meta?: Json
           report_notes?: Json
@@ -2019,6 +2031,13 @@ export type Database = {
           use_manual_total?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "estimates_cb_job_id_fkey"
+            columns: ["cb_job_id"]
+            isOneToOne: false
+            referencedRelation: "cb_jobs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "estimates_company_id_fkey"
             columns: ["company_id"]
