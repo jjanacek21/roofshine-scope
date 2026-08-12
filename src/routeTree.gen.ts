@@ -114,12 +114,14 @@ import { Route as CbJobIdScopeRouteImport } from './routes/cb.job.$id.scope'
 import { Route as CbJobIdRoofRouteImport } from './routes/cb.job.$id.roof'
 import { Route as CbJobIdReviewRouteImport } from './routes/cb.job.$id.review'
 import { Route as CbJobIdReportRouteImport } from './routes/cb.job.$id.report'
+import { Route as CbJobIdPresentRouteImport } from './routes/cb.job.$id.present'
 import { Route as CbJobIdMeasureRouteImport } from './routes/cb.job.$id.measure'
 import { Route as CbJobIdInteriorRouteImport } from './routes/cb.job.$id.interior'
 import { Route as CbJobIdGeneratingRouteImport } from './routes/cb.job.$id.generating'
 import { Route as CbJobIdExteriorRouteImport } from './routes/cb.job.$id.exterior'
 import { Route as CbJobIdCustomerRouteImport } from './routes/cb.job.$id.customer'
 import { Route as CbJobIdCoverRouteImport } from './routes/cb.job.$id.cover'
+import { Route as CbJobIdContractRouteImport } from './routes/cb.job.$id.contract'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AppJobsIdReportRouteImport } from './routes/_app.jobs.$id.report'
 import { Route as AppJobsIdPhotosRouteImport } from './routes/_app.jobs.$id.photos'
@@ -656,6 +658,11 @@ const CbJobIdReportRoute = CbJobIdReportRouteImport.update({
   path: '/cb/job/$id/report',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbJobIdPresentRoute = CbJobIdPresentRouteImport.update({
+  id: '/cb/job/$id/present',
+  path: '/cb/job/$id/present',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CbJobIdMeasureRoute = CbJobIdMeasureRouteImport.update({
   id: '/cb/job/$id/measure',
   path: '/cb/job/$id/measure',
@@ -684,6 +691,11 @@ const CbJobIdCustomerRoute = CbJobIdCustomerRouteImport.update({
 const CbJobIdCoverRoute = CbJobIdCoverRouteImport.update({
   id: '/cb/job/$id/cover',
   path: '/cb/job/$id/cover',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdContractRoute = CbJobIdContractRouteImport.update({
+  id: '/cb/job/$id/contract',
+  path: '/cb/job/$id/contract',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPaymentsWebhookRoute =
@@ -841,12 +853,14 @@ export interface FileRoutesByFullPath {
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/cb/job/$id/contract': typeof CbJobIdContractRoute
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
   '/cb/job/$id/generating': typeof CbJobIdGeneratingRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/measure': typeof CbJobIdMeasureRoute
+  '/cb/job/$id/present': typeof CbJobIdPresentRoute
   '/cb/job/$id/report': typeof CbJobIdReportRoute
   '/cb/job/$id/review': typeof CbJobIdReviewRoute
   '/cb/job/$id/roof': typeof CbJobIdRoofRoute
@@ -955,12 +969,14 @@ export interface FileRoutesByTo {
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/cb/job/$id/contract': typeof CbJobIdContractRoute
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
   '/cb/job/$id/generating': typeof CbJobIdGeneratingRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/measure': typeof CbJobIdMeasureRoute
+  '/cb/job/$id/present': typeof CbJobIdPresentRoute
   '/cb/job/$id/report': typeof CbJobIdReportRoute
   '/cb/job/$id/review': typeof CbJobIdReviewRoute
   '/cb/job/$id/roof': typeof CbJobIdRoofRoute
@@ -1078,12 +1094,14 @@ export interface FileRoutesById {
   '/_app/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/_app/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/cb/job/$id/contract': typeof CbJobIdContractRoute
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
   '/cb/job/$id/generating': typeof CbJobIdGeneratingRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/measure': typeof CbJobIdMeasureRoute
+  '/cb/job/$id/present': typeof CbJobIdPresentRoute
   '/cb/job/$id/report': typeof CbJobIdReportRoute
   '/cb/job/$id/review': typeof CbJobIdReviewRoute
   '/cb/job/$id/roof': typeof CbJobIdRoofRoute
@@ -1201,12 +1219,14 @@ export interface FileRouteTypes {
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
     | '/api/public/payments/webhook'
+    | '/cb/job/$id/contract'
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/cb/job/$id/exterior'
     | '/cb/job/$id/generating'
     | '/cb/job/$id/interior'
     | '/cb/job/$id/measure'
+    | '/cb/job/$id/present'
     | '/cb/job/$id/report'
     | '/cb/job/$id/review'
     | '/cb/job/$id/roof'
@@ -1315,12 +1335,14 @@ export interface FileRouteTypes {
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
     | '/api/public/payments/webhook'
+    | '/cb/job/$id/contract'
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/cb/job/$id/exterior'
     | '/cb/job/$id/generating'
     | '/cb/job/$id/interior'
     | '/cb/job/$id/measure'
+    | '/cb/job/$id/present'
     | '/cb/job/$id/report'
     | '/cb/job/$id/review'
     | '/cb/job/$id/roof'
@@ -1437,12 +1459,14 @@ export interface FileRouteTypes {
     | '/_app/jobs/$id/photos'
     | '/_app/jobs/$id/report'
     | '/api/public/payments/webhook'
+    | '/cb/job/$id/contract'
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/cb/job/$id/exterior'
     | '/cb/job/$id/generating'
     | '/cb/job/$id/interior'
     | '/cb/job/$id/measure'
+    | '/cb/job/$id/present'
     | '/cb/job/$id/report'
     | '/cb/job/$id/review'
     | '/cb/job/$id/roof'
@@ -1486,12 +1510,14 @@ export interface RootRouteChildren {
   ApiPublicCbShareRoute: typeof ApiPublicCbShareRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
+  CbJobIdContractRoute: typeof CbJobIdContractRoute
   CbJobIdCoverRoute: typeof CbJobIdCoverRoute
   CbJobIdCustomerRoute: typeof CbJobIdCustomerRoute
   CbJobIdExteriorRoute: typeof CbJobIdExteriorRoute
   CbJobIdGeneratingRoute: typeof CbJobIdGeneratingRoute
   CbJobIdInteriorRoute: typeof CbJobIdInteriorRoute
   CbJobIdMeasureRoute: typeof CbJobIdMeasureRoute
+  CbJobIdPresentRoute: typeof CbJobIdPresentRoute
   CbJobIdReportRoute: typeof CbJobIdReportRoute
   CbJobIdReviewRoute: typeof CbJobIdReviewRoute
   CbJobIdRoofRoute: typeof CbJobIdRoofRoute
@@ -2236,6 +2262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbJobIdReportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/job/$id/present': {
+      id: '/cb/job/$id/present'
+      path: '/cb/job/$id/present'
+      fullPath: '/cb/job/$id/present'
+      preLoaderRoute: typeof CbJobIdPresentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cb/job/$id/measure': {
       id: '/cb/job/$id/measure'
       path: '/cb/job/$id/measure'
@@ -2276,6 +2309,13 @@ declare module '@tanstack/react-router' {
       path: '/cb/job/$id/cover'
       fullPath: '/cb/job/$id/cover'
       preLoaderRoute: typeof CbJobIdCoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/contract': {
+      id: '/cb/job/$id/contract'
+      path: '/cb/job/$id/contract'
+      fullPath: '/cb/job/$id/contract'
+      preLoaderRoute: typeof CbJobIdContractRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/payments/webhook': {
@@ -2634,12 +2674,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCbShareRoute: ApiPublicCbShareRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
+  CbJobIdContractRoute: CbJobIdContractRoute,
   CbJobIdCoverRoute: CbJobIdCoverRoute,
   CbJobIdCustomerRoute: CbJobIdCustomerRoute,
   CbJobIdExteriorRoute: CbJobIdExteriorRoute,
   CbJobIdGeneratingRoute: CbJobIdGeneratingRoute,
   CbJobIdInteriorRoute: CbJobIdInteriorRoute,
   CbJobIdMeasureRoute: CbJobIdMeasureRoute,
+  CbJobIdPresentRoute: CbJobIdPresentRoute,
   CbJobIdReportRoute: CbJobIdReportRoute,
   CbJobIdReviewRoute: CbJobIdReviewRoute,
   CbJobIdRoofRoute: CbJobIdRoofRoute,

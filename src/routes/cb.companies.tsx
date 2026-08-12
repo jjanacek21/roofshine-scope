@@ -5,10 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCbSession } from "@/components/auth/CbSessionProvider";
 import { useCbCompany, type CbCompany } from "@/components/auth/CbCompanyProvider";
-import { useCbLogoUrl } from "@/lib/cbLogo";
+import { useCbLogoUrl, cbLogoSignedUrl, CB_LOGO_BUCKET } from "@/lib/cbLogo";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbSheet, CbLoading, CbChip } from "@/components/cb/primitives";
-import { CbField } from "@/components/cb/forms";
+import { CbField, CbTextarea } from "@/components/cb/forms";
 import { CbHeadline, CbReveal, CbStagger } from "@/components/cb/motion";
 import { Building2, Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
@@ -219,6 +219,13 @@ function CompanySheet({
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zip, setZip] = useState("");
+  const [aboutHeadline, setAboutHeadline] = useState("");
+  const [aboutStory, setAboutStory] = useState("");
+  const [founded, setFounded] = useState("");
+  const [areas, setAreas] = useState("");
+  const [teamPhotoPath, setTeamPhotoPath] = useState<string | null>(null);
+  const [teamPhotoUrl, setTeamPhotoUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -231,7 +238,37 @@ function CompanySheet({
     setCity(company?.city ?? "");
     setState(company?.state ?? "");
     setZip(company?.zip ?? "");
+    const extra = (company ?? {}) as unknown as {
+      about_headline?: string | null;
+      about_story?: string | null;
+      founded_year?: number | null;
+      service_areas?: unknown;
+      team_photo_url?: string | null;
+    };
+    setAboutHeadline(extra.about_headline ?? "");
+    setAboutStory(extra.about_story ?? "");
+    setFounded(extra.founded_year ? String(extra.founded_year) : "");
+    setAreas(Array.isArray(extra.service_areas) ? extra.service_areas.map(String).join(", ") : "");
+    setTeamPhotoPath(extra.team_photo_url ?? null);
+    setTeamPhotoUrl(null);
+    void cbLogoSignedUrl(extra.team_photo_url).then(setTeamPhotoUrl);
   }, [open, company]);
+
+  async function uploadTeamPhoto(file: File) {
+    if (!workspaceId) return;
+    setUploading(true);
+    const path = `${workspaceId}/team-${Date.now()}.jpg`;
+    const { error } = await supabase.storage
+      .from(CB_LOGO_BUCKET)
+      .upload(path, file, { upsert: true, contentType: file.type || "image/jpeg" });
+    setUploading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setTeamPhotoPath(path);
+    setTeamPhotoUrl(await cbLogoSignedUrl(path));
+  }
 
   async function save() {
     if (!workspaceId || name.trim().length < 2) {
@@ -248,6 +285,14 @@ function CompanySheet({
       city: city.trim() || null,
       state: state.trim() || null,
       zip: zip.trim() || null,
+      about_headline: aboutHeadline.trim() || null,
+      about_story: aboutStory.trim() || null,
+      founded_year: founded.trim() ? Number(founded.trim()) : null,
+      service_areas: areas
+        .split(",")
+        .map((a) => a.trim())
+        .filter(Boolean),
+      team_photo_url: teamPhotoPath,
     };
     const { error } = company
       ? await supabase.from("cb_companies").update(payload).eq("id", company.id)
@@ -289,6 +334,63 @@ function CompanySheet({
           <CbField label="City" value={city} onChange={(e) => setCity(e.target.value)} />
           <CbField label="State" value={state} onChange={(e) => setState(e.target.value)} />
           <CbField label="ZIP" value={zip} onChange={(e) => setZip(e.target.value)} />
+        </div>
+
+        <div className="pt-2">
+          <p className="cb-microlabel">Your story — shown in the presentation</p>
+          <div className="mt-3 space-y-4">
+            <CbField
+              label="About headline"
+              value={aboutHeadline}
+              onChange={(e) => setAboutHeadline(e.target.value)}
+              hint="The first thing the homeowner reads"
+            />
+            <CbTextarea
+              label="Our story"
+              rows={5}
+              value={aboutStory}
+              onChange={(e) => setAboutStory(e.target.value)}
+            />
+            <p className="text-[12.5px]" style={{ color: "var(--cb-text-muted)" }}>
+              Leave a blank line between paragraphs — the second paragraph gets its own slide.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <CbField
+                label="Founded year"
+                inputMode="numeric"
+                value={founded}
+                onChange={(e) => setFounded(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))}
+              />
+              <CbField
+                label="Service areas"
+                value={areas}
+                onChange={(e) => setAreas(e.target.value)}
+                hint="Comma separated"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              {teamPhotoUrl ? (
+                <img
+                  src={teamPhotoUrl}
+                  alt="Team"
+                  className="h-16 w-24 rounded-[12px] object-cover"
+                  style={{ border: "1px solid var(--cb-hairline, rgba(0,0,0,.1))" }}
+                />
+              ) : null}
+              <label className="cb-btn cb-btn-secondary cb-btn-md" style={{ cursor: "pointer" }}>
+                <span className="cb-btn-label">{uploading ? "Uploading…" : teamPhotoPath ? "Replace team photo" : "Add team photo"}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void uploadTeamPhoto(f);
+                  }}
+                />
+              </label>
+            </div>
+          </div>
         </div>
       </div>
     </CbSheet>

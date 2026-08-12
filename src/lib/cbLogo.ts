@@ -15,7 +15,11 @@ export async function cbLogoSignedUrl(
   if (!path) return null;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   const { data } = await supabase.storage.from(CB_LOGO_BUCKET).createSignedUrl(path, expiresIn);
-  return data?.signedUrl ?? null;
+  if (data?.signedUrl) return data.signedUrl;
+  /* Older companies point at a site-hosted asset rather than a bucket object. */
+  if (path.startsWith("/")) return path;
+  if (path.includes("assets-v1") || path.startsWith("__")) return `/${path}`;
+  return null;
 }
 
 /** React hook wrapper around {@link cbLogoSignedUrl}. */
