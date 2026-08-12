@@ -207,7 +207,7 @@ function CbEstimatePage() {
             <button
               type="button"
               className="text-sm opacity-70"
-              onClick={() => navigate({ to: "/cb/job/$id/report", params: { id }, search: {} })}
+              onClick={() => navigate({ to: "/cb/job/$id/report", params: { id }, search: { r: undefined } })}
             >
               ← Report
             </button>
