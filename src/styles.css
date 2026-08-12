@@ -1540,3 +1540,12 @@
   [data-cb] .cb-icon-btn { background: var(--cb-surface-2); color: var(--cb-text); }
   [data-cb] .cb-carrier-menu button:active { background: rgba(127, 127, 127, .16); }
 }
+
+/* --- Mobile: grid children must be allowed to shrink, and checkboxes need a thumb-sized box --- */
+[data-cb] .cb-field { min-width: 0; }
+[data-cb] .cb-checkbox {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  accent-color: var(--cb-accent, currentColor);
+}
