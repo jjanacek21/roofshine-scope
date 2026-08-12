@@ -53,8 +53,12 @@ export function CbSessionProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
+      /* Seat the user into any workspace they were invited to, and stamp activity. */
+      await supabase.rpc("cb_claim_invites");
+
       const { data, error: rpcError } = await supabase.rpc("cb_my_context");
       if (rpcError) throw rpcError;
+
       const ctx = (data ?? {}) as {
         has_gc_access?: boolean;
         gc_company_id?: string | null;
