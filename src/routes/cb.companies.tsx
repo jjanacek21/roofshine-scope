@@ -343,6 +343,20 @@ function CompanySheet({
           <CbField label="ZIP" value={zip} onChange={(e) => setZip(e.target.value)} />
         </div>
 
+        <div className="pt-1">
+          <CbSegmentedCards<"contingency" | "retail">
+            label="Default agreement"
+            value={docType}
+            onChange={setDocType}
+            options={[
+              { value: "contingency", title: "Contingency", body: "Signed before the claim is filed" },
+              { value: "retail", title: "Retail", body: "No claim — the homeowner pays" },
+            ]}
+          />
+        </div>
+
+
+
         <div className="pt-2">
           <p className="cb-microlabel">Your story — shown in the presentation</p>
           <div className="mt-3 space-y-4">
