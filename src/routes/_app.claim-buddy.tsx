@@ -1,4 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useCbSession } from "@/components/auth/CbSessionProvider";
+import { CbSurface } from "@/components/cb/CbSurface";
+import { CbLoading } from "@/components/cb/primitives";
+import { CbDashboard } from "@/components/claim-buddy/CbDashboard";
 import { ClaimBuddyPlaceholder } from "@/components/claim-buddy/ClaimBuddyPlaceholder";
 
 export const Route = createFileRoute("/_app/claim-buddy")({
@@ -23,5 +27,24 @@ export const Route = createFileRoute("/_app/claim-buddy")({
 });
 
 function ClaimBuddySection() {
-  return <ClaimBuddyPlaceholder />;
+  const { workspaces, loading } = useCbSession();
+
+  if (loading) {
+    return (
+      <CbSurface>
+        <div className="mx-auto w-full max-w-3xl px-5 py-10">
+          <CbLoading label="Loading Claim Buddy…" />
+        </div>
+      </CbSurface>
+    );
+  }
+
+  // No mirrored workspace yet — keep the explainer screen.
+  if (workspaces.length === 0) return <ClaimBuddyPlaceholder />;
+
+  return (
+    <CbSurface>
+      <CbDashboard />
+    </CbSurface>
+  );
 }

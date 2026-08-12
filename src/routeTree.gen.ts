@@ -22,7 +22,9 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as PayTokenRouteImport } from './routes/pay.$token'
 import { Route as CbSignupRouteImport } from './routes/cb.signup'
+import { Route as CbOnboardingRouteImport } from './routes/cb.onboarding'
 import { Route as CbLoginRouteImport } from './routes/cb.login'
+import { Route as CbCompaniesRouteImport } from './routes/cb.companies'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
@@ -105,6 +107,7 @@ import { Route as AppDoorToDoorProfileRouteImport } from './routes/_app.door-to-
 import { Route as AppDoorToDoorDispositionsRouteImport } from './routes/_app.door-to-door.dispositions'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
+import { Route as CbJobIdCustomerRouteImport } from './routes/cb.job.$id.customer'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AppJobsIdReportRouteImport } from './routes/_app.jobs.$id.report'
 import { Route as AppJobsIdPhotosRouteImport } from './routes/_app.jobs.$id.photos'
@@ -179,9 +182,19 @@ const CbSignupRoute = CbSignupRouteImport.update({
   path: '/cb/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbOnboardingRoute = CbOnboardingRouteImport.update({
+  id: '/cb/onboarding',
+  path: '/cb/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CbLoginRoute = CbLoginRouteImport.update({
   id: '/cb/login',
   path: '/cb/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbCompaniesRoute = CbCompaniesRouteImport.update({
+  id: '/cb/companies',
+  path: '/cb/companies',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CSlugRoute = CSlugRouteImport.update({
@@ -596,6 +609,11 @@ const AppJobsIdIndexRoute = AppJobsIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppJobsIdRoute,
 } as any)
+const CbJobIdCustomerRoute = CbJobIdCustomerRouteImport.update({
+  id: '/cb/job/$id/customer',
+  path: '/cb/job/$id/customer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -696,7 +714,9 @@ export interface FileRoutesByFullPath {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
+  '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
   '/admin/': typeof AdminIndexRoute
@@ -747,6 +767,7 @@ export interface FileRoutesByFullPath {
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/jobs/$id/': typeof AppJobsIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -795,7 +816,9 @@ export interface FileRoutesByTo {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
+  '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
   '/': typeof AppIndexRoute
@@ -846,6 +869,7 @@ export interface FileRoutesByTo {
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/jobs/$id': typeof AppJobsIdIndexRoute
 }
 export interface FileRoutesById {
@@ -902,7 +926,9 @@ export interface FileRoutesById {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
+  '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/signup': typeof CbSignupRoute
   '/pay/$token': typeof PayTokenRoute
   '/_app/': typeof AppIndexRoute
@@ -954,6 +980,7 @@ export interface FileRoutesById {
   '/_app/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/_app/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/_app/jobs/$id/': typeof AppJobsIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -1011,7 +1038,9 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/companies'
     | '/cb/login'
+    | '/cb/onboarding'
     | '/cb/signup'
     | '/pay/$token'
     | '/admin/'
@@ -1062,6 +1091,7 @@ export interface FileRouteTypes {
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
     | '/api/public/payments/webhook'
+    | '/cb/job/$id/customer'
     | '/jobs/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1110,7 +1140,9 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/companies'
     | '/cb/login'
+    | '/cb/onboarding'
     | '/cb/signup'
     | '/pay/$token'
     | '/'
@@ -1161,6 +1193,7 @@ export interface FileRouteTypes {
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
     | '/api/public/payments/webhook'
+    | '/cb/job/$id/customer'
     | '/jobs/$id'
   id:
     | '__root__'
@@ -1216,7 +1249,9 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/companies'
     | '/cb/login'
+    | '/cb/onboarding'
     | '/cb/signup'
     | '/pay/$token'
     | '/_app/'
@@ -1268,6 +1303,7 @@ export interface FileRouteTypes {
     | '/_app/jobs/$id/photos'
     | '/_app/jobs/$id/report'
     | '/api/public/payments/webhook'
+    | '/cb/job/$id/customer'
     | '/_app/jobs/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -1296,12 +1332,15 @@ export interface RootRouteChildren {
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
   CSlugRoute: typeof CSlugRoute
+  CbCompaniesRoute: typeof CbCompaniesRoute
   CbLoginRoute: typeof CbLoginRoute
+  CbOnboardingRoute: typeof CbOnboardingRoute
   CbSignupRoute: typeof CbSignupRoute
   PayTokenRoute: typeof PayTokenRoute
   CbIndexRoute: typeof CbIndexRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
+  CbJobIdCustomerRoute: typeof CbJobIdCustomerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1397,11 +1436,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/onboarding': {
+      id: '/cb/onboarding'
+      path: '/cb/onboarding'
+      fullPath: '/cb/onboarding'
+      preLoaderRoute: typeof CbOnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cb/login': {
       id: '/cb/login'
       path: '/cb/login'
       fullPath: '/cb/login'
       preLoaderRoute: typeof CbLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/companies': {
+      id: '/cb/companies'
+      path: '/cb/companies'
+      fullPath: '/cb/companies'
+      preLoaderRoute: typeof CbCompaniesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/c/$slug': {
@@ -1978,6 +2031,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJobsIdIndexRouteImport
       parentRoute: typeof AppJobsIdRoute
     }
+    '/cb/job/$id/customer': {
+      id: '/cb/job/$id/customer'
+      path: '/cb/job/$id/customer'
+      fullPath: '/cb/job/$id/customer'
+      preLoaderRoute: typeof CbJobIdCustomerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -2324,12 +2384,15 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
   CSlugRoute: CSlugRoute,
+  CbCompaniesRoute: CbCompaniesRoute,
   CbLoginRoute: CbLoginRoute,
+  CbOnboardingRoute: CbOnboardingRoute,
   CbSignupRoute: CbSignupRoute,
   PayTokenRoute: PayTokenRoute,
   CbIndexRoute: CbIndexRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
+  CbJobIdCustomerRoute: CbJobIdCustomerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
