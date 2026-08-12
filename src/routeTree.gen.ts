@@ -77,6 +77,7 @@ import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
 import { Route as AppInvoicesIndexRouteImport } from './routes/_app.invoices.index'
 import { Route as AppDoorToDoorIndexRouteImport } from './routes/_app.door-to-door.index'
 import { Route as ApiPublicSignRouteImport } from './routes/api/public/sign'
+import { Route as ApiPublicCbShareRouteImport } from './routes/api/public/cb-share'
 import { Route as AdminPriceBooksNewRouteImport } from './routes/admin.price-books.new'
 import { Route as AdminCompaniesIdRouteImport } from './routes/admin.companies.$id'
 import { Route as AdminAssembliesImportRouteImport } from './routes/admin.assemblies.import'
@@ -468,6 +469,11 @@ const ApiPublicSignRoute = ApiPublicSignRouteImport.update({
   path: '/api/public/sign',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCbShareRoute = ApiPublicCbShareRouteImport.update({
+  id: '/api/public/cb-share',
+  path: '/api/public/cb-share',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminPriceBooksNewRoute = AdminPriceBooksNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -810,6 +816,7 @@ export interface FileRoutesByFullPath {
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
+  '/api/public/cb-share': typeof ApiPublicCbShareRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
@@ -922,6 +929,7 @@ export interface FileRoutesByTo {
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
+  '/api/public/cb-share': typeof ApiPublicCbShareRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/door-to-door': typeof AppDoorToDoorIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
@@ -1043,6 +1051,7 @@ export interface FileRoutesById {
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
+  '/api/public/cb-share': typeof ApiPublicCbShareRoute
   '/api/public/sign': typeof ApiPublicSignRoute
   '/_app/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
@@ -1164,6 +1173,7 @@ export interface FileRouteTypes {
     | '/admin/assemblies/import'
     | '/admin/companies/$id'
     | '/admin/price-books/new'
+    | '/api/public/cb-share'
     | '/api/public/sign'
     | '/door-to-door/'
     | '/invoices/'
@@ -1276,6 +1286,7 @@ export interface FileRouteTypes {
     | '/admin/assemblies/import'
     | '/admin/companies/$id'
     | '/admin/price-books/new'
+    | '/api/public/cb-share'
     | '/api/public/sign'
     | '/door-to-door'
     | '/invoices'
@@ -1396,6 +1407,7 @@ export interface FileRouteTypes {
     | '/admin/assemblies/import'
     | '/admin/companies/$id'
     | '/admin/price-books/new'
+    | '/api/public/cb-share'
     | '/api/public/sign'
     | '/_app/door-to-door/'
     | '/_app/invoices/'
@@ -1458,6 +1470,7 @@ export interface RootRouteChildren {
   CbSignupRoute: typeof CbSignupRoute
   PayTokenRoute: typeof PayTokenRoute
   CbIndexRoute: typeof CbIndexRoute
+  ApiPublicCbShareRoute: typeof ApiPublicCbShareRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   CbJobIdCoverRoute: typeof CbJobIdCoverRoute
@@ -1949,6 +1962,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/sign'
       fullPath: '/api/public/sign'
       preLoaderRoute: typeof ApiPublicSignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cb-share': {
+      id: '/api/public/cb-share'
+      path: '/api/public/cb-share'
+      fullPath: '/api/public/cb-share'
+      preLoaderRoute: typeof ApiPublicCbShareRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/price-books/new': {
@@ -2590,6 +2610,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbSignupRoute: CbSignupRoute,
   PayTokenRoute: PayTokenRoute,
   CbIndexRoute: CbIndexRoute,
+  ApiPublicCbShareRoute: ApiPublicCbShareRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   CbJobIdCoverRoute: CbJobIdCoverRoute,
