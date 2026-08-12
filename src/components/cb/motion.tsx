@@ -7,6 +7,7 @@
  *  - `prefers-reduced-motion` disables everything and shows final state at once.
  */
 import {
+  Fragment,
   useEffect,
   useMemo,
   useRef,
