@@ -113,6 +113,7 @@ import { Route as CbJobIdRoofRouteImport } from './routes/cb.job.$id.roof'
 import { Route as CbJobIdReviewRouteImport } from './routes/cb.job.$id.review'
 import { Route as CbJobIdMeasureRouteImport } from './routes/cb.job.$id.measure'
 import { Route as CbJobIdInteriorRouteImport } from './routes/cb.job.$id.interior'
+import { Route as CbJobIdGeneratingRouteImport } from './routes/cb.job.$id.generating'
 import { Route as CbJobIdExteriorRouteImport } from './routes/cb.job.$id.exterior'
 import { Route as CbJobIdCustomerRouteImport } from './routes/cb.job.$id.customer'
 import { Route as CbJobIdCoverRouteImport } from './routes/cb.job.$id.cover'
@@ -647,6 +648,11 @@ const CbJobIdInteriorRoute = CbJobIdInteriorRouteImport.update({
   path: '/cb/job/$id/interior',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbJobIdGeneratingRoute = CbJobIdGeneratingRouteImport.update({
+  id: '/cb/job/$id/generating',
+  path: '/cb/job/$id/generating',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CbJobIdExteriorRoute = CbJobIdExteriorRouteImport.update({
   id: '/cb/job/$id/exterior',
   path: '/cb/job/$id/exterior',
@@ -818,6 +824,7 @@ export interface FileRoutesByFullPath {
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
+  '/cb/job/$id/generating': typeof CbJobIdGeneratingRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/measure': typeof CbJobIdMeasureRoute
   '/cb/job/$id/review': typeof CbJobIdReviewRoute
@@ -928,6 +935,7 @@ export interface FileRoutesByTo {
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
+  '/cb/job/$id/generating': typeof CbJobIdGeneratingRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/measure': typeof CbJobIdMeasureRoute
   '/cb/job/$id/review': typeof CbJobIdReviewRoute
@@ -1047,6 +1055,7 @@ export interface FileRoutesById {
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
   '/cb/job/$id/customer': typeof CbJobIdCustomerRoute
   '/cb/job/$id/exterior': typeof CbJobIdExteriorRoute
+  '/cb/job/$id/generating': typeof CbJobIdGeneratingRoute
   '/cb/job/$id/interior': typeof CbJobIdInteriorRoute
   '/cb/job/$id/measure': typeof CbJobIdMeasureRoute
   '/cb/job/$id/review': typeof CbJobIdReviewRoute
@@ -1166,6 +1175,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/cb/job/$id/exterior'
+    | '/cb/job/$id/generating'
     | '/cb/job/$id/interior'
     | '/cb/job/$id/measure'
     | '/cb/job/$id/review'
@@ -1276,6 +1286,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/cb/job/$id/exterior'
+    | '/cb/job/$id/generating'
     | '/cb/job/$id/interior'
     | '/cb/job/$id/measure'
     | '/cb/job/$id/review'
@@ -1394,6 +1405,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/cover'
     | '/cb/job/$id/customer'
     | '/cb/job/$id/exterior'
+    | '/cb/job/$id/generating'
     | '/cb/job/$id/interior'
     | '/cb/job/$id/measure'
     | '/cb/job/$id/review'
@@ -1439,6 +1451,7 @@ export interface RootRouteChildren {
   CbJobIdCoverRoute: typeof CbJobIdCoverRoute
   CbJobIdCustomerRoute: typeof CbJobIdCustomerRoute
   CbJobIdExteriorRoute: typeof CbJobIdExteriorRoute
+  CbJobIdGeneratingRoute: typeof CbJobIdGeneratingRoute
   CbJobIdInteriorRoute: typeof CbJobIdInteriorRoute
   CbJobIdMeasureRoute: typeof CbJobIdMeasureRoute
   CbJobIdReviewRoute: typeof CbJobIdReviewRoute
@@ -2177,6 +2190,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbJobIdInteriorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/job/$id/generating': {
+      id: '/cb/job/$id/generating'
+      path: '/cb/job/$id/generating'
+      fullPath: '/cb/job/$id/generating'
+      preLoaderRoute: typeof CbJobIdGeneratingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cb/job/$id/exterior': {
       id: '/cb/job/$id/exterior'
       path: '/cb/job/$id/exterior'
@@ -2555,6 +2575,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbJobIdCoverRoute: CbJobIdCoverRoute,
   CbJobIdCustomerRoute: CbJobIdCustomerRoute,
   CbJobIdExteriorRoute: CbJobIdExteriorRoute,
+  CbJobIdGeneratingRoute: CbJobIdGeneratingRoute,
   CbJobIdInteriorRoute: CbJobIdInteriorRoute,
   CbJobIdMeasureRoute: CbJobIdMeasureRoute,
   CbJobIdReviewRoute: CbJobIdReviewRoute,
