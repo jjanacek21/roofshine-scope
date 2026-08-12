@@ -225,6 +225,32 @@ export function CbDashboard() {
         <CbTile label="Signed this month" value={stats.signedThisMonth} />
       </CbStagger>
 
+      {/* Resume where I left off */}
+      {resumeJob ? (
+        <CbReveal delay={70}>
+          <CbCard
+            elevation="raised"
+            className="mt-5 cursor-pointer"
+            style={{ padding: 16 }}
+            onClick={() => navigate({ to: "/cb/job/$id/customer", params: { id: resumeJob.id } })}
+          >
+            <div className="flex items-center gap-3">
+              <PlayCircle className="h-6 w-6 shrink-0" style={{ color: "var(--cb-accent)" }} />
+              <div className="min-w-0 flex-1">
+                <p className="cb-microlabel">Pick up where you left off</p>
+                <p className="truncate text-[15px] font-semibold">
+                  {resumeJob.address || "New inspection"}
+                </p>
+                <p className="truncate text-[12.5px]" style={{ color: "var(--cb-text-muted)" }}>
+                  {resumeJob.customer_name || "No customer yet"}
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--cb-text-muted)" }} />
+            </div>
+          </CbCard>
+        </CbReveal>
+      ) : null}
+
       {/* Primary action */}
       <CbReveal delay={80}>
         <div className="mt-6">
