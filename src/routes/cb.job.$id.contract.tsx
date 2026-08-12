@@ -288,7 +288,7 @@ function CbContractPage() {
     <CbSurface>
       <CbStickyHeader>
         <div className="flex items-center gap-3 px-4 py-3">
-          <button className="cb-iconbtn" aria-label="Back" onClick={() => navigate({ to: "/cb/job/$id/report", params: { id } })}>
+          <button className="cb-iconbtn" aria-label="Back" onClick={() => navigate({ to: "/cb/job/$id/report", params: { id }, search: { r: undefined } })}>
             <ArrowLeft size={19} />
           </button>
           <div className="min-w-0">
