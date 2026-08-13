@@ -51,6 +51,8 @@ export function CbRoofPlanEditor({
   onPinDrop,
   onTogglePinDrop,
   onClearPins,
+  onMeasure,
+  measuring = false,
 }: {
   plan: CbPlan;
   onPlanChange: (next: CbPlan, opts: { user: boolean }) => void;
@@ -63,6 +65,8 @@ export function CbRoofPlanEditor({
   onPinDrop?: (pin: { lat: number; lng: number }) => void;
   onTogglePinDrop?: () => void;
   onClearPins?: () => void;
+  onMeasure?: () => void;
+  measuring?: boolean;
 }) {
   const { data: token } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -357,6 +361,25 @@ export function CbRoofPlanEditor({
       })),
     );
   }, [plan, ready, selectedId, draft, measurePins]);
+
+  /* -------- pin markers: visible even when the GL layers never came up ----- */
+
+  const pinMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    pinMarkersRef.current.forEach((m) => m.remove());
+    pinMarkersRef.current = [];
+    if (ready) return; // the GL circle layer already draws them
+    pinMarkersRef.current = measurePins.map((pin) => {
+      const el = document.createElement("div");
+      el.style.cssText =
+        "width:22px;height:22px;border-radius:999px;background:#f97316;border:4px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5)";
+      return new mapboxgl.Marker({ element: el })
+        .setLngLat([pin.lng, pin.lat])
+        .addTo(map);
+    });
+  }, [measurePins, ready, mapVersion]);
 
   /* ------------------------------ map taps ------------------------------ */
 
