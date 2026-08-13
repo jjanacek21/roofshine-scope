@@ -201,6 +201,7 @@ function CbJobMeasurePage() {
       lat: job.lat != null ? Number(job.lat) : null,
       lng: job.lng != null ? Number(job.lng) : null,
       workspaceId: job.workspace_id,
+      jobId: id,
     });
     clearInterval(timer);
     setRemaining(res.credit.metered ? res.credit.remaining : null);
@@ -221,8 +222,11 @@ function CbJobMeasurePage() {
     toast.message(
       res.reason === "no_credits"
         ? "Out of measurement credits — enter it by hand"
-        : "Couldn't measure from satellite — enter it by hand",
+        : res.reason === "no_coverage" || res.reason === "no_footprint"
+          ? "No satellite roof data for this address — trace it or type it in"
+          : "Couldn't measure from satellite — enter it by hand",
     );
+
   }
 
   function edit(patch: Partial<CbMeasurement>) {
