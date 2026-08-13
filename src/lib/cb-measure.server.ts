@@ -2,11 +2,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type CbInstantMeasureInput = {
   workspace_id: string;
+  /** Claim Buddy job — binds the trace to the SAME roof_measurements row the plan editor reads. */
+  job_id: string;
   address: string;
   lat: number;
   lng: number;
   waste_pct?: number;
 };
+
 
 /**
  * Claim Buddy instant measurement — the whole implementation.
