@@ -377,6 +377,8 @@ function CbJobMeasurePage() {
                       setMeasurePins([]);
                       setPinDropMode(true);
                     }}
+                    onMeasure={() => void run()}
+                    measuring={phase === "running"}
                   />
                 </Suspense>
               </CbErrorBoundary>
