@@ -17,8 +17,10 @@ import {
   loadCbRoofPlan,
   saveCbRoofPlan,
   planTotals,
+  mergeSectionsToFootprint,
   type CbPlan,
 } from "@/lib/cbRoofPlan";
+
 import {
   CB_BLANK_MEASUREMENT,
   CB_LINEAR_FIELDS,
