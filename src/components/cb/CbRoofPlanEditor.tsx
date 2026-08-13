@@ -17,8 +17,6 @@ import {
   EDGE_LABELS,
   EDGE_TYPES,
   PITCH_OPTIONS,
-  autoClassifyEdges,
-  cbSectionColor,
   closeRing,
   edgeCenter,
   lineLengthFeet,
@@ -28,7 +26,6 @@ import {
   sectionActualAreaSqft,
   sectionEdgeLengths,
   snapVertex,
-  squareRing,
   type CbPlan,
   type CbPlanSection,
   type CbPlanTotals,
@@ -47,6 +44,11 @@ export function CbRoofPlanEditor({
   readOnly = false,
   onReset,
   canReset,
+  measurePins = [],
+  pinDropMode = false,
+  onPinDrop,
+  onTogglePinDrop,
+  onClearPins,
 }: {
   plan: CbPlan;
   onPlanChange: (next: CbPlan, opts: { user: boolean }) => void;
@@ -54,6 +56,11 @@ export function CbRoofPlanEditor({
   readOnly?: boolean;
   onReset?: () => void;
   canReset?: boolean;
+  measurePins?: Array<{ lat: number; lng: number }>;
+  pinDropMode?: boolean;
+  onPinDrop?: (pin: { lat: number; lng: number }) => void;
+  onTogglePinDrop?: () => void;
+  onClearPins?: () => void;
 }) {
   const { data: token } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -136,6 +143,7 @@ export function CbRoofPlanEditor({
       map.addSource("cb-edge", { type: "geojson", data: empty });
       map.addSource("cb-line", { type: "geojson", data: empty });
       map.addSource("cb-chip", { type: "geojson", data: empty });
+      map.addSource("cb-measure-pin", { type: "geojson", data: empty });
 
       map.addLayer({
         id: "cb-fill-l",
@@ -194,6 +202,17 @@ export function CbRoofPlanEditor({
           "text-allow-overlap": true,
         },
         paint: { "text-color": "#fff", "text-halo-color": "#000", "text-halo-width": 1.8 },
+      });
+      map.addLayer({
+        id: "cb-measure-pin-l",
+        type: "circle",
+        source: "cb-measure-pin",
+        paint: {
+          "circle-radius": 11,
+          "circle-color": "#f97316",
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 4,
+        },
       });
       setReady(true);
     });
@@ -295,7 +314,15 @@ export function CbRoofPlanEditor({
     set("cb-edge", edges);
     set("cb-line", lines);
     set("cb-chip", chips);
-  }, [plan, ready, selectedId, draft]);
+    set(
+      "cb-measure-pin",
+      measurePins.map((pin, index) => ({
+        type: "Feature",
+        properties: { index: index + 1 },
+        geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
+      })),
+    );
+  }, [plan, ready, selectedId, draft, measurePins]);
 
   /* ------------------------------ map taps ------------------------------ */
 
@@ -304,6 +331,11 @@ export function CbRoofPlanEditor({
     if (!map || !ready) return;
 
     const onClick = (e: mapboxgl.MapMouseEvent) => {
+      if (pinDropMode && !readOnly) {
+        onPinDrop?.({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+        cbHaptic(10);
+        return;
+      }
       if (tool === "line" && !readOnly) {
         setDraft((d) => [...d, [e.lngLat.lng, e.lngLat.lat]]);
         cbHaptic(6);
@@ -328,7 +360,7 @@ export function CbRoofPlanEditor({
     return () => {
       map.off("click", onClick);
     };
-  }, [ready, tool, readOnly]);
+  }, [ready, tool, readOnly, pinDropMode, onPinDrop]);
 
   /* ------------------------------- loupe -------------------------------- */
 
@@ -486,25 +518,6 @@ export function CbRoofPlanEditor({
   }
 
   /* ------------------------------ actions ------------------------------- */
-
-  function addStructure() {
-    const map = mapRef.current;
-    if (!map) return;
-    const c = map.getCenter();
-    const i = plan.sections.length;
-    const ring = squareRing([c.lng, c.lat], 30);
-    const section: CbPlanSection = {
-      id: uid(),
-      name: `Structure ${i + 1}`,
-      color: cbSectionColor(i),
-      ring,
-      pitch: "6/12",
-      edges: autoClassifyEdges(ring),
-    };
-    commit({ ...plan, sections: [...plan.sections, section] });
-    setSelectedId(section.id);
-    cbHaptic();
-  }
 
   function removeSection(id: string) {
     commit({ ...plan, sections: plan.sections.filter((s) => s.id !== id) });
@@ -670,7 +683,10 @@ export function CbRoofPlanEditor({
               <MapBtn active={tool === "line"} onClick={() => setTool("line")}>
                 Line
               </MapBtn>
-              <MapBtn onClick={addStructure}>+ Structure</MapBtn>
+              <MapBtn active={pinDropMode} onClick={onTogglePinDrop}>
+                {pinDropMode ? "Tap roof now" : "Drop measurement pin"}
+              </MapBtn>
+              {measurePins.length ? <MapBtn onClick={onClearPins}>Clear pins</MapBtn> : null}
               <MapBtn onClick={undo} disabled={!past.length}>
                 Undo
               </MapBtn>

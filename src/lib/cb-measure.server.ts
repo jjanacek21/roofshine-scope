@@ -5,8 +5,10 @@ export type CbInstantMeasureInput = {
   /** Claim Buddy job — binds the trace to the SAME roof_measurements row the plan editor reads. */
   job_id: string;
   address: string;
-  lat: number;
-  lng: number;
+  lat?: number;
+  lng?: number;
+  /** Exact roof points tapped by the rep. One point per structure. */
+  pins?: Array<{ lat: number; lng: number }>;
   waste_pct?: number;
 };
 
@@ -36,8 +38,14 @@ export async function runCbInstantMeasure(
   const { runSolarRoofExtract } = await import("@/lib/solar-extract.server");
   const { saveSolarMeasurement } = await import("@/lib/roof-measurement-save");
 
-  const lat = Number(data.lat);
-  const lng = Number(data.lng);
+  const pins = (data.pins?.length
+    ? data.pins
+    : data.lat != null && data.lng != null
+      ? [{ lat: data.lat, lng: data.lng }]
+      : [])
+    .map((pin) => ({ lat: Number(pin.lat), lng: Number(pin.lng) }))
+    .filter((pin) => Number.isFinite(pin.lat) && Number.isFinite(pin.lng));
+  if (pins.length === 0) return { ok: false as const, reason: "no_pin" };
 
   /*
    * Resolve the property/company through the SAME RPC the roof plan editor
@@ -61,40 +69,57 @@ export async function runCbInstantMeasure(
   const propertyId = rm.property_id as string;
   const companyId = rm.company_id as string;
 
-  // Keep the property row's coordinates in sync with the job pin.
+  // Keep the property row's coordinates in sync with the rep's primary roof pin.
+  const primaryPin = pins[0];
   await supabaseAdmin
     .from("properties")
-    .update({ lat, lng, address: data.address || undefined })
+    .update({ lat: primaryPin.lat, lng: primaryPin.lng, address: data.address || undefined })
     .eq("id", propertyId);
 
-  // ---- THE engine, unchanged, with the job flow's default tuning ----
-  const extract = await runSolarRoofExtract({
-    supabase: supabase,
-    userId: userId,
-    lat,
-    lng,
-    property_id: propertyId,
-  });
-
-  if (extract.status !== 200) {
-    const reason =
-      (extract.body?.error as string | undefined) ??
-      (extract.status === 404 ? "no_coverage" : "measure_failed");
-    return { ok: false as const, reason };
-  }
-
-  const segments = (extract.body.segments ?? []) as Array<{
+  type ExtractedSegment = {
     ring: number[][];
     pitch: string;
     plan_area_sqft: number;
-  }>;
+  };
+
+  // Run the exact GC engine once per structure pin, then save all returned
+  // facets as one property measurement. Empty/failed pins never become boxes.
+  const segments: ExtractedSegment[] = [];
+  const sources: Array<{ footprint: string | null; facet: string | null }> = [];
+  let runId: string | null = null;
+  let firstFailure = "no_footprint";
+  for (const pin of pins) {
+    const extract = await runSolarRoofExtract({
+      supabase,
+      userId,
+      lat: pin.lat,
+      lng: pin.lng,
+      property_id: propertyId,
+      job_id: data.job_id,
+    });
+    if (extract.status !== 200) {
+      firstFailure =
+        (extract.body?.error as string | undefined) ??
+        (extract.status === 404 ? "no_coverage" : "measure_failed");
+      continue;
+    }
+    const traced = ((extract.body.segments ?? []) as ExtractedSegment[]).filter(
+      (segment) => (segment.ring?.length ?? 0) >= 3 && segment.plan_area_sqft > 0,
+    );
+    if (traced.length === 0) continue;
+    segments.push(...traced);
+    sources.push({
+      footprint: (extract.body.footprint_source as string | null) ?? null,
+      facet: (extract.body.facet_source as string | null) ?? null,
+    });
+    runId ??= (extract.body.run_id as string | null) ?? null;
+  }
 
   /*
    * No traced geometry = no measurement. Never hand back a placeholder shape:
    * a wrong number that looks real is worse than a clear failure.
    */
-  const traced = segments.filter((s) => (s.ring?.length ?? 0) >= 3 && s.plan_area_sqft > 0);
-  if (traced.length === 0) return { ok: false as const, reason: "no_footprint" };
+  if (segments.length === 0) return { ok: false as const, reason: firstFailure };
 
   const wastePct = Number.isFinite(Number(data.waste_pct)) ? Number(data.waste_pct) : 15;
 
@@ -103,9 +128,9 @@ export async function runCbInstantMeasure(
     propertyId,
     companyId,
     createdBy: userId,
-    runId: (extract.body.run_id as string | null) ?? null,
+    runId,
     wastePct,
-    facets: traced.map((s) => ({
+    facets: segments.map((s) => ({
       ring: s.ring,
       pitch: s.pitch,
       plan_area_sqft: s.plan_area_sqft,
@@ -131,8 +156,8 @@ export async function runCbInstantMeasure(
     ok: true as const,
     property_id: propertyId,
     roof_measurement_id: saved.measurementId,
-    footprint_source: (extract.body.footprint_source as string | null) ?? null,
-    facet_source: (extract.body.facet_source as string | null) ?? null,
+    footprint_source: sources.map((source) => source.footprint).filter(Boolean).join(",") || null,
+    facet_source: sources.map((source) => source.facet).filter(Boolean).join(",") || null,
     measurement: {
       total_squares: Number(m.squares ?? 0),
       total_area_sqft: Number(m.total_area_sqft ?? 0),
@@ -142,7 +167,7 @@ export async function runCbInstantMeasure(
       waste_pct: Number(m.waste_pct ?? wastePct),
       pitch: (m.predominant_pitch as string | null) ?? null,
       stories: null as number | null,
-      facets: facetCount ?? traced.length,
+      facets: facetCount ?? segments.length,
 
       ridge_lf: Number(m.ridges_lf ?? 0),
       hip_lf: Number(m.hips_lf ?? 0),
