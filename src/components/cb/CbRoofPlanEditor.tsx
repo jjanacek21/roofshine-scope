@@ -377,7 +377,9 @@ export function CbRoofPlanEditor({
         cbHaptic(6);
         return;
       }
+      if (!map.getLayer("cb-fill-l")) return;
       const hits = map.queryRenderedFeatures(e.point, { layers: ["cb-edge-hit", "cb-fill-l"] });
+
       const edgeHit = hits.find((f) => f.layer?.id === "cb-edge-hit");
       if (edgeHit && !readOnly) {
         setSelectedId(edgeHit.properties?.sectionId as string);
