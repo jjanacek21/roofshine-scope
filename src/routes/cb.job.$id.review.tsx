@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ChevronRight } from "lucide-react";
@@ -134,6 +134,17 @@ function CbReviewPage() {
     [elevations, byElevation],
   );
 
+  /** A wide shot counts when the counter says so OR a real photo row exists. */
+  const hasWide = useCallback(
+    (e: CbElevation) =>
+      (elevations[e]?.wide ?? 0) > 0 ||
+      (byElevation[e] ?? []).some((p) => p.shot_type === "wide" || p.shot_type === "overview"),
+    [elevations, byElevation],
+  );
+
+  /** Trust the photos table, not just the counter on the job row. */
+  const hasCover = !!job?.cover_photo_path || photos.some((p) => p.category === "cover");
+
   const source = measurement?.rep_adjusted
     ? "Rep-adjusted"
     : measurement?.source === "manual"
@@ -151,9 +162,9 @@ function CbReviewPage() {
     if (!job.carrier) out.push({ text: "Carrier missing", to: "customer" });
     if (!job.claim_number) out.push({ text: "Claim number missing", to: "customer" });
     if (!job.date_of_loss) out.push({ text: "Date of loss missing", to: "customer" });
-    if (!job.cover_photo_path) out.push({ text: "No cover photo", to: "cover" });
+    if (!hasCover) out.push({ text: "No cover photo", to: "cover" });
     for (const e of inspected) {
-      if (!elevations[e]?.wide) {
+      if (!hasWide(e)) {
         out.push({ text: `${CB_ELEVATION_LABEL[e]} elevation has no wide shot`, to: "exterior" });
       }
     }
@@ -164,15 +175,16 @@ function CbReviewPage() {
       out.push({ text: `${pending} photo${pending === 1 ? "" : "s"} still uploading`, to: "review" });
     }
     return out;
-  }, [job, inspected, elevations, squares, sheet, completeness, pending]);
+  }, [job, inspected, hasWide, hasCover, squares, sheet, completeness, pending]);
 
   const blockers: string[] = [];
-  if (!job?.cover_photo_path) blockers.push("a cover photo");
-  const missingWide = inspected.filter((e) => !elevations[e]?.wide);
+  if (!hasCover) blockers.push("a cover photo");
+  const missingWide = inspected.filter((e) => !hasWide(e));
   if (missingWide.length > 0) {
     blockers.push(`a wide shot on ${missingWide.map((e) => CB_ELEVATION_LABEL[e].toLowerCase()).join(", ")}`);
   }
   if (squares <= 0) blockers.push("squares recorded");
+
 
   function go(to: string) {
     if (to === "review") return;

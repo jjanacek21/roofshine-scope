@@ -7,6 +7,7 @@ import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbLoading } from "@/components/cb/primitives";
 import { CbJobStepShell } from "@/components/claim-buddy/CbJobStepShell";
 import { cbEnqueuePhoto } from "@/lib/cbPhotoQueue";
+import { useCbPhotoUrl } from "@/lib/cbPhotos";
 
 export const Route = createFileRoute("/cb/job/$id/cover")({
   head: () => ({
@@ -38,19 +39,24 @@ function CbJobCoverPage() {
   const [shot, setShot] = useState<{ blob: Blob; url: string } | null>(null);
   const [camError, setCamError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /* An already-captured cover is never thrown away — the rep opts into a retake. */
+  const [retaking, setRetaking] = useState(false);
 
   const { data: job, isLoading } = useQuery({
     queryKey: ["cb-job-ws", id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cb_jobs")
-        .select("id, workspace_id, address")
+        .select("id, workspace_id, address, cover_photo_path")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
   });
+
+  const existingCover = (job?.cover_photo_path as string | null) ?? null;
+  const existingUrl = useCbPhotoUrl(retaking ? null : existingCover);
 
   useEffect(() => {
     try {
@@ -62,7 +68,7 @@ function CbJobCoverPage() {
 
   // Open the camera only once the tip card is out of the way.
   useEffect(() => {
-    if (tipOpen || shot) return;
+    if (tipOpen || shot || (existingCover && !retaking)) return;
     let cancelled = false;
     (async () => {
       try {
@@ -88,7 +94,7 @@ function CbJobCoverPage() {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
-  }, [tipOpen, shot]);
+  }, [tipOpen, shot, existingCover, retaking]);
 
   function capture() {
     const v = videoRef.current;
@@ -126,6 +132,7 @@ function CbJobCoverPage() {
       meta: { category: "cover", filename: "cover.jpg", shot_type: "overview", lat, lng },
     });
     setBusy(false);
+    setRetaking(false);
     toast.success("Cover photo queued — it uploads in the background.");
     navigate({ to: "/cb/job/$id/measure", params: { id } });
   }
@@ -150,7 +157,27 @@ function CbJobCoverPage() {
         title="Cover photo"
         subtitle="Front of the house, straight on."
       >
-        {tipOpen ? (
+        {existingCover && !retaking && !shot ? (
+          <CbCard elevation="floating" style={{ padding: 14 }}>
+            <div className="cb-camera-frame">
+              {existingUrl ? (
+                <img src={existingUrl} alt="Saved cover photo" className="cb-camera-media" />
+              ) : null}
+            </div>
+            <p className="mt-3 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+              Cover photo already saved for this inspection.
+            </p>
+            <div className="mt-4 grid gap-2">
+              <CbButton block onClick={() => navigate({ to: "/cb/job/$id/measure", params: { id } })}>
+                Keep it — continue
+              </CbButton>
+              <CbButton block variant="secondary" onClick={() => setRetaking(true)}>
+                Retake
+              </CbButton>
+            </div>
+          </CbCard>
+        ) : tipOpen ? (
+
           <CbCard elevation="floating" style={{ padding: 22 }}>
             <p className="text-[15px] leading-relaxed" style={{ color: "var(--cb-text)" }}>
               Before you shoot — grab your chalk and tape measure. Every close-up needs the chalked

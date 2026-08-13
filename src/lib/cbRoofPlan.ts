@@ -15,6 +15,22 @@ import {
 export { EDGE_COLORS, EDGE_LABELS, EDGE_TYPES, PITCH_OPTIONS };
 export type { EdgeType };
 
+/** Claim Buddy adds an explicit "not labelled yet" state on every edge. */
+export type CbEdgeType = EdgeType | "unlabeled";
+
+/** Order shown in the label sheet — unlabeled last, as a way to clear a label. */
+export const CB_EDGE_TYPES: CbEdgeType[] = [...EDGE_TYPES, "unlabeled"];
+
+export const CB_EDGE_LABELS: Record<CbEdgeType, string> = {
+  ...EDGE_LABELS,
+  unlabeled: "Unlabeled",
+};
+
+export const CB_EDGE_COLORS: Record<CbEdgeType, string> = {
+  ...EDGE_COLORS,
+  unlabeled: "#e2e8f0",
+};
+
 /** One structure on the plan. `ring` is an OPEN ring of [lng,lat] pairs. */
 export interface CbPlanSection {
   id: string;
@@ -22,19 +38,20 @@ export interface CbPlanSection {
   color: string;
   ring: number[][];
   pitch: string;
-  edges: EdgeType[];
+  edges: CbEdgeType[];
 }
 
 export interface CbPlanLine {
   id: string;
   coords: number[][];
-  type: EdgeType;
+  type: CbEdgeType;
 }
 
 export interface CbPlan {
   sections: CbPlanSection[];
   lines: CbPlanLine[];
 }
+
 
 export interface CbPlanTotals {
   total_area_sqft: number;
@@ -152,11 +169,74 @@ export function autoClassifyEdges(ring: number[][]): EdgeType[] {
   });
 }
 
-/** Keep the edge-type array the same length as the ring after an edit. */
-export function normalizeEdges(ring: number[][], edges: EdgeType[]): EdgeType[] {
-  const auto = autoClassifyEdges(ring);
-  return ring.map((_, i) => edges[i] ?? auto[i] ?? "eave");
+/**
+ * Keep the edge-type array the same length as the ring after an edit.
+ * Claim Buddy never guesses: an untouched edge stays "unlabeled" until the
+ * rep taps it and picks a type.
+ */
+export function normalizeEdges(ring: number[][], edges: CbEdgeType[]): CbEdgeType[] {
+  return ring.map((_, i) => edges[i] ?? "unlabeled");
 }
+
+/**
+ * Merge every traced facet into ONE roof footprint outline.
+ * Reps want one shape to drag onto the real roof edges, then draw the ridges
+ * and hips as lines themselves.
+ */
+export async function mergeSectionsToFootprint(plan: CbPlan): Promise<CbPlan> {
+  if (plan.sections.length < 2) return plan;
+  const first = plan.sections[0];
+  let ring: number[][] | null = null;
+
+  try {
+    const [{ union }, { polygon, featureCollection }] = await Promise.all([
+      import("@turf/union"),
+      import("@turf/helpers"),
+    ]);
+    const polys = plan.sections
+      .filter((s) => s.ring.length >= 3)
+      .map((s) => polygon([closeRing(s.ring)]));
+    if (polys.length) {
+      const merged = union(featureCollection(polys) as never);
+      const g = merged?.geometry;
+      if (g?.type === "Polygon") ring = openRing(g.coordinates[0] as number[][]);
+      else if (g?.type === "MultiPolygon") {
+        // Disjoint structures — keep the biggest outline as the main roof.
+        const rings = (g.coordinates as number[][][][]).map((c) => openRing(c[0]));
+        ring = rings.sort((a, b) => polygonAreaSqft(closeRing(b)) - polygonAreaSqft(closeRing(a)))[0];
+      }
+    }
+  } catch {
+    ring = null;
+  }
+
+  if (!ring || ring.length < 3) {
+    // Fall back to the largest single facet rather than losing the trace.
+    ring = plan.sections
+      .slice()
+      .sort((a, b) => sectionPlanAreaSqft(b) - sectionPlanAreaSqft(a))[0].ring;
+  }
+
+  const pitch =
+    plan.sections
+      .slice()
+      .sort((a, b) => sectionPlanAreaSqft(b) - sectionPlanAreaSqft(a))[0]?.pitch ?? first.pitch;
+
+  return {
+    ...plan,
+    sections: [
+      {
+        id: first.id,
+        name: "Roof footprint",
+        color: first.color || cbSectionColor(0),
+        ring,
+        pitch,
+        edges: ring.map(() => "unlabeled" as CbEdgeType),
+      },
+    ],
+  };
+}
+
 
 /**
  * Snap a dragged vertex so the two edges touching it land on 15° increments
