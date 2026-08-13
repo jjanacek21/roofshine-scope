@@ -255,7 +255,7 @@ function CbJobMeasurePage() {
     setRepAdjusted(true);
   }
 
-  async function save(dest: "scope" | "estimate" = "scope") {
+  async function save(dest: "takeoff" | "estimate" = "takeoff") {
     setSaving(true);
     const handEdited = repAdjusted || phase === "manual";
     let planFailed: string | null = null;
@@ -285,7 +285,7 @@ function CbJobMeasurePage() {
     if (dest === "estimate") {
       navigate({ to: "/cb/job/$id/estimate", params: { id } });
     } else {
-      navigate({ to: "/cb/job/$id/scope", params: { id } });
+      navigate({ to: "/cb/job/$id/takeoff", params: { id } });
     }
   }
 
@@ -613,11 +613,11 @@ function CbJobMeasurePage() {
           <div className="mx-auto flex w-full max-w-[620px] items-center gap-2">
             <CbButton
               block
-              onClick={() => void save("scope")}
+              onClick={() => void save("takeoff")}
               loading={saving}
               loadingText="Saving…"
             >
-              Save &amp; continue to inspection
+              Save roof measurements &amp; start takeoff
             </CbButton>
             <CbButton
               variant="ghost"
