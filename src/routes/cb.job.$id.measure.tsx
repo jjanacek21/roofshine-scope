@@ -226,9 +226,14 @@ function CbJobMeasurePage() {
       setPlanDirty(false);
       const fresh = await refetchPlan();
       if (fresh.data) {
-        setPlan(fresh.data);
-        originalPlanRef.current = fresh.data;
+        // One roof, one outline: the rep drags corners, then draws and labels
+        // the ridges, hips and valleys themselves.
+        const merged = await mergeSectionsToFootprint(fresh.data);
+        setPlan(merged);
+        originalPlanRef.current = merged;
+        setPlanDirty(merged !== fresh.data);
       }
+
       setPinDropMode(false);
       return;
     }
