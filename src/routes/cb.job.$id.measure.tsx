@@ -328,6 +328,16 @@ function CbJobMeasurePage() {
             ) : null}
 
 
+            {phase === "result" && plan.sections.length ? (
+              <CbCard className="p-4">
+                <p className="text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+                  Outline off? Drag the corners onto the real roof edges, tap a midpoint to add a
+                  corner, hold a corner to delete it, and label every line as eave, rake, ridge,
+                  hip, valley or flashing. Anything that isn&apos;t roof — a patio, a flat section
+                  on a different plane — drag out or delete.
+                </p>
+              </CbCard>
+            ) : null}
 
             {phase === "idle" ? (
               <div className="space-y-3">
