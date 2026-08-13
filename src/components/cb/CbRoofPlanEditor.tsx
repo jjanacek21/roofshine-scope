@@ -13,9 +13,9 @@ import { CbButton, CbCard, CbChip, CbSheet } from "@/components/cb/primitives";
 import { cbHaptic } from "@/components/cb/motion";
 import {
   CB_EMPTY_PLAN,
-  EDGE_COLORS,
-  EDGE_LABELS,
-  EDGE_TYPES,
+  CB_EDGE_COLORS,
+  CB_EDGE_LABELS,
+  CB_EDGE_TYPES,
   PITCH_OPTIONS,
   autoClassifyEdges,
   cbSectionColor,
@@ -31,7 +31,7 @@ import {
   type CbPlan,
   type CbPlanSection,
   type CbPlanTotals,
-  type EdgeType,
+  type CbEdgeType,
 } from "@/lib/cbRoofPlan";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -309,7 +309,7 @@ export function CbRoofPlanEditor({
           properties: {
             sectionId: s.id,
             index: i,
-            color: EDGE_COLORS[types[i]] ?? "#ffffff",
+            color: CB_EDGE_COLORS[types[i]] ?? "#ffffff",
           },
           geometry: { type: "LineString", coordinates: [p, q] },
         });
@@ -330,8 +330,8 @@ export function CbRoofPlanEditor({
       type: "Feature",
       properties: {
         id: l.id,
-        color: EDGE_COLORS[l.type],
-        label: `${EDGE_LABELS[l.type]} ${Math.round(lineLengthFeet(l.coords))} LF`,
+        color: CB_EDGE_COLORS[l.type],
+        label: `${CB_EDGE_LABELS[l.type]} ${Math.round(lineLengthFeet(l.coords))} LF`,
       },
       geometry: { type: "LineString", coordinates: l.coords },
     }));
@@ -599,7 +599,7 @@ export function CbRoofPlanEditor({
     setTypeSheet({ kind: "line", coords: draft });
   }
 
-  function applyType(t: EdgeType) {
+  function applyType(t: CbEdgeType) {
     if (!typeSheet) return;
     if (typeSheet.kind === "line") {
       commit({
@@ -849,12 +849,12 @@ export function CbRoofPlanEditor({
                     onClick={() => setTypeSheet({ kind: "edge", sectionId: s.id, index: idx })}
                     className="cb-num rounded-full px-2.5 py-1 text-[12px] font-semibold"
                     style={{
-                      background: `${EDGE_COLORS[t]}22`,
-                      color: EDGE_COLORS[t],
-                      border: `1px solid ${EDGE_COLORS[t]}66`,
+                      background: `${CB_EDGE_COLORS[t]}22`,
+                      color: CB_EDGE_COLORS[t],
+                      border: `1px solid ${CB_EDGE_COLORS[t]}66`,
                     }}
                   >
-                    {EDGE_LABELS[t]} {Math.round(lens[idx] ?? 0)}
+                    {CB_EDGE_LABELS[t]} {Math.round(lens[idx] ?? 0)}
                   </button>
                 ))}
               </div>
@@ -870,8 +870,8 @@ export function CbRoofPlanEditor({
             <div className="mt-2 space-y-2">
               {plan.lines.map((l) => (
                 <div key={l.id} className="flex items-center justify-between gap-2">
-                  <span className="text-[14px]" style={{ color: EDGE_COLORS[l.type] }}>
-                    {EDGE_LABELS[l.type]}
+                  <span className="text-[14px]" style={{ color: CB_EDGE_COLORS[l.type] }}>
+                    {CB_EDGE_LABELS[l.type]}
                   </span>
                   <span className="cb-num text-[14px] font-semibold">
                     {Math.round(lineLengthFeet(l.coords))} LF
@@ -914,20 +914,20 @@ export function CbRoofPlanEditor({
         title={typeSheet?.kind === "line" ? "Label this line" : "Label this edge"}
       >
         <div className="grid grid-cols-2 gap-2">
-          {EDGE_TYPES.map((t) => (
+          {CB_EDGE_TYPES.map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => applyType(t)}
               className="rounded-[12px] px-3 py-3 text-left text-[15px] font-semibold"
               style={{
-                background: `${EDGE_COLORS[t]}22`,
-                color: EDGE_COLORS[t],
-                border: `1px solid ${EDGE_COLORS[t]}66`,
+                background: `${CB_EDGE_COLORS[t]}22`,
+                color: CB_EDGE_COLORS[t],
+                border: `1px solid ${CB_EDGE_COLORS[t]}66`,
                 minHeight: 52,
               }}
             >
-              {EDGE_LABELS[t]}
+              {CB_EDGE_LABELS[t]}
             </button>
           ))}
         </div>
