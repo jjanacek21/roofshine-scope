@@ -316,29 +316,70 @@ function CbJobMeasurePage() {
             </CbCard>
 
             {center || plan.sections.length ? (
-              <Suspense fallback={<CbLoading label="Loading roof plan editor…" />}>
-              <CbRoofPlanEditor
-                plan={plan}
-                onPlanChange={handlePlanChange}
-                center={center}
-                readOnly={planReadOnly}
-                onReset={resetPlan}
-                canReset={!!originalPlanRef.current?.sections.length}
-                measurePins={measurePins}
-                pinDropMode={pinDropMode}
-                onTogglePinDrop={() => setPinDropMode((active) => !active)}
-                onPinDrop={(pin) => {
-                  setMeasurePins((pins) => [...pins, pin]);
-                  setPinDropMode(false);
-                  toast.success("Roof pin placed");
-                }}
-                onClearPins={() => {
-                  setMeasurePins([]);
-                  setPinDropMode(true);
-                }}
-              />
-              </Suspense>
+              <CbErrorBoundary
+                key={editorKey}
+                fallback={(error, reset) => (
+                  <CbCard className="p-4">
+                    <p className="text-[14px] font-semibold">Satellite map couldn&apos;t load</p>
+                    <p className="mt-1 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+                      Your measurement is safe — you can still save it and keep going.
+                    </p>
+                    <div className="mt-3 space-y-1">
+                      {plan.sections.length ? (
+                        plan.sections.map((s, i) => (
+                          <p key={s.id} className="cb-num text-[13px]">
+                            {s.name || `Structure ${i + 1}`} · {s.pitch}
+                          </p>
+                        ))
+                      ) : (
+                        <p className="text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+                          No traced facets on this job yet.
+                        </p>
+                      )}
+                    </div>
+                    <p className="mt-3 text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
+                      {error.message}
+                    </p>
+                    <div className="mt-4">
+                      <CbButton
+                        variant="secondary"
+                        size="md"
+                        onClick={() => {
+                          reset();
+                          setEditorKey((k) => k + 1);
+                        }}
+                      >
+                        Retry map
+                      </CbButton>
+                    </div>
+                  </CbCard>
+                )}
+              >
+                <Suspense fallback={<CbLoading label="Loading roof plan editor…" />}>
+                  <CbRoofPlanEditor
+                    plan={plan}
+                    onPlanChange={handlePlanChange}
+                    center={center}
+                    readOnly={planReadOnly}
+                    onReset={resetPlan}
+                    canReset={!!originalPlanRef.current?.sections.length}
+                    measurePins={measurePins}
+                    pinDropMode={pinDropMode}
+                    onTogglePinDrop={() => setPinDropMode((active) => !active)}
+                    onPinDrop={(pin) => {
+                      setMeasurePins((pins) => [...pins, pin]);
+                      setPinDropMode(false);
+                      toast.success("Roof pin placed");
+                    }}
+                    onClearPins={() => {
+                      setMeasurePins([]);
+                      setPinDropMode(true);
+                    }}
+                  />
+                </Suspense>
+              </CbErrorBoundary>
             ) : null}
+
 
 
             {phase === "result" && plan.sections.length ? (
