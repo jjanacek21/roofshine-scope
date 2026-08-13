@@ -246,7 +246,7 @@ function CbJobMeasurePage() {
     setRepAdjusted(true);
   }
 
-  async function save() {
+  async function save(dest: "scope" | "estimate" = "scope") {
     setSaving(true);
     try {
       const handEdited = repAdjusted || phase === "manual";
@@ -256,13 +256,18 @@ function CbJobMeasurePage() {
       await saveCbMeasurement(id, values, handEdited);
       cbHaptic();
       toast.success("Measurement saved");
-      navigate({ to: "/cb/job/$id/scope", params: { id } });
+      if (dest === "estimate") {
+        navigate({ to: "/cb/job/$id/estimate", params: { id } });
+      } else {
+        navigate({ to: "/cb/job/$id/scope", params: { id } });
+      }
     } catch {
       toast.error("Couldn't save the measurement — try again");
     } finally {
       setSaving(false);
     }
   }
+
 
 
   const editable = phase === "manual" || adjust;
