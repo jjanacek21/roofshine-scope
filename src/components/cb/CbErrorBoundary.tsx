@@ -9,7 +9,10 @@ interface State {
  * Nothing in the field should ever end on a white screen — a rep on a roof
  * needs a way back to the job list.
  */
-export class CbErrorBoundary extends Component<{ children: ReactNode }, State> {
+export class CbErrorBoundary extends Component<
+  { children: ReactNode; fallback?: (error: Error, reset: () => void) => ReactNode },
+  State
+> {
   state: State = { error: null };
 
   static getDerivedStateFromError(error: Error): State {
@@ -22,6 +25,9 @@ export class CbErrorBoundary extends Component<{ children: ReactNode }, State> {
 
   render() {
     if (!this.state.error) return this.props.children;
+    if (this.props.fallback)
+      return this.props.fallback(this.state.error, () => this.setState({ error: null }));
+
     return (
       <div className="mx-auto w-full max-w-[560px] px-5 py-16">
         <CbCard elevation="raised" style={{ padding: 22 }}>
