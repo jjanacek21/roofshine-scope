@@ -36,46 +36,36 @@ export async function runCbInstantMeasure(
   const { runSolarRoofExtract } = await import("@/lib/solar-extract.server");
   const { saveSolarMeasurement } = await import("@/lib/roof-measurement-save");
 
-  let companyId = ws.gc_company_id as string | null;
-  if (!companyId) {
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("company_id")
-      .eq("id", userId)
-      .maybeSingle();
-    companyId = (profile?.company_id as string | null) ?? null;
-  }
-  if (!companyId) return { ok: false as const, reason: "no_company" };
-
-  // Reuse a nearby property row for this company, otherwise create one.
   const lat = Number(data.lat);
   const lng = Number(data.lng);
-  const d = 0.00015;
-  const { data: near } = await supabaseAdmin
-    .from("properties")
-    .select("id")
-    .eq("company_id", companyId)
-    .gte("lat", lat - d)
-    .lte("lat", lat + d)
-    .gte("lng", lng - d)
-    .lte("lng", lng + d)
-    .limit(1);
 
-  let propertyId = near?.[0]?.id as string | undefined;
-  if (!propertyId) {
-    const { data: created, error } = await supabaseAdmin
-      .from("properties")
-      .insert({
-        company_id: companyId,
-        address: data.address || `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
-        lat,
-        lng,
-      })
-      .select("id")
-      .single();
-    if (error || !created) return { ok: false as const, reason: "property_failed" };
-    propertyId = created.id;
-  }
+  /*
+   * Resolve the property/company through the SAME RPC the roof plan editor
+   * uses (cb_ensure_roof_measurement). Deriving them any other way produced a
+   * second property row under a different company, so the traced facets landed
+   * on a measurement the plan editor never read — the screen looked empty and
+   * the rep had to hand-draw a box.
+   */
+  const { data: rmId, error: rmErr } = await supabase.rpc("cb_ensure_roof_measurement", {
+    _job: data.job_id,
+  });
+  if (rmErr || !rmId) return { ok: false as const, reason: "no_property" };
+
+  const { data: rm } = await supabaseAdmin
+    .from("roof_measurements")
+    .select("id, property_id, company_id")
+    .eq("id", rmId as string)
+    .maybeSingle();
+  if (!rm?.property_id || !rm.company_id) return { ok: false as const, reason: "no_property" };
+
+  const propertyId = rm.property_id as string;
+  const companyId = rm.company_id as string;
+
+  // Keep the property row's coordinates in sync with the job pin.
+  await supabaseAdmin
+    .from("properties")
+    .update({ lat, lng, address: data.address || undefined })
+    .eq("id", propertyId);
 
   // ---- THE engine, unchanged, with the job flow's default tuning ----
   const extract = await runSolarRoofExtract({
@@ -85,6 +75,7 @@ export async function runCbInstantMeasure(
     lng,
     property_id: propertyId,
   });
+
   if (extract.status !== 200) {
     const reason =
       (extract.body?.error as string | undefined) ??
