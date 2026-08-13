@@ -15,6 +15,22 @@ import {
 export { EDGE_COLORS, EDGE_LABELS, EDGE_TYPES, PITCH_OPTIONS };
 export type { EdgeType };
 
+/** Claim Buddy adds an explicit "not labelled yet" state on every edge. */
+export type CbEdgeType = EdgeType | "unlabeled";
+
+/** Order shown in the label sheet — unlabeled last, as a way to clear a label. */
+export const CB_EDGE_TYPES: CbEdgeType[] = [...EDGE_TYPES, "unlabeled"];
+
+export const CB_EDGE_LABELS: Record<CbEdgeType, string> = {
+  ...EDGE_LABELS,
+  unlabeled: "Unlabeled",
+};
+
+export const CB_EDGE_COLORS: Record<CbEdgeType, string> = {
+  ...EDGE_COLORS,
+  unlabeled: "#e2e8f0",
+};
+
 /** One structure on the plan. `ring` is an OPEN ring of [lng,lat] pairs. */
 export interface CbPlanSection {
   id: string;
@@ -22,19 +38,20 @@ export interface CbPlanSection {
   color: string;
   ring: number[][];
   pitch: string;
-  edges: EdgeType[];
+  edges: CbEdgeType[];
 }
 
 export interface CbPlanLine {
   id: string;
   coords: number[][];
-  type: EdgeType;
+  type: CbEdgeType;
 }
 
 export interface CbPlan {
   sections: CbPlanSection[];
   lines: CbPlanLine[];
 }
+
 
 export interface CbPlanTotals {
   total_area_sqft: number;
