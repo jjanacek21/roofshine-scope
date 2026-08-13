@@ -139,13 +139,28 @@ export function CbRoofPlanEditor({
       preserveDrawingBuffer: true,
     });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
-    map.on("load", () => {
+
+    /**
+     * Idempotent: a phone can miss the one-shot `load` event (slow token fetch,
+     * zero-height container, style already parsed). Everything below is safe to
+     * call again, so we can retry from several signals until it sticks.
+     */
+    const initLayers = () => {
+      if (!map.isStyleLoaded()) return;
+      if (map.getLayer("cb-fill-l")) {
+        setReady(true);
+        return;
+      }
       const empty = { type: "FeatureCollection", features: [] } as GeoJSON.FeatureCollection;
-      map.addSource("cb-fill", { type: "geojson", data: empty });
-      map.addSource("cb-edge", { type: "geojson", data: empty });
-      map.addSource("cb-line", { type: "geojson", data: empty });
-      map.addSource("cb-chip", { type: "geojson", data: empty });
-      map.addSource("cb-measure-pin", { type: "geojson", data: empty });
+      const addSource = (id: string) => {
+        if (!map.getSource(id)) map.addSource(id, { type: "geojson", data: empty });
+      };
+      addSource("cb-fill");
+      addSource("cb-edge");
+      addSource("cb-line");
+      addSource("cb-chip");
+      addSource("cb-measure-pin");
+
 
       map.addLayer({
         id: "cb-fill-l",
