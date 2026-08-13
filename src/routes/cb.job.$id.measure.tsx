@@ -8,6 +8,7 @@ import { CbCard, CbButton, CbBadge, CbLoading } from "@/components/cb/primitives
 import { CbField } from "@/components/cb/forms";
 import { CbCountUp, CbReveal, cbHaptic } from "@/components/cb/motion";
 import { CbJobStepShell } from "@/components/claim-buddy/CbJobStepShell";
+import { CbErrorBoundary } from "@/components/cb/CbErrorBoundary";
 /* Deferred: the Mapbox plan editor is a heavy bundle — load it only when a plan exists. */
 const CbRoofPlanEditor = lazy(() =>
   import("@/components/cb/CbRoofPlanEditor").then((m) => ({ default: m.CbRoofPlanEditor })),
@@ -73,6 +74,7 @@ function CbJobMeasurePage() {
   const [saving, setSaving] = useState(false);
   const [measurePins, setMeasurePins] = useState<Array<{ lat: number; lng: number }>>([]);
   const [pinDropMode, setPinDropMode] = useState(true);
+  const [editorKey, setEditorKey] = useState(0);
 
   const { data, isLoading } = useQuery({
     queryKey: ["cb-measure-job", id],
