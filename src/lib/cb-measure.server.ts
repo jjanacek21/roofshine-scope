@@ -131,6 +131,8 @@ export async function runCbInstantMeasure(
     ok: true as const,
     property_id: propertyId,
     roof_measurement_id: saved.measurementId,
+    footprint_source: (extract.body.footprint_source as string | null) ?? null,
+    facet_source: (extract.body.facet_source as string | null) ?? null,
     measurement: {
       total_squares: Number(m.squares ?? 0),
       total_area_sqft: Number(m.total_area_sqft ?? 0),
@@ -140,7 +142,8 @@ export async function runCbInstantMeasure(
       waste_pct: Number(m.waste_pct ?? wastePct),
       pitch: (m.predominant_pitch as string | null) ?? null,
       stories: null as number | null,
-      facets: facetCount ?? segments.length,
+      facets: facetCount ?? traced.length,
+
       ridge_lf: Number(m.ridges_lf ?? 0),
       hip_lf: Number(m.hips_lf ?? 0),
       valley_lf: Number(m.valleys_lf ?? 0),
