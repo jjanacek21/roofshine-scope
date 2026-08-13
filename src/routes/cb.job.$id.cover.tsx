@@ -157,7 +157,27 @@ function CbJobCoverPage() {
         title="Cover photo"
         subtitle="Front of the house, straight on."
       >
-        {tipOpen ? (
+        {existingCover && !retaking && !shot ? (
+          <CbCard elevation="floating" style={{ padding: 14 }}>
+            <div className="cb-camera-frame">
+              {existingUrl ? (
+                <img src={existingUrl} alt="Saved cover photo" className="cb-camera-media" />
+              ) : null}
+            </div>
+            <p className="mt-3 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+              Cover photo already saved for this inspection.
+            </p>
+            <div className="mt-4 grid gap-2">
+              <CbButton block onClick={() => navigate({ to: "/cb/job/$id/measure", params: { id } })}>
+                Keep it — continue
+              </CbButton>
+              <CbButton block variant="secondary" onClick={() => setRetaking(true)}>
+                Retake
+              </CbButton>
+            </div>
+          </CbCard>
+        ) : tipOpen ? (
+
           <CbCard elevation="floating" style={{ padding: 22 }}>
             <p className="text-[15px] leading-relaxed" style={{ color: "var(--cb-text)" }}>
               Before you shoot — grab your chalk and tape measure. Every close-up needs the chalked
