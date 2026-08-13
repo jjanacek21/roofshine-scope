@@ -773,7 +773,32 @@ export function CbRoofPlanEditor({
             </div>
           ) : null}
         </div>
+
+        {/* Always-visible measure action — never hunt for it down the page. */}
+        {onMeasure && !readOnly ? (
+          <div className="border-t px-4 py-3" style={{ borderColor: "var(--cb-border)" }}>
+            <CbButton
+              block
+              onClick={measurePins.length ? onMeasure : onTogglePinDrop}
+              loading={measuring}
+              loadingText="Measuring…"
+            >
+              {measurePins.length
+                ? `Measure ${measurePins.length} pinned roof${measurePins.length === 1 ? "" : "s"}`
+                : pinDropMode
+                  ? "Tap the roof to drop a pin"
+                  : "Drop a pin on the roof"}
+            </CbButton>
+            {!ready ? (
+              <p className="mt-2 text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
+                Map is still loading — any measurements listed below are still valid.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </CbCard>
+
+
 
       {/* structures */}
       <div className="space-y-2">
