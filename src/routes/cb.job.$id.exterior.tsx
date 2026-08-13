@@ -195,7 +195,11 @@ function CbExteriorWalk() {
                 >
                   Log damage
                 </CbButton>
+                <CbButton block variant="ghost" onClick={next}>
+                  Skip this elevation
+                </CbButton>
               </div>
+
             )
           ) : null}
         </div>
