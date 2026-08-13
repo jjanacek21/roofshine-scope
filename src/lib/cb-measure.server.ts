@@ -105,12 +105,14 @@ export async function runCbInstantMeasure(
     createdBy: userId,
     runId: (extract.body.run_id as string | null) ?? null,
     wastePct,
-    facets: segments.map((s) => ({
+    facets: traced.map((s) => ({
       ring: s.ring,
       pitch: s.pitch,
       plan_area_sqft: s.plan_area_sqft,
     })),
+    namePrefix: "Facet",
   });
+
   if (!saved.ok) return { ok: false as const, reason: saved.reason };
 
   const { data: m } = await supabaseAdmin
