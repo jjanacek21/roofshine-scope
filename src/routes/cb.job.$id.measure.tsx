@@ -8,6 +8,7 @@ import { CbCard, CbButton, CbBadge, CbLoading } from "@/components/cb/primitives
 import { CbField } from "@/components/cb/forms";
 import { CbCountUp, CbReveal, cbHaptic } from "@/components/cb/motion";
 import { CbJobStepShell } from "@/components/claim-buddy/CbJobStepShell";
+import { CbErrorBoundary } from "@/components/cb/CbErrorBoundary";
 /* Deferred: the Mapbox plan editor is a heavy bundle — load it only when a plan exists. */
 const CbRoofPlanEditor = lazy(() =>
   import("@/components/cb/CbRoofPlanEditor").then((m) => ({ default: m.CbRoofPlanEditor })),
@@ -73,6 +74,7 @@ function CbJobMeasurePage() {
   const [saving, setSaving] = useState(false);
   const [measurePins, setMeasurePins] = useState<Array<{ lat: number; lng: number }>>([]);
   const [pinDropMode, setPinDropMode] = useState(true);
+  const [editorKey, setEditorKey] = useState(0);
 
   const { data, isLoading } = useQuery({
     queryKey: ["cb-measure-job", id],
@@ -248,25 +250,38 @@ function CbJobMeasurePage() {
 
   async function save(dest: "scope" | "estimate" = "scope") {
     setSaving(true);
-    try {
-      const handEdited = repAdjusted || phase === "manual";
-      if (!planReadOnly && (planDirty || plan.sections.length)) {
+    const handEdited = repAdjusted || phase === "manual";
+    let planFailed: string | null = null;
+
+    // The roof plan is a bonus — never let it block the numbers or the next step.
+    if (!planReadOnly && (planDirty || plan.sections.length)) {
+      try {
         await saveCbRoofPlan(id, plan, { repAdjusted: handEdited });
+      } catch (e) {
+        planFailed = e instanceof Error ? e.message : "unknown error";
       }
+    }
+
+    try {
       await saveCbMeasurement(id, values, handEdited);
       cbHaptic();
-      toast.success("Measurement saved");
-      if (dest === "estimate") {
-        navigate({ to: "/cb/job/$id/estimate", params: { id } });
-      } else {
-        navigate({ to: "/cb/job/$id/scope", params: { id } });
-      }
-    } catch {
-      toast.error("Couldn't save the measurement — try again");
-    } finally {
+      if (planFailed) toast.warning(`Numbers saved — roof outline didn't: ${planFailed}`);
+      else toast.success("Measurement saved");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "unknown error";
+      toast.error(`Couldn't save the measurement: ${msg}`);
       setSaving(false);
+      return;
+    }
+
+    setSaving(false);
+    if (dest === "estimate") {
+      navigate({ to: "/cb/job/$id/estimate", params: { id } });
+    } else {
+      navigate({ to: "/cb/job/$id/scope", params: { id } });
     }
   }
+
 
 
 
@@ -303,29 +318,70 @@ function CbJobMeasurePage() {
             </CbCard>
 
             {center || plan.sections.length ? (
-              <Suspense fallback={<CbLoading label="Loading roof plan editor…" />}>
-              <CbRoofPlanEditor
-                plan={plan}
-                onPlanChange={handlePlanChange}
-                center={center}
-                readOnly={planReadOnly}
-                onReset={resetPlan}
-                canReset={!!originalPlanRef.current?.sections.length}
-                measurePins={measurePins}
-                pinDropMode={pinDropMode}
-                onTogglePinDrop={() => setPinDropMode((active) => !active)}
-                onPinDrop={(pin) => {
-                  setMeasurePins((pins) => [...pins, pin]);
-                  setPinDropMode(false);
-                  toast.success("Roof pin placed");
-                }}
-                onClearPins={() => {
-                  setMeasurePins([]);
-                  setPinDropMode(true);
-                }}
-              />
-              </Suspense>
+              <CbErrorBoundary
+                key={editorKey}
+                fallback={(error, reset) => (
+                  <CbCard className="p-4">
+                    <p className="text-[14px] font-semibold">Satellite map couldn&apos;t load</p>
+                    <p className="mt-1 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+                      Your measurement is safe — you can still save it and keep going.
+                    </p>
+                    <div className="mt-3 space-y-1">
+                      {plan.sections.length ? (
+                        plan.sections.map((s, i) => (
+                          <p key={s.id} className="cb-num text-[13px]">
+                            {s.name || `Structure ${i + 1}`} · {s.pitch}
+                          </p>
+                        ))
+                      ) : (
+                        <p className="text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+                          No traced facets on this job yet.
+                        </p>
+                      )}
+                    </div>
+                    <p className="mt-3 text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
+                      {error.message}
+                    </p>
+                    <div className="mt-4">
+                      <CbButton
+                        variant="secondary"
+                        size="md"
+                        onClick={() => {
+                          reset();
+                          setEditorKey((k) => k + 1);
+                        }}
+                      >
+                        Retry map
+                      </CbButton>
+                    </div>
+                  </CbCard>
+                )}
+              >
+                <Suspense fallback={<CbLoading label="Loading roof plan editor…" />}>
+                  <CbRoofPlanEditor
+                    plan={plan}
+                    onPlanChange={handlePlanChange}
+                    center={center}
+                    readOnly={planReadOnly}
+                    onReset={resetPlan}
+                    canReset={!!originalPlanRef.current?.sections.length}
+                    measurePins={measurePins}
+                    pinDropMode={pinDropMode}
+                    onTogglePinDrop={() => setPinDropMode((active) => !active)}
+                    onPinDrop={(pin) => {
+                      setMeasurePins((pins) => [...pins, pin]);
+                      setPinDropMode(false);
+                      toast.success("Roof pin placed");
+                    }}
+                    onClearPins={() => {
+                      setMeasurePins([]);
+                      setPinDropMode(true);
+                    }}
+                  />
+                </Suspense>
+              </CbErrorBoundary>
             ) : null}
+
 
 
             {phase === "result" && plan.sections.length ? (
@@ -531,9 +587,6 @@ function CbJobMeasurePage() {
                 ) : null}
 
                 <div className="space-y-3">
-                  <CbButton block onClick={() => void save("scope")} loading={saving} loadingText="Saving…">
-                    Save measurement
-                  </CbButton>
                   <CbButton block variant="ghost" onClick={run} disabled={!job?.workspace_id}>
                     {measurePins.length
                       ? `Re-measure ${measurePins.length} pinned roof${measurePins.length === 1 ? "" : "s"}`
@@ -545,7 +598,29 @@ function CbJobMeasurePage() {
             ) : null}
           </div>
         )}
+
+        {/* Always reachable: this step can never trap a rep on a roof. */}
+        <div className="cb-dock">
+          <div className="mx-auto flex w-full max-w-[620px] items-center gap-2">
+            <CbButton
+              block
+              onClick={() => void save("scope")}
+              loading={saving}
+              loadingText="Saving…"
+            >
+              Save &amp; continue to inspection
+            </CbButton>
+            <CbButton
+              variant="ghost"
+              size="md"
+              onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}
+            >
+              Skip
+            </CbButton>
+          </div>
+        </div>
       </CbJobStepShell>
+
     </CbSurface>
   );
 }
