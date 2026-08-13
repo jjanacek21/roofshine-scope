@@ -68,6 +68,7 @@ export function CbRoofPlanEditor({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [ready, setReady] = useState(false);
+  const [mapVersion, setMapVersion] = useState(0);
   const centerRef = useRef(center);
   centerRef.current = center ?? centerRef.current;
   const [tick, setTick] = useState(0);
@@ -361,7 +362,9 @@ export function CbRoofPlanEditor({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready) return;
+    // Not gated on `ready`: a tap must place a pin even if the drawing layers
+    // never came up.
+    if (!map) return;
 
     const onClick = (e: mapboxgl.MapMouseEvent) => {
       if (pinDropMode && !readOnly) {
@@ -393,7 +396,7 @@ export function CbRoofPlanEditor({
     return () => {
       map.off("click", onClick);
     };
-  }, [ready, tool, readOnly, pinDropMode, onPinDrop]);
+  }, [mapVersion, ready, tool, readOnly, pinDropMode, onPinDrop]);
 
   /* ------------------------------- loupe -------------------------------- */
 
