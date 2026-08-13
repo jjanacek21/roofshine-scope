@@ -88,7 +88,16 @@ export async function runCbInstantMeasure(
     pitch: string;
     plan_area_sqft: number;
   }>;
+
+  /*
+   * No traced geometry = no measurement. Never hand back a placeholder shape:
+   * a wrong number that looks real is worse than a clear failure.
+   */
+  const traced = segments.filter((s) => (s.ring?.length ?? 0) >= 3 && s.plan_area_sqft > 0);
+  if (traced.length === 0) return { ok: false as const, reason: "no_footprint" };
+
   const wastePct = Number.isFinite(Number(data.waste_pct)) ? Number(data.waste_pct) : 15;
+
 
   const saved = await saveSolarMeasurement(supabaseAdmin, {
     propertyId,
