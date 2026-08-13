@@ -71,6 +71,8 @@ function CbJobMeasurePage() {
   const [upgrade, setUpgrade] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [measurePins, setMeasurePins] = useState<Array<{ lat: number; lng: number }>>([]);
+  const [pinDropMode, setPinDropMode] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: ["cb-measure-job", id],
@@ -191,6 +193,11 @@ function CbJobMeasurePage() {
 
   async function run() {
     if (!job?.workspace_id) return;
+    if (measurePins.length === 0) {
+      setPinDropMode(true);
+      toast.message("Tap the roof on the satellite map to drop a measurement pin");
+      return;
+    }
     cbHaptic();
     setPhase("running");
     setStepIdx(0);
@@ -202,6 +209,7 @@ function CbJobMeasurePage() {
       lng: job.lng != null ? Number(job.lng) : null,
       workspaceId: job.workspace_id,
       jobId: id,
+      pins: measurePins,
     });
     clearInterval(timer);
     setRemaining(res.credit.metered ? res.credit.remaining : null);
@@ -213,7 +221,11 @@ function CbJobMeasurePage() {
       originalPlanRef.current = null;
       setPlanDirty(false);
       const fresh = await refetchPlan();
-      if (fresh.data) originalPlanRef.current = fresh.data;
+      if (fresh.data) {
+        setPlan(fresh.data);
+        originalPlanRef.current = fresh.data;
+      }
+      setPinDropMode(false);
       return;
     }
     setUpgrade(res.reason === "no_credits");
@@ -294,6 +306,18 @@ function CbJobMeasurePage() {
                 readOnly={planReadOnly}
                 onReset={resetPlan}
                 canReset={!!originalPlanRef.current?.sections.length}
+                measurePins={measurePins}
+                pinDropMode={pinDropMode}
+                onTogglePinDrop={() => setPinDropMode((active) => !active)}
+                onPinDrop={(pin) => {
+                  setMeasurePins((pins) => [...pins, pin]);
+                  setPinDropMode(false);
+                  toast.success("Roof pin placed");
+                }}
+                onClearPins={() => {
+                  setMeasurePins([]);
+                  setPinDropMode(true);
+                }}
               />
               </Suspense>
             ) : null}
@@ -303,7 +327,9 @@ function CbJobMeasurePage() {
             {phase === "idle" ? (
               <div className="space-y-3">
                 <CbButton block onClick={run} disabled={!job?.workspace_id}>
-                  Get instant measurement
+                  {measurePins.length
+                    ? `Measure ${measurePins.length} pinned roof${measurePins.length === 1 ? "" : "s"}`
+                    : "Tap roof to drop measurement pin"}
                 </CbButton>
                 <CbButton block variant="ghost" onClick={() => setPhase("manual")}>
                   Enter measurements by hand

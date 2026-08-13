@@ -79,12 +79,14 @@ export async function getInstantMeasurement({
   lng,
   workspaceId,
   jobId,
+  pins,
 }: {
   address: string;
   lat: number | null;
   lng: number | null;
   workspaceId: string;
   jobId: string;
+  pins?: Array<{ lat: number; lng: number }>;
 }): Promise<CbInstantResult> {
   let credit: CbMeasureCredit = { allowed: true, metered: false, remaining: null };
   const { data: creditData, error: creditError } = await supabase.rpc("cb_consume_measure_credit", {
@@ -100,11 +102,20 @@ export async function getInstantMeasurement({
   }
 
   if (!credit.allowed) return { ok: false, reason: "no_credits", credit };
-  if (lat == null || lng == null) return { ok: false, reason: "no_coordinates", credit };
+  if ((!pins || pins.length === 0) && (lat == null || lng == null)) {
+    return { ok: false, reason: "no_coordinates", credit };
+  }
 
   try {
     const res = await cbInstantMeasureFn({
-      data: { workspace_id: workspaceId, job_id: jobId, address: address ?? "", lat, lng },
+      data: {
+        workspace_id: workspaceId,
+        job_id: jobId,
+        address: address ?? "",
+        lat: lat ?? undefined,
+        lng: lng ?? undefined,
+        pins,
+      },
     });
 
     if (!res.ok) return { ok: false, reason: res.reason ?? "failed", credit };
