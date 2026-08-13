@@ -306,12 +306,17 @@ export function SolarRoofTab({
   jobId,
   onApply,
   onSwitchToMapbox,
+  onPersistMeasurement,
 }: {
   center: { lng: number; lat: number };
   propertyId?: string;
   jobId?: string;
   onApply: (data: MapboxRoofData) => void;
   onSwitchToMapbox?: () => void;
+  onPersistMeasurement?: (input: {
+    pins: Array<{ lat: number; lng: number }>;
+    wastePct: number;
+  }) => Promise<void>;
 }) {
   const { data: token, isLoading: tokenLoading } = useMapboxToken();
   const { data: profile } = useProfile();
@@ -1054,11 +1059,20 @@ export function SolarRoofTab({
    * roof_sections row per facet, replaced on every re-run.
    */
   async function persistPins(currentPins: Pin[]) {
-    if (!propertyId || !profile?.company_id) return;
     const active = currentPins.filter(
       (p) => p.kind !== "ignore" && (p.plan_area_sqft || 0) > 0,
     );
     if (active.length === 0) return;
+
+    if (onPersistMeasurement) {
+      await onPersistMeasurement({
+        pins: active.map((pin) => ({ lat: pin.lat, lng: pin.lng })),
+        wastePct,
+      });
+      return;
+    }
+
+    if (!propertyId || !profile?.company_id) return;
 
     // Shared math (src/lib/roof-measurement-save.ts) — same helper Claim Buddy uses.
     const totals = roofTotals(
@@ -1409,7 +1423,7 @@ export function SolarRoofTab({
     <div className="space-y-4">
       {/* Header — primary CTA promoted */}
       <div
-        className="flex items-start gap-3 rounded-xl border p-4"
+        className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-start"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
       >
         <Satellite className="mt-0.5 h-5 w-5 text-[var(--brand)]" />
@@ -1421,7 +1435,7 @@ export function SolarRoofTab({
             the pinned roofs are measured.
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
           <MeasureTuningPanel
             tuning={tuning}
             onChange={setTuning}
@@ -1461,7 +1475,7 @@ export function SolarRoofTab({
           <button
             onClick={() => measureAll.mutate({})}
             disabled={measureAll.isPending || pins.filter((p) => p.kind !== "ignore").length === 0}
-            className="btn-brand inline-flex h-10 items-center gap-2 rounded-md px-5 text-xs font-semibold disabled:opacity-40"
+            className="btn-brand inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold disabled:opacity-40 sm:h-10 sm:flex-none sm:text-xs"
           >
             {measureAll.isPending ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
