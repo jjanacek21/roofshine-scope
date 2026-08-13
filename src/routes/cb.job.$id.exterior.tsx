@@ -128,8 +128,9 @@ function CbExteriorWalk() {
             </div>
           </CbCard>
 
-          {/* b) clear it, or log damage */}
-          {state.wide ? (
+          {/* b) clear it, or log damage — never gated on the camera working */}
+          {true ? (
+
             mode === "damage" ? (
               <div className="mt-4">
                 <CbDamageChecklist
@@ -194,7 +195,11 @@ function CbExteriorWalk() {
                 >
                   Log damage
                 </CbButton>
+                <CbButton block variant="ghost" onClick={next}>
+                  Skip this elevation
+                </CbButton>
               </div>
+
             )
           ) : null}
         </div>

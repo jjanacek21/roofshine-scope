@@ -132,20 +132,32 @@ export function CbCamera({
   }
 
   async function done() {
-    if (!workspaceId) return;
-    setSaving(true);
-    for (const s of shots) {
-      await cbEnqueuePhoto({
-        jobId,
-        workspaceId,
-        blob: s.blob,
-        meta: { ...meta, caption: s.caption, lat: s.lat, lng: s.lng, taken_at: s.takenAt },
-      });
+    if (shots.length === 0) {
+      onClose();
+      return;
     }
-    setSaving(false);
+    if (!workspaceId) {
+      // Never fail silently — this used to leave the rep stuck on the step.
+      alert("Still loading this job — give it a second and tap again.");
+      return;
+    }
+    setSaving(true);
+    try {
+      for (const s of shots) {
+        await cbEnqueuePhoto({
+          jobId,
+          workspaceId,
+          blob: s.blob,
+          meta: { ...meta, caption: s.caption, lat: s.lat, lng: s.lng, taken_at: s.takenAt },
+        });
+      }
+    } finally {
+      setSaving(false);
+    }
     onSaved(shots.length);
     onClose();
   }
+
 
   if (!open) return null;
 

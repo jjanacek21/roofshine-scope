@@ -8,9 +8,6 @@ import { CbCard, CbButton, CbBadge, CbLoading } from "@/components/cb/primitives
 import { CbField } from "@/components/cb/forms";
 import { CbCountUp, CbReveal, cbHaptic } from "@/components/cb/motion";
 import { CbJobStepShell } from "@/components/claim-buddy/CbJobStepShell";
-const SolarRoofTab = lazy(() =>
-  import("@/components/roof/SolarRoofTab").then((m) => ({ default: m.SolarRoofTab })),
-);
 /* Deferred: the Mapbox plan editor is a heavy bundle — load it only when a plan exists. */
 const CbRoofPlanEditor = lazy(() =>
   import("@/components/cb/CbRoofPlanEditor").then((m) => ({ default: m.CbRoofPlanEditor })),
@@ -51,6 +48,13 @@ export const Route = createFileRoute("/cb/job/$id/measure")({
   component: CbJobMeasurePage,
 });
 
+const STEPS = [
+  "Locating property…",
+  "Detecting roof facets…",
+  "Calculating linear footage…",
+  "Finishing up…",
+];
+
 function CbJobMeasurePage() {
   const { id } = useParams({ from: "/cb/job/$id/measure" });
   const navigate = useNavigate();
@@ -59,14 +63,16 @@ function CbJobMeasurePage() {
   const [planDirty, setPlanDirty] = useState(false);
 
 
-  const [phase, setPhase] = useState<"idle" | "result" | "manual">("idle");
+  const [phase, setPhase] = useState<"idle" | "running" | "result" | "manual">("idle");
+  const [stepIdx, setStepIdx] = useState(0);
   const [values, setValues] = useState<CbMeasurement>(CB_BLANK_MEASUREMENT);
   const [adjust, setAdjust] = useState(false);
   const [repAdjusted, setRepAdjusted] = useState(false);
   const [upgrade, setUpgrade] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
-  const [showPlanEditor, setShowPlanEditor] = useState(false);
+  const [measurePins, setMeasurePins] = useState<Array<{ lat: number; lng: number }>>([]);
+  const [pinDropMode, setPinDropMode] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: ["cb-measure-job", id],
@@ -185,47 +191,54 @@ function CbJobMeasurePage() {
   }
 
 
-  async function persistWidgetMeasurement(input: {
-    pins: Array<{ lat: number; lng: number }>;
-    wastePct: number;
-  }) {
-    if (!job?.workspace_id) throw new Error("This job is missing a workspace");
+  async function run() {
+    if (!job?.workspace_id) return;
+    if (measurePins.length === 0) {
+      setPinDropMode(true);
+      toast.message("Tap the roof on the satellite map to drop a measurement pin");
+      return;
+    }
     cbHaptic();
+    setPhase("running");
+    setStepIdx(0);
+    const timer = setInterval(() => setStepIdx((i) => Math.min(i + 1, STEPS.length - 1)), 1400);
+
     const res = await getInstantMeasurement({
       address: fullAddress,
       lat: job.lat != null ? Number(job.lat) : null,
       lng: job.lng != null ? Number(job.lng) : null,
       workspaceId: job.workspace_id,
       jobId: id,
-      pins: input.pins,
+      pins: measurePins,
     });
+    clearInterval(timer);
     setRemaining(res.credit.metered ? res.credit.remaining : null);
 
-    if (!res.ok) {
-      setUpgrade(res.reason === "no_credits");
-      throw new Error(
-        res.reason === "no_credits"
-          ? "This workspace is out of measurement credits"
-          : res.reason === "no_coverage" || res.reason === "no_footprint"
-            ? "No satellite roof data was found at that pin"
-            : "The roof could not be measured at that pin",
-      );
+    if (res.ok) {
+      setValues(res.measurement);
+      setRepAdjusted(false);
+      setPhase("result");
+      originalPlanRef.current = null;
+      setPlanDirty(false);
+      const fresh = await refetchPlan();
+      if (fresh.data) {
+        setPlan(fresh.data);
+        originalPlanRef.current = fresh.data;
+      }
+      setPinDropMode(false);
+      return;
     }
+    setUpgrade(res.reason === "no_credits");
+    setValues((v) => ({ ...v, source: "manual" }));
+    setPhase("manual");
+    toast.message(
+      res.reason === "no_credits"
+        ? "Out of measurement credits — enter it by hand"
+        : res.reason === "no_coverage" || res.reason === "no_footprint"
+          ? "No satellite roof data for this address — trace it or type it in"
+          : "Couldn't measure from satellite — enter it by hand",
+    );
 
-    const measurement = { ...res.measurement, waste_pct: input.wastePct };
-    await saveCbMeasurement(id, measurement, false);
-    setValues(measurement);
-    setRepAdjusted(false);
-    setUpgrade(false);
-    setPhase("result");
-    originalPlanRef.current = null;
-    setPlanDirty(false);
-    const fresh = await refetchPlan();
-    if (fresh.data) {
-      setPlan(fresh.data);
-      originalPlanRef.current = fresh.data;
-      setShowPlanEditor(fresh.data.sections.length > 0);
-    }
   }
 
   function edit(patch: Partial<CbMeasurement>) {
@@ -233,7 +246,7 @@ function CbJobMeasurePage() {
     setRepAdjusted(true);
   }
 
-  async function save() {
+  async function save(dest: "scope" | "estimate" = "scope") {
     setSaving(true);
     try {
       const handEdited = repAdjusted || phase === "manual";
@@ -243,13 +256,18 @@ function CbJobMeasurePage() {
       await saveCbMeasurement(id, values, handEdited);
       cbHaptic();
       toast.success("Measurement saved");
-      navigate({ to: "/cb/job/$id/scope", params: { id } });
+      if (dest === "estimate") {
+        navigate({ to: "/cb/job/$id/estimate", params: { id } });
+      } else {
+        navigate({ to: "/cb/job/$id/scope", params: { id } });
+      }
     } catch {
       toast.error("Couldn't save the measurement — try again");
     } finally {
       setSaving(false);
     }
   }
+
 
 
   const editable = phase === "manual" || adjust;
@@ -284,19 +302,7 @@ function CbJobMeasurePage() {
               ) : null}
             </CbCard>
 
-            {center ? (
-              <Suspense fallback={<CbLoading label="Loading AI measurement map…" />}>
-                <SolarRoofTab
-                  center={center}
-                  jobId={id}
-                  onPersistMeasurement={persistWidgetMeasurement}
-                  onApply={() => setShowPlanEditor(true)}
-                  onSwitchToMapbox={() => setShowPlanEditor(true)}
-                />
-              </Suspense>
-            ) : null}
-
-            {showPlanEditor && plan.sections.length ? (
+            {center || plan.sections.length ? (
               <Suspense fallback={<CbLoading label="Loading roof plan editor…" />}>
               <CbRoofPlanEditor
                 plan={plan}
@@ -305,18 +311,64 @@ function CbJobMeasurePage() {
                 readOnly={planReadOnly}
                 onReset={resetPlan}
                 canReset={!!originalPlanRef.current?.sections.length}
+                measurePins={measurePins}
+                pinDropMode={pinDropMode}
+                onTogglePinDrop={() => setPinDropMode((active) => !active)}
+                onPinDrop={(pin) => {
+                  setMeasurePins((pins) => [...pins, pin]);
+                  setPinDropMode(false);
+                  toast.success("Roof pin placed");
+                }}
+                onClearPins={() => {
+                  setMeasurePins([]);
+                  setPinDropMode(true);
+                }}
               />
               </Suspense>
             ) : null}
 
 
+            {phase === "result" && plan.sections.length ? (
+              <CbCard className="p-4">
+                <p className="text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+                  Outline off? Drag the corners onto the real roof edges, tap a midpoint to add a
+                  corner, hold a corner to delete it, and label every line as eave, rake, ridge,
+                  hip, valley or flashing. Anything that isn&apos;t roof — a patio, a flat section
+                  on a different plane — drag out or delete.
+                </p>
+              </CbCard>
+            ) : null}
 
             {phase === "idle" ? (
               <div className="space-y-3">
+                <CbButton block onClick={run} disabled={!job?.workspace_id}>
+                  {measurePins.length
+                    ? `Measure ${measurePins.length} pinned roof${measurePins.length === 1 ? "" : "s"}`
+                    : "Tap roof to drop measurement pin"}
+                </CbButton>
                 <CbButton block variant="ghost" onClick={() => setPhase("manual")}>
                   Enter measurements by hand
                 </CbButton>
               </div>
+            ) : null}
+
+            {phase === "running" ? (
+              <CbCard className="p-5">
+                <div className="space-y-2">
+                  {STEPS.map((s, i) => (
+                    <p
+                      key={s}
+                      className="text-[15px] transition-opacity"
+                      style={{
+                        opacity: i < stepIdx ? 0.45 : i === stepIdx ? 1 : 0.2,
+                        fontWeight: i === stepIdx ? 700 : 500,
+                      }}
+                    >
+                      {s}
+                    </p>
+                  ))}
+                </div>
+              </CbCard>
             ) : null}
 
             {phase === "result" || phase === "manual" ? (
@@ -457,11 +509,38 @@ function CbJobMeasurePage() {
                   </CbCard>
                 )}
 
+                {phase === "result" ? (
+                  <CbCard className="p-4">
+                    <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--cb-text-muted)" }}>
+                      Turn this into a price
+                    </p>
+                    <p className="mt-2 text-[14px]" style={{ color: "var(--cb-text-muted)" }}>
+                      Fill in the rest of the roof (vents, flashing, hardware) for a full line item
+                      estimate off the price book, or drop a price per square for a quick number
+                      with a scope list and one total.
+                    </p>
+                    <div className="mt-4 space-y-2">
+                      <CbButton block variant="secondary" onClick={() => setAdjust(true)}>
+                        Add the rest of the measurements
+                      </CbButton>
+                      <CbButton block onClick={() => void save("estimate")} loading={saving} loadingText="Saving…">
+                        Price it now
+                      </CbButton>
+                    </div>
+                  </CbCard>
+                ) : null}
+
                 <div className="space-y-3">
-                  <CbButton block onClick={save} loading={saving} loadingText="Saving…">
+                  <CbButton block onClick={() => void save("scope")} loading={saving} loadingText="Saving…">
                     Save measurement
                   </CbButton>
+                  <CbButton block variant="ghost" onClick={run} disabled={!job?.workspace_id}>
+                    {measurePins.length
+                      ? `Re-measure ${measurePins.length} pinned roof${measurePins.length === 1 ? "" : "s"}`
+                      : "Drop a pin and measure again"}
+                  </CbButton>
                 </div>
+
               </>
             ) : null}
           </div>
