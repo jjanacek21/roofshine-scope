@@ -51,6 +51,8 @@ export function CbRoofPlanEditor({
   onPinDrop,
   onTogglePinDrop,
   onClearPins,
+  onMeasure,
+  measuring = false,
 }: {
   plan: CbPlan;
   onPlanChange: (next: CbPlan, opts: { user: boolean }) => void;
@@ -63,11 +65,14 @@ export function CbRoofPlanEditor({
   onPinDrop?: (pin: { lat: number; lng: number }) => void;
   onTogglePinDrop?: () => void;
   onClearPins?: () => void;
+  onMeasure?: () => void;
+  measuring?: boolean;
 }) {
   const { data: token } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [ready, setReady] = useState(false);
+  const [mapVersion, setMapVersion] = useState(0);
   const centerRef = useRef(center);
   centerRef.current = center ?? centerRef.current;
   const [tick, setTick] = useState(0);
@@ -139,13 +144,28 @@ export function CbRoofPlanEditor({
       preserveDrawingBuffer: true,
     });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
-    map.on("load", () => {
+
+    /**
+     * Idempotent: a phone can miss the one-shot `load` event (slow token fetch,
+     * zero-height container, style already parsed). Everything below is safe to
+     * call again, so we can retry from several signals until it sticks.
+     */
+    const initLayers = () => {
+      if (!map.isStyleLoaded()) return;
+      if (map.getLayer("cb-fill-l")) {
+        setReady(true);
+        return;
+      }
       const empty = { type: "FeatureCollection", features: [] } as GeoJSON.FeatureCollection;
-      map.addSource("cb-fill", { type: "geojson", data: empty });
-      map.addSource("cb-edge", { type: "geojson", data: empty });
-      map.addSource("cb-line", { type: "geojson", data: empty });
-      map.addSource("cb-chip", { type: "geojson", data: empty });
-      map.addSource("cb-measure-pin", { type: "geojson", data: empty });
+      const addSource = (id: string) => {
+        if (!map.getSource(id)) map.addSource(id, { type: "geojson", data: empty });
+      };
+      addSource("cb-fill");
+      addSource("cb-edge");
+      addSource("cb-line");
+      addSource("cb-chip");
+      addSource("cb-measure-pin");
+
 
       map.addLayer({
         id: "cb-fill-l",
@@ -217,14 +237,30 @@ export function CbRoofPlanEditor({
         },
       });
       setReady(true);
-    });
+    };
+
+    map.on("load", initLayers);
+    map.on("style.load", initLayers);
+    map.on("idle", initLayers);
+    initLayers();
+    // A late style parse on a slow phone still gets picked up.
+    const retry = window.setInterval(initLayers, 800);
+    const stopRetry = window.setTimeout(() => window.clearInterval(retry), 15000);
+    // Guard against a zero-height container at mount.
+    const resize = window.setTimeout(() => map.resize(), 300);
+
     map.on("move", () => setTick((t) => t + 1));
     mapRef.current = map;
+    setMapVersion((v) => v + 1);
     return () => {
+      window.clearInterval(retry);
+      window.clearTimeout(stopRetry);
+      window.clearTimeout(resize);
       map.remove();
       mapRef.current = null;
     };
   }, [token]);
+
 
   // Recentre once coordinates arrive.
   useEffect(() => {
@@ -326,11 +362,32 @@ export function CbRoofPlanEditor({
     );
   }, [plan, ready, selectedId, draft, measurePins]);
 
+  /* -------- pin markers: visible even when the GL layers never came up ----- */
+
+  const pinMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    pinMarkersRef.current.forEach((m) => m.remove());
+    pinMarkersRef.current = [];
+    if (ready) return; // the GL circle layer already draws them
+    pinMarkersRef.current = measurePins.map((pin) => {
+      const el = document.createElement("div");
+      el.style.cssText =
+        "width:22px;height:22px;border-radius:999px;background:#f97316;border:4px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5)";
+      return new mapboxgl.Marker({ element: el })
+        .setLngLat([pin.lng, pin.lat])
+        .addTo(map);
+    });
+  }, [measurePins, ready, mapVersion]);
+
   /* ------------------------------ map taps ------------------------------ */
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready) return;
+    // Not gated on `ready`: a tap must place a pin even if the drawing layers
+    // never came up.
+    if (!map) return;
 
     const onClick = (e: mapboxgl.MapMouseEvent) => {
       if (pinDropMode && !readOnly) {
@@ -343,7 +400,9 @@ export function CbRoofPlanEditor({
         cbHaptic(6);
         return;
       }
+      if (!map.getLayer("cb-fill-l")) return;
       const hits = map.queryRenderedFeatures(e.point, { layers: ["cb-edge-hit", "cb-fill-l"] });
+
       const edgeHit = hits.find((f) => f.layer?.id === "cb-edge-hit");
       if (edgeHit && !readOnly) {
         setSelectedId(edgeHit.properties?.sectionId as string);
@@ -362,7 +421,7 @@ export function CbRoofPlanEditor({
     return () => {
       map.off("click", onClick);
     };
-  }, [ready, tool, readOnly, pinDropMode, onPinDrop]);
+  }, [mapVersion, ready, tool, readOnly, pinDropMode, onPinDrop]);
 
   /* ------------------------------- loupe -------------------------------- */
 
@@ -714,7 +773,32 @@ export function CbRoofPlanEditor({
             </div>
           ) : null}
         </div>
+
+        {/* Always-visible measure action — never hunt for it down the page. */}
+        {onMeasure && !readOnly ? (
+          <div className="border-t px-4 py-3" style={{ borderColor: "var(--cb-border)" }}>
+            <CbButton
+              block
+              onClick={measurePins.length ? onMeasure : onTogglePinDrop}
+              loading={measuring}
+              loadingText="Measuring…"
+            >
+              {measurePins.length
+                ? `Measure ${measurePins.length} pinned roof${measurePins.length === 1 ? "" : "s"}`
+                : pinDropMode
+                  ? "Tap the roof to drop a pin"
+                  : "Drop a pin on the roof"}
+            </CbButton>
+            {!ready ? (
+              <p className="mt-2 text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
+                Map is still loading — any measurements listed below are still valid.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </CbCard>
+
+
 
       {/* structures */}
       <div className="space-y-2">
