@@ -587,9 +587,6 @@ function CbJobMeasurePage() {
                 ) : null}
 
                 <div className="space-y-3">
-                  <CbButton block onClick={() => void save("scope")} loading={saving} loadingText="Saving…">
-                    Save measurement
-                  </CbButton>
                   <CbButton block variant="ghost" onClick={run} disabled={!job?.workspace_id}>
                     {measurePins.length
                       ? `Re-measure ${measurePins.length} pinned roof${measurePins.length === 1 ? "" : "s"}`
@@ -601,7 +598,29 @@ function CbJobMeasurePage() {
             ) : null}
           </div>
         )}
+
+        {/* Always reachable: this step can never trap a rep on a roof. */}
+        <div className="cb-dock">
+          <div className="mx-auto flex w-full max-w-[620px] items-center gap-2">
+            <CbButton
+              block
+              onClick={() => void save("scope")}
+              loading={saving}
+              loadingText="Saving…"
+            >
+              Save &amp; continue to inspection
+            </CbButton>
+            <CbButton
+              variant="ghost"
+              size="md"
+              onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}
+            >
+              Skip
+            </CbButton>
+          </div>
+        </div>
       </CbJobStepShell>
+
     </CbSurface>
   );
 }
