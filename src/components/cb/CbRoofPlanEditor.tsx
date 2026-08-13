@@ -17,8 +17,6 @@ import {
   EDGE_LABELS,
   EDGE_TYPES,
   PITCH_OPTIONS,
-  autoClassifyEdges,
-  cbSectionColor,
   closeRing,
   edgeCenter,
   lineLengthFeet,
