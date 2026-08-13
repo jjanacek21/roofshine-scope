@@ -232,14 +232,30 @@ export function CbRoofPlanEditor({
         },
       });
       setReady(true);
-    });
+    };
+
+    map.on("load", initLayers);
+    map.on("style.load", initLayers);
+    map.on("idle", initLayers);
+    initLayers();
+    // A late style parse on a slow phone still gets picked up.
+    const retry = window.setInterval(initLayers, 800);
+    const stopRetry = window.setTimeout(() => window.clearInterval(retry), 15000);
+    // Guard against a zero-height container at mount.
+    const resize = window.setTimeout(() => map.resize(), 300);
+
     map.on("move", () => setTick((t) => t + 1));
     mapRef.current = map;
+    setMapVersion((v) => v + 1);
     return () => {
+      window.clearInterval(retry);
+      window.clearTimeout(stopRetry);
+      window.clearTimeout(resize);
       map.remove();
       mapRef.current = null;
     };
   }, [token]);
+
 
   // Recentre once coordinates arrive.
   useEffect(() => {
