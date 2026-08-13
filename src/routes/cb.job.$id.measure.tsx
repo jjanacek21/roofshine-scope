@@ -248,25 +248,38 @@ function CbJobMeasurePage() {
 
   async function save(dest: "scope" | "estimate" = "scope") {
     setSaving(true);
-    try {
-      const handEdited = repAdjusted || phase === "manual";
-      if (!planReadOnly && (planDirty || plan.sections.length)) {
+    const handEdited = repAdjusted || phase === "manual";
+    let planFailed: string | null = null;
+
+    // The roof plan is a bonus — never let it block the numbers or the next step.
+    if (!planReadOnly && (planDirty || plan.sections.length)) {
+      try {
         await saveCbRoofPlan(id, plan, { repAdjusted: handEdited });
+      } catch (e) {
+        planFailed = e instanceof Error ? e.message : "unknown error";
       }
+    }
+
+    try {
       await saveCbMeasurement(id, values, handEdited);
       cbHaptic();
-      toast.success("Measurement saved");
-      if (dest === "estimate") {
-        navigate({ to: "/cb/job/$id/estimate", params: { id } });
-      } else {
-        navigate({ to: "/cb/job/$id/scope", params: { id } });
-      }
-    } catch {
-      toast.error("Couldn't save the measurement — try again");
-    } finally {
+      if (planFailed) toast.warning(`Numbers saved — roof outline didn't: ${planFailed}`);
+      else toast.success("Measurement saved");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "unknown error";
+      toast.error(`Couldn't save the measurement: ${msg}`);
       setSaving(false);
+      return;
+    }
+
+    setSaving(false);
+    if (dest === "estimate") {
+      navigate({ to: "/cb/job/$id/estimate", params: { id } });
+    } else {
+      navigate({ to: "/cb/job/$id/scope", params: { id } });
     }
   }
+
 
 
 
