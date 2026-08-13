@@ -499,16 +499,38 @@ function CbJobMeasurePage() {
                   </CbCard>
                 )}
 
+                {phase === "result" ? (
+                  <CbCard className="p-4">
+                    <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--cb-text-muted)" }}>
+                      Turn this into a price
+                    </p>
+                    <p className="mt-2 text-[14px]" style={{ color: "var(--cb-text-muted)" }}>
+                      Fill in the rest of the roof (vents, flashing, hardware) for a full line item
+                      estimate off the price book, or drop a price per square for a quick number
+                      with a scope list and one total.
+                    </p>
+                    <div className="mt-4 space-y-2">
+                      <CbButton block variant="secondary" onClick={() => setAdjust(true)}>
+                        Add the rest of the measurements
+                      </CbButton>
+                      <CbButton block onClick={() => void save("estimate")} loading={saving} loadingText="Saving…">
+                        Price it now
+                      </CbButton>
+                    </div>
+                  </CbCard>
+                ) : null}
+
                 <div className="space-y-3">
-                  <CbButton block onClick={save} loading={saving} loadingText="Saving…">
+                  <CbButton block onClick={() => void save("scope")} loading={saving} loadingText="Saving…">
                     Save measurement
                   </CbButton>
-                  {phase === "manual" ? (
-                    <CbButton block variant="ghost" onClick={run} disabled={!job?.workspace_id}>
-                      Try instant measurement again
-                    </CbButton>
-                  ) : null}
+                  <CbButton block variant="ghost" onClick={run} disabled={!job?.workspace_id}>
+                    {measurePins.length
+                      ? `Re-measure ${measurePins.length} pinned roof${measurePins.length === 1 ? "" : "s"}`
+                      : "Drop a pin and measure again"}
+                  </CbButton>
                 </div>
+
               </>
             ) : null}
           </div>
