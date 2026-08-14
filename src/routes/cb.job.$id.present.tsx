@@ -380,8 +380,10 @@ function SectionMenu({
 }
 
 function StandardSlide({ slide }: { slide: CbSlide }) {
+  if (slide.html) return <CbHtmlSlide html={slide.html} />;
   return (
     <div className="cb-slide">
+
       {slide.kicker ? <p className="cb-present-kicker">{slide.kicker}</p> : null}
       <CbHeadline as="h2" text={slide.title} className="cb-display cb-present-title" />
       {slide.lead ? (
