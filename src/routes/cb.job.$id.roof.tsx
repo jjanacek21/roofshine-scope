@@ -66,13 +66,35 @@ function CbRoofWalk() {
   });
 
   const safety = takeoff.data.safety ?? {};
+
+  /** Safety answers are the takeoff sheet's answers — never ask twice. */
+  function patchSafety(part: { stories?: number; access?: string; pitch?: string }) {
+    const nextSafety = { ...safety, ...part };
+    const sheet = readSheet(takeoff.data as Record<string, unknown>);
+    void patchData({
+      safety: nextSafety,
+      sheet: {
+        ...sheet,
+        roof_system: {
+          ...sheet.roof_system,
+          stories: nextSafety.stories ?? sheet.roof_system.stories,
+          pitch: nextSafety.pitch ?? sheet.roof_system.pitch,
+        },
+      },
+    });
+  }
+
   const elev = CB_ELEVATIONS[idx] as CbElevation;
   const label = CB_ELEVATION_LABEL[elev];
   const state = takeoff.elevations[elev] ?? {};
   const squares = state.testSquares ?? [];
   const tally = squares.reduce((n, s) => n + s.hits, 0);
-  const railSteps = useMemo(() => CB_ELEVATIONS.map((e) => `${CB_ELEVATION_LABEL[e]} slope`), []);
+  const railSteps = useMemo(
+    () => ["Safety", ...CB_ELEVATIONS.map((e) => `${CB_ELEVATION_LABEL[e]} slope`), "Takeoff"],
+    [],
+  );
   const missingWide = CB_ELEVATIONS.filter((e) => !(takeoff.elevations[e]?.slopeWide ?? 0));
+
 
   if (isLoading) {
     return (
