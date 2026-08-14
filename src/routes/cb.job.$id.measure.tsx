@@ -233,6 +233,13 @@ function CbJobMeasurePage() {
       toast.message("Tap the roof on the satellite map to drop a measurement pin");
       return;
     }
+    // Pins already traced keep their (possibly hand-corrected) footprint —
+    // only the newly dropped pins get measured and added as new structures.
+    const newPins = measurePins.slice(measuredCount);
+    const pinsToRun = newPins.length ? newPins : measurePins;
+    const keepExisting = newPins.length > 0 && plan.sections.length > 0;
+    const preserved = keepExisting ? plan : null;
+
     cbHaptic();
     setPhase("running");
     setStepIdx(0);
@@ -244,7 +251,7 @@ function CbJobMeasurePage() {
       lng: job.lng != null ? Number(job.lng) : null,
       workspaceId: job.workspace_id,
       jobId: id,
-      pins: measurePins,
+      pins: pinsToRun,
     });
     clearInterval(timer);
     setRemaining(res.credit.metered ? res.credit.remaining : null);
@@ -261,17 +268,31 @@ function CbJobMeasurePage() {
       if (fresh.data) {
         // One highlighted outline per dropped pin: pin 1 is the main roof,
         // pin 2 the flat roof, pin 3 the shed — each with its own colour.
-        const merged = await mergeSectionsByStructure(fresh.data, measurePins);
-        setPlan(merged);
-        originalPlanRef.current = merged;
-        setAiPlan(JSON.parse(JSON.stringify(merged)) as CbPlan);
-        setPlanDirty(merged !== fresh.data);
-
+        const merged = await mergeSectionsByStructure(fresh.data, pinsToRun);
+        const next: CbPlan = preserved
+          ? {
+              sections: [
+                ...preserved.sections,
+                ...merged.sections.map((s, i) => ({
+                  ...s,
+                  name: `Structure ${preserved.sections.length + i + 1}`,
+                  color: cbSectionColor(preserved.sections.length + i),
+                })),
+              ],
+              lines: [...preserved.lines, ...merged.lines],
+            }
+          : merged;
+        setPlan(next);
+        originalPlanRef.current = next;
+        setAiPlan(JSON.parse(JSON.stringify(next)) as CbPlan);
+        setPlanDirty(true);
       }
 
+      setMeasuredCount(measurePins.length);
       setPinDropMode(false);
       return;
     }
+
     setUpgrade(res.reason === "no_credits");
     setValues((v) => ({ ...v, source: "manual" }));
     setPhase("manual");
