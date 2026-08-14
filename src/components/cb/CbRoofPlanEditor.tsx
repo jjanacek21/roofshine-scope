@@ -87,9 +87,12 @@ export function CbRoofPlanEditor({
   const [draft, setDraft] = useState<number[][]>([]);
   const [typeSheet, setTypeSheet] = useState<
     | { kind: "line"; coords: number[][] }
+    | { kind: "lineEdit"; id: string }
     | { kind: "edge"; sectionId: string; index: number }
     | null
   >(null);
+  /** Footprint locked = corners frozen, taps label perimeter edges instead. */
+  const [locked, setLocked] = useState(false);
   const [pitchSheet, setPitchSheet] = useState<string | null>(null);
   const [loupe, setLoupe] = useState<{ x: number; y: number } | null>(null);
   const loupeRef = useRef<HTMLCanvasElement | null>(null);
@@ -202,6 +205,12 @@ export function CbRoofPlanEditor({
         paint: { "line-color": ["get", "color"], "line-width": 5 },
       });
       map.addLayer({
+        id: "cb-line-hit",
+        type: "line",
+        source: "cb-line",
+        paint: { "line-color": "#000", "line-opacity": 0.01, "line-width": 26 },
+      });
+      map.addLayer({
         id: "cb-line-label",
         type: "symbol",
         source: "cb-line",
@@ -293,7 +302,7 @@ export function CbRoofPlanEditor({
       properties: {
         id: s.id,
         color: s.color,
-        opacity: s.id === selectedId ? 0.4 : 0.26,
+        opacity: s.id === selectedId ? 0.55 : 0.42,
       },
       geometry: { type: "Polygon", coordinates: [closeRing(s.ring)] },
     }));
@@ -401,7 +410,19 @@ export function CbRoofPlanEditor({
         return;
       }
       if (!map.getLayer("cb-fill-l")) return;
-      const hits = map.queryRenderedFeatures(e.point, { layers: ["cb-edge-hit", "cb-fill-l"] });
+      const layers = ["cb-edge-hit", "cb-fill-l"];
+      if (map.getLayer("cb-line-hit")) layers.unshift("cb-line-hit");
+      const hits = map.queryRenderedFeatures(e.point, { layers });
+
+      // A drawn line takes priority — that's what the rep is tapping to label.
+      const lineHit = hits.find((f) => f.layer?.id === "cb-line-hit");
+      if (lineHit && !readOnly) {
+        const lineId = lineHit.properties?.id as string | undefined;
+        if (lineId && lineId !== "draft") {
+          setTypeSheet({ kind: "lineEdit", id: lineId });
+          return;
+        }
+      }
 
       const edgeHit = hits.find((f) => f.layer?.id === "cb-edge-hit");
       if (edgeHit && !readOnly) {
@@ -590,13 +611,22 @@ export function CbRoofPlanEditor({
     setPitchSheet(null);
   }
 
+  /**
+   * Draw first, label later: finishing a line drops it in unlabeled and keeps
+   * the line tool armed so every ridge/hip/valley can be drawn in one pass.
+   */
   function finishLine() {
     if (draft.length < 2) {
       setDraft([]);
       setTool("select");
       return;
     }
-    setTypeSheet({ kind: "line", coords: draft });
+    commit({
+      ...plan,
+      lines: [...plan.lines, { id: uid(), coords: draft, type: "unlabeled" }],
+    });
+    setDraft([]);
+    cbHaptic();
   }
 
   function applyType(t: CbEdgeType) {
@@ -608,11 +638,18 @@ export function CbRoofPlanEditor({
       });
       setDraft([]);
       setTool("select");
+    } else if (typeSheet.kind === "lineEdit") {
+      const lineId = typeSheet.id;
+      commit({
+        ...plan,
+        lines: plan.lines.map((l) => (l.id === lineId ? { ...l, type: t } : l)),
+      });
     } else {
+      const { sectionId, index } = typeSheet;
       commit(
-        updateSection(typeSheet.sectionId, (s) => {
+        updateSection(sectionId, (s) => {
           const edges = normalizeEdges(s.ring, s.edges);
-          edges[typeSheet.index] = t;
+          edges[index] = t;
           return { ...s, edges: [...edges] };
         }),
       );
@@ -627,10 +664,10 @@ export function CbRoofPlanEditor({
 
   /* ------------------------------- render ------------------------------- */
 
-  const handleSection = selected ?? (plan.sections.length === 1 ? plan.sections[0] : null);
+  const handleSection = selected ?? (plan.sections.length ? plan.sections[0] : null);
   const vertexHandles: { x: number; y: number; index: number }[] = [];
   const midHandles: { x: number; y: number; index: number }[] = [];
-  if (handleSection && !readOnly && ready) {
+  if (handleSection && !readOnly && ready && !locked && tool === "select") {
     handleSection.ring.forEach((p, i) => {
       const pt = project(p);
       if (pt) vertexHandles.push({ ...pt, index: i });
@@ -821,6 +858,19 @@ export function CbRoofPlanEditor({
                 Redo
               </MapBtn>
               {canReset ? <MapBtn onClick={onReset}>Reset to satellite</MapBtn> : null}
+              {plan.sections.length ? (
+                <MapBtn
+                  active={locked}
+                  onClick={() => {
+                    setLocked((v) => !v);
+                    setTool("select");
+                    setDraft([]);
+                    cbHaptic(12);
+                  }}
+                >
+                  {locked ? "Unlock footprint" : "Save roof footprint"}
+                </MapBtn>
+              ) : null}
             </div>
           ) : (
             <div className="absolute left-3 top-3">
@@ -829,13 +879,40 @@ export function CbRoofPlanEditor({
           )}
 
           {tool === "line" && !readOnly ? (
-            <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
+            <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2">
               <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
                 Undo point
               </MapBtn>
               <MapBtn onClick={finishLine} disabled={draft.length < 2}>
                 Finish line ({Math.round(lineLengthFeet(draft))} LF)
               </MapBtn>
+              <MapBtn
+                onClick={() => {
+                  setDraft([]);
+                  setTool("select");
+                }}
+              >
+                Done drawing
+              </MapBtn>
+            </div>
+          ) : null}
+
+          {!readOnly ? (
+            <div className="pointer-events-none absolute bottom-3 left-3 right-3 flex justify-center">
+              {tool !== "line" ? (
+                <span
+                  className="rounded-full px-3 py-1.5 text-[12px] font-semibold"
+                  style={{ background: "rgba(12,16,22,0.78)", color: "#fff" }}
+                >
+                  {pinDropMode
+                    ? "Tap the roof to drop a measurement pin"
+                    : locked
+                      ? "Footprint locked — tap any line to label it"
+                      : plan.sections.length
+                        ? "Drag the corners onto the roof, then Save roof footprint"
+                        : "Drop a pin and measure to trace the roof"}
+                </span>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -936,9 +1013,19 @@ export function CbRoofPlanEditor({
             <div className="mt-2 space-y-2">
               {plan.lines.map((l) => (
                 <div key={l.id} className="flex items-center justify-between gap-2">
-                  <span className="text-[14px]" style={{ color: CB_EDGE_COLORS[l.type] }}>
+                  <button
+                    type="button"
+                    disabled={readOnly}
+                    onClick={() => setTypeSheet({ kind: "lineEdit", id: l.id })}
+                    className="rounded-full px-2.5 py-1 text-[14px] font-semibold"
+                    style={{
+                      background: `${CB_EDGE_COLORS[l.type]}22`,
+                      color: CB_EDGE_COLORS[l.type],
+                      border: `1px solid ${CB_EDGE_COLORS[l.type]}66`,
+                    }}
+                  >
                     {CB_EDGE_LABELS[l.type]}
-                  </span>
+                  </button>
                   <span className="cb-num text-[14px] font-semibold">
                     {Math.round(lineLengthFeet(l.coords))} LF
                   </span>
@@ -977,7 +1064,7 @@ export function CbRoofPlanEditor({
           setTypeSheet(null);
           if (typeSheet?.kind === "line") setDraft([]);
         }}
-        title={typeSheet?.kind === "line" ? "Label this line" : "Label this edge"}
+        title={typeSheet?.kind === "edge" ? "Label this edge" : "Label this line"}
       >
         <div className="grid grid-cols-2 gap-2">
           {CB_EDGE_TYPES.map((t) => (
