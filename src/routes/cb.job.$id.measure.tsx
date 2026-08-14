@@ -158,6 +158,7 @@ function CbJobMeasurePage() {
     if (!planData) return;
     setPlan(planData);
     if (!originalPlanRef.current) originalPlanRef.current = planData;
+    setAiPlan((cur) => cur ?? planData);
   }, [planData]);
 
   const { data: reportCount } = useQuery({
