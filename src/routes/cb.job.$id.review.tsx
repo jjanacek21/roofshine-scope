@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
@@ -9,9 +9,10 @@ import { CbReveal } from "@/components/cb/motion";
 import { useScrollMemory } from "@/components/cb/forms";
 import { CbPendingPill } from "@/components/claim-buddy/CbJobStepShell";
 import { useCbPhotoUrl } from "@/lib/cbPhotos";
-import { useCbUploadQueue } from "@/lib/cbPhotoQueue";
+import { cbRetryFailedPhotos, useCbUploadQueue } from "@/lib/cbPhotoQueue";
 import { CB_ELEVATIONS, CB_ELEVATION_LABEL, type CbElevation } from "@/lib/cbTakeoff";
 import { overallCompleteness, readSheet, scoreSheet } from "@/lib/cbSheet";
+import { resolveReportCover } from "@/lib/cbReport";
 
 export const Route = createFileRoute("/cb/job/$id/review")({
   head: () => ({
@@ -65,8 +66,11 @@ function Thumb({ path }: { path: string | null }) {
 function CbReviewPage() {
   const { id } = useParams({ from: "/cb/job/$id/review" });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   useScrollMemory(`review_${id}`);
-  const { pending } = useCbUploadQueue();
+  const { pendingByJob, failedByJob } = useCbUploadQueue();
+  const pending = pendingByJob[id] ?? 0;
+  const failed = failedByJob[id] ?? 0;
 
   const { data, isLoading } = useQuery({
     queryKey: ["cb-review", id],
@@ -119,6 +123,20 @@ function CbReviewPage() {
     return map;
   }, [photos]);
 
+  const coverPhoto = useMemo(
+    () => resolveReportCover(photos, (job?.cover_photo_path as string | null) ?? null),
+    [photos, job?.cover_photo_path],
+  );
+
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      const detail = (event as CustomEvent<{ jobId?: string }>).detail;
+      if (detail?.jobId === id) void queryClient.invalidateQueries({ queryKey: ["cb-review", id] });
+    };
+    window.addEventListener("cb-photo-uploaded", refresh);
+    return () => window.removeEventListener("cb-photo-uploaded", refresh);
+  }, [id, queryClient]);
+
   const byElevation = useMemo(() => {
     const map: Record<string, Photo[]> = {};
     for (const p of photos) {
@@ -143,7 +161,7 @@ function CbReviewPage() {
   );
 
   /** Trust the photos table, not just the counter on the job row. */
-  const hasCover = !!job?.cover_photo_path || photos.some((p) => p.category === "cover");
+  const hasCover = !!coverPhoto;
 
   const source = measurement?.rep_adjusted
     ? "Rep-adjusted"
@@ -174,16 +192,11 @@ function CbReviewPage() {
     if (pending > 0) {
       out.push({ text: `${pending} photo${pending === 1 ? "" : "s"} still uploading`, to: "review" });
     }
+    if (failed > 0) {
+      out.push({ text: `${failed} photo upload${failed === 1 ? "" : "s"} need retry`, to: "review" });
+    }
     return out;
-  }, [job, inspected, hasWide, hasCover, squares, sheet, completeness, pending]);
-
-  const blockers: string[] = [];
-  if (!hasCover) blockers.push("a cover photo");
-  const missingWide = inspected.filter((e) => !hasWide(e));
-  if (missingWide.length > 0) {
-    blockers.push(`a wide shot on ${missingWide.map((e) => CB_ELEVATION_LABEL[e].toLowerCase()).join(", ")}`);
-  }
-  if (squares <= 0) blockers.push("squares recorded");
+  }, [job, inspected, hasWide, hasCover, squares, sheet, completeness, pending, failed]);
 
 
   function go(to: string) {
@@ -272,6 +285,17 @@ function CbReviewPage() {
                   </p>
                 ) : null}
               </div>
+
+              {coverPhoto ? (
+                <div className="mt-4">
+                  <span className="cb-microlabel">
+                    {job?.cover_photo_path || coverPhoto.category === "cover" ? "Report cover" : "Report cover fallback"}
+                  </span>
+                  <div className="mt-2 max-w-[160px]">
+                    <Thumb path={coverPhoto.thumb_path ?? coverPhoto.storage_path} />
+                  </div>
+                </div>
+              ) : null}
 
               {CB_ELEVATIONS.filter((e) => (byElevation[e]?.length ?? 0) > 0).map((e) => (
                 <div key={e} className="mt-4">
@@ -382,7 +406,7 @@ function CbReviewPage() {
             </CbCard>
           </CbReveal>
 
-          {/* GAPS */}
+          {/* REVIEW NOTES */}
           {gaps.length > 0 ? (
             <CbReveal>
               <CbCard
@@ -397,7 +421,7 @@ function CbReviewPage() {
                 <div className="flex items-center gap-2">
                   <AlertTriangle size={16} style={{ color: "var(--cb-warning, #b45309)" }} />
                   <h2 className="cb-display" style={{ fontSize: 17, margin: 0 }}>
-                    {gaps.length} gap{gaps.length === 1 ? "" : "s"}
+                    Review notes
                   </h2>
                 </div>
                 <div className="mt-3 grid gap-2">
@@ -420,6 +444,16 @@ function CbReviewPage() {
                     </button>
                   ))}
                 </div>
+                {failed > 0 ? (
+                  <CbButton
+                    block
+                    variant="secondary"
+                    className="mt-3"
+                    onClick={() => void cbRetryFailedPhotos(id)}
+                  >
+                    Retry failed uploads
+                  </CbButton>
+                ) : null}
               </CbCard>
             </CbReveal>
           ) : null}
@@ -429,14 +463,13 @@ function CbReviewPage() {
           <div className="cb-dock">
             <CbButton
               block
-              disabled={blockers.length > 0}
               onClick={() => navigate({ to: "/cb/job/$id/generating", params: { id } })}
             >
               Create Report
             </CbButton>
-            {blockers.length > 0 ? (
+            {gaps.length > 0 ? (
               <p className="text-center text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
-                Still needed: {blockers.join(", ")}.
+                You can create the report now; review notes are optional.
               </p>
             ) : null}
           </div>

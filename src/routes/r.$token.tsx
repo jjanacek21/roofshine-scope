@@ -103,14 +103,17 @@ function CbSharedReportPage() {
   }
 
   const coverPath = (data.job?.cover_photo_path as string) ?? null;
+  const reportPhotos = data.photos ?? [];
   const vm: CbReportViewModel = {
     company: data.company as CbReportViewModel["company"],
     logoUrl: null,
     job: data.job,
     repName: null,
     coverPhoto:
-      (data.photos ?? []).find((p) => p.storage_path === coverPath) ??
-      (data.photos ?? []).find((p) => p.category === "cover") ??
+      reportPhotos.find((p) => !!coverPath && p.storage_path === coverPath) ??
+      reportPhotos.find((p) => p.category === "cover") ??
+      reportPhotos.find((p) => p.shot_type === "overview" || p.shot_type === "wide") ??
+      reportPhotos[0] ??
       null,
     photos: data.photos ?? [],
     urls,
