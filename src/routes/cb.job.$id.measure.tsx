@@ -178,7 +178,13 @@ function CbJobMeasurePage() {
       setPinDropMode(collapsed.sections.length === 0);
       if (!originalPlanRef.current) originalPlanRef.current = collapsed;
       setAiPlan((cur) => cur ?? collapsed);
-      if (collapsed.sections.length !== planData.sections.length) setPlanDirty(true);
+      if (collapsed.sections.length !== planData.sections.length) {
+        setPlanDirty(true);
+        // Persist the repaired structure keys once so legacy plans stop re-splitting.
+        if (!planReadOnly) {
+          void saveCbRoofPlan(id, collapsed, { repAdjusted: false }).catch(() => undefined);
+        }
+      }
     });
     return () => {
       cancelled = true;

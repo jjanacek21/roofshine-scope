@@ -270,19 +270,50 @@ export async function mergeSectionsByStructure(
     const only = plan.sections[0];
     return {
       ...plan,
-      sections: [{ ...only, name: only.name || structureName(0), color: cbSectionColor(0) }],
+      sections: [
+        {
+          ...only,
+          name: only.name || structureName(0),
+          color: cbSectionColor(0),
+          structureKey: only.structureKey || `structure-1`,
+        },
+      ],
     };
   }
 
   const groups: CbPlanSection[][] = [];
 
   const keyed = new Map<string, CbPlanSection[]>();
+  const unkeyed: CbPlanSection[] = [];
   for (const section of plan.sections) {
-    if (!section.structureKey) continue;
-    keyed.set(section.structureKey, [...(keyed.get(section.structureKey) ?? []), section]);
+    if (section.structureKey) {
+      keyed.set(section.structureKey, [...(keyed.get(section.structureKey) ?? []), section]);
+    } else {
+      unkeyed.push(section);
+    }
   }
-  if (keyed.size && [...keyed.values()].flat().length === plan.sections.length) {
+
+  if (keyed.size) {
     groups.push(...keyed.values());
+    // Legacy facets saved before per-structure keys existed: fold each one into
+    // the nearest keyed structure instead of leaving it as its own outline.
+    for (const section of unkeyed) {
+      const [cx, cy] = ringCentroid(section.ring);
+      let nearest = 0;
+      let best = Infinity;
+      groups.forEach((group, i) => {
+        for (const other of group) {
+          const [ox, oy] = ringCentroid(other.ring);
+          const s = ftPerDeg(oy);
+          const d = Math.hypot((cx - ox) * s.lng, (cy - oy) * s.lat);
+          if (d < best) {
+            best = d;
+            nearest = i;
+          }
+        }
+      });
+      groups[nearest].push(section);
+    }
   }
 
   if (!groups.length && pins.length > 1) {
@@ -340,6 +371,7 @@ export async function mergeSectionsByStructure(
     }
   }
 
+
   const merged: CbPlanSection[] = [];
   for (const group of groups) {
     if (!group.length) continue;
@@ -351,10 +383,11 @@ export async function mergeSectionsByStructure(
       ...section,
       name: structureName(i),
       color: cbSectionColor(i),
-      structureKey: group[0]?.structureKey || `structure-${i + 1}`,
-      pin: group[0]?.pin ?? (pins[i] ?? null),
+      structureKey: group.find((item) => item.structureKey)?.structureKey || `structure-${i + 1}`,
+      pin: group.find((item) => item.pin)?.pin ?? (pins[i] ?? null),
       isLocked: group.every((item) => item.isLocked),
-      aiRing: group[0]?.aiRing ?? section.ring.map((point) => [...point]),
+      aiRing: group.find((item) => item.aiRing?.length)?.aiRing ?? section.ring.map((point) => [...point]),
+
     });
   }
 
@@ -550,7 +583,9 @@ export async function loadCbRoofPlan(jobId: string): Promise<CbPlan> {
       ring,
       pitch: s.pitch || "6/12",
       edges: normalizeEdges(ring, edges),
-      structureKey: s.structure_key || `structure-${i + 1}`,
+      // Leave legacy rows unkeyed so grouping can fold them into one structure.
+      structureKey: s.structure_key || "",
+
       pin:
         s.pin_lat != null && s.pin_lng != null
           ? { lat: Number(s.pin_lat), lng: Number(s.pin_lng) }
