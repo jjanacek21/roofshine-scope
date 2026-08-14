@@ -202,6 +202,12 @@ export function CbRoofPlanEditor({
         paint: { "line-color": ["get", "color"], "line-width": 5 },
       });
       map.addLayer({
+        id: "cb-line-hit",
+        type: "line",
+        source: "cb-line",
+        paint: { "line-color": "#000", "line-opacity": 0.01, "line-width": 26 },
+      });
+      map.addLayer({
         id: "cb-line-label",
         type: "symbol",
         source: "cb-line",
