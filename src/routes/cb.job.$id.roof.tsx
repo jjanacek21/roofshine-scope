@@ -189,7 +189,7 @@ function CbRoofWalk() {
     <CbSurface>
       <div className="min-h-screen px-4 pb-28 pt-6" style={{ background: "var(--cb-bg)" }}>
         <div className="mx-auto w-full max-w-[620px]">
-          <CbProgressRail steps={railSteps} current={idx} />
+          <CbProgressRail steps={railSteps} current={idx + 1} />
 
           <div className="mt-4 flex items-start justify-between gap-3">
             <div>
