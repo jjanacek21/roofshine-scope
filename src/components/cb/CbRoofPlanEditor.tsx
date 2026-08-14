@@ -428,7 +428,44 @@ export function CbRoofPlanEditor({
         type: "FeatureCollection",
         features,
       });
+    // ---- AI trace overlay: dashed original + confidence-tinted edges ----
+    const aiFeatures: GeoJSON.Feature[] = showTrace
+      ? (aiPlan?.sections ?? [])
+          .filter((s) => s.ring.length >= 3)
+          .map((s) => ({
+            type: "Feature",
+            properties: { id: s.id },
+            geometry: { type: "LineString", coordinates: closeRing(s.ring) },
+          }))
+      : [];
+
+    const confFeatures: GeoJSON.Feature[] = [];
+    if (showTrace) {
+      plan.sections.forEach((s) => {
+        const c = confidence.get(s.id);
+        if (!c) return;
+        c.edges.forEach((e) => {
+          const a = s.ring[e.index];
+          const b = s.ring[(e.index + 1) % s.ring.length];
+          if (!a || !b) return;
+          const color = confidenceColor(e.score);
+          confFeatures.push({
+            type: "Feature",
+            properties: { color, score: e.score },
+            geometry: { type: "LineString", coordinates: [a, b] },
+          });
+          confFeatures.push({
+            type: "Feature",
+            properties: { color },
+            geometry: { type: "Point", coordinates: a },
+          });
+        });
+      });
+    }
+
     set("cb-fill", fills);
+    set("cb-ai", aiFeatures);
+    set("cb-conf", confFeatures);
     set("cb-edge", edges);
     set("cb-line", lines);
     set("cb-chip", chips);
@@ -440,7 +477,7 @@ export function CbRoofPlanEditor({
         geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
       })),
     );
-  }, [plan, ready, selectedId, draft, measurePins]);
+  }, [plan, ready, selectedId, draft, measurePins, showTrace, aiPlan, confidence]);
 
   /* -------- pin markers: visible even when the GL layers never came up ----- */
 
