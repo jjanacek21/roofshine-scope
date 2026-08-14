@@ -148,6 +148,9 @@ function CbJobMeasurePage() {
       ? { lat: Number(job.lat), lng: Number(job.lng) }
       : null;
 
+  /** The untouched AI trace, kept so the editor can show it + confidence. */
+  const [aiPlan, setAiPlan] = useState<CbPlan | null>(null);
+
   const { data: planData, refetch: refetchPlan } = useQuery({
     queryKey: ["cb-roof-plan", id],
     enabled: !!job,
@@ -158,6 +161,7 @@ function CbJobMeasurePage() {
     if (!planData) return;
     setPlan(planData);
     if (!originalPlanRef.current) originalPlanRef.current = planData;
+    setAiPlan((cur) => cur ?? planData);
   }, [planData]);
 
   const { data: reportCount } = useQuery({
@@ -252,6 +256,7 @@ function CbJobMeasurePage() {
           measurePins.length > 1 ? fresh.data : await mergeSectionsToFootprint(fresh.data);
         setPlan(merged);
         originalPlanRef.current = merged;
+        setAiPlan(JSON.parse(JSON.stringify(merged)) as CbPlan);
         setPlanDirty(merged !== fresh.data);
       }
 
@@ -423,6 +428,7 @@ function CbJobMeasurePage() {
                     }}
                     onMeasure={() => void run()}
                     measuring={phase === "running"}
+                    aiPlan={aiPlan}
                   />
                 </Suspense>
               </CbErrorBoundary>

@@ -33,11 +33,16 @@ import {
   type CbPlanTotals,
   type CbEdgeType,
 } from "@/lib/cbRoofPlan";
+import { confidenceColor, traceConfidence } from "@/lib/cbTraceConfidence";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-type Tool = "select" | "line";
+type Tool = "select" | "line" | "refine";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+/** Screen-space grab radius (px) for tap-to-refine. */
+const TAP_VERTEX_PX = 34;
+const TAP_EDGE_PX = 28;
 
 export function CbRoofPlanEditor({
   plan,
@@ -53,6 +58,7 @@ export function CbRoofPlanEditor({
   onClearPins,
   onMeasure,
   measuring = false,
+  aiPlan = null,
 }: {
   plan: CbPlan;
   onPlanChange: (next: CbPlan, opts: { user: boolean }) => void;
@@ -67,6 +73,8 @@ export function CbRoofPlanEditor({
   onClearPins?: () => void;
   onMeasure?: () => void;
   measuring?: boolean;
+  /** The untouched AI trace, drawn underneath as a dashed reference. */
+  aiPlan?: CbPlan | null;
 }) {
   const { data: token } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -93,12 +101,37 @@ export function CbRoofPlanEditor({
   >(null);
   /** Footprint locked = corners frozen, taps label perimeter edges instead. */
   const [locked, setLocked] = useState(false);
+  /** AI trace overlay: dashed original outline + per-edge confidence colouring. */
+  const [showTrace, setShowTrace] = useState(true);
   const [pitchSheet, setPitchSheet] = useState<string | null>(null);
   const [loupe, setLoupe] = useState<{ x: number; y: number } | null>(null);
   const loupeRef = useRef<HTMLCanvasElement | null>(null);
 
   const selected = plan.sections.find((s) => s.id === selectedId) ?? null;
   const totals = useMemo(() => planTotals(plan), [plan]);
+
+  /** Per-structure confidence in the AI trace, scored from the geometry itself. */
+  const confidence = useMemo(() => {
+    const byId = new Map<string, ReturnType<typeof traceConfidence>>();
+    plan.sections.forEach((s, i) => {
+      const aiRing =
+        aiPlan?.sections.find((a) => a.id === s.id)?.ring ?? aiPlan?.sections[i]?.ring ?? null;
+      byId.set(s.id, traceConfidence(s.ring, aiRing));
+    });
+    return byId;
+  }, [plan.sections, aiPlan]);
+
+  const overallConfidence = useMemo(() => {
+    const all = [...confidence.values()];
+    if (!all.length) return null;
+    const percent = Math.round(all.reduce((n, c) => n + c.percent, 0) / all.length);
+    return {
+      percent,
+      low: all.reduce((n, c) => n + c.lowCount, 0),
+      label: percent >= 80 ? "High" : percent >= 60 ? "Medium" : "Low",
+    };
+  }, [confidence]);
+
 
   /* ------------------------------ history ------------------------------ */
 
@@ -164,6 +197,8 @@ export function CbRoofPlanEditor({
         if (!map.getSource(id)) map.addSource(id, { type: "geojson", data: empty });
       };
       addSource("cb-fill");
+      addSource("cb-ai");
+      addSource("cb-conf");
       addSource("cb-edge");
       addSource("cb-line");
       addSource("cb-chip");
@@ -175,6 +210,42 @@ export function CbRoofPlanEditor({
         type: "fill",
         source: "cb-fill",
         paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "opacity"] },
+      });
+      // Untouched AI outline, dashed cyan, sits under everything the rep draws.
+      map.addLayer({
+        id: "cb-ai-l",
+        type: "line",
+        source: "cb-ai",
+        paint: {
+          "line-color": "#22d3ee",
+          "line-width": 2,
+          "line-opacity": 0.9,
+          "line-dasharray": [1.5, 1.5],
+        },
+      });
+      // Detected edges tinted by how much we trust them.
+      map.addLayer({
+        id: "cb-conf-l",
+        type: "line",
+        source: "cb-conf",
+        paint: {
+          "line-color": ["get", "color"],
+          "line-width": 7,
+          "line-opacity": 0.55,
+          "line-blur": 1.5,
+        },
+      });
+      map.addLayer({
+        id: "cb-conf-pt",
+        type: "circle",
+        source: "cb-conf",
+        filter: ["==", ["geometry-type"], "Point"],
+        paint: {
+          "circle-radius": 5,
+          "circle-color": ["get", "color"],
+          "circle-stroke-color": "#0b1220",
+          "circle-stroke-width": 1.5,
+        },
       });
       map.addLayer({
         id: "cb-fill-outline",
@@ -357,7 +428,44 @@ export function CbRoofPlanEditor({
         type: "FeatureCollection",
         features,
       });
+    // ---- AI trace overlay: dashed original + confidence-tinted edges ----
+    const aiFeatures: GeoJSON.Feature[] = showTrace
+      ? (aiPlan?.sections ?? [])
+          .filter((s) => s.ring.length >= 3)
+          .map((s) => ({
+            type: "Feature",
+            properties: { id: s.id },
+            geometry: { type: "LineString", coordinates: closeRing(s.ring) },
+          }))
+      : [];
+
+    const confFeatures: GeoJSON.Feature[] = [];
+    if (showTrace) {
+      plan.sections.forEach((s) => {
+        const c = confidence.get(s.id);
+        if (!c) return;
+        c.edges.forEach((e) => {
+          const a = s.ring[e.index];
+          const b = s.ring[(e.index + 1) % s.ring.length];
+          if (!a || !b) return;
+          const color = confidenceColor(e.score);
+          confFeatures.push({
+            type: "Feature",
+            properties: { color, score: e.score },
+            geometry: { type: "LineString", coordinates: [a, b] },
+          });
+          confFeatures.push({
+            type: "Feature",
+            properties: { color },
+            geometry: { type: "Point", coordinates: a },
+          });
+        });
+      });
+    }
+
     set("cb-fill", fills);
+    set("cb-ai", aiFeatures);
+    set("cb-conf", confFeatures);
     set("cb-edge", edges);
     set("cb-line", lines);
     set("cb-chip", chips);
@@ -369,7 +477,7 @@ export function CbRoofPlanEditor({
         geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
       })),
     );
-  }, [plan, ready, selectedId, draft, measurePins]);
+  }, [plan, ready, selectedId, draft, measurePins, showTrace, aiPlan, confidence]);
 
   /* -------- pin markers: visible even when the GL layers never came up ----- */
 
@@ -390,7 +498,76 @@ export function CbRoofPlanEditor({
     });
   }, [measurePins, ready, mapVersion]);
 
+  /* --------------------------- tap to refine ---------------------------- */
+
+  const selectedIdRef = useRef<string | null>(null);
+  selectedIdRef.current = selectedId;
+
+  /**
+   * One-handed correction: tap near a corner to snap it onto the roof line you
+   * tapped, tap on an edge to insert a new corner there. No dragging needed.
+   */
+  function refineTap(lngLat: [number, number], point: { x: number; y: number }) {
+    const map = mapRef.current;
+    const current = planRef.current;
+    const section =
+      current.sections.find((s) => s.id === selectedIdRef.current) ?? current.sections[0];
+    if (!map || !section || section.ring.length < 3) return;
+
+    const screen = section.ring.map((p) => map.project(p as [number, number]));
+
+    let nearestV = -1;
+    let bestV = Infinity;
+    screen.forEach((p, i) => {
+      const d = Math.hypot(p.x - point.x, p.y - point.y);
+      if (d < bestV) {
+        bestV = d;
+        nearestV = i;
+      }
+    });
+
+    if (nearestV >= 0 && bestV <= TAP_VERTEX_PX) {
+      const snapped = snapVertex(section.ring, nearestV, lngLat);
+      commit(
+        updateSection(section.id, (s) => ({
+          ...s,
+          ring: s.ring.map((p, i) => (i === nearestV ? snapped : p)),
+        })),
+      );
+      cbHaptic(12);
+      return;
+    }
+
+    // Distance from the tap to each edge segment, in screen pixels.
+    let nearestE = -1;
+    let bestE = Infinity;
+    for (let i = 0; i < screen.length; i++) {
+      const a = screen[i];
+      const b = screen[(i + 1) % screen.length];
+      const vx = b.x - a.x;
+      const vy = b.y - a.y;
+      const len2 = vx * vx + vy * vy || 1;
+      const t = Math.max(0, Math.min(1, ((point.x - a.x) * vx + (point.y - a.y) * vy) / len2));
+      const d = Math.hypot(a.x + t * vx - point.x, a.y + t * vy - point.y);
+      if (d < bestE) {
+        bestE = d;
+        nearestE = i;
+      }
+    }
+
+    if (nearestE >= 0 && bestE <= TAP_EDGE_PX) {
+      const edges = normalizeEdges(section.ring, section.edges);
+      const ring = [...section.ring];
+      ring.splice(nearestE + 1, 0, lngLat);
+      const nextEdges = [...edges];
+      nextEdges.splice(nearestE + 1, 0, edges[nearestE]);
+      commit(updateSection(section.id, (s) => ({ ...s, ring, edges: nextEdges })));
+      cbHaptic(12);
+    }
+  }
+
   /* ------------------------------ map taps ------------------------------ */
+
 
   useEffect(() => {
     const map = mapRef.current;
@@ -407,6 +584,10 @@ export function CbRoofPlanEditor({
       if (tool === "line" && !readOnly) {
         setDraft((d) => [...d, [e.lngLat.lng, e.lngLat.lat]]);
         cbHaptic(6);
+        return;
+      }
+      if (tool === "refine" && !readOnly && !locked) {
+        refineTap([e.lngLat.lng, e.lngLat.lat], e.point);
         return;
       }
       if (!map.getLayer("cb-fill-l")) return;
@@ -442,7 +623,7 @@ export function CbRoofPlanEditor({
     return () => {
       map.off("click", onClick);
     };
-  }, [mapVersion, ready, tool, readOnly, pinDropMode, onPinDrop]);
+  }, [mapVersion, ready, tool, readOnly, pinDropMode, locked, onPinDrop]);
 
   /* ------------------------------- loupe -------------------------------- */
 
@@ -847,6 +1028,24 @@ export function CbRoofPlanEditor({
               <MapBtn active={tool === "line"} onClick={() => setTool("line")}>
                 Line
               </MapBtn>
+              {plan.sections.length ? (
+                <MapBtn
+                  active={tool === "refine"}
+                  disabled={locked}
+                  onClick={() => {
+                    setTool("refine");
+                    setDraft([]);
+                    setShowTrace(true);
+                  }}
+                >
+                  Refine trace
+                </MapBtn>
+              ) : null}
+              {plan.sections.length ? (
+                <MapBtn active={showTrace} onClick={() => setShowTrace((v) => !v)}>
+                  {showTrace ? "Hide AI trace" : "Show AI trace"}
+                </MapBtn>
+              ) : null}
               <MapBtn active={pinDropMode} onClick={onTogglePinDrop}>
                 {pinDropMode ? "Tap roof now" : "Drop measurement pin"}
               </MapBtn>
@@ -878,6 +1077,29 @@ export function CbRoofPlanEditor({
             </div>
           )}
 
+          {showTrace && overallConfidence ? (
+            <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-1">
+              <span
+                className="rounded-full px-3 py-1.5 text-[12px] font-bold"
+                style={{
+                  background: "rgba(12,16,22,0.82)",
+                  color: confidenceColor(overallConfidence.percent / 100),
+                }}
+              >
+                AI confidence {overallConfidence.percent}% · {overallConfidence.label}
+              </span>
+              {overallConfidence.low ? (
+                <span
+                  className="rounded-full px-3 py-1 text-[11px] font-semibold"
+                  style={{ background: "rgba(12,16,22,0.72)", color: "#fca5a5" }}
+                >
+                  {overallConfidence.low} edge{overallConfidence.low === 1 ? "" : "s"} need a look
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+
+
           {tool === "line" && !readOnly ? (
             <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2">
               <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
@@ -906,11 +1128,13 @@ export function CbRoofPlanEditor({
                 >
                   {pinDropMode
                     ? "Tap the roof to drop a measurement pin"
-                    : locked
-                      ? "Footprint locked — tap any line to label it"
-                      : plan.sections.length
-                        ? "Drag the corners onto the roof, then Save roof footprint"
-                        : "Drop a pin and measure to trace the roof"}
+                    : tool === "refine"
+                      ? "Tap a red edge to add a corner, or tap near a corner to snap it"
+                      : locked
+                        ? "Footprint locked — tap any line to label it"
+                        : plan.sections.length
+                          ? "Drag the corners onto the roof, then Save roof footprint"
+                          : "Drop a pin and measure to trace the roof"}
                 </span>
               ) : null}
             </div>
