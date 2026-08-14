@@ -12,7 +12,7 @@ import { useCbPhotoUrl } from "@/lib/cbPhotos";
 import { cbRetryFailedPhotos, useCbUploadQueue } from "@/lib/cbPhotoQueue";
 import { CB_ELEVATIONS, CB_ELEVATION_LABEL, type CbElevation } from "@/lib/cbTakeoff";
 import { overallCompleteness, readSheet, scoreSheet } from "@/lib/cbSheet";
-import { resolveReportCover, type CbReportPhoto } from "@/lib/cbReport";
+import { resolveReportCover } from "@/lib/cbReport";
 
 export const Route = createFileRoute("/cb/job/$id/review")({
   head: () => ({
@@ -124,7 +124,7 @@ function CbReviewPage() {
   }, [photos]);
 
   const coverPhoto = useMemo(
-    () => resolveReportCover(photos as CbReportPhoto[], (job?.cover_photo_path as string | null) ?? null),
+    () => resolveReportCover(photos, (job?.cover_photo_path as string | null) ?? null),
     [photos, job?.cover_photo_path],
   );
 

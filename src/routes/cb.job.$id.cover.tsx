@@ -63,7 +63,7 @@ function CbJobCoverPage() {
     const refresh = (event: Event) => {
       const detail = (event as CustomEvent<{ jobId?: string }>).detail;
       if (detail?.jobId === id) {
-        void queryClient.invalidateQueries({ queryKey: ["cb-cover-job", id] });
+        void queryClient.invalidateQueries({ queryKey: ["cb-job-ws", id] });
         void queryClient.invalidateQueries({ queryKey: ["cb-review", id] });
       }
     };

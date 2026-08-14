@@ -29,10 +29,10 @@ export interface CbReportPhoto {
 }
 
 /** Pick the best saved image available for the report cover. */
-export function resolveReportCover(
-  photos: CbReportPhoto[],
+export function resolveReportCover<T extends Pick<CbReportPhoto, "category" | "shot_type" | "storage_path">>(
+  photos: T[],
   coverPath?: string | null,
-): CbReportPhoto | null {
+): T | null {
   return (
     photos.find((photo) => !!coverPath && photo.storage_path === coverPath) ??
     photos.find((photo) => photo.category === "cover") ??
