@@ -18,6 +18,8 @@ import {
   saveCbRoofPlan,
   planTotals,
   mergeSectionsByStructure,
+  cbSectionColor,
+
   type CbPlan,
 } from "@/lib/cbRoofPlan";
 
