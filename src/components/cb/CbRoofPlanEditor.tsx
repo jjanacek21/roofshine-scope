@@ -819,6 +819,22 @@ export function CbRoofPlanEditor({
     setSelectedId(null);
   }
 
+  function editSavedFootprint(id: string) {
+    commit(updateSection(id, (section) => ({ ...section, isLocked: false })));
+    setSelectedId(id);
+    setTool("select");
+  }
+
+  function restoreActiveAiOutline() {
+    if (!activeSection?.aiRing?.length) return;
+    commit(updateSection(activeSection.id, (section) => ({
+      ...section,
+      ring: section.aiRing?.map((point) => [...point]) ?? section.ring,
+      edges: (section.aiRing ?? section.ring).map(() => "unlabeled" as CbEdgeType),
+    })));
+    setSettingsOpen(false);
+  }
+
   function setPitch(id: string, pitch: string) {
     commit(updateSection(id, (s) => ({ ...s, pitch })));
     setPitchSheet(null);
@@ -1121,7 +1137,10 @@ export function CbRoofPlanEditor({
             ) : measurePins.length > plan.sections.length && onMeasure ? (
               <CbButton block onClick={onMeasure} loading={measuring} loadingText="Measuring…">Measure roof</CbButton>
             ) : (
-              <CbButton block onClick={onTogglePinDrop}>{pinDropMode ? "Tap roof to place pin" : "Add another roof"}</CbButton>
+              <div className="grid grid-cols-2 gap-2">
+                <CbButton block variant="secondary" onClick={onTogglePinDrop}>{pinDropMode ? "Tap roof to place pin" : "Add another roof"}</CbButton>
+                <CbButton block onClick={() => { setTool("line"); setDraft([]); }}>Continue to lines</CbButton>
+              </div>
             )}
             {!ready ? (
               <p className="mt-2 text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
@@ -1168,7 +1187,7 @@ export function CbRoofPlanEditor({
                 <MapBtn onClick={() => setPitchSheet(s.id)} disabled={readOnly}>
                   Pitch {s.pitch}
                 </MapBtn>
-                <MapBtn onClick={() => setSelectedId(s.id)}>{s.isLocked ? "Select" : selectedId === s.id ? "Editing" : "Edit shape"}</MapBtn>
+                <MapBtn onClick={() => s.isLocked ? editSavedFootprint(s.id) : setSelectedId(s.id)}>{s.isLocked ? "Edit footprint" : selectedId === s.id ? "Editing" : "Edit shape"}</MapBtn>
                 {plan.sections.length > 1 && !readOnly ? (
                   <MapBtn onClick={() => removeSection(s.id)}>Remove</MapBtn>
                 ) : null}
@@ -1288,7 +1307,7 @@ export function CbRoofPlanEditor({
             </CbCard>
           ) : null}
           {aiPlan?.sections.length ? <CbButton block variant="secondary" onClick={() => setShowTrace((value) => !value)}>{showTrace ? "Hide AI outline" : "Show AI outline"}</CbButton> : null}
-          {canReset ? <CbButton block variant="secondary" onClick={() => { onReset?.(); setSettingsOpen(false); }}><RotateCcw size={18} /> Restore AI outline</CbButton> : null}
+          {activeSection?.aiRing?.length ? <CbButton block variant="secondary" onClick={restoreActiveAiOutline}><RotateCcw size={18} /> Restore AI outline</CbButton> : canReset ? <CbButton block variant="secondary" onClick={() => { onReset?.(); setSettingsOpen(false); }}><RotateCcw size={18} /> Restore AI outline</CbButton> : null}
           <CbButton block variant="secondary" onClick={redo} disabled={!future.length}>Redo</CbButton>
           {measurePins.length ? <CbButton block variant="danger" onClick={() => { onClearPins?.(); setSettingsOpen(false); }}>Clear roof pins</CbButton> : null}
         </div>

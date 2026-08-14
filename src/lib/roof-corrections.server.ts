@@ -75,8 +75,13 @@ export async function findNearbyCorrection(
       metersBetween(opts.lat, opts.lng, Number(r.lat), Number(r.lng)) <= radius,
   );
   if (usable.length === 0) return null;
-  const samePropertyFirst =
-    (opts.propertyId && usable.find((r) => r.property_id === opts.propertyId)) || usable[0];
+  usable.sort((a, b) => {
+    const propertyA = opts.propertyId && a.property_id === opts.propertyId ? 0 : 1;
+    const propertyB = opts.propertyId && b.property_id === opts.propertyId ? 0 : 1;
+    if (propertyA !== propertyB) return propertyA - propertyB;
+    return metersBetween(opts.lat, opts.lng, Number(a.lat), Number(a.lng)) - metersBetween(opts.lat, opts.lng, Number(b.lat), Number(b.lng));
+  });
+  const samePropertyFirst = usable[0];
   return samePropertyFirst;
 }
 

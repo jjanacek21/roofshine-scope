@@ -1,6 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { polygonAreaSqft } from "@/lib/roof-math";
-import { closeRing, type CbPlanSection } from "@/lib/cbRoofPlan";
+
+type CbPlanSection = {
+  name: string;
+  ring: number[][];
+  pitch: string;
+  structureKey: string;
+  pin: { lat: number; lng: number } | null;
+  aiRing: number[][] | null;
+};
+
+function closeRing(ring: number[][]): number[][] {
+  if (!ring.length) return ring;
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  return first[0] === last[0] && first[1] === last[1] ? ring : [...ring, first];
+}
 
 export async function saveCbRoofCorrection(
   supabase: SupabaseClient,
@@ -76,7 +91,14 @@ export async function saveCbRoofCorrection(
     .upsert(row as never, { onConflict: "property_id,structure_key" });
   if (error) throw error;
 
-  await supabaseAdmin.from("training_examples").insert({
+  const { data: priorExample } = await supabaseAdmin
+    .from("training_examples")
+    .select("id")
+    .eq("source_measurement_id", measurementId as string)
+    .eq("source", "vertex_edit")
+    .contains("ground_truth", { structure_key: section.structureKey })
+    .maybeSingle();
+  const example = {
     address: job.address || `${pin.lat.toFixed(6)}, ${pin.lng.toFixed(6)}`,
     lat: pin.lat,
     lng: pin.lng,
@@ -86,7 +108,13 @@ export async function saveCbRoofCorrection(
     solar_response: { structure_key: section.structureKey, ai_facets: aiFacet },
     notes: "Claim Buddy corrected roof footprint",
     created_by: userId,
-  } as never);
+    updated_at: new Date().toISOString(),
+  };
+  if (priorExample?.id) {
+    await supabaseAdmin.from("training_examples").update(example as never).eq("id", priorExample.id);
+  } else {
+    await supabaseAdmin.from("training_examples").insert(example as never);
+  }
 
   return { ok: true as const };
 }
