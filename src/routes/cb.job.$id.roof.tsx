@@ -15,6 +15,8 @@ import {
   useCbTakeoff,
   type CbElevation,
 } from "@/lib/cbTakeoff";
+import { readSheet } from "@/lib/cbSheet";
+
 
 export const Route = createFileRoute("/cb/job/$id/roof")({
   head: () => ({
