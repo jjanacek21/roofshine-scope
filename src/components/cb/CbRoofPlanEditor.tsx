@@ -820,8 +820,9 @@ export function CbRoofPlanEditor({
   }
 
   /**
-   * Draw first, label later: finishing a line drops it in unlabeled and keeps
-   * the line tool armed so every ridge/hip/valley can be drawn in one pass.
+   * Draw first, label later. Every tapped point is a real endpoint: a draft
+   * with 3+ points becomes one line PER SEGMENT so a ridge, hip and valley
+   * drawn in one pass can each be labelled on their own.
    */
   function finishLine() {
     if (draft.length < 2) {
@@ -829,13 +830,16 @@ export function CbRoofPlanEditor({
       setTool("select");
       return;
     }
-    commit({
-      ...plan,
-      lines: [...plan.lines, { id: uid(), coords: draft, type: "unlabeled" }],
-    });
+    const segments = draft.slice(0, -1).map((p, i) => ({
+      id: uid(),
+      coords: [p, draft[i + 1]],
+      type: "unlabeled" as CbEdgeType,
+    }));
+    commit({ ...plan, lines: [...plan.lines, ...segments] });
     setDraft([]);
     cbHaptic();
   }
+
 
   function applyType(t: CbEdgeType) {
     if (!typeSheet) return;
