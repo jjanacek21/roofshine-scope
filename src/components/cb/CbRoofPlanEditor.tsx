@@ -410,7 +410,19 @@ export function CbRoofPlanEditor({
         return;
       }
       if (!map.getLayer("cb-fill-l")) return;
-      const hits = map.queryRenderedFeatures(e.point, { layers: ["cb-edge-hit", "cb-fill-l"] });
+      const layers = ["cb-edge-hit", "cb-fill-l"];
+      if (map.getLayer("cb-line-hit")) layers.unshift("cb-line-hit");
+      const hits = map.queryRenderedFeatures(e.point, { layers });
+
+      // A drawn line takes priority — that's what the rep is tapping to label.
+      const lineHit = hits.find((f) => f.layer?.id === "cb-line-hit");
+      if (lineHit && !readOnly) {
+        const lineId = lineHit.properties?.id as string | undefined;
+        if (lineId && lineId !== "draft") {
+          setTypeSheet({ kind: "lineEdit", id: lineId });
+          return;
+        }
+      }
 
       const edgeHit = hits.find((f) => f.layer?.id === "cb-edge-hit");
       if (edgeHit && !readOnly) {
