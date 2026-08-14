@@ -197,6 +197,8 @@ export function CbRoofPlanEditor({
         if (!map.getSource(id)) map.addSource(id, { type: "geojson", data: empty });
       };
       addSource("cb-fill");
+      addSource("cb-ai");
+      addSource("cb-conf");
       addSource("cb-edge");
       addSource("cb-line");
       addSource("cb-chip");
@@ -208,6 +210,42 @@ export function CbRoofPlanEditor({
         type: "fill",
         source: "cb-fill",
         paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "opacity"] },
+      });
+      // Untouched AI outline, dashed cyan, sits under everything the rep draws.
+      map.addLayer({
+        id: "cb-ai-l",
+        type: "line",
+        source: "cb-ai",
+        paint: {
+          "line-color": "#22d3ee",
+          "line-width": 2,
+          "line-opacity": 0.9,
+          "line-dasharray": [1.5, 1.5],
+        },
+      });
+      // Detected edges tinted by how much we trust them.
+      map.addLayer({
+        id: "cb-conf-l",
+        type: "line",
+        source: "cb-conf",
+        paint: {
+          "line-color": ["get", "color"],
+          "line-width": 7,
+          "line-opacity": 0.55,
+          "line-blur": 1.5,
+        },
+      });
+      map.addLayer({
+        id: "cb-conf-pt",
+        type: "circle",
+        source: "cb-conf",
+        filter: ["==", ["geometry-type"], "Point"],
+        paint: {
+          "circle-radius": 5,
+          "circle-color": ["get", "color"],
+          "circle-stroke-color": "#0b1220",
+          "circle-stroke-width": 1.5,
+        },
       });
       map.addLayer({
         id: "cb-fill-outline",
