@@ -87,9 +87,12 @@ export function CbRoofPlanEditor({
   const [draft, setDraft] = useState<number[][]>([]);
   const [typeSheet, setTypeSheet] = useState<
     | { kind: "line"; coords: number[][] }
+    | { kind: "lineEdit"; id: string }
     | { kind: "edge"; sectionId: string; index: number }
     | null
   >(null);
+  /** Footprint locked = corners frozen, taps label perimeter edges instead. */
+  const [locked, setLocked] = useState(false);
   const [pitchSheet, setPitchSheet] = useState<string | null>(null);
   const [loupe, setLoupe] = useState<{ x: number; y: number } | null>(null);
   const loupeRef = useRef<HTMLCanvasElement | null>(null);
