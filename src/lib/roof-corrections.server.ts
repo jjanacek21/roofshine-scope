@@ -23,6 +23,7 @@ export type StoredCorrection = {
   corrected_facets: CorrectionFacet[];
   corrected_plan_sqft: number;
   created_at: string;
+  structure_key?: string | null;
 };
 
 const M_PER_DEG_LAT = 111_320;
@@ -56,7 +57,7 @@ export async function findNearbyCorrection(
 
   let q = admin
     .from("roof_corrections")
-    .select("id, lat, lng, pitch, corrected_facets, corrected_plan_sqft, created_at, property_id")
+    .select("id, lat, lng, pitch, corrected_facets, corrected_plan_sqft, created_at, property_id, structure_key")
     .gte("lat", opts.lat - dLat)
     .lte("lat", opts.lat + dLat)
     .gte("lng", opts.lng - dLng)

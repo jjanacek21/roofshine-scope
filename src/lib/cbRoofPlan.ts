@@ -39,6 +39,10 @@ export interface CbPlanSection {
   ring: number[][];
   pitch: string;
   edges: CbEdgeType[];
+  structureKey: string;
+  pin: { lat: number; lng: number } | null;
+  isLocked: boolean;
+  aiRing: number[][] | null;
 }
 
 export interface CbPlanLine {
@@ -235,6 +239,10 @@ export async function mergeSectionsToFootprint(plan: CbPlan): Promise<CbPlan> {
         ring,
         pitch,
         edges: ring.map(() => "unlabeled" as CbEdgeType),
+        structureKey: first.structureKey,
+        pin: first.pin,
+        isLocked: first.isLocked,
+        aiRing: first.aiRing,
       },
     ],
   };
@@ -268,7 +276,16 @@ export async function mergeSectionsByStructure(
 
   const groups: CbPlanSection[][] = [];
 
-  if (pins.length > 1) {
+  const keyed = new Map<string, CbPlanSection[]>();
+  for (const section of plan.sections) {
+    if (!section.structureKey) continue;
+    keyed.set(section.structureKey, [...(keyed.get(section.structureKey) ?? []), section]);
+  }
+  if (keyed.size && [...keyed.values()].flat().length === plan.sections.length) {
+    groups.push(...keyed.values());
+  }
+
+  if (!groups.length && pins.length > 1) {
     pins.forEach(() => groups.push([]));
     for (const section of plan.sections) {
       const [cx, cy] = ringCentroid(section.ring);
@@ -284,9 +301,9 @@ export async function mergeSectionsByStructure(
       });
       groups[nearest].push(section);
     }
-  } else if (pins.length === 1) {
+  } else if (!groups.length && pins.length === 1) {
     groups.push([...plan.sections]);
-  } else {
+  } else if (!groups.length) {
     // No pins to group by: cluster facets that overlap or touch.
     let intersects: ((a: unknown, b: unknown) => boolean) | null = null;
     let polygonOf: ((ring: number[][]) => unknown) | null = null;
@@ -334,6 +351,10 @@ export async function mergeSectionsByStructure(
       ...section,
       name: structureName(i),
       color: cbSectionColor(i),
+      structureKey: group[0]?.structureKey || `structure-${i + 1}`,
+      pin: group[0]?.pin ?? (pins[i] ?? null),
+      isLocked: group.every((item) => item.isLocked),
+      aiRing: group[0]?.aiRing ?? section.ring.map((point) => [...point]),
     });
   }
 
@@ -484,6 +505,11 @@ type RawSection = {
   polygon_geojson: unknown;
   pitch: string;
   edges: { edge_index: number; edge_type: EdgeType; length_lf: number }[];
+  structure_key?: string | null;
+  pin_lat?: number | null;
+  pin_lng?: number | null;
+  is_locked?: boolean | null;
+  ai_polygon_geojson?: unknown;
 };
 
 function ringFromGeoJson(g: unknown): number[][] {
@@ -524,6 +550,13 @@ export async function loadCbRoofPlan(jobId: string): Promise<CbPlan> {
       ring,
       pitch: s.pitch || "6/12",
       edges: normalizeEdges(ring, edges),
+      structureKey: s.structure_key || `structure-${i + 1}`,
+      pin:
+        s.pin_lat != null && s.pin_lng != null
+          ? { lat: Number(s.pin_lat), lng: Number(s.pin_lng) }
+          : null,
+      isLocked: !!s.is_locked,
+      aiRing: s.ai_polygon_geojson ? ringFromGeoJson(s.ai_polygon_geojson) : ring.map((p) => [...p]),
     };
   });
 
@@ -557,6 +590,13 @@ export async function saveCbRoofPlan(
       pitch_multiplier: Math.round(mult * 1000) / 1000,
       actual_area_sqft: Math.round(planArea * mult),
       sort_order: i,
+      structure_key: s.structureKey,
+      pin_lat: s.pin?.lat ?? null,
+      pin_lng: s.pin?.lng ?? null,
+      is_locked: s.isLocked,
+      ai_polygon_geojson: s.aiRing?.length
+        ? { type: "Polygon", coordinates: [closeRing(s.aiRing)] }
+        : null,
       edges: edges.map((t, idx) => ({
         edge_index: idx,
         edge_type: t,
