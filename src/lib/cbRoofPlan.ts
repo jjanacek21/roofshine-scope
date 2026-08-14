@@ -270,19 +270,50 @@ export async function mergeSectionsByStructure(
     const only = plan.sections[0];
     return {
       ...plan,
-      sections: [{ ...only, name: only.name || structureName(0), color: cbSectionColor(0) }],
+      sections: [
+        {
+          ...only,
+          name: only.name || structureName(0),
+          color: cbSectionColor(0),
+          structureKey: only.structureKey || `structure-1`,
+        },
+      ],
     };
   }
 
   const groups: CbPlanSection[][] = [];
 
   const keyed = new Map<string, CbPlanSection[]>();
+  const unkeyed: CbPlanSection[] = [];
   for (const section of plan.sections) {
-    if (!section.structureKey) continue;
-    keyed.set(section.structureKey, [...(keyed.get(section.structureKey) ?? []), section]);
+    if (section.structureKey) {
+      keyed.set(section.structureKey, [...(keyed.get(section.structureKey) ?? []), section]);
+    } else {
+      unkeyed.push(section);
+    }
   }
-  if (keyed.size && [...keyed.values()].flat().length === plan.sections.length) {
+
+  if (keyed.size) {
     groups.push(...keyed.values());
+    // Legacy facets saved before per-structure keys existed: fold each one into
+    // the nearest keyed structure instead of leaving it as its own outline.
+    for (const section of unkeyed) {
+      const [cx, cy] = ringCentroid(section.ring);
+      let nearest = 0;
+      let best = Infinity;
+      groups.forEach((group, i) => {
+        for (const other of group) {
+          const [ox, oy] = ringCentroid(other.ring);
+          const s = ftPerDeg(oy);
+          const d = Math.hypot((cx - ox) * s.lng, (cy - oy) * s.lat);
+          if (d < best) {
+            best = d;
+            nearest = i;
+          }
+        }
+      });
+      groups[nearest].push(section);
+    }
   }
 
   if (!groups.length && pins.length > 1) {
@@ -339,6 +370,7 @@ export async function mergeSectionsByStructure(
       if (!placed) groups.push([section]);
     }
   }
+
 
   const merged: CbPlanSection[] = [];
   for (const group of groups) {
