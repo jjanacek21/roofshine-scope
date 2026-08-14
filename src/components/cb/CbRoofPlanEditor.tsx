@@ -110,6 +110,29 @@ export function CbRoofPlanEditor({
   const selected = plan.sections.find((s) => s.id === selectedId) ?? null;
   const totals = useMemo(() => planTotals(plan), [plan]);
 
+  /** Per-structure confidence in the AI trace, scored from the geometry itself. */
+  const confidence = useMemo(() => {
+    const byId = new Map<string, ReturnType<typeof traceConfidence>>();
+    plan.sections.forEach((s, i) => {
+      const aiRing =
+        aiPlan?.sections.find((a) => a.id === s.id)?.ring ?? aiPlan?.sections[i]?.ring ?? null;
+      byId.set(s.id, traceConfidence(s.ring, aiRing));
+    });
+    return byId;
+  }, [plan.sections, aiPlan]);
+
+  const overallConfidence = useMemo(() => {
+    const all = [...confidence.values()];
+    if (!all.length) return null;
+    const percent = Math.round(all.reduce((n, c) => n + c.percent, 0) / all.length);
+    return {
+      percent,
+      low: all.reduce((n, c) => n + c.lowCount, 0),
+      label: percent >= 80 ? "High" : percent >= 60 ? "Medium" : "Low",
+    };
+  }, [confidence]);
+
+
   /* ------------------------------ history ------------------------------ */
 
   const commit = useCallback(
