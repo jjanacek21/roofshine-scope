@@ -148,6 +148,9 @@ function CbJobMeasurePage() {
       ? { lat: Number(job.lat), lng: Number(job.lng) }
       : null;
 
+  /** The untouched AI trace, kept so the editor can show it + confidence. */
+  const [aiPlan, setAiPlan] = useState<CbPlan | null>(null);
+
   const { data: planData, refetch: refetchPlan } = useQuery({
     queryKey: ["cb-roof-plan", id],
     enabled: !!job,
