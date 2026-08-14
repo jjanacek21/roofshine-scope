@@ -101,6 +101,8 @@ export function CbRoofPlanEditor({
   >(null);
   /** Footprint locked = corners frozen, taps label perimeter edges instead. */
   const [locked, setLocked] = useState(false);
+  /** AI trace overlay: dashed original outline + per-edge confidence colouring. */
+  const [showTrace, setShowTrace] = useState(true);
   const [pitchSheet, setPitchSheet] = useState<string | null>(null);
   const [loupe, setLoupe] = useState<{ x: number; y: number } | null>(null);
   const loupeRef = useRef<HTMLCanvasElement | null>(null);
