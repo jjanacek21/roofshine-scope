@@ -879,13 +879,40 @@ export function CbRoofPlanEditor({
           )}
 
           {tool === "line" && !readOnly ? (
-            <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
+            <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2">
               <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
                 Undo point
               </MapBtn>
               <MapBtn onClick={finishLine} disabled={draft.length < 2}>
                 Finish line ({Math.round(lineLengthFeet(draft))} LF)
               </MapBtn>
+              <MapBtn
+                onClick={() => {
+                  setDraft([]);
+                  setTool("select");
+                }}
+              >
+                Done drawing
+              </MapBtn>
+            </div>
+          ) : null}
+
+          {!readOnly ? (
+            <div className="absolute bottom-3 left-3 right-3 flex justify-center">
+              {tool !== "line" ? (
+                <span
+                  className="rounded-full px-3 py-1.5 text-[12px] font-semibold"
+                  style={{ background: "rgba(12,16,22,0.78)", color: "#fff" }}
+                >
+                  {pinDropMode
+                    ? "Tap the roof to drop a measurement pin"
+                    : locked
+                      ? "Footprint locked — tap any line to label it"
+                      : plan.sections.length
+                        ? "Drag the corners onto the roof, then Save roof footprint"
+                        : "Drop a pin and measure to trace the roof"}
+                </span>
+              ) : null}
             </div>
           ) : null}
         </div>
