@@ -85,7 +85,10 @@ function CbJobMeasurePage() {
   const [remaining, setRemaining] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [measurePins, setMeasurePins] = useState<Array<{ lat: number; lng: number }>>([]);
+  /** How many dropped pins have already been traced. */
+  const [measuredCount, setMeasuredCount] = useState(0);
   const [pinDropMode, setPinDropMode] = useState(true);
+
   const [editorKey, setEditorKey] = useState(0);
 
   const { data, isLoading } = useQuery({
