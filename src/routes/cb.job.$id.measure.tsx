@@ -256,6 +256,7 @@ function CbJobMeasurePage() {
           measurePins.length > 1 ? fresh.data : await mergeSectionsToFootprint(fresh.data);
         setPlan(merged);
         originalPlanRef.current = merged;
+        setAiPlan(JSON.parse(JSON.stringify(merged)) as CbPlan);
         setPlanDirty(merged !== fresh.data);
       }
 
