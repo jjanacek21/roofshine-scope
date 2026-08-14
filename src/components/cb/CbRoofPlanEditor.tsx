@@ -623,7 +623,7 @@ export function CbRoofPlanEditor({
     return () => {
       map.off("click", onClick);
     };
-  }, [mapVersion, ready, tool, readOnly, pinDropMode, onPinDrop]);
+  }, [mapVersion, ready, tool, readOnly, pinDropMode, locked, onPinDrop]);
 
   /* ------------------------------- loupe -------------------------------- */
 
