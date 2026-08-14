@@ -507,7 +507,7 @@ export function CbRoofPlanEditor({
    * One-handed correction: tap near a corner to snap it onto the roof line you
    * tapped, tap on an edge to insert a new corner there. No dragging needed.
    */
-  function refineTap(lngLat: number[], point: { x: number; y: number }) {
+  function refineTap(lngLat: [number, number], point: { x: number; y: number }) {
     const map = mapRef.current;
     const current = planRef.current;
     const section =
