@@ -582,7 +582,9 @@ export async function loadCbRoofPlan(jobId: string): Promise<CbPlan> {
       ring,
       pitch: s.pitch || "6/12",
       edges: normalizeEdges(ring, edges),
-      structureKey: s.structure_key || `structure-${i + 1}`,
+      // Leave legacy rows unkeyed so grouping can fold them into one structure.
+      structureKey: s.structure_key || "",
+
       pin:
         s.pin_lat != null && s.pin_lng != null
           ? { lat: Number(s.pin_lat), lng: Number(s.pin_lng) }
