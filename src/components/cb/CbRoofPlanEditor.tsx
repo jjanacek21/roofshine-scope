@@ -898,7 +898,7 @@ export function CbRoofPlanEditor({
           ) : null}
 
           {!readOnly ? (
-            <div className="absolute bottom-3 left-3 right-3 flex justify-center">
+            <div className="pointer-events-none absolute bottom-3 left-3 right-3 flex justify-center">
               {tool !== "line" ? (
                 <span
                   className="rounded-full px-3 py-1.5 text-[12px] font-semibold"
