@@ -498,7 +498,76 @@ export function CbRoofPlanEditor({
     });
   }, [measurePins, ready, mapVersion]);
 
+  /* --------------------------- tap to refine ---------------------------- */
+
+  const selectedIdRef = useRef<string | null>(null);
+  selectedIdRef.current = selectedId;
+
+  /**
+   * One-handed correction: tap near a corner to snap it onto the roof line you
+   * tapped, tap on an edge to insert a new corner there. No dragging needed.
+   */
+  function refineTap(lngLat: number[], point: { x: number; y: number }) {
+    const map = mapRef.current;
+    const current = planRef.current;
+    const section =
+      current.sections.find((s) => s.id === selectedIdRef.current) ?? current.sections[0];
+    if (!map || !section || section.ring.length < 3) return;
+
+    const screen = section.ring.map((p) => map.project(p as [number, number]));
+
+    let nearestV = -1;
+    let bestV = Infinity;
+    screen.forEach((p, i) => {
+      const d = Math.hypot(p.x - point.x, p.y - point.y);
+      if (d < bestV) {
+        bestV = d;
+        nearestV = i;
+      }
+    });
+
+    if (nearestV >= 0 && bestV <= TAP_VERTEX_PX) {
+      const snapped = snapVertex(section.ring, nearestV, lngLat);
+      commit(
+        updateSection(section.id, (s) => ({
+          ...s,
+          ring: s.ring.map((p, i) => (i === nearestV ? snapped : p)),
+        })),
+      );
+      cbHaptic(12);
+      return;
+    }
+
+    // Distance from the tap to each edge segment, in screen pixels.
+    let nearestE = -1;
+    let bestE = Infinity;
+    for (let i = 0; i < screen.length; i++) {
+      const a = screen[i];
+      const b = screen[(i + 1) % screen.length];
+      const vx = b.x - a.x;
+      const vy = b.y - a.y;
+      const len2 = vx * vx + vy * vy || 1;
+      const t = Math.max(0, Math.min(1, ((point.x - a.x) * vx + (point.y - a.y) * vy) / len2));
+      const d = Math.hypot(a.x + t * vx - point.x, a.y + t * vy - point.y);
+      if (d < bestE) {
+        bestE = d;
+        nearestE = i;
+      }
+    }
+
+    if (nearestE >= 0 && bestE <= TAP_EDGE_PX) {
+      const edges = normalizeEdges(section.ring, section.edges);
+      const ring = [...section.ring];
+      ring.splice(nearestE + 1, 0, lngLat);
+      const nextEdges = [...edges];
+      nextEdges.splice(nearestE + 1, 0, edges[nearestE]);
+      commit(updateSection(section.id, (s) => ({ ...s, ring, edges: nextEdges })));
+      cbHaptic(12);
+    }
+  }
+
   /* ------------------------------ map taps ------------------------------ */
+
 
   useEffect(() => {
     const map = mapRef.current;
