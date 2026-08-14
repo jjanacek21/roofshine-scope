@@ -1053,29 +1053,38 @@ export function CbRoofPlanEditor({
 
           {!readOnly ? (
             <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-              {!plan.sections.length ? (
-                <MapBtn active={pinDropMode} onClick={onTogglePinDrop}>Drop pin</MapBtn>
-              ) : !locked ? (
-                <MapBtn
-                  onClick={() => {
-                    setLocked(true);
-                    setTool("select");
-                    setDraft([]);
-                    cbHaptic(12);
-                  }}
-                >
-                  Lock footprint
+              <MapBtn active={pinDropMode} onClick={onTogglePinDrop}>
+                {plan.sections.length ? "Add pin" : "Drop pin"}
+              </MapBtn>
+              {measurePins.length && onMeasure ? (
+                <MapBtn onClick={onMeasure} disabled={measuring}>
+                  {measuring ? "Measuring…" : "Measure pin"}
                 </MapBtn>
-              ) : (
-                <>
-                  <MapBtn active={tool === "line"} onClick={() => { setTool("line"); setDraft([]); }}>Draw lines</MapBtn>
-                  <MapBtn active={tool === "label"} onClick={() => { setTool("label"); setDraft([]); }}>Label lines</MapBtn>
-                  <MapBtn onClick={() => { setLocked(false); setTool("select"); }}>Unlock</MapBtn>
-                </>
-              )}
+              ) : null}
+              {plan.sections.length ? (
+                !locked ? (
+                  <MapBtn
+                    onClick={() => {
+                      setLocked(true);
+                      setTool("select");
+                      setDraft([]);
+                      cbHaptic(12);
+                    }}
+                  >
+                    Lock footprint
+                  </MapBtn>
+                ) : (
+                  <>
+                    <MapBtn active={tool === "line"} onClick={() => { setTool("line"); setDraft([]); }}>Draw lines</MapBtn>
+                    <MapBtn active={tool === "label"} onClick={() => { setTool("label"); setDraft([]); }}>Label lines</MapBtn>
+                    <MapBtn onClick={() => { setLocked(false); setTool("select"); }}>Unlock</MapBtn>
+                  </>
+                )
+              ) : null}
               <MapBtn active={moreOpen} onClick={() => setMoreOpen((value) => !value)}>More</MapBtn>
               {moreOpen ? <>
                 {measurePins.length ? <MapBtn onClick={onClearPins}>Clear pins</MapBtn> : null}
+
                 <MapBtn onClick={undo} disabled={!past.length}>Undo</MapBtn>
                 <MapBtn onClick={redo} disabled={!future.length}>Redo</MapBtn>
                 {canReset ? <MapBtn onClick={onReset}>Reset</MapBtn> : null}
