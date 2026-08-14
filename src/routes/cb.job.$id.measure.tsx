@@ -107,28 +107,31 @@ function CbJobMeasurePage() {
   useEffect(() => {
     const e = data?.existing;
     if (!e) return;
-    setValues({
-      ...CB_BLANK_MEASUREMENT,
-      total_squares: Number(e.total_squares ?? 0),
-      total_area_sqft: Number(e.total_area_sqft ?? 0),
-      waste_pct: Number(e.waste_pct ?? 15),
-      pitch: e.pitch ?? null,
-      stories: e.stories ?? null,
-      facets: e.facets ?? null,
-      ridge_lf: Number(e.ridge_lf ?? 0),
-      hip_lf: Number(e.hip_lf ?? 0),
-      valley_lf: Number(e.valley_lf ?? 0),
-      rake_lf: Number(e.rake_lf ?? 0),
-      eave_lf: Number(e.eave_lf ?? 0),
-      drip_edge_lf: Number(e.drip_edge_lf ?? 0),
-      starter_lf: Number(e.starter_lf ?? 0),
-      ridge_cap_lf: Number(e.ridge_cap_lf ?? 0),
-      wall_flashing_lf: Number(e.wall_flashing_lf ?? 0),
-      step_flashing_lf: Number(e.step_flashing_lf ?? 0),
-      gutter_lf: Number(e.gutter_lf ?? 0),
-      source: e.source ?? "manual",
-      raw: e.raw ?? null,
-    });
+    setValues(
+      applyDerived({
+        ...CB_BLANK_MEASUREMENT,
+        total_squares: Number(e.total_squares ?? 0),
+        total_area_sqft: Number(e.total_area_sqft ?? 0),
+        waste_pct: Number(e.waste_pct ?? 15),
+        pitch: e.pitch ?? null,
+        stories: e.stories ?? null,
+        facets: e.facets ?? null,
+        ridge_lf: Number(e.ridge_lf ?? 0),
+        hip_lf: Number(e.hip_lf ?? 0),
+        valley_lf: Number(e.valley_lf ?? 0),
+        rake_lf: Number(e.rake_lf ?? 0),
+        eave_lf: Number(e.eave_lf ?? 0),
+        drip_edge_lf: Number(e.drip_edge_lf ?? 0),
+        starter_lf: Number(e.starter_lf ?? 0),
+        ridge_cap_lf: Number(e.ridge_cap_lf ?? 0),
+        wall_flashing_lf: Number(e.wall_flashing_lf ?? 0),
+        step_flashing_lf: Number(e.step_flashing_lf ?? 0),
+        gutter_lf: Number(e.gutter_lf ?? 0),
+        source: e.source ?? "manual",
+        raw: e.raw ?? null,
+      }),
+    );
+
     setRepAdjusted(!!e.rep_adjusted);
     setPhase(e.source === "manual" ? "manual" : "result");
   }, [data?.existing]);
