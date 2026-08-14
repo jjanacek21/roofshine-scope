@@ -1013,9 +1013,19 @@ export function CbRoofPlanEditor({
             <div className="mt-2 space-y-2">
               {plan.lines.map((l) => (
                 <div key={l.id} className="flex items-center justify-between gap-2">
-                  <span className="text-[14px]" style={{ color: CB_EDGE_COLORS[l.type] }}>
+                  <button
+                    type="button"
+                    disabled={readOnly}
+                    onClick={() => setTypeSheet({ kind: "lineEdit", id: l.id })}
+                    className="rounded-full px-2.5 py-1 text-[14px] font-semibold"
+                    style={{
+                      background: `${CB_EDGE_COLORS[l.type]}22`,
+                      color: CB_EDGE_COLORS[l.type],
+                      border: `1px solid ${CB_EDGE_COLORS[l.type]}66`,
+                    }}
+                  >
                     {CB_EDGE_LABELS[l.type]}
-                  </span>
+                  </button>
                   <span className="cb-num text-[14px] font-semibold">
                     {Math.round(lineLengthFeet(l.coords))} LF
                   </span>
