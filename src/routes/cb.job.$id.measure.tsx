@@ -501,12 +501,13 @@ function CbJobMeasurePage() {
                     >
                       Drop another pin
                     </CbButton>
-                    {measurePins.length ? (
+                    {measurePins.length > measuredCount ? (
                       <CbButton size="md" onClick={() => void run()} disabled={phase !== "result"}>
-                        Measure {measurePins.length} pinned roof
-                        {measurePins.length === 1 ? "" : "s"}
+                        Measure new pin
+                        {measurePins.length - measuredCount === 1 ? "" : "s"}
                       </CbButton>
                     ) : null}
+
                   </div>
                 </CbCard>
               </>
