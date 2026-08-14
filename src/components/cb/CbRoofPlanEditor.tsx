@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
+import { RotateCcw, Settings, Undo2 } from "lucide-react";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { CbButton, CbCard, CbChip, CbSheet } from "@/components/cb/primitives";
 import { cbHaptic } from "@/components/cb/motion";
@@ -60,6 +61,8 @@ export function CbRoofPlanEditor({
   onMeasure,
   measuring = false,
   aiPlan = null,
+  onSaveFootprint,
+  savingFootprint = false,
 }: {
   plan: CbPlan;
   onPlanChange: (next: CbPlan, opts: { user: boolean }) => void;
@@ -76,6 +79,8 @@ export function CbRoofPlanEditor({
   measuring?: boolean;
   /** The untouched AI trace, drawn underneath as a dashed reference. */
   aiPlan?: CbPlan | null;
+  onSaveFootprint?: (sectionId: string) => void;
+  savingFootprint?: boolean;
 }) {
   const { data: token } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -100,16 +105,16 @@ export function CbRoofPlanEditor({
     | { kind: "edge"; sectionId: string; index: number }
     | null
   >(null);
-  /** Footprint locked = corners frozen, taps label perimeter edges instead. */
-  const [locked, setLocked] = useState(false);
   /** AI trace overlay: dashed original outline + per-edge confidence colouring. */
   const [showTrace, setShowTrace] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [pitchSheet, setPitchSheet] = useState<string | null>(null);
   const [loupe, setLoupe] = useState<{ x: number; y: number } | null>(null);
   const loupeRef = useRef<HTMLCanvasElement | null>(null);
 
   const selected = plan.sections.find((s) => s.id === selectedId) ?? null;
+  const activeSection = selected ?? plan.sections.find((section) => !section.isLocked) ?? plan.sections[0] ?? null;
+  const locked = activeSection?.isLocked ?? false;
   const totals = useMemo(() => planTotals(plan), [plan]);
 
   /** Per-structure confidence in the AI trace, scored from the geometry itself. */
@@ -814,6 +819,22 @@ export function CbRoofPlanEditor({
     setSelectedId(null);
   }
 
+  function editSavedFootprint(id: string) {
+    commit(updateSection(id, (section) => ({ ...section, isLocked: false })));
+    setSelectedId(id);
+    setTool("select");
+  }
+
+  function restoreActiveAiOutline() {
+    if (!activeSection?.aiRing?.length) return;
+    commit(updateSection(activeSection.id, (section) => ({
+      ...section,
+      ring: section.aiRing?.map((point) => [...point]) ?? section.ring,
+      edges: (section.aiRing ?? section.ring).map(() => "unlabeled" as CbEdgeType),
+    })));
+    setSettingsOpen(false);
+  }
+
   function setPitch(id: string, pitch: string) {
     commit(updateSection(id, (s) => ({ ...s, pitch })));
     setPitchSheet(null);
@@ -876,7 +897,7 @@ export function CbRoofPlanEditor({
 
   /* ------------------------------- render ------------------------------- */
 
-  const handleSection = selected ?? (plan.sections.length ? plan.sections[0] : null);
+  const handleSection = activeSection;
   const vertexHandles: { x: number; y: number; index: number }[] = [];
   const midHandles: { x: number; y: number; index: number }[] = [];
   if (handleSection && !readOnly && ready && !locked && tool === "select") {
@@ -1052,73 +1073,18 @@ export function CbRoofPlanEditor({
           {/* toolbar */}
 
           {!readOnly ? (
-            <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-              <MapBtn active={pinDropMode} onClick={onTogglePinDrop}>
-                {plan.sections.length ? "Add pin" : "Drop pin"}
-              </MapBtn>
-              {measurePins.length && onMeasure ? (
-                <MapBtn onClick={onMeasure} disabled={measuring}>
-                  {measuring ? "Measuring…" : "Measure pin"}
-                </MapBtn>
-              ) : null}
-              {plan.sections.length ? (
-                !locked ? (
-                  <MapBtn
-                    onClick={() => {
-                      setLocked(true);
-                      setTool("select");
-                      setDraft([]);
-                      cbHaptic(12);
-                    }}
-                  >
-                    Lock footprint
-                  </MapBtn>
-                ) : (
-                  <>
-                    <MapBtn active={tool === "line"} onClick={() => { setTool("line"); setDraft([]); }}>Draw lines</MapBtn>
-                    <MapBtn active={tool === "label"} onClick={() => { setTool("label"); setDraft([]); }}>Label lines</MapBtn>
-                    <MapBtn onClick={() => { setLocked(false); setTool("select"); }}>Unlock</MapBtn>
-                  </>
-                )
-              ) : null}
-              <MapBtn active={moreOpen} onClick={() => setMoreOpen((value) => !value)}>More</MapBtn>
-              {moreOpen ? <>
-                {measurePins.length ? <MapBtn onClick={onClearPins}>Clear pins</MapBtn> : null}
-
-                <MapBtn onClick={undo} disabled={!past.length}>Undo</MapBtn>
-                <MapBtn onClick={redo} disabled={!future.length}>Redo</MapBtn>
-                {canReset ? <MapBtn onClick={onReset}>Reset</MapBtn> : null}
-                {aiPlan?.sections.length ? <MapBtn active={showTrace} onClick={() => setShowTrace((value) => !value)}>AI trace</MapBtn> : null}
-              </> : null}
+            <div className="absolute left-3 top-3 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2">
+              <span className="min-w-0 truncate rounded-[10px] px-3 py-2 text-[13px] font-semibold" style={{ background: "rgba(12,16,22,0.78)", color: "#fff" }}>
+                {activeSection?.name ?? "Drop a roof pin"}
+              </span>
+              <MapIconBtn label="Undo" onClick={undo} disabled={!past.length}><Undo2 size={18} /></MapIconBtn>
+              <MapIconBtn label="Measurement settings" onClick={() => setSettingsOpen(true)}><Settings size={18} /></MapIconBtn>
             </div>
           ) : (
             <div className="absolute left-3 top-3">
               <CbChip>Read only — report generated</CbChip>
             </div>
           )}
-
-          {showTrace && overallConfidence ? (
-            <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-1">
-              <span
-                className="rounded-full px-3 py-1.5 text-[12px] font-bold"
-                style={{
-                  background: "rgba(12,16,22,0.82)",
-                  color: confidenceColor(overallConfidence.percent / 100),
-                }}
-              >
-                AI confidence {overallConfidence.percent}% · {overallConfidence.label}
-              </span>
-              {overallConfidence.low ? (
-                <span
-                  className="rounded-full px-3 py-1 text-[11px] font-semibold"
-                  style={{ background: "rgba(12,16,22,0.72)", color: "#fca5a5" }}
-                >
-                  {overallConfidence.low} edge{overallConfidence.low === 1 ? "" : "s"} need a look
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-
 
           {tool === "line" && !readOnly ? (
             <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2">
@@ -1162,20 +1128,20 @@ export function CbRoofPlanEditor({
         </div>
 
         {/* Always-visible measure action — never hunt for it down the page. */}
-        {onMeasure && !readOnly ? (
+        {!readOnly ? (
           <div className="border-t px-4 py-3" style={{ borderColor: "var(--cb-border)" }}>
-            <CbButton
-              block
-              onClick={measurePins.length ? onMeasure : onTogglePinDrop}
-              loading={measuring}
-              loadingText="Measuring…"
-            >
-              {measurePins.length
-                ? `Measure ${measurePins.length} pinned roof${measurePins.length === 1 ? "" : "s"}`
-                : pinDropMode
-                  ? "Tap the roof to drop a pin"
-                  : "Drop a pin on the roof"}
-            </CbButton>
+            {activeSection && !activeSection.isLocked ? (
+              <CbButton block onClick={() => onSaveFootprint?.(activeSection.id)} loading={savingFootprint} loadingText="Saving footprint…">
+                Save this footprint
+              </CbButton>
+            ) : measurePins.length > plan.sections.length && onMeasure ? (
+              <CbButton block onClick={onMeasure} loading={measuring} loadingText="Measuring…">Measure roof</CbButton>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <CbButton block variant="secondary" onClick={onTogglePinDrop}>{pinDropMode ? "Tap roof to place pin" : "Add another roof"}</CbButton>
+                <CbButton block onClick={() => { setTool("line"); setDraft([]); }}>Continue to lines</CbButton>
+              </div>
+            )}
             {!ready ? (
               <p className="mt-2 text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
                 Map is still loading — any measurements listed below are still valid.
@@ -1197,7 +1163,7 @@ export function CbRoofPlanEditor({
               <div className="flex items-center justify-between gap-3">
                 <button
                   type="button"
-                  onClick={() => setSelectedId(s.id === selectedId ? null : s.id)}
+                  onClick={() => setSelectedId(s.id)}
                   className="flex items-center gap-2 text-left"
                 >
                   <span
@@ -1211,6 +1177,7 @@ export function CbRoofPlanEditor({
                     }}
                   />
                   <span className="text-[16px] font-semibold">{s.name || `Structure ${i + 1}`}</span>
+                  {s.isLocked ? <CbChip>Saved</CbChip> : null}
                 </button>
                 <span className="cb-num text-[15px] font-semibold">
                   {Math.round(sectionActualAreaSqft(s)).toLocaleString()} sf
@@ -1220,9 +1187,7 @@ export function CbRoofPlanEditor({
                 <MapBtn onClick={() => setPitchSheet(s.id)} disabled={readOnly}>
                   Pitch {s.pitch}
                 </MapBtn>
-                <MapBtn onClick={() => setSelectedId(s.id)}>
-                  {selectedId === s.id ? "Editing" : "Edit shape"}
-                </MapBtn>
+                <MapBtn onClick={() => s.isLocked ? editSavedFootprint(s.id) : setSelectedId(s.id)}>{s.isLocked ? "Edit footprint" : selectedId === s.id ? "Editing" : "Edit shape"}</MapBtn>
                 {plan.sections.length > 1 && !readOnly ? (
                   <MapBtn onClick={() => removeSection(s.id)}>Remove</MapBtn>
                 ) : null}
@@ -1329,6 +1294,24 @@ export function CbRoofPlanEditor({
           ))}
         </div>
       </CbSheet>
+
+      <CbSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Measurement settings">
+        <div className="space-y-3">
+          {overallConfidence ? (
+            <CbCard className="p-4">
+              <p className="text-[14px] font-semibold">AI confidence</p>
+              <p className="cb-num mt-1 text-[24px] font-bold" style={{ color: confidenceColor(overallConfidence.percent / 100) }}>
+                {overallConfidence.percent}% · {overallConfidence.label}
+              </p>
+              {overallConfidence.low ? <p className="mt-1 text-[13px]">Review {overallConfidence.low} low-confidence edge{overallConfidence.low === 1 ? "" : "s"}.</p> : null}
+            </CbCard>
+          ) : null}
+          {aiPlan?.sections.length ? <CbButton block variant="secondary" onClick={() => setShowTrace((value) => !value)}>{showTrace ? "Hide AI outline" : "Show AI outline"}</CbButton> : null}
+          {activeSection?.aiRing?.length ? <CbButton block variant="secondary" onClick={restoreActiveAiOutline}><RotateCcw size={18} /> Restore AI outline</CbButton> : canReset ? <CbButton block variant="secondary" onClick={() => { onReset?.(); setSettingsOpen(false); }}><RotateCcw size={18} /> Restore AI outline</CbButton> : null}
+          <CbButton block variant="secondary" onClick={redo} disabled={!future.length}>Redo</CbButton>
+          {measurePins.length ? <CbButton block variant="danger" onClick={() => { onClearPins?.(); setSettingsOpen(false); }}>Clear roof pins</CbButton> : null}
+        </div>
+      </CbSheet>
     </div>
   );
 }
@@ -1353,6 +1336,38 @@ function MapBtn({
       style={{
         minHeight: 40,
         background: active ? "var(--cb-accent, #1F425D)" : "rgba(12,16,22,0.78)",
+        color: "#fff",
+        border: "1px solid rgba(255,255,255,0.22)",
+        opacity: disabled ? 0.45 : 1,
+        backdropFilter: "blur(6px)",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function MapIconBtn({
+  children,
+  label,
+  onClick,
+  disabled,
+}: {
+  children: React.ReactNode;
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      disabled={disabled}
+      className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px]"
+      style={{
+        background: "rgba(12,16,22,0.82)",
         color: "#fff",
         border: "1px solid rgba(255,255,255,0.22)",
         opacity: disabled ? 0.45 : 1,

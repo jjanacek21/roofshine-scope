@@ -5108,6 +5108,7 @@ export type Database = {
           pin_name: string | null
           pitch: string | null
           property_id: string | null
+          structure_key: string | null
           updated_at: string
         }
         Insert: {
@@ -5126,6 +5127,7 @@ export type Database = {
           pin_name?: string | null
           pitch?: string | null
           property_id?: string | null
+          structure_key?: string | null
           updated_at?: string
         }
         Update: {
@@ -5144,6 +5146,7 @@ export type Database = {
           pin_name?: string | null
           pitch?: string | null
           property_id?: string | null
+          structure_key?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -5335,44 +5338,59 @@ export type Database = {
       roof_sections: {
         Row: {
           actual_area_sqft: number
+          ai_polygon_geojson: Json | null
           color: string
           created_at: string
           id: string
+          is_locked: boolean
           measurement_id: string
           name: string
+          pin_lat: number | null
+          pin_lng: number | null
           pitch: string
           pitch_multiplier: number
           plan_area_sqft: number
           polygon_geojson: Json
           sort_order: number
+          structure_key: string | null
           updated_at: string
         }
         Insert: {
           actual_area_sqft?: number
+          ai_polygon_geojson?: Json | null
           color?: string
           created_at?: string
           id?: string
+          is_locked?: boolean
           measurement_id: string
           name?: string
+          pin_lat?: number | null
+          pin_lng?: number | null
           pitch?: string
           pitch_multiplier?: number
           plan_area_sqft?: number
           polygon_geojson: Json
           sort_order?: number
+          structure_key?: string | null
           updated_at?: string
         }
         Update: {
           actual_area_sqft?: number
+          ai_polygon_geojson?: Json | null
           color?: string
           created_at?: string
           id?: string
+          is_locked?: boolean
           measurement_id?: string
           name?: string
+          pin_lat?: number | null
+          pin_lng?: number | null
           pitch?: string
           pitch_multiplier?: number
           plan_area_sqft?: number
           polygon_geojson?: Json
           sort_order?: number
+          structure_key?: string | null
           updated_at?: string
         }
         Relationships: [

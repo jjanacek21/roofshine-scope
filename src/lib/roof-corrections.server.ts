@@ -23,6 +23,7 @@ export type StoredCorrection = {
   corrected_facets: CorrectionFacet[];
   corrected_plan_sqft: number;
   created_at: string;
+  structure_key?: string | null;
 };
 
 const M_PER_DEG_LAT = 111_320;
@@ -56,7 +57,7 @@ export async function findNearbyCorrection(
 
   let q = admin
     .from("roof_corrections")
-    .select("id, lat, lng, pitch, corrected_facets, corrected_plan_sqft, created_at, property_id")
+    .select("id, lat, lng, pitch, corrected_facets, corrected_plan_sqft, created_at, property_id, structure_key")
     .gte("lat", opts.lat - dLat)
     .lte("lat", opts.lat + dLat)
     .gte("lng", opts.lng - dLng)
@@ -74,8 +75,13 @@ export async function findNearbyCorrection(
       metersBetween(opts.lat, opts.lng, Number(r.lat), Number(r.lng)) <= radius,
   );
   if (usable.length === 0) return null;
-  const samePropertyFirst =
-    (opts.propertyId && usable.find((r) => r.property_id === opts.propertyId)) || usable[0];
+  usable.sort((a, b) => {
+    const propertyA = opts.propertyId && a.property_id === opts.propertyId ? 0 : 1;
+    const propertyB = opts.propertyId && b.property_id === opts.propertyId ? 0 : 1;
+    if (propertyA !== propertyB) return propertyA - propertyB;
+    return metersBetween(opts.lat, opts.lng, Number(a.lat), Number(a.lng)) - metersBetween(opts.lat, opts.lng, Number(b.lat), Number(b.lng));
+  });
+  const samePropertyFirst = usable[0];
   return samePropertyFirst;
 }
 
