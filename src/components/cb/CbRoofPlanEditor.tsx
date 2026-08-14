@@ -58,6 +58,7 @@ export function CbRoofPlanEditor({
   onClearPins,
   onMeasure,
   measuring = false,
+  aiPlan = null,
 }: {
   plan: CbPlan;
   onPlanChange: (next: CbPlan, opts: { user: boolean }) => void;
@@ -72,6 +73,8 @@ export function CbRoofPlanEditor({
   onClearPins?: () => void;
   onMeasure?: () => void;
   measuring?: boolean;
+  /** The untouched AI trace, drawn underneath as a dashed reference. */
+  aiPlan?: CbPlan | null;
 }) {
   const { data: token } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement | null>(null);
