@@ -517,6 +517,10 @@ export function CbRoofPlanEditor({
         cbHaptic(6);
         return;
       }
+      if (tool === "refine" && !readOnly && !locked) {
+        refineTap([e.lngLat.lng, e.lngLat.lat], e.point);
+        return;
+      }
       if (!map.getLayer("cb-fill-l")) return;
       const layers = ["cb-edge-hit", "cb-fill-l"];
       if (map.getLayer("cb-line-hit")) layers.unshift("cb-line-hit");
