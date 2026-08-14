@@ -15,6 +15,8 @@ import {
   useCbTakeoff,
   type CbElevation,
 } from "@/lib/cbTakeoff";
+import { readSheet } from "@/lib/cbSheet";
+
 
 export const Route = createFileRoute("/cb/job/$id/roof")({
   head: () => ({
@@ -64,13 +66,35 @@ function CbRoofWalk() {
   });
 
   const safety = takeoff.data.safety ?? {};
+
+  /** Safety answers are the takeoff sheet's answers — never ask twice. */
+  function patchSafety(part: { stories?: number; access?: string; pitch?: string }) {
+    const nextSafety = { ...safety, ...part };
+    const sheet = readSheet(takeoff.data as Record<string, unknown>);
+    void patchData({
+      safety: nextSafety,
+      sheet: {
+        ...sheet,
+        roof_system: {
+          ...sheet.roof_system,
+          stories: nextSafety.stories ?? sheet.roof_system.stories,
+          pitch: nextSafety.pitch ?? sheet.roof_system.pitch,
+        },
+      },
+    });
+  }
+
   const elev = CB_ELEVATIONS[idx] as CbElevation;
   const label = CB_ELEVATION_LABEL[elev];
   const state = takeoff.elevations[elev] ?? {};
   const squares = state.testSquares ?? [];
   const tally = squares.reduce((n, s) => n + s.hits, 0);
-  const railSteps = useMemo(() => CB_ELEVATIONS.map((e) => `${CB_ELEVATION_LABEL[e]} slope`), []);
+  const railSteps = useMemo(
+    () => ["Safety", ...CB_ELEVATIONS.map((e) => `${CB_ELEVATION_LABEL[e]} slope`), "Takeoff"],
+    [],
+  );
   const missingWide = CB_ELEVATIONS.filter((e) => !(takeoff.elevations[e]?.slopeWide ?? 0));
+
 
   if (isLoading) {
     return (
@@ -103,7 +127,7 @@ function CbRoofWalk() {
                   value={safety.stories ?? 1}
                   min={1}
                   max={4}
-                  onChange={(v) => void patchData({ safety: { ...safety, stories: v } })}
+                  onChange={(v) => patchSafety({ stories: v })}
                 />
                 <div>
                   <span className="cb-microlabel">Access point</span>
@@ -113,7 +137,7 @@ function CbRoofWalk() {
                         key={a}
                         type="button"
                         className={`cb-pick ${safety.access === a ? "is-on" : ""}`}
-                        onClick={() => void patchData({ safety: { ...safety, access: a } })}
+                        onClick={() => patchSafety({ access: a })}
                       >
                         {a}
                       </button>
@@ -128,12 +152,13 @@ function CbRoofWalk() {
                         key={p}
                         type="button"
                         className={`cb-pick cb-num ${safety.pitch === p ? "is-on" : ""}`}
-                        onClick={() => void patchData({ safety: { ...safety, pitch: p } })}
+                        onClick={() => patchSafety({ pitch: p })}
                       >
                         {p}
                       </button>
                     ))}
                   </div>
+
                 </div>
 
                 {pitchIsSteep(safety.pitch) ? (
@@ -164,7 +189,7 @@ function CbRoofWalk() {
     <CbSurface>
       <div className="min-h-screen px-4 pb-28 pt-6" style={{ background: "var(--cb-bg)" }}>
         <div className="mx-auto w-full max-w-[620px]">
-          <CbProgressRail steps={railSteps} current={idx} />
+          <CbProgressRail steps={railSteps} current={idx + 1} />
 
           <div className="mt-4 flex items-start justify-between gap-3">
             <div>
@@ -273,12 +298,13 @@ function CbRoofWalk() {
               <CbButton
                 block
                 disabled={missingWide.length > 0}
-                onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}
+                onClick={() => navigate({ to: "/cb/job/$id/takeoff", params: { id } })}
               >
                 {missingWide.length > 0
                   ? `Missing wide shot: ${missingWide.map((e) => CB_ELEVATION_LABEL[e]).join(", ")}`
-                  : "Mark roof complete"}
+                  : "Continue to roof takeoff"}
               </CbButton>
+
             )}
           </div>
         </div>

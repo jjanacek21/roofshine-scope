@@ -343,9 +343,15 @@ function planRoofLines(inputs: CbEstimateInputs): PlannedLine[] {
   const m = inputs.measurement;
   const g = (k: string) => n(m?.[k]);
   const sheet = inputs.sheet;
-  const squares = g("total_squares");
-  const layers = sheet.roof_system.layers ?? 1;
   const waste = g("waste_pct") || 15;
+  /* total_squares already carries waste — never apply it a second time. */
+  const squaresWithWaste = g("total_squares");
+  const trueSquares =
+    (g("total_area_sqft") || 0) > 0
+      ? g("total_area_sqft") / 100
+      : squaresWithWaste / (1 + waste / 100);
+  const squares = trueSquares;
+  const layers = sheet.roof_system.layers ?? 1;
   const eave = g("eave_lf");
   const rake = g("rake_lf");
   const ridge = g("ridge_lf");
@@ -375,7 +381,7 @@ function planRoofLines(inputs: CbEstimateInputs): PlannedLine[] {
     avoid: ["remove", "ridge", "hip"],
     unit: "SQ",
     label: "Laminated composition shingles",
-    qty: squares * (1 + waste / 100),
+    qty: squaresWithWaste,
     source: "measurement",
     basis: `${r2(squares)} SQ + ${waste}% waste`,
   });
@@ -390,6 +396,7 @@ function planRoofLines(inputs: CbEstimateInputs): PlannedLine[] {
     source: "measurement",
     basis: `${r2(squares)} SQ of roof area`,
   });
+
   add({
     key: "iws",
     must: ["ice"],
@@ -409,7 +416,8 @@ function planRoofLines(inputs: CbEstimateInputs): PlannedLine[] {
     avoid: ["remove"],
     unit: "LF",
     label: "Starter course",
-    qty: eave + rake,
+    qty: g("starter_lf") || eave + rake,
+
     source: "measurement",
     basis: `Eave ${r2(eave)} LF + rake ${r2(rake)} LF`,
   });

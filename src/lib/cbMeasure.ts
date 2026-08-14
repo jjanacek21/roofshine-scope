@@ -49,19 +49,74 @@ export const CB_BLANK_MEASUREMENT: CbMeasurement = {
   gc_roof_measurement_id: null,
 };
 
+/**
+ * Fields a rep types by hand. Drip edge, starter and ridge cap are NOT here:
+ * they are derived from the perimeter / ridge+hip so the same footage is never
+ * entered (or counted) twice.
+ */
 export const CB_LINEAR_FIELDS: { key: keyof CbMeasurement; label: string }[] = [
   { key: "ridge_lf", label: "Ridge" },
   { key: "hip_lf", label: "Hip" },
   { key: "valley_lf", label: "Valley" },
   { key: "rake_lf", label: "Rake" },
   { key: "eave_lf", label: "Eave" },
-  { key: "drip_edge_lf", label: "Drip edge" },
-  { key: "starter_lf", label: "Starter" },
-  { key: "ridge_cap_lf", label: "Ridge cap" },
   { key: "wall_flashing_lf", label: "Wall flashing" },
   { key: "step_flashing_lf", label: "Step flashing" },
   { key: "gutter_lf", label: "Gutter" },
 ];
+
+/** Read-only rows shown under the editable footage. */
+export const CB_DERIVED_FIELDS: {
+  key: "drip_edge_lf" | "starter_lf" | "ridge_cap_lf";
+  label: string;
+  basis: string;
+}[] = [
+  { key: "drip_edge_lf", label: "Drip edge", basis: "eave + rake (perimeter)" },
+  { key: "starter_lf", label: "Starter", basis: "eave + rake (perimeter)" },
+  { key: "ridge_cap_lf", label: "Ridge cap", basis: "ridge + hip" },
+];
+
+const r1 = (n: number) => Math.round(n * 10) / 10;
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Roof perimeter = eave + rake. Falls back to a traced outline length. */
+export function derivePerimeter(
+  m: Pick<CbMeasurement, "eave_lf" | "rake_lf">,
+  fallback = 0,
+): number {
+  const p = (Number(m.eave_lf) || 0) + (Number(m.rake_lf) || 0);
+  return r1(p > 0 ? p : fallback);
+}
+
+/** Total squares always includes waste: area x (1 + waste%) / 100. */
+export function computeTotalSquares(areaSqft: number, wastePct: number): number {
+  const area = Number(areaSqft) || 0;
+  const waste = Number(wastePct) || 0;
+  return r2((area * (1 + waste / 100)) / 100);
+}
+
+/**
+ * Recompute every derived number from its basis. `overrides` keeps a hand-typed
+ * value for a specific derived field.
+ */
+export function applyDerived(
+  m: CbMeasurement,
+  opts: { perimeterFallback?: number; overrides?: Partial<Record<string, boolean>> } = {},
+): CbMeasurement {
+  const ov = opts.overrides ?? {};
+  const perimeter = derivePerimeter(m, opts.perimeterFallback ?? 0);
+  const ridgeCap = r1((Number(m.ridge_lf) || 0) + (Number(m.hip_lf) || 0));
+  return {
+    ...m,
+    total_squares: ov.total_squares
+      ? m.total_squares
+      : computeTotalSquares(m.total_area_sqft, m.waste_pct),
+    drip_edge_lf: ov.drip_edge_lf ? m.drip_edge_lf : perimeter,
+    starter_lf: ov.starter_lf ? m.starter_lf : perimeter,
+    ridge_cap_lf: ov.ridge_cap_lf ? m.ridge_cap_lf : ridgeCap,
+  };
+}
+
 
 export type CbMeasureCredit = { allowed: boolean; metered: boolean; remaining: number | null };
 
@@ -190,8 +245,9 @@ export async function saveCbMeasurement(
       source: m.source,
       rep_adjusted: repAdjusted,
       linear: Object.fromEntries(
-        CB_LINEAR_FIELDS.map((f) => [f.key, m[f.key] as number]),
+        [...CB_LINEAR_FIELDS, ...CB_DERIVED_FIELDS].map((f) => [f.key, m[f.key as keyof CbMeasurement] as number]),
       ) as Record<string, number>,
+
     },
   };
 
