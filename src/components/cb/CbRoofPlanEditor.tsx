@@ -735,7 +735,73 @@ export function CbRoofPlanEditor({
             />
           ) : null}
 
+          {/* draft line overlay — always visible, with per-segment lengths */}
+          {tool === "line" && !readOnly && draft.length && mapRef.current
+            ? (() => {
+                const map = mapRef.current!;
+                const pts = draft.map((c) => map.project(c as [number, number]));
+                return (
+                  <svg
+                    className="pointer-events-none absolute inset-0"
+                    style={{ width: "100%", height: "100%" }}
+                  >
+                    {pts.length >= 2 ? (
+                      <polyline
+                        points={pts.map((p) => `${p.x},${p.y}`).join(" ")}
+                        fill="none"
+                        stroke="#ffffff"
+                        strokeWidth={4}
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.8))" }}
+                      />
+                    ) : null}
+                    {pts.slice(0, -1).map((p, i) => {
+                      const q = pts[i + 1];
+                      const len = Math.round(lineLengthFeet([draft[i], draft[i + 1]]));
+                      const mx = (p.x + q.x) / 2;
+                      const my = (p.y + q.y) / 2;
+                      return (
+                        <g key={`seg-${i}`}>
+                          <rect
+                            x={mx - 26}
+                            y={my - 22}
+                            width={52}
+                            height={20}
+                            rx={6}
+                            fill="rgba(0,0,0,0.78)"
+                          />
+                          <text
+                            x={mx}
+                            y={my - 8}
+                            textAnchor="middle"
+                            fontSize={12}
+                            fontWeight={700}
+                            fill="#fff"
+                          >
+                            {len} LF
+                          </text>
+                        </g>
+                      );
+                    })}
+                    {pts.map((p, i) => (
+                      <circle
+                        key={`pt-${i}`}
+                        cx={p.x}
+                        cy={p.y}
+                        r={6}
+                        fill="#ffffff"
+                        stroke="#111"
+                        strokeWidth={2}
+                      />
+                    ))}
+                  </svg>
+                );
+              })()
+            : null}
+
           {/* toolbar */}
+
           {!readOnly ? (
             <div className="absolute left-3 top-3 flex flex-wrap gap-2">
               <MapBtn active={tool === "select"} onClick={() => { setTool("select"); setDraft([]); }}>
