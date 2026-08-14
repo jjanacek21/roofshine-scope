@@ -168,6 +168,9 @@ function CbJobMeasurePage() {
     },
   });
   const planReadOnly = (reportCount ?? 0) > 0;
+  /** Traced outline length — the perimeter fallback when edges are unlabeled. */
+  const planPerimeter = useMemo(() => planTotals(plan).perimeter_lf, [plan]);
+
 
   function handlePlanChange(next: CbPlan, opts: { user: boolean }) {
     setPlan(next);
