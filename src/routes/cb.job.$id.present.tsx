@@ -6,7 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbChip, CbLoading } from "@/components/cb/primitives";
 import { CbCountUp, CbHeadline, CbReveal, usePrefersReducedMotion } from "@/components/cb/motion";
+import { CbHtmlSlide } from "@/components/cb/CbHtmlSlide";
 import { useCbLogoUrl } from "@/lib/cbLogo";
+
 import { CB_ELEVATION_LABEL, type CbElevation, type CbElevationState } from "@/lib/cbTakeoff";
 import { buildCbDeck, type CbPropertyDeckData, type CbSection, type CbSlide } from "@/lib/cbDeck";
 import type { CbCompany } from "@/components/auth/CbCompanyProvider";
@@ -380,8 +382,10 @@ function SectionMenu({
 }
 
 function StandardSlide({ slide }: { slide: CbSlide }) {
+  if (slide.html) return <CbHtmlSlide html={slide.html} />;
   return (
     <div className="cb-slide">
+
       {slide.kicker ? <p className="cb-present-kicker">{slide.kicker}</p> : null}
       <CbHeadline as="h2" text={slide.title} className="cb-display cb-present-title" />
       {slide.lead ? (

@@ -6,6 +6,7 @@
  * contractor tells their own story.
  */
 import type { CbCompany } from "@/components/auth/CbCompanyProvider";
+import { CB_LOCKED_SECTIONS } from "./cbLockedSections.js";
 
 export interface CbSlide {
   id: string;
@@ -17,7 +18,9 @@ export interface CbSlide {
   stats?: { label: string; value: number; suffix?: string; prefix?: string; decimals?: number }[];
   note?: string;
   /** The closing slide is built from live job data, not from this file. */
-  kind?: "standard" | "property";
+  kind?: "standard" | "property" | "html";
+  /** Verbatim slide markup from the locked deck. */
+  html?: string;
   imageUrl?: string | null;
 }
 
@@ -144,212 +147,51 @@ function companySections(company: CbCompany | null, about: CbAboutFields | null,
 }
 
 /** Sections 03–08 — locked, identical for every contractor. */
-const LOCKED_SECTIONS: CbSection[] = [
-  {
-    id: "process",
-    index: "03",
-    title: "The claims process",
-    blurb: "What happens, in what order",
-    slides: [
-      {
-        id: "process-steps",
-        kicker: "Step by step",
-        title: "Six steps from today to a finished roof",
-        bullets: [
-          "1 — Inspection. We document every elevation with photographs.",
-          "2 — Report. You get the same report the carrier gets.",
-          "3 — Claim. You file; we meet the adjuster on site.",
-          "4 — Scope agreement. The carrier's scope is reconciled against ours.",
-          "5 — Production. Materials ordered, install scheduled.",
-          "6 — Final invoice and warranty paperwork.",
-        ],
-      },
-      {
-        id: "process-adjuster",
-        kicker: "Adjuster meeting",
-        title: "You are not alone in that conversation",
-        lead:
-          "We meet your adjuster on the roof, walk the same test squares, and hand over the documented findings. Disagreements get resolved with photographs and measurements, not opinions.",
-        columns: [
-          { heading: "You bring", lines: ["Claim number", "Policy declarations", "Your questions"] },
-          { heading: "We bring", lines: ["Photo documentation", "Measurements", "Line-item scope"] },
-        ],
-      },
-      {
-        id: "process-role",
-        kicker: "Important",
-        title: "What we are and are not",
-        lead:
-          "We document conditions and build the scope of repair. The carrier makes the coverage decision. We are a contractor, not a public adjuster, and we do not negotiate your policy on your behalf.",
-      },
-    ],
-  },
-  {
-    id: "production",
-    index: "04",
-    title: "Production and install",
-    blurb: "How the job actually runs",
-    slides: [
-      {
-        id: "prod-day",
-        kicker: "Install day",
-        title: "What your day looks like",
-        bullets: [
-          "Crew arrives early; driveway and landscaping protected.",
-          "Tear-off to the deck, decking inspected and replaced as needed.",
-          "New system installed to manufacturer specification the same day where possible.",
-          "Magnet sweep of the yard and driveway before the crew leaves.",
-        ],
-      },
-      {
-        id: "prod-standards",
-        kicker: "Standards",
-        title: "Non-negotiables on every job",
-        columns: [
-          {
-            heading: "Workmanship",
-            lines: ["Full ice and water at eaves and valleys", "Synthetic underlayment", "Hand-nailed penetrations sealed"],
-          },
-          {
-            heading: "Site care",
-            lines: ["Tarped landscaping", "Debris trailer on site", "Daily cleanup, not just final"],
-          },
-        ],
-      },
-      {
-        id: "prod-warranty",
-        kicker: "After the install",
-        title: "Final inspection and warranty",
-        lead:
-          "A supervisor walks the finished roof, photographs the completed work, and only then do we invoice. Your workmanship warranty and the manufacturer registration come with the closeout packet.",
-      },
-    ],
-  },
-  {
-    id: "systems",
-    index: "05",
-    title: "Roofing systems",
-    blurb: "What goes on your house",
-    slides: [
-      {
-        id: "sys-layers",
-        kicker: "The system",
-        title: "A roof is seven layers, not one",
-        bullets: [
-          "Decking — inspected, re-nailed, replaced where soft.",
-          "Ice and water shield — eaves, valleys and penetrations.",
-          "Synthetic underlayment — the full field.",
-          "Starter course — sealed eave and rake edge.",
-          "Shingles — impact and wind rated.",
-          "Hip and ridge cap — matched to the field shingle.",
-          "Ventilation — intake and exhaust balanced.",
-        ],
-      },
-      {
-        id: "sys-choices",
-        kicker: "Material choices",
-        title: "Architectural, impact-resistant or designer",
-        columns: [
-          {
-            heading: "Architectural",
-            lines: ["The standard replacement", "Dimensional shadow line", "Strong wind rating"],
-          },
-          {
-            heading: "Impact resistant",
-            lines: ["Class 4 rated", "Often an insurance discount", "Better hail performance"],
-          },
-        ],
-        note: "Color and profile samples are in the truck — we pick together.",
-      },
-      {
-        id: "sys-vent",
-        kicker: "Ventilation",
-        title: "Balanced airflow protects the whole system",
-        lead:
-          "Intake at the soffit, exhaust at the ridge. Under-ventilated attics cook shingles from underneath, void manufacturer warranties and drive up cooling bills. We calculate the required net free area for your roof and correct it during the install.",
-      },
-    ],
-  },
-  {
-    id: "trades",
-    index: "06",
-    title: "Additional trades",
-    blurb: "Everything the storm touched",
-    slides: [
-      {
-        id: "trades-list",
-        kicker: "Beyond the roof",
-        title: "Hail does not stop at the roofline",
-        columns: [
-          { heading: "Exterior", lines: ["Siding and trim", "Gutters and downspouts", "Windows and screens", "Fascia and soffit"] },
-          { heading: "Property", lines: ["Fencing", "Decks and railings", "AC condenser fins", "Garage doors"] },
-        ],
-      },
-      {
-        id: "trades-interior",
-        kicker: "Inside",
-        title: "Interior damage from an active leak",
-        lead:
-          "Ceiling stains, drywall, insulation and flooring damaged by water intrusion belong on the same claim. We document moisture readings and photograph every affected room so nothing gets left off the scope.",
-      },
-      {
-        id: "trades-one-contract",
-        kicker: "One contractor",
-        title: "One crew coordinator, one closeout",
-        lead:
-          "You are not chasing four contractors and four schedules. Each trade is coordinated through the same project manager and closed out on the same paperwork.",
-      },
-    ],
-  },
-  {
-    id: "commercial",
-    index: "07",
-    title: "Commercial capability",
-    blurb: "Beyond residential",
-    slides: [
-      {
-        id: "com-systems",
-        kicker: "Commercial",
-        title: "Flat and low-slope systems",
-        bullets: ["TPO and PVC single ply", "Modified bitumen", "Built-up roofing", "Metal panel and standing seam", "Coatings and restoration"],
-      },
-      {
-        id: "com-clients",
-        kicker: "Who we serve",
-        title: "Property managers, HOAs and business owners",
-        lead:
-          "If you manage a building, own a rental, or sit on an HOA board, the same documentation process applies at scale — building by building, with a portfolio-level summary.",
-      },
-    ],
-  },
-  {
-    id: "financing",
-    index: "08",
-    title: "Financing",
-    blurb: "If you need it",
-    slides: [
-      {
-        id: "fin-when",
-        kicker: "Financing",
-        title: "For the parts insurance does not cover",
-        lead:
-          "On an approved claim, the carrier funds the repair and your out-of-pocket is your deductible. Financing exists for upgrades you choose, for non-covered work, or to spread the deductible over time.",
-      },
-      {
-        id: "fin-how",
-        kicker: "How it works",
-        title: "A soft credit check and a same-day answer",
-        bullets: [
-          "Application takes a few minutes on this tablet.",
-          "Soft pull first — no impact to check your options.",
-          "Terms shown before you commit to anything.",
-          "No prepayment penalty on the programs we use.",
-        ],
-        note: "Ask your rep for current program terms.",
-      },
-    ],
-  },
+/** Sections 03–08 — locked, verbatim content from cbLockedSections.js. */
+const LOCKED_META: { id: string; index: string; title: string; blurb: string }[] = [
+  { id: "claims", index: "03", title: "The claims process", blurb: "What happens, in what order" },
+  { id: "production", index: "04", title: "Production and install", blurb: "How the job actually runs" },
+  { id: "roofing", index: "05", title: "Roofing systems", blurb: "What goes on your house" },
+  { id: "trades", index: "06", title: "Additional trades", blurb: "Everything the storm touched" },
+  { id: "commercial", index: "07", title: "Commercial capability", blurb: "Beyond residential" },
+  { id: "financing", index: "08", title: "Financing", blurb: "If you need it" },
 ];
+
+/** No token may ever reach a homeowner's screen — unknown ones resolve to "". */
+function fillTokens(html: string, tokens: Record<string, string>): string {
+  return html.replace(/\{\{\s*([A-Z_]+)\s*\}\}/g, (_m, key: string) => tokens[key] ?? "");
+}
+
+function lockedSections(company: CbCompany | null): CbSection[] {
+  const row = (company ?? {}) as unknown as Record<string, unknown>;
+  const roofing = Number(row.warranty_years);
+  const trades = Number(row.warranty_years_trades);
+  const tokens: Record<string, string> = {
+    COMPANY: (company?.name ?? "").trim() || "Our company",
+    WARRANTY_ROOFING: String(Number.isFinite(roofing) && roofing > 0 ? roofing : 10),
+    WARRANTY_TRADES: String(Number.isFinite(trades) && trades > 0 ? trades : 10),
+  };
+
+  return LOCKED_META.flatMap((meta) => {
+    const raw = CB_LOCKED_SECTIONS.find((s) => s.id === meta.id);
+    if (!raw) return [];
+    return [
+      {
+        id: meta.id,
+        index: meta.index,
+        title: meta.title,
+        blurb: meta.blurb,
+        slides: raw.slides.map((html, i) => ({
+          id: `${meta.id}-${i + 1}`,
+          title: raw.title,
+          kind: "html" as const,
+          html: fillTokens(html, tokens),
+        })),
+      },
+    ];
+  });
+}
+
 
 export interface CbPropertyDeckData {
   address: string;
@@ -372,7 +214,7 @@ export function buildCbDeck(
 ): CbSection[] {
   return [
     ...companySections(company, about, teamPhotoUrl),
-    ...LOCKED_SECTIONS,
+    ...lockedSections(company),
     {
       id: "next-steps",
       index: "09",
