@@ -1143,9 +1143,11 @@
 
 /* Slide stage */
 [data-cb] .cb-present-stage {
-  flex: 1; display: flex; align-items: center; justify-content: center;
+  flex: 1; display: flex; align-items: flex-start; justify-content: center;
   padding: 36px 24px 24px; overflow-y: auto;
 }
+[data-cb] .cb-present-stage > * { margin: auto 0; width: 100%; }
+
 [data-cb] .cb-slide { width: 100%; max-width: 1000px; margin: 0 auto; }
 [data-cb] .cb-slide-enter { animation: cb-slide-in .42s var(--cb-ease) both; }
 @keyframes cb-slide-in { from { opacity: 0; transform: translate3d(22px, 0, 0); } to { opacity: 1; transform: none; } }
