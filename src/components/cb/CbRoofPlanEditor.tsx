@@ -33,11 +33,16 @@ import {
   type CbPlanTotals,
   type CbEdgeType,
 } from "@/lib/cbRoofPlan";
+import { confidenceColor, traceConfidence } from "@/lib/cbTraceConfidence";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-type Tool = "select" | "line";
+type Tool = "select" | "line" | "refine";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+/** Screen-space grab radius (px) for tap-to-refine. */
+const TAP_VERTEX_PX = 34;
+const TAP_EDGE_PX = 28;
 
 export function CbRoofPlanEditor({
   plan,
