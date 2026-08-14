@@ -22,6 +22,7 @@ import {
   closeRing,
   edgeCenter,
   lineLengthFeet,
+  nearestPointOnRing,
   normalizeEdges,
   planTotals,
   ringCentroid,
@@ -36,7 +37,7 @@ import {
 import { confidenceColor, traceConfidence } from "@/lib/cbTraceConfidence";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-type Tool = "select" | "line" | "refine";
+type Tool = "select" | "line" | "refine" | "label";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -102,7 +103,8 @@ export function CbRoofPlanEditor({
   /** Footprint locked = corners frozen, taps label perimeter edges instead. */
   const [locked, setLocked] = useState(false);
   /** AI trace overlay: dashed original outline + per-edge confidence colouring. */
-  const [showTrace, setShowTrace] = useState(true);
+  const [showTrace, setShowTrace] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [pitchSheet, setPitchSheet] = useState<string | null>(null);
   const [loupe, setLoupe] = useState<{ x: number; y: number } | null>(null);
   const loupeRef = useRef<HTMLCanvasElement | null>(null);
@@ -566,6 +568,31 @@ export function CbRoofPlanEditor({
     }
   }
 
+  function snapLinePoint(lngLat: [number, number], point: { x: number; y: number }) {
+    const map = mapRef.current;
+    if (!map) return lngLat;
+    let best: [number, number] = lngLat;
+    let bestDistance = TAP_EDGE_PX;
+    for (const section of planRef.current.sections) {
+      const candidate = nearestPointOnRing(section.ring, lngLat);
+      const projected = map.project(candidate);
+      const distance = Math.hypot(projected.x - point.x, projected.y - point.y);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = candidate;
+      }
+      for (const vertex of section.ring) {
+        const projectedVertex = map.project(vertex as [number, number]);
+        const vertexDistance = Math.hypot(projectedVertex.x - point.x, projectedVertex.y - point.y);
+        if (vertexDistance < Math.min(bestDistance, TAP_VERTEX_PX)) {
+          bestDistance = vertexDistance;
+          best = [vertex[0], vertex[1]];
+        }
+      }
+    }
+    return best;
+  }
+
   /* ------------------------------ map taps ------------------------------ */
 
 
@@ -582,7 +609,7 @@ export function CbRoofPlanEditor({
         return;
       }
       if (tool === "line" && !readOnly) {
-        setDraft((d) => [...d, [e.lngLat.lng, e.lngLat.lat]]);
+        setDraft((d) => [...d, snapLinePoint([e.lngLat.lng, e.lngLat.lat], e.point)]);
         cbHaptic(6);
         return;
       }
@@ -606,7 +633,7 @@ export function CbRoofPlanEditor({
       }
 
       const edgeHit = hits.find((f) => f.layer?.id === "cb-edge-hit");
-      if (edgeHit && !readOnly) {
+      if (edgeHit && !readOnly && (locked || tool === "label")) {
         setSelectedId(edgeHit.properties?.sectionId as string);
         setTypeSheet({
           kind: "edge",
@@ -1022,54 +1049,34 @@ export function CbRoofPlanEditor({
 
           {!readOnly ? (
             <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-              <MapBtn active={tool === "select"} onClick={() => { setTool("select"); setDraft([]); }}>
-                Edit
-              </MapBtn>
-              <MapBtn active={tool === "line"} onClick={() => setTool("line")}>
-                Line
-              </MapBtn>
-              {plan.sections.length ? (
+              {!plan.sections.length ? (
+                <MapBtn active={pinDropMode} onClick={onTogglePinDrop}>Drop pin</MapBtn>
+              ) : !locked ? (
                 <MapBtn
-                  active={tool === "refine"}
-                  disabled={locked}
                   onClick={() => {
-                    setTool("refine");
-                    setDraft([]);
-                    setShowTrace(true);
-                  }}
-                >
-                  Refine trace
-                </MapBtn>
-              ) : null}
-              {plan.sections.length ? (
-                <MapBtn active={showTrace} onClick={() => setShowTrace((v) => !v)}>
-                  {showTrace ? "Hide AI trace" : "Show AI trace"}
-                </MapBtn>
-              ) : null}
-              <MapBtn active={pinDropMode} onClick={onTogglePinDrop}>
-                {pinDropMode ? "Tap roof now" : "Drop measurement pin"}
-              </MapBtn>
-              {measurePins.length ? <MapBtn onClick={onClearPins}>Clear pins</MapBtn> : null}
-              <MapBtn onClick={undo} disabled={!past.length}>
-                Undo
-              </MapBtn>
-              <MapBtn onClick={redo} disabled={!future.length}>
-                Redo
-              </MapBtn>
-              {canReset ? <MapBtn onClick={onReset}>Reset to satellite</MapBtn> : null}
-              {plan.sections.length ? (
-                <MapBtn
-                  active={locked}
-                  onClick={() => {
-                    setLocked((v) => !v);
+                    setLocked(true);
                     setTool("select");
                     setDraft([]);
                     cbHaptic(12);
                   }}
                 >
-                  {locked ? "Unlock footprint" : "Save roof footprint"}
+                  Lock footprint
                 </MapBtn>
-              ) : null}
+              ) : (
+                <>
+                  <MapBtn active={tool === "line"} onClick={() => { setTool("line"); setDraft([]); }}>Draw lines</MapBtn>
+                  <MapBtn active={tool === "label"} onClick={() => { setTool("label"); setDraft([]); }}>Label lines</MapBtn>
+                  <MapBtn onClick={() => { setLocked(false); setTool("select"); }}>Unlock</MapBtn>
+                </>
+              )}
+              <MapBtn active={moreOpen} onClick={() => setMoreOpen((value) => !value)}>More</MapBtn>
+              {moreOpen ? <>
+                {measurePins.length ? <MapBtn onClick={onClearPins}>Clear pins</MapBtn> : null}
+                <MapBtn onClick={undo} disabled={!past.length}>Undo</MapBtn>
+                <MapBtn onClick={redo} disabled={!future.length}>Redo</MapBtn>
+                {canReset ? <MapBtn onClick={onReset}>Reset</MapBtn> : null}
+                {aiPlan?.sections.length ? <MapBtn active={showTrace} onClick={() => setShowTrace((value) => !value)}>AI trace</MapBtn> : null}
+              </> : null}
             </div>
           ) : (
             <div className="absolute left-3 top-3">
@@ -1131,7 +1138,7 @@ export function CbRoofPlanEditor({
                     : tool === "refine"
                       ? "Tap a red edge to add a corner, or tap near a corner to snap it"
                       : locked
-                        ? "Footprint locked — tap any line to label it"
+                        ? "Tap Label lines, then tap each line or perimeter edge"
                         : plan.sections.length
                           ? "Drag the corners onto the roof, then Save roof footprint"
                           : "Drop a pin and measure to trace the roof"}

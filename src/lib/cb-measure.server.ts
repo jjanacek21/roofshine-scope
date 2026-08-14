@@ -37,6 +37,8 @@ export async function runCbInstantMeasure(
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { runSolarRoofExtract } = await import("@/lib/solar-extract.server");
   const { saveSolarMeasurement } = await import("@/lib/roof-measurement-save");
+  const { traceRoofFromPin } = await import("@/lib/roof-vision-trace.server");
+  const { polygonAreaSqft } = await import("@/lib/roof-math");
 
   const pins = (data.pins?.length
     ? data.pins
@@ -86,6 +88,7 @@ export async function runCbInstantMeasure(
   // facets as one property measurement. Empty/failed pins never become boxes.
   const segments: ExtractedSegment[] = [];
   const sources: Array<{ footprint: string | null; facet: string | null }> = [];
+  const traceConfidence: number[] = [];
   let runId: string | null = null;
   let firstFailure = "no_footprint";
   for (const pin of pins) {
@@ -107,7 +110,27 @@ export async function runCbInstantMeasure(
       (segment) => (segment.ring?.length ?? 0) >= 3 && segment.plan_area_sqft > 0,
     );
     if (traced.length === 0) continue;
-    segments.push(...traced);
+    const candidate = (extract.body.footprint as number[][] | undefined) ?? traced[0]?.ring ?? null;
+    let vision: Awaited<ReturnType<typeof traceRoofFromPin>> = null;
+    try {
+      vision = await traceRoofFromPin({ lat: pin.lat, lng: pin.lng, candidateRing: candidate });
+    } catch (error) {
+      console.warn("[cb-measure] vision trace failed", error instanceof Error ? error.message : String(error));
+    }
+    if (vision) {
+      const byPitch = new Map<string, number>();
+      traced.forEach((segment) => byPitch.set(segment.pitch, (byPitch.get(segment.pitch) ?? 0) + segment.plan_area_sqft));
+      const pitch = [...byPitch.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "6/12";
+      segments.push({ ring: vision.ring, pitch, plan_area_sqft: polygonAreaSqft(vision.ring) });
+      traceConfidence.push(vision.confidence);
+    } else if (candidate && candidate.length >= 3) {
+      segments.push({
+        ring: candidate,
+        pitch: traced[0]?.pitch ?? "6/12",
+        plan_area_sqft: polygonAreaSqft(candidate),
+      });
+      traceConfidence.push(0);
+    }
     sources.push({
       footprint: (extract.body.footprint_source as string | null) ?? null,
       facet: (extract.body.facet_source as string | null) ?? null,
@@ -182,6 +205,7 @@ export async function runCbInstantMeasure(
     roof_measurement_id: saved.measurementId,
     footprint_source: sources.map((source) => source.footprint).filter(Boolean).join(",") || null,
     facet_source: sources.map((source) => source.facet).filter(Boolean).join(",") || null,
+    trace_confidence: traceConfidence,
     measurement: {
       /* squares always carry waste: area x (1 + waste%) / 100 */
       total_squares: Math.round(((areaSqft * (1 + finalWaste / 100)) / 100) * 100) / 100,
