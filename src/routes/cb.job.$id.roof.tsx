@@ -298,12 +298,13 @@ function CbRoofWalk() {
               <CbButton
                 block
                 disabled={missingWide.length > 0}
-                onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}
+                onClick={() => navigate({ to: "/cb/job/$id/takeoff", params: { id } })}
               >
                 {missingWide.length > 0
                   ? `Missing wide shot: ${missingWide.map((e) => CB_ELEVATION_LABEL[e]).join(", ")}`
-                  : "Mark roof complete"}
+                  : "Continue to roof takeoff"}
               </CbButton>
+
             )}
           </div>
         </div>
