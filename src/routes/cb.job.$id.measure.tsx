@@ -487,18 +487,24 @@ function CbJobMeasurePage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--cb-text-muted)" }}>
-                          Total squares
+                          Total squares (with waste)
                         </p>
                         <p className="text-[40px] font-extrabold leading-none">
                           <CbCountUp value={values.total_squares} decimals={2} />
                         </p>
+                        <p className="mt-1 cb-num text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
+                          {Math.round(values.total_area_sqft).toLocaleString()} sf + {values.waste_pct}% waste
+                        </p>
                       </div>
                       <div className="text-right">
                         <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--cb-text-muted)" }}>
-                          Roof area
+                          Roof area (true)
                         </p>
                         <p className="text-[24px] font-bold leading-none">
                           <CbCountUp value={values.total_area_sqft} suffix=" sf" />
+                        </p>
+                        <p className="mt-1 cb-num text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
+                          {(values.total_area_sqft / 100).toFixed(2)} SQ before waste
                         </p>
                       </div>
                     </div>
@@ -507,6 +513,7 @@ function CbJobMeasurePage() {
                       <CbBadge>{values.pitch ?? "pitch —"}</CbBadge>
                       <CbBadge>{values.facets ?? 0} facets</CbBadge>
                       <CbBadge>{values.waste_pct}% waste</CbBadge>
+                      <CbBadge>Perimeter {Math.round(perimeter)} LF</CbBadge>
                       <CbBadge>
                         {values.source === "manual" ? "Manual entry" : `Source: ${values.source}`}
                       </CbBadge>
@@ -532,14 +539,7 @@ function CbJobMeasurePage() {
                   <CbCard className="space-y-3 p-4">
                     <div className="grid grid-cols-2 gap-3">
                       <CbField
-                        label="Total squares"
-                        type="number"
-                        inputMode="decimal"
-                        value={values.total_squares || ""}
-                        onChange={(e) => edit({ total_squares: Number(e.target.value) || 0 })}
-                      />
-                      <CbField
-                        label="Roof area (sf)"
+                        label="Roof area (sf, no waste)"
                         type="number"
                         inputMode="decimal"
                         value={values.total_area_sqft || ""}
@@ -572,6 +572,10 @@ function CbJobMeasurePage() {
                         onChange={(e) => edit({ facets: Number(e.target.value) || 0 })}
                       />
                     </div>
+                    <p className="text-[12.5px]" style={{ color: "var(--cb-text-muted)" }}>
+                      Total squares recalculates from area and waste —{" "}
+                      <span className="cb-num">{values.total_squares.toFixed(2)} SQ</span>.
+                    </p>
 
                     <p className="pt-1 text-[12px] uppercase tracking-wider" style={{ color: "var(--cb-text-muted)" }}>
                       Linear footage
@@ -590,6 +594,43 @@ function CbJobMeasurePage() {
                         />
                       ))}
                     </div>
+
+                    <p className="pt-1 text-[12px] uppercase tracking-wider" style={{ color: "var(--cb-text-muted)" }}>
+                      Derived — calculated, not measured twice
+                    </p>
+                    <div className="grid gap-2">
+                      {CB_DERIVED_FIELDS.map((f) => (
+                        <div key={f.key} className="flex items-center gap-2">
+                          <span className="flex-1 text-[14px]" style={{ color: "var(--cb-text)" }}>
+                            {f.label}
+                            <span className="cb-microlabel block">{f.basis}</span>
+                          </span>
+                          {overrides[f.key] ? (
+                            <input
+                              className="cb-input cb-num"
+                              inputMode="decimal"
+                              aria-label={`${f.label} LF`}
+                              style={{ width: 96, height: 48, textAlign: "right", padding: "0 10px" }}
+                              value={(values[f.key] as number) || ""}
+                              onChange={(e) => overrideEdit(f.key, Number(e.target.value) || 0)}
+                            />
+                          ) : (
+                            <span className="cb-num text-[15px] font-semibold">
+                              {Math.round(values[f.key] as number)} LF
+                            </span>
+                          )}
+                          <CbButton
+                            size="md"
+                            variant="ghost"
+                            onClick={() =>
+                              overrides[f.key] ? clearOverride(f.key) : overrideEdit(f.key, values[f.key] as number)
+                            }
+                          >
+                            {overrides[f.key] ? "Auto" : "Override"}
+                          </CbButton>
+                        </div>
+                      ))}
+                    </div>
                   </CbCard>
                 ) : (
                   <CbCard className="p-4">
@@ -605,8 +646,24 @@ function CbJobMeasurePage() {
                         </div>
                       ))}
                     </div>
+                    <div
+                      className="mt-3 grid gap-1 border-t pt-3"
+                      style={{ borderColor: "var(--cb-border)" }}
+                    >
+                      {CB_DERIVED_FIELDS.map((f) => (
+                        <div key={f.key} className="flex items-baseline justify-between gap-2 pr-3">
+                          <span className="text-[14px]" style={{ color: "var(--cb-text-muted)" }}>
+                            {f.label} <span className="cb-microlabel">({f.basis})</span>
+                          </span>
+                          <span className="cb-num text-[15px] font-semibold">
+                            {Math.round(values[f.key] as number)} LF
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </CbCard>
                 )}
+
 
                 {phase === "result" ? (
                   <CbCard className="p-4">
