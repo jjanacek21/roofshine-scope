@@ -428,14 +428,42 @@ function CbJobMeasurePage() {
 
 
             {phase === "result" && plan.sections.length ? (
-              <CbCard className="p-4">
-                <p className="text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
-                  Outline off? Drag the corners onto the real roof edges, tap a midpoint to add a
-                  corner, hold a corner to delete it, and label every line as eave, rake, ridge,
-                  hip, valley or flashing. Anything that isn&apos;t roof — a patio, a flat section
-                  on a different plane — drag out or delete.
-                </p>
-              </CbCard>
+              <>
+                <CbCard className="p-4">
+                  <p className="text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+                    Drag the corners onto the real roof edges, tap a midpoint to add a corner, hold
+                    a corner to delete it — then tap <strong>Save roof footprint</strong> to lock it
+                    in. After that, draw every ridge, hip and valley with the Line tool and tap any
+                    line to label it eave, rake, ridge, hip, valley or flashing.
+                  </p>
+                </CbCard>
+
+                <CbCard className="p-4">
+                  <p className="text-[14px] font-semibold">Another structure on this property?</p>
+                  <p className="mt-1 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+                    A flat roof section, a detached garage or a shed is measured separately. Drop a
+                    pin on it and measure again — it gets added as its own structure.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <CbButton
+                      size="md"
+                      variant="secondary"
+                      onClick={() => {
+                        setPinDropMode(true);
+                        toast.message("Tap the flat roof, garage or shed to drop a pin");
+                      }}
+                    >
+                      Drop another pin
+                    </CbButton>
+                    {measurePins.length ? (
+                      <CbButton size="md" onClick={() => void run()} disabled={phase !== "result"}>
+                        Measure {measurePins.length} pinned roof
+                        {measurePins.length === 1 ? "" : "s"}
+                      </CbButton>
+                    ) : null}
+                  </div>
+                </CbCard>
+              </>
             ) : null}
 
             {phase === "idle" ? (
