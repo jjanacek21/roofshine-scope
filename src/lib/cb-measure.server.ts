@@ -152,6 +152,30 @@ export async function runCbInstantMeasure(
     .select("id", { count: "exact", head: true })
     .eq("measurement_id", m.id);
 
+  /*
+   * Perimeter normalisation. The tracer sometimes classes the whole outline as
+   * rake (or the whole outline as eave). Perimeter is the truth; split it back
+   * so eave + rake always equals the outline and drip edge / starter — which are
+   * derived from that sum — never come out short or doubled.
+   */
+  const rawEave = Number(m.eaves_lf ?? 0);
+  const rawRake = Number(m.rakes_lf ?? 0);
+  const perimeter = Number(m.drip_edge_lf ?? 0) || rawEave + rawRake;
+  let eave = rawEave;
+  let rake = rawRake;
+  if (perimeter > 0) {
+    if (rawEave <= 0 && rawRake > 0) {
+      eave = Math.round(Math.max(perimeter - rawRake, perimeter * 0.5) * 10) / 10;
+      rake = Math.round((perimeter - eave) * 10) / 10;
+    } else if (rawRake <= 0 && rawEave > 0) {
+      rake = Math.round(Math.max(perimeter - rawEave, perimeter * 0.5) * 10) / 10;
+      eave = Math.round((perimeter - rake) * 10) / 10;
+    }
+  }
+  const perimeterLf = Math.round((eave + rake) * 10) / 10;
+  const areaSqft = Number(m.total_area_sqft ?? 0);
+  const finalWaste = Number(m.waste_pct ?? wastePct);
+
   return {
     ok: true as const,
     property_id: propertyId,
@@ -159,12 +183,13 @@ export async function runCbInstantMeasure(
     footprint_source: sources.map((source) => source.footprint).filter(Boolean).join(",") || null,
     facet_source: sources.map((source) => source.facet).filter(Boolean).join(",") || null,
     measurement: {
-      total_squares: Number(m.squares ?? 0),
-      total_area_sqft: Number(m.total_area_sqft ?? 0),
+      /* squares always carry waste: area x (1 + waste%) / 100 */
+      total_squares: Math.round(((areaSqft * (1 + finalWaste / 100)) / 100) * 100) / 100,
+      total_area_sqft: areaSqft,
       plan_area_sqft: Number(
         (m.ai_geometry as { total_plan_sqft?: number } | null)?.total_plan_sqft ?? 0,
       ),
-      waste_pct: Number(m.waste_pct ?? wastePct),
+      waste_pct: finalWaste,
       pitch: (m.predominant_pitch as string | null) ?? null,
       stories: null as number | null,
       facets: facetCount ?? segments.length,
@@ -172,16 +197,17 @@ export async function runCbInstantMeasure(
       ridge_lf: Number(m.ridges_lf ?? 0),
       hip_lf: Number(m.hips_lf ?? 0),
       valley_lf: Number(m.valleys_lf ?? 0),
-      rake_lf: Number(m.rakes_lf ?? 0),
-      eave_lf: Number(m.eaves_lf ?? 0),
-      drip_edge_lf:
-        Number(m.drip_edge_lf ?? 0) || Number(m.eaves_lf ?? 0) + Number(m.rakes_lf ?? 0),
-      starter_lf: Number(m.eaves_lf ?? 0),
+      rake_lf: rake,
+      eave_lf: eave,
+      /* derived — perimeter, not a second measurement */
+      drip_edge_lf: perimeterLf,
+      starter_lf: perimeterLf,
       ridge_cap_lf: Number(m.ridges_lf ?? 0) + Number(m.hips_lf ?? 0),
       wall_flashing_lf: Number(m.wall_flashing_lf ?? 0),
       step_flashing_lf: Number(m.step_flashing_lf ?? 0),
-      gutter_lf: Number(m.gutters_lf ?? 0) || Number(m.eaves_lf ?? 0),
+      gutter_lf: Number(m.gutters_lf ?? 0) || eave,
       source: (m.source as string) ?? "google_solar",
     },
   };
+
 }

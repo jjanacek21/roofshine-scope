@@ -23,11 +23,16 @@ import {
 
 import {
   CB_BLANK_MEASUREMENT,
+  CB_DERIVED_FIELDS,
   CB_LINEAR_FIELDS,
+  applyDerived,
+  computeTotalSquares,
+  derivePerimeter,
   getInstantMeasurement,
   saveCbMeasurement,
   type CbMeasurement,
 } from "@/lib/cbMeasure";
+
 
 
 export const Route = createFileRoute("/cb/job/$id/measure")({
@@ -69,6 +74,9 @@ function CbJobMeasurePage() {
   const [phase, setPhase] = useState<"idle" | "running" | "result" | "manual">("idle");
   const [stepIdx, setStepIdx] = useState(0);
   const [values, setValues] = useState<CbMeasurement>(CB_BLANK_MEASUREMENT);
+  /** Derived fields a rep chose to type by hand. */
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+
   const [adjust, setAdjust] = useState(false);
   const [repAdjusted, setRepAdjusted] = useState(false);
   const [upgrade, setUpgrade] = useState(false);
@@ -167,25 +175,27 @@ function CbJobMeasurePage() {
     setPlanDirty(true);
     setRepAdjusted(true);
     const t = planTotals(next);
-    setValues((v) => ({
-      ...v,
-      total_squares: t.total_squares,
-      total_area_sqft: t.total_area_sqft,
-      facets: t.facets,
-      pitch: t.pitch ?? v.pitch,
-      ridge_lf: t.ridge_lf,
-      hip_lf: t.hip_lf,
-      valley_lf: t.valley_lf,
-      rake_lf: t.rake_lf,
-      eave_lf: t.eave_lf,
-      gutter_lf: t.gutter_lf,
-      wall_flashing_lf: t.wall_flashing_lf,
-      step_flashing_lf: t.step_flashing_lf,
-      drip_edge_lf: Math.round((t.eave_lf + t.rake_lf) * 10) / 10,
-      starter_lf: t.eave_lf,
-      ridge_cap_lf: Math.round((t.ridge_lf + t.hip_lf) * 10) / 10,
-    }));
+    setValues((v) =>
+      applyDerived(
+        {
+          ...v,
+          total_area_sqft: t.total_area_sqft,
+          facets: t.facets,
+          pitch: t.pitch ?? v.pitch,
+          ridge_lf: t.ridge_lf,
+          hip_lf: t.hip_lf,
+          valley_lf: t.valley_lf,
+          rake_lf: t.rake_lf,
+          eave_lf: t.eave_lf,
+          gutter_lf: t.gutter_lf,
+          wall_flashing_lf: t.wall_flashing_lf,
+          step_flashing_lf: t.step_flashing_lf,
+        },
+        { perimeterFallback: t.perimeter_lf, overrides },
+      ),
+    );
   }
+
 
   function resetPlan() {
     const original = originalPlanRef.current;
@@ -251,9 +261,25 @@ function CbJobMeasurePage() {
   }
 
   function edit(patch: Partial<CbMeasurement>) {
-    setValues((v) => ({ ...v, ...patch }));
+    setValues((v) =>
+      applyDerived({ ...v, ...patch }, { perimeterFallback: planPerimeter, overrides }),
+    );
     setRepAdjusted(true);
   }
+
+  /** Type over a derived number — it stops recalculating until reset. */
+  function overrideEdit(key: "drip_edge_lf" | "starter_lf" | "ridge_cap_lf" | "total_squares", v: number) {
+    setOverrides((o) => ({ ...o, [key]: true }));
+    setValues((prev) => ({ ...prev, [key]: v }));
+    setRepAdjusted(true);
+  }
+
+  function clearOverride(key: string) {
+    const next = { ...overrides, [key]: false };
+    setOverrides(next);
+    setValues((v) => applyDerived(v, { perimeterFallback: planPerimeter, overrides: next }));
+  }
+
 
   async function save(dest: "takeoff" | "estimate" = "takeoff") {
     setSaving(true);

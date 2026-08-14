@@ -66,7 +66,10 @@ export interface CbPlanTotals {
   gutter_lf: number;
   wall_flashing_lf: number;
   step_flashing_lf: number;
+  /** Full traced outline length — the roof perimeter, labels or not. */
+  perimeter_lf: number;
 }
+
 
 export const CB_SECTION_COLORS = [
   "#f97316",
@@ -299,6 +302,7 @@ export function planTotals(plan: CbPlan): CbPlanTotals {
   for (const t of EDGE_TYPES) byType[t] = 0;
 
   let area = 0;
+  let perimeter = 0;
   const pitchArea: Record<string, number> = {};
 
   for (const s of plan.sections) {
@@ -310,6 +314,7 @@ export function planTotals(plan: CbPlan): CbPlanTotals {
     const edges = normalizeEdges(s.ring, s.edges);
     edges.forEach((t, i) => {
       byType[t] = (byType[t] ?? 0) + (lens[i] ?? 0);
+      perimeter += lens[i] ?? 0;
     });
   }
 
@@ -335,7 +340,9 @@ export function planTotals(plan: CbPlan): CbPlanTotals {
     gutter_lf: r(byType.gutter || byType.eave),
     wall_flashing_lf: r(byType.wall_flashing),
     step_flashing_lf: r(byType.step_flashing),
+    perimeter_lf: r(perimeter),
   };
+
 }
 
 /* ----------------------------- persistence ---------------------------- */
