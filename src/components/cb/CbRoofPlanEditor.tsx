@@ -1128,11 +1128,13 @@ export function CbRoofPlanEditor({
                 >
                   {pinDropMode
                     ? "Tap the roof to drop a measurement pin"
-                    : locked
-                      ? "Footprint locked — tap any line to label it"
-                      : plan.sections.length
-                        ? "Drag the corners onto the roof, then Save roof footprint"
-                        : "Drop a pin and measure to trace the roof"}
+                    : tool === "refine"
+                      ? "Tap a red edge to add a corner, or tap near a corner to snap it"
+                      : locked
+                        ? "Footprint locked — tap any line to label it"
+                        : plan.sections.length
+                          ? "Drag the corners onto the roof, then Save roof footprint"
+                          : "Drop a pin and measure to trace the roof"}
                 </span>
               ) : null}
             </div>
