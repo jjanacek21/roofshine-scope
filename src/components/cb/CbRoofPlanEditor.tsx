@@ -1064,7 +1064,7 @@ export function CbRoofPlanEditor({
           setTypeSheet(null);
           if (typeSheet?.kind === "line") setDraft([]);
         }}
-        title={typeSheet?.kind === "line" ? "Label this line" : "Label this edge"}
+        title={typeSheet?.kind === "edge" ? "Label this edge" : "Label this line"}
       >
         <div className="grid grid-cols-2 gap-2">
           {CB_EDGE_TYPES.map((t) => (
