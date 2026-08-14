@@ -858,6 +858,19 @@ export function CbRoofPlanEditor({
                 Redo
               </MapBtn>
               {canReset ? <MapBtn onClick={onReset}>Reset to satellite</MapBtn> : null}
+              {plan.sections.length ? (
+                <MapBtn
+                  active={locked}
+                  onClick={() => {
+                    setLocked((v) => !v);
+                    setTool("select");
+                    setDraft([]);
+                    cbHaptic(12);
+                  }}
+                >
+                  {locked ? "Unlock footprint" : "Save roof footprint"}
+                </MapBtn>
+              ) : null}
             </div>
           ) : (
             <div className="absolute left-3 top-3">
