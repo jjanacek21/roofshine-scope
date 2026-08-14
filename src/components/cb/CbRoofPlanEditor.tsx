@@ -599,13 +599,22 @@ export function CbRoofPlanEditor({
     setPitchSheet(null);
   }
 
+  /**
+   * Draw first, label later: finishing a line drops it in unlabeled and keeps
+   * the line tool armed so every ridge/hip/valley can be drawn in one pass.
+   */
   function finishLine() {
     if (draft.length < 2) {
       setDraft([]);
       setTool("select");
       return;
     }
-    setTypeSheet({ kind: "line", coords: draft });
+    commit({
+      ...plan,
+      lines: [...plan.lines, { id: uid(), coords: draft, type: "unlabeled" }],
+    });
+    setDraft([]);
+    cbHaptic();
   }
 
   function applyType(t: CbEdgeType) {
@@ -617,11 +626,18 @@ export function CbRoofPlanEditor({
       });
       setDraft([]);
       setTool("select");
+    } else if (typeSheet.kind === "lineEdit") {
+      const lineId = typeSheet.id;
+      commit({
+        ...plan,
+        lines: plan.lines.map((l) => (l.id === lineId ? { ...l, type: t } : l)),
+      });
     } else {
+      const { sectionId, index } = typeSheet;
       commit(
-        updateSection(typeSheet.sectionId, (s) => {
+        updateSection(sectionId, (s) => {
           const edges = normalizeEdges(s.ring, s.edges);
-          edges[typeSheet.index] = t;
+          edges[index] = t;
           return { ...s, edges: [...edges] };
         }),
       );
