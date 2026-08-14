@@ -1328,6 +1328,38 @@ function MapBtn({
   );
 }
 
+function MapIconBtn({
+  children,
+  label,
+  onClick,
+  disabled,
+}: {
+  children: React.ReactNode;
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      disabled={disabled}
+      className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px]"
+      style={{
+        background: "rgba(12,16,22,0.82)",
+        color: "#fff",
+        border: "1px solid rgba(255,255,255,0.22)",
+        opacity: disabled ? 0.45 : 1,
+        backdropFilter: "blur(6px)",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
 function TotalsStrip({ totals }: { totals: CbPlanTotals }) {
   const items: [string, string][] = [
     ["Squares", totals.total_squares.toFixed(2)],
