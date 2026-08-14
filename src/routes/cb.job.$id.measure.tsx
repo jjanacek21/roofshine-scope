@@ -459,8 +459,10 @@ function CbJobMeasurePage() {
                     }}
                     onClearPins={() => {
                       setMeasurePins([]);
+                      setMeasuredCount(0);
                       setPinDropMode(true);
                     }}
+
                     onMeasure={() => void run()}
                     measuring={phase === "running"}
                     aiPlan={aiPlan}
