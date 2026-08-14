@@ -1028,6 +1028,24 @@ export function CbRoofPlanEditor({
               <MapBtn active={tool === "line"} onClick={() => setTool("line")}>
                 Line
               </MapBtn>
+              {plan.sections.length ? (
+                <MapBtn
+                  active={tool === "refine"}
+                  disabled={locked}
+                  onClick={() => {
+                    setTool("refine");
+                    setDraft([]);
+                    setShowTrace(true);
+                  }}
+                >
+                  Refine trace
+                </MapBtn>
+              ) : null}
+              {plan.sections.length ? (
+                <MapBtn active={showTrace} onClick={() => setShowTrace((v) => !v)}>
+                  {showTrace ? "Hide AI trace" : "Show AI trace"}
+                </MapBtn>
+              ) : null}
               <MapBtn active={pinDropMode} onClick={onTogglePinDrop}>
                 {pinDropMode ? "Tap roof now" : "Drop measurement pin"}
               </MapBtn>
