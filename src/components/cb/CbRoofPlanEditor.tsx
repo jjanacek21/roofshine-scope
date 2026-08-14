@@ -1077,6 +1077,29 @@ export function CbRoofPlanEditor({
             </div>
           )}
 
+          {showTrace && overallConfidence ? (
+            <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-1">
+              <span
+                className="rounded-full px-3 py-1.5 text-[12px] font-bold"
+                style={{
+                  background: "rgba(12,16,22,0.82)",
+                  color: confidenceColor(overallConfidence.percent / 100),
+                }}
+              >
+                AI confidence {overallConfidence.percent}% · {overallConfidence.label}
+              </span>
+              {overallConfidence.low ? (
+                <span
+                  className="rounded-full px-3 py-1 text-[11px] font-semibold"
+                  style={{ background: "rgba(12,16,22,0.72)", color: "#fca5a5" }}
+                >
+                  {overallConfidence.low} edge{overallConfidence.low === 1 ? "" : "s"} need a look
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+
+
           {tool === "line" && !readOnly ? (
             <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2">
               <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
