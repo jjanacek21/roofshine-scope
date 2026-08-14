@@ -17,7 +17,7 @@ import {
   loadCbRoofPlan,
   saveCbRoofPlan,
   planTotals,
-  mergeSectionsToFootprint,
+  mergeSectionsByStructure,
   type CbPlan,
 } from "@/lib/cbRoofPlan";
 
@@ -159,10 +159,21 @@ function CbJobMeasurePage() {
 
   useEffect(() => {
     if (!planData) return;
-    setPlan(planData);
-    if (!originalPlanRef.current) originalPlanRef.current = planData;
-    setAiPlan((cur) => cur ?? planData);
+    let cancelled = false;
+    // One highlighted outline per structure — never a pile of overlapping facets.
+    void mergeSectionsByStructure(planData, measurePins).then((collapsed) => {
+      if (cancelled) return;
+      setPlan(collapsed);
+      if (!originalPlanRef.current) originalPlanRef.current = collapsed;
+      setAiPlan((cur) => cur ?? collapsed);
+      if (collapsed.sections.length !== planData.sections.length) setPlanDirty(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planData]);
+
 
   const { data: reportCount } = useQuery({
     queryKey: ["cb-report-count", id],
@@ -248,16 +259,14 @@ function CbJobMeasurePage() {
       setPlanDirty(false);
       const fresh = await refetchPlan();
       if (fresh.data) {
-        // One roof, one outline: the rep drags corners, then draws and labels
-        // the ridges, hips and valleys themselves.
-        // One pin = one building: merge its facets into a single outline.
-        // Multiple pins are separate structures — keep them apart.
-        const merged =
-          measurePins.length > 1 ? fresh.data : await mergeSectionsToFootprint(fresh.data);
+        // One highlighted outline per dropped pin: pin 1 is the main roof,
+        // pin 2 the flat roof, pin 3 the shed — each with its own colour.
+        const merged = await mergeSectionsByStructure(fresh.data, measurePins);
         setPlan(merged);
         originalPlanRef.current = merged;
         setAiPlan(JSON.parse(JSON.stringify(merged)) as CbPlan);
         setPlanDirty(merged !== fresh.data);
+
       }
 
       setPinDropMode(false);

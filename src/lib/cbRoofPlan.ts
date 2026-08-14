@@ -240,6 +240,109 @@ export async function mergeSectionsToFootprint(plan: CbPlan): Promise<CbPlan> {
   };
 }
 
+/** Name shown for structure N — reps think "main roof", "flat roof", "shed". */
+function structureName(i: number): string {
+  return i === 0 ? "Main roof" : i === 1 ? "Flat roof" : `Structure ${i + 1}`;
+}
+
+/**
+ * ONE highlighted outline per dropped pin.
+ *
+ * Every facet the tracer returns is assigned to the pin it sits closest to,
+ * then each pin's facets are unioned into a single outline with its own
+ * overlay colour. Without pins, facets that touch each other are clustered
+ * together so old multi-facet plans also collapse to one shape per building.
+ */
+export async function mergeSectionsByStructure(
+  plan: CbPlan,
+  pins: Array<{ lat: number; lng: number }> = [],
+): Promise<CbPlan> {
+  if (plan.sections.length < 2) {
+    if (!plan.sections.length) return plan;
+    const only = plan.sections[0];
+    return {
+      ...plan,
+      sections: [{ ...only, name: only.name || structureName(0), color: cbSectionColor(0) }],
+    };
+  }
+
+  const groups: CbPlanSection[][] = [];
+
+  if (pins.length > 1) {
+    pins.forEach(() => groups.push([]));
+    for (const section of plan.sections) {
+      const [cx, cy] = ringCentroid(section.ring);
+      let nearest = 0;
+      let best = Infinity;
+      pins.forEach((pin, i) => {
+        const s = ftPerDeg(pin.lat);
+        const d = Math.hypot((cx - pin.lng) * s.lng, (cy - pin.lat) * s.lat);
+        if (d < best) {
+          best = d;
+          nearest = i;
+        }
+      });
+      groups[nearest].push(section);
+    }
+  } else if (pins.length === 1) {
+    groups.push([...plan.sections]);
+  } else {
+    // No pins to group by: cluster facets that overlap or touch.
+    let intersects: ((a: unknown, b: unknown) => boolean) | null = null;
+    let polygonOf: ((ring: number[][]) => unknown) | null = null;
+    try {
+      const [{ default: booleanIntersects }, { polygon }] = await Promise.all([
+        import("@turf/boolean-intersects"),
+        import("@turf/helpers"),
+      ]);
+      intersects = booleanIntersects as unknown as (a: unknown, b: unknown) => boolean;
+      polygonOf = (ring: number[][]) => polygon([closeRing(ring)]);
+    } catch {
+      intersects = null;
+    }
+    for (const section of plan.sections) {
+      let placed = false;
+      if (intersects && polygonOf) {
+        for (const group of groups) {
+          if (
+            group.some((other) => {
+              try {
+                return intersects!(polygonOf!(other.ring), polygonOf!(section.ring));
+              } catch {
+                return false;
+              }
+            })
+          ) {
+            group.push(section);
+            placed = true;
+            break;
+          }
+        }
+      }
+      if (!placed) groups.push([section]);
+    }
+  }
+
+  const merged: CbPlanSection[] = [];
+  for (const group of groups) {
+    if (!group.length) continue;
+    const one = await mergeSectionsToFootprint({ sections: group, lines: [] });
+    const section = one.sections[0];
+    if (!section) continue;
+    const i = merged.length;
+    merged.push({
+      ...section,
+      name: structureName(i),
+      color: cbSectionColor(i),
+    });
+  }
+
+  if (!merged.length) return plan;
+  return { ...plan, sections: merged };
+}
+
+
+
 
 /**
  * Snap a dragged vertex so the two edges touching it land on 15° increments
