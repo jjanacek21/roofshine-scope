@@ -664,10 +664,10 @@ export function CbRoofPlanEditor({
 
   /* ------------------------------- render ------------------------------- */
 
-  const handleSection = selected ?? (plan.sections.length === 1 ? plan.sections[0] : null);
+  const handleSection = selected ?? (plan.sections.length ? plan.sections[0] : null);
   const vertexHandles: { x: number; y: number; index: number }[] = [];
   const midHandles: { x: number; y: number; index: number }[] = [];
-  if (handleSection && !readOnly && ready) {
+  if (handleSection && !readOnly && ready && !locked && tool === "select") {
     handleSection.ring.forEach((p, i) => {
       const pt = project(p);
       if (pt) vertexHandles.push({ ...pt, index: i });
