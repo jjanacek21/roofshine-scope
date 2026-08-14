@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
@@ -34,6 +35,7 @@ import {
   saveCbMeasurement,
   type CbMeasurement,
 } from "@/lib/cbMeasure";
+import { saveCbRoofCorrectionFn } from "@/lib/cb-roof-correction.functions";
 
 
 
@@ -88,6 +90,7 @@ function CbJobMeasurePage() {
   /** How many dropped pins have already been traced. */
   const [measuredCount, setMeasuredCount] = useState(0);
   const [pinDropMode, setPinDropMode] = useState(true);
+  const saveCorrection = useServerFn(saveCbRoofCorrectionFn);
 
   const [editorKey, setEditorKey] = useState(0);
 
@@ -169,6 +172,10 @@ function CbJobMeasurePage() {
     void mergeSectionsByStructure(planData, measurePins).then((collapsed) => {
       if (cancelled) return;
       setPlan(collapsed);
+      const storedPins = collapsed.sections.flatMap((section) => (section.pin ? [section.pin] : []));
+      setMeasurePins(storedPins);
+      setMeasuredCount(storedPins.length);
+      setPinDropMode(collapsed.sections.length === 0);
       if (!originalPlanRef.current) originalPlanRef.current = collapsed;
       setAiPlan((cur) => cur ?? collapsed);
       if (collapsed.sections.length !== planData.sections.length) setPlanDirty(true);
@@ -238,12 +245,12 @@ function CbJobMeasurePage() {
       toast.message("Tap the roof on the satellite map to drop a measurement pin");
       return;
     }
-    // Pins already traced keep their (possibly hand-corrected) footprint —
-    // only the newly dropped pins get measured and added as new structures.
-    const newPins = measurePins.slice(measuredCount);
-    const pinsToRun = newPins.length ? newPins : measurePins;
-    const keepExisting = newPins.length > 0 && plan.sections.length > 0;
-    const preserved = keepExisting ? plan : null;
+    const newPin = measurePins[measuredCount];
+    if (!newPin) {
+      toast.message("Drop another pin before measuring another roof");
+      return;
+    }
+    const preserved = plan;
 
     cbHaptic();
     setPhase("running");
@@ -256,13 +263,12 @@ function CbJobMeasurePage() {
       lng: job.lng != null ? Number(job.lng) : null,
       workspaceId: job.workspace_id,
       jobId: id,
-      pins: pinsToRun,
+      pins: [newPin],
     });
     clearInterval(timer);
     setRemaining(res.credit.metered ? res.credit.remaining : null);
 
     if (res.ok) {
-      setValues(applyDerived(res.measurement));
       setOverrides({});
       setRepAdjusted(false);
 
@@ -273,27 +279,45 @@ function CbJobMeasurePage() {
       if (fresh.data) {
         // One highlighted outline per dropped pin: pin 1 is the main roof,
         // pin 2 the flat roof, pin 3 the shed — each with its own colour.
-        const merged = await mergeSectionsByStructure(fresh.data, pinsToRun);
-        const next: CbPlan = preserved
-          ? {
-              sections: [
-                ...preserved.sections,
-                ...merged.sections.map((s, i) => ({
-                  ...s,
-                  name: `Structure ${preserved.sections.length + i + 1}`,
-                  color: cbSectionColor(preserved.sections.length + i),
-                })),
-              ],
-              lines: [...preserved.lines, ...merged.lines],
-            }
-          : merged;
+        const merged = await mergeSectionsByStructure(fresh.data, [newPin]);
+        const structureIndex = preserved.sections.length;
+        const key = `structure-${crypto.randomUUID()}`;
+        const added = merged.sections.slice(0, 1).map((s) => ({
+          ...s,
+          structureKey: key,
+          pin: newPin,
+          isLocked: false,
+          aiRing: s.ring.map((point) => [...point]),
+          name: structureIndex === 0 ? "Main roof" : structureIndex === 1 ? "Flat roof" : `Structure ${structureIndex + 1}`,
+          color: cbSectionColor(structureIndex),
+        }));
+        const next: CbPlan = {
+          sections: [...preserved.sections, ...added],
+          lines: preserved.lines,
+        };
         setPlan(next);
-        originalPlanRef.current = next;
-        setAiPlan(JSON.parse(JSON.stringify(next)) as CbPlan);
+        originalPlanRef.current = JSON.parse(JSON.stringify(next)) as CbPlan;
+        setAiPlan({ sections: next.sections.map((s) => ({ ...s, ring: (s.aiRing ?? s.ring).map((p) => [...p]) })), lines: [] });
+        const totals = planTotals(next);
+        setValues((current) => applyDerived({
+          ...current,
+          total_area_sqft: totals.total_area_sqft,
+          facets: totals.facets,
+          pitch: totals.pitch ?? current.pitch,
+          ridge_lf: totals.ridge_lf,
+          hip_lf: totals.hip_lf,
+          valley_lf: totals.valley_lf,
+          rake_lf: totals.rake_lf,
+          eave_lf: totals.eave_lf,
+          gutter_lf: totals.gutter_lf,
+          wall_flashing_lf: totals.wall_flashing_lf,
+          step_flashing_lf: totals.step_flashing_lf,
+        }, { perimeterFallback: totals.perimeter_lf }));
+        await saveCbRoofPlan(id, next, { repAdjusted: false });
         setPlanDirty(true);
       }
 
-      setMeasuredCount(measurePins.length);
+      setMeasuredCount((count) => count + 1);
       setPinDropMode(false);
       return;
     }
@@ -309,6 +333,29 @@ function CbJobMeasurePage() {
           : "Couldn't measure from satellite — enter it by hand",
     );
 
+  }
+
+  async function saveFootprint(sectionId: string) {
+    const section = plan.sections.find((item) => item.id === sectionId);
+    if (!section) return;
+    const lockedSection = { ...section, isLocked: true };
+    const next = {
+      ...plan,
+      sections: plan.sections.map((item) => (item.id === sectionId ? lockedSection : item)),
+    };
+    setSaving(true);
+    try {
+      await saveCbRoofPlan(id, next, { repAdjusted: true });
+      await saveCorrection({ data: { jobId: id, section: lockedSection } });
+      setPlan(next);
+      setPlanDirty(false);
+      setRepAdjusted(true);
+      toast.success("Footprint saved — AI will remember this roof");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't save this footprint");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function edit(patch: Partial<CbMeasurement>) {
@@ -466,6 +513,8 @@ function CbJobMeasurePage() {
                     onMeasure={() => void run()}
                     measuring={phase === "running"}
                     aiPlan={aiPlan}
+                    onSaveFootprint={(sectionId) => void saveFootprint(sectionId)}
+                    savingFootprint={saving}
                   />
                 </Suspense>
               </CbErrorBoundary>
@@ -484,7 +533,7 @@ function CbJobMeasurePage() {
                   </p>
                 </CbCard>
 
-                <CbCard className="p-4">
+                {plan.sections.every((section) => section.isLocked) ? <CbCard className="p-4">
                   <p className="text-[14px] font-semibold">Another structure on this property?</p>
                   <p className="mt-1 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
                     A flat roof section, a detached garage or a shed is measured separately. Drop a
@@ -509,7 +558,7 @@ function CbJobMeasurePage() {
                     ) : null}
 
                   </div>
-                </CbCard>
+                </CbCard> : null}
               </>
             ) : null}
 
@@ -762,10 +811,8 @@ function CbJobMeasurePage() {
                 ) : null}
 
                 <div className="space-y-3">
-                  <CbButton block variant="ghost" onClick={run} disabled={!job?.workspace_id}>
-                    {measurePins.length
-                      ? `Re-measure ${measurePins.length} pinned roof${measurePins.length === 1 ? "" : "s"}`
-                      : "Drop a pin and measure again"}
+                  <CbButton block variant="ghost" onClick={() => setPinDropMode(true)} disabled={!plan.sections.every((section) => section.isLocked)}>
+                    Add another roof
                   </CbButton>
                 </div>
 
@@ -780,6 +827,7 @@ function CbJobMeasurePage() {
             <CbButton
               block
               onClick={() => void save("takeoff")}
+              disabled={!!plan.sections.length && !plan.sections.every((section) => section.isLocked)}
               loading={saving}
               loadingText="Saving…"
             >
