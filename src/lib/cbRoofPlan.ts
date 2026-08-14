@@ -383,10 +383,11 @@ export async function mergeSectionsByStructure(
       ...section,
       name: structureName(i),
       color: cbSectionColor(i),
-      structureKey: group[0]?.structureKey || `structure-${i + 1}`,
-      pin: group[0]?.pin ?? (pins[i] ?? null),
+      structureKey: group.find((item) => item.structureKey)?.structureKey || `structure-${i + 1}`,
+      pin: group.find((item) => item.pin)?.pin ?? (pins[i] ?? null),
       isLocked: group.every((item) => item.isLocked),
-      aiRing: group[0]?.aiRing ?? section.ring.map((point) => [...point]),
+      aiRing: group.find((item) => item.aiRing?.length)?.aiRing ?? section.ring.map((point) => [...point]),
+
     });
   }
 
