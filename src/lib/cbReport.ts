@@ -28,6 +28,20 @@ export interface CbReportPhoto {
   taken_at: string | null;
 }
 
+/** Pick the best saved image available for the report cover. */
+export function resolveReportCover(
+  photos: CbReportPhoto[],
+  coverPath?: string | null,
+): CbReportPhoto | null {
+  return (
+    photos.find((photo) => !!coverPath && photo.storage_path === coverPath) ??
+    photos.find((photo) => photo.category === "cover") ??
+    photos.find((photo) => photo.shot_type === "overview" || photo.shot_type === "wide") ??
+    photos[0] ??
+    null
+  );
+}
+
 export interface CbLineItem {
   id: string;
   description: string;

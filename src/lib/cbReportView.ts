@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { computeVentilation, readSheet } from "@/lib/cbSheet";
 import { cbLogoSignedUrl } from "@/lib/cbLogo";
 import { CB_PHOTO_BUCKET } from "@/lib/cbPhotos";
-import { loadReportInputs, type CbLineItem, type CbNarrative, type CbReportPhoto, CB_STATEMENT } from "@/lib/cbReport";
+import { loadReportInputs, resolveReportCover, type CbLineItem, type CbNarrative, CB_STATEMENT } from "@/lib/cbReport";
 import type { CbElevation, CbElevationState, CbRoom } from "@/lib/cbTakeoff";
 import type { CbReportViewModel } from "@/components/cb/CbReportDoc";
 
@@ -88,10 +88,7 @@ export function assembleVm(args: {
       : computeVentilation(sheet.ventilation, squares, sheet.roof_system.pitch ?? String(measurement?.pitch ?? "6/12"));
 
   const coverPath = (inputs.job?.cover_photo_path as string) ?? null;
-  const coverPhoto =
-    inputs.photos.find((p) => p.storage_path === coverPath) ??
-    inputs.photos.find((p) => p.category === "cover") ??
-    null;
+  const coverPhoto = resolveReportCover(inputs.photos, coverPath);
 
   const source = measurement?.rep_adjusted
     ? "Rep-adjusted"
@@ -106,7 +103,7 @@ export function assembleVm(args: {
     logoUrl,
     job: (inputs.job ?? null) as CbReportViewModel["job"],
     repName,
-    coverPhoto: coverPhoto as CbReportPhoto | null,
+    coverPhoto,
     photos: inputs.photos,
     urls,
     sheet,

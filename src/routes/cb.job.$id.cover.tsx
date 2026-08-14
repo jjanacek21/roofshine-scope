@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
@@ -31,6 +31,7 @@ const TIP_KEY = "cb_cover_tip_dismissed";
 function CbJobCoverPage() {
   const { id } = useParams({ from: "/cb/job/$id/cover" });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -57,6 +58,18 @@ function CbJobCoverPage() {
 
   const existingCover = (job?.cover_photo_path as string | null) ?? null;
   const existingUrl = useCbPhotoUrl(retaking ? null : existingCover);
+
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      const detail = (event as CustomEvent<{ jobId?: string }>).detail;
+      if (detail?.jobId === id) {
+        void queryClient.invalidateQueries({ queryKey: ["cb-cover-job", id] });
+        void queryClient.invalidateQueries({ queryKey: ["cb-review", id] });
+      }
+    };
+    window.addEventListener("cb-photo-uploaded", refresh);
+    return () => window.removeEventListener("cb-photo-uploaded", refresh);
+  }, [id, queryClient]);
 
   useEffect(() => {
     try {
