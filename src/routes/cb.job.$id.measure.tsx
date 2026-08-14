@@ -428,6 +428,7 @@ function CbJobMeasurePage() {
                     }}
                     onMeasure={() => void run()}
                     measuring={phase === "running"}
+                    aiPlan={aiPlan}
                   />
                 </Suspense>
               </CbErrorBoundary>
