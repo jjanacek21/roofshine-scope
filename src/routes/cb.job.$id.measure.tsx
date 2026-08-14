@@ -246,7 +246,10 @@ function CbJobMeasurePage() {
       if (fresh.data) {
         // One roof, one outline: the rep drags corners, then draws and labels
         // the ridges, hips and valleys themselves.
-        const merged = await mergeSectionsToFootprint(fresh.data);
+        // One pin = one building: merge its facets into a single outline.
+        // Multiple pins are separate structures — keep them apart.
+        const merged =
+          measurePins.length > 1 ? fresh.data : await mergeSectionsToFootprint(fresh.data);
         setPlan(merged);
         originalPlanRef.current = merged;
         setPlanDirty(merged !== fresh.data);
