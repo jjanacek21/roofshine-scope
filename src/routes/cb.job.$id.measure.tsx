@@ -235,8 +235,10 @@ function CbJobMeasurePage() {
     setRemaining(res.credit.metered ? res.credit.remaining : null);
 
     if (res.ok) {
-      setValues(res.measurement);
+      setValues(applyDerived(res.measurement));
+      setOverrides({});
       setRepAdjusted(false);
+
       setPhase("result");
       originalPlanRef.current = null;
       setPlanDirty(false);
