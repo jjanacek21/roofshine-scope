@@ -513,7 +513,7 @@ function CbJobMeasurePage() {
                       <CbBadge>{values.pitch ?? "pitch —"}</CbBadge>
                       <CbBadge>{values.facets ?? 0} facets</CbBadge>
                       <CbBadge>{values.waste_pct}% waste</CbBadge>
-                      <CbBadge>Perimeter {Math.round(perimeter)} LF</CbBadge>
+                      <CbBadge>Perimeter {Math.round(derivePerimeter(values, planPerimeter))} LF</CbBadge>
                       <CbBadge>
                         {values.source === "manual" ? "Manual entry" : `Source: ${values.source}`}
                       </CbBadge>
