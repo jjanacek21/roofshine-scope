@@ -1138,7 +1138,7 @@ export function CbRoofPlanEditor({
                     : tool === "refine"
                       ? "Tap a red edge to add a corner, or tap near a corner to snap it"
                       : locked
-                        ? tool === "line" ? "Draw all lines; endpoints snap to the roof edge" : "Tap Label lines, then tap each line or perimeter edge"
+                        ? "Tap Label lines, then tap each line or perimeter edge"
                         : plan.sections.length
                           ? "Drag the corners onto the roof, then Save roof footprint"
                           : "Drop a pin and measure to trace the roof"}
