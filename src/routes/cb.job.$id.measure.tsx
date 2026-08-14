@@ -17,7 +17,7 @@ import {
   loadCbRoofPlan,
   saveCbRoofPlan,
   planTotals,
-  mergeSectionsToFootprint,
+  mergeSectionsByStructure,
   type CbPlan,
 } from "@/lib/cbRoofPlan";
 
