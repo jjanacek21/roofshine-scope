@@ -295,6 +295,33 @@ export function pointDistanceFeet(a: number[], b: number[]): number {
   return haversineFeet({ lng: a[0], lat: a[1] }, { lng: b[0], lat: b[1] });
 }
 
+/** Project a point onto the nearest roof-outline segment. */
+export function nearestPointOnRing(ring: number[][], point: [number, number]): [number, number] {
+  if (ring.length < 2) return point;
+  const scale = ftPerDeg(point[1]);
+  let best: [number, number] = point;
+  let bestDistance = Infinity;
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i];
+    const b = ring[(i + 1) % ring.length];
+    const ax = (a[0] - point[0]) * scale.lng;
+    const ay = (a[1] - point[1]) * scale.lat;
+    const bx = (b[0] - point[0]) * scale.lng;
+    const by = (b[1] - point[1]) * scale.lat;
+    const vx = bx - ax;
+    const vy = by - ay;
+    const t = Math.max(0, Math.min(1, -(ax * vx + ay * vy) / (vx * vx + vy * vy || 1)));
+    const x = ax + t * vx;
+    const y = ay + t * vy;
+    const distance = Math.hypot(x, y);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = [point[0] + x / scale.lng, point[1] + y / scale.lat];
+    }
+  }
+  return best;
+}
+
 /* ------------------------------- totals ------------------------------- */
 
 export function planTotals(plan: CbPlan): CbPlanTotals {
