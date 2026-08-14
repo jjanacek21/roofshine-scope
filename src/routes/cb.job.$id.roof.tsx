@@ -127,7 +127,7 @@ function CbRoofWalk() {
                   value={safety.stories ?? 1}
                   min={1}
                   max={4}
-                  onChange={(v) => void patchData({ safety: { ...safety, stories: v } })}
+                  onChange={(v) => patchSafety({ stories: v })}
                 />
                 <div>
                   <span className="cb-microlabel">Access point</span>
@@ -137,7 +137,7 @@ function CbRoofWalk() {
                         key={a}
                         type="button"
                         className={`cb-pick ${safety.access === a ? "is-on" : ""}`}
-                        onClick={() => void patchData({ safety: { ...safety, access: a } })}
+                        onClick={() => patchSafety({ access: a })}
                       >
                         {a}
                       </button>
@@ -152,12 +152,13 @@ function CbRoofWalk() {
                         key={p}
                         type="button"
                         className={`cb-pick cb-num ${safety.pitch === p ? "is-on" : ""}`}
-                        onClick={() => void patchData({ safety: { ...safety, pitch: p } })}
+                        onClick={() => patchSafety({ pitch: p })}
                       >
                         {p}
                       </button>
                     ))}
                   </div>
+
                 </div>
 
                 {pitchIsSteep(safety.pitch) ? (
