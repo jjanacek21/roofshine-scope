@@ -295,7 +295,7 @@ export function buildLineItems(args: {
     for (const [key, entry] of Object.entries(roofItems)) {
       const meta = itemLabels[key];
       push(
-        `${meta?.label ?? key} — ${CB_ELEVATION_LABEL[e]} slope`,
+        `${meta?.label ?? key} — ${CB_ELEVATION_LABEL[e]} elevation`,
         Number(entry.qty ?? 0) || 1,
         meta?.unit ?? "EA",
         "takeoff",
@@ -303,6 +303,19 @@ export function buildLineItems(args: {
         entry.note,
       );
     }
+  }
+
+  /* roof hardware & accessories — one job-level list, not per slope */
+  for (const [key, entry] of Object.entries(roofHardware)) {
+    const meta = itemLabels[key];
+    push(
+      `${meta?.label ?? key} — roof`,
+      Number(entry.qty ?? 0) || 1,
+      meta?.unit ?? "EA",
+      "takeoff",
+      photosFor(photos, (p) => p.item_key === key),
+      entry.note,
+    );
   }
 
   /* interior */
