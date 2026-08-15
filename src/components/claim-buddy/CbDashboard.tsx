@@ -165,6 +165,22 @@ export function CbDashboard() {
     navigate({ to: "/cb/job/$id/customer", params: { id: data.id } });
   }
 
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    const { error } = await supabase.from("cb_jobs").delete().eq("id", pendingDelete.id);
+    setDeleting(false);
+    if (error) {
+      toast.error(error.message || "Could not delete the inspection");
+      return;
+    }
+    setPendingDelete(null);
+    toast.success("Inspection deleted");
+    await queryClient.invalidateQueries({ queryKey: ["cb-jobs", workspace?.id] });
+  }
+
+
+
   if (sessionLoading || companyLoading) {
     return (
       <div className="mx-auto w-full max-w-[840px] px-5 py-10">
