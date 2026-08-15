@@ -206,9 +206,9 @@ export async function fetchBuildingFootprint(
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
 
+  let cached: FootprintResult | null = null;
   try {
-    const cached = await fromStormCache(lat, lng, radiusM);
-    if (cached) return cached;
+    cached = await fromStormCache(lat, lng, radiusM);
   } catch (err) {
     console.warn(
       "[footprint] storm cache path threw:",
@@ -216,5 +216,17 @@ export async function fetchBuildingFootprint(
     );
   }
 
-  return fromOverpassDirect(lat, lng, radiusM);
+  /*
+   * The cache RPC returns the building NEAREST the point, which on a tight
+   * suburban lot is regularly the neighbour's house. If the pin does not sit
+   * inside the ring it handed back, ask Overpass directly -- that path prefers
+   * the building the pin is actually inside -- and only fall back to the
+   * nearest-building answer when Overpass has nothing better.
+   */
+  if (cached && pointInRing(lng, lat, cached.ring)) return cached;
+
+  const direct = await fromOverpassDirect(lat, lng, radiusM);
+  if (direct && pointInRing(lng, lat, direct.ring)) return direct;
+
+  return cached ?? direct;
 }
