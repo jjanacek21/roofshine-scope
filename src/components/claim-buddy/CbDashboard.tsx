@@ -56,6 +56,9 @@ export function CbDashboard() {
   const [filter, setFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [starting, setStarting] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<CbJobRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const queryClient = useQueryClient();
 
   const jobsQuery = useQuery({
     queryKey: ["cb-jobs", workspace?.id],
