@@ -204,16 +204,20 @@ export function CbRoofPlanEditor({
     map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
 
     /**
-     * Idempotent: a phone can miss the one-shot `load` event (slow token fetch,
-     * zero-height container, style already parsed). Everything below is safe to
-     * call again, so we can retry from several signals until it sticks.
+     * Idempotent, and deliberately NOT gated on `map.isStyleLoaded()`. On a
+     * phone a stalled sprite or glyph request keeps that flag false for
+     * minutes even though the style is perfectly usable, which left the roof
+     * unhighlighted and the corner handles hidden. We just try to add the
+     * layers: if the style really isn't parsed yet mapbox throws, we swallow
+     * it and the next signal tries again.
      */
     const initLayers = () => {
-      if (!map.isStyleLoaded()) return;
       if (map.getLayer("cb-fill-l")) {
         setReady(true);
+        setMapStuck(false);
         return;
       }
+      try {
       const empty = { type: "FeatureCollection", features: [] } as GeoJSON.FeatureCollection;
       const addSource = (id: string) => {
         if (!map.getSource(id)) map.addSource(id, { type: "geojson", data: empty });
