@@ -47,6 +47,13 @@ export interface CbRoom {
 export interface CbTakeoffData {
   safety?: { stories?: number; access?: string; pitch?: string };
   rooms?: CbRoom[];
+  /**
+   * Roof hardware and accessories. The roof takeoff is ONE screen, not a
+   * slope-by-slope wizard, so these live at the job level rather than under
+   * an elevation. Legacy jobs still carry `elevations[e].roofItems`; every
+   * consumer reads both.
+   */
+  roofHardware?: Record<string, CbItemEntry>;
   [k: string]: unknown;
 }
 
