@@ -16,23 +16,33 @@ export type Database = {
     Tables: {
       ai_measurement_runs: {
         Row: {
+          address: string | null
+          area_delta_pct: number | null
+          avg_vertex_shift_ft: number | null
           company_id: string | null
           correction_measurement_id: string | null
           created_at: string
+          final_geometry: Json | null
           id: string
           imagery_date: Json | null
           imagery_quality: string | null
           job_id: string | null
+          max_vertex_shift_ft: number | null
           notes: string | null
+          perimeter_delta_pct: number | null
           predominant_pitch: string | null
           property_id: string | null
           provider: string
+          raw_geometry: Json | null
           raw_response: Json
+          regularized_geometry: Json | null
+          rep_overrode: boolean
           requested_lat: number
           requested_lng: number
           review_status: string
           reviewed_at: string | null
           reviewed_by: string | null
+          roof_system: string | null
           segment_count: number
           segments: Json
           status: string
@@ -43,23 +53,33 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          address?: string | null
+          area_delta_pct?: number | null
+          avg_vertex_shift_ft?: number | null
           company_id?: string | null
           correction_measurement_id?: string | null
           created_at?: string
+          final_geometry?: Json | null
           id?: string
           imagery_date?: Json | null
           imagery_quality?: string | null
           job_id?: string | null
+          max_vertex_shift_ft?: number | null
           notes?: string | null
+          perimeter_delta_pct?: number | null
           predominant_pitch?: string | null
           property_id?: string | null
           provider?: string
+          raw_geometry?: Json | null
           raw_response?: Json
+          regularized_geometry?: Json | null
+          rep_overrode?: boolean
           requested_lat: number
           requested_lng: number
           review_status?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          roof_system?: string | null
           segment_count?: number
           segments?: Json
           status?: string
@@ -70,23 +90,33 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          address?: string | null
+          area_delta_pct?: number | null
+          avg_vertex_shift_ft?: number | null
           company_id?: string | null
           correction_measurement_id?: string | null
           created_at?: string
+          final_geometry?: Json | null
           id?: string
           imagery_date?: Json | null
           imagery_quality?: string | null
           job_id?: string | null
+          max_vertex_shift_ft?: number | null
           notes?: string | null
+          perimeter_delta_pct?: number | null
           predominant_pitch?: string | null
           property_id?: string | null
           provider?: string
+          raw_geometry?: Json | null
           raw_response?: Json
+          regularized_geometry?: Json | null
+          rep_overrode?: boolean
           requested_lat?: number
           requested_lng?: number
           review_status?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          roof_system?: string | null
           segment_count?: number
           segments?: Json
           status?: string
@@ -351,6 +381,104 @@ export type Database = {
         }
         Relationships: []
       }
+      cb_assemblies: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          roof_system: string
+          updated_at: string
+          version_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          roof_system: string
+          updated_at?: string
+          version_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          roof_system?: string
+          updated_at?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_assemblies_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "cb_catalog_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_assembly_items: {
+        Row: {
+          assembly_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          line_item_id: string | null
+          note: string | null
+          qty_factor: number
+          qty_mode: string
+          role: string | null
+          sort_order: number
+          updated_at: string
+          waste_pct: number
+        }
+        Insert: {
+          assembly_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          line_item_id?: string | null
+          note?: string | null
+          qty_factor?: number
+          qty_mode?: string
+          role?: string | null
+          sort_order?: number
+          updated_at?: string
+          waste_pct?: number
+        }
+        Update: {
+          assembly_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          line_item_id?: string | null
+          note?: string | null
+          qty_factor?: number
+          qty_mode?: string
+          role?: string | null
+          sort_order?: number
+          updated_at?: string
+          waste_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_assembly_items_assembly_id_fkey"
+            columns: ["assembly_id"]
+            isOneToOne: false
+            referencedRelation: "cb_assemblies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_assembly_items_line_item_id_fkey"
+            columns: ["line_item_id"]
+            isOneToOne: false
+            referencedRelation: "line_item_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cb_audit_log: {
         Row: {
           action: string
@@ -388,6 +516,44 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_catalog_versions: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_current: boolean
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_current?: boolean
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_current?: boolean
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_catalog_versions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -632,6 +798,76 @@ export type Database = {
           unit?: string
         }
         Relationships: []
+      }
+      cb_item_mappings: {
+        Row: {
+          catalog_item_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          line_item_id: string | null
+          note: string | null
+          qty_factor: number
+          qty_mode: string
+          roof_system: string | null
+          sort_order: number
+          updated_at: string
+          version_id: string
+          waste_pct: number
+        }
+        Insert: {
+          catalog_item_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          line_item_id?: string | null
+          note?: string | null
+          qty_factor?: number
+          qty_mode?: string
+          roof_system?: string | null
+          sort_order?: number
+          updated_at?: string
+          version_id: string
+          waste_pct?: number
+        }
+        Update: {
+          catalog_item_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          line_item_id?: string | null
+          note?: string | null
+          qty_factor?: number
+          qty_mode?: string
+          roof_system?: string | null
+          sort_order?: number
+          updated_at?: string
+          version_id?: string
+          waste_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_item_mappings_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "cb_item_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_item_mappings_line_item_id_fkey"
+            columns: ["line_item_id"]
+            isOneToOne: false
+            referencedRelation: "line_item_master"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_item_mappings_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "cb_catalog_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cb_jobs: {
         Row: {
@@ -2118,6 +2354,7 @@ export type Database = {
       }
       estimates: {
         Row: {
+          catalog_version_id: string | null
           cb_job_id: string | null
           cb_mode: string | null
           company_id: string | null
@@ -2150,6 +2387,7 @@ export type Database = {
           use_manual_total: boolean
         }
         Insert: {
+          catalog_version_id?: string | null
           cb_job_id?: string | null
           cb_mode?: string | null
           company_id?: string | null
@@ -2182,6 +2420,7 @@ export type Database = {
           use_manual_total?: boolean
         }
         Update: {
+          catalog_version_id?: string | null
           cb_job_id?: string | null
           cb_mode?: string | null
           company_id?: string | null
@@ -2214,6 +2453,13 @@ export type Database = {
           use_manual_total?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "estimates_catalog_version_id_fkey"
+            columns: ["catalog_version_id"]
+            isOneToOne: false
+            referencedRelation: "cb_catalog_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "estimates_cb_job_id_fkey"
             columns: ["cb_job_id"]

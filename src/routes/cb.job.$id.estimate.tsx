@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Download, Loader2, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbChip, CbBadge, CbLoading } from "@/components/cb/primitives";
@@ -22,6 +22,7 @@ import {
   type CbEstimateProvenance,
 } from "@/lib/cbEstimate";
 import { renderCbEstimatePdf } from "@/lib/cbEstimatePdf";
+import { CbLineItemPicker } from "@/components/cb/CbLineItemPicker";
 
 export const Route = createFileRoute("/cb/job/$id/estimate")({
   head: () => ({
@@ -68,6 +69,8 @@ function CbEstimatePage() {
   const [provenance, setProvenance] = useState<CbEstimateProvenance | null>(null);
   const [building, setBuilding] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  /** null = closed, "new" = append a line, otherwise the line id being replaced */
+  const [picking, setPicking] = useState<string | null>(null);
 
   /* first load — mode defaults to whichever the measurement can support */
   useEffect(() => {
@@ -132,10 +135,49 @@ function CbEstimatePage() {
         unit_price: 0,
         trade: "roofing",
         category: null,
-        source: "takeoff",
+        source: "manual",
         basis: "Added by hand",
       },
     ]);
+  }
+
+  function moveLine(lineId: string, delta: number) {
+    cbHaptic();
+    setLines((prev) => {
+      const i = prev.findIndex((l) => l.id === lineId);
+      const j = i + delta;
+      if (i < 0 || j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  }
+
+  function applyPick(item: {
+    id: string;
+    code: string | null;
+    name: string;
+    unit: string | null;
+    trade: string | null;
+    category: string | null;
+    default_price: number | null;
+  }) {
+    const patch = {
+      line_item_id: item.id,
+      code: item.code,
+      name: item.name,
+      unit: (item.unit ?? "EA").toUpperCase(),
+      unit_price: Number(item.default_price ?? 0),
+      trade: item.trade,
+      category: item.category,
+      source: "manual" as const,
+      basis: "Picked from the price book",
+    };
+    if (picking === "new") {
+      setLines((prev) => [...prev, { id: Math.random().toString(36).slice(2, 10), qty: 1, ...patch }]);
+    } else if (picking) {
+      editLine(picking, patch);
+    }
   }
 
   async function save(): Promise<boolean> {
@@ -149,6 +191,7 @@ function CbEstimatePage() {
         percents: pct,
         pricePerSquare: pps,
         attachToReport: attach,
+        catalogVersionId: provenance?.catalogVersionId ?? null,
       });
       cbHaptic();
       toast.success("Estimate saved");
@@ -271,6 +314,16 @@ function CbEstimatePage() {
                   <li>
                     Price book: <strong>{provenance.priceBookName ?? "none resolved — using catalog defaults"}</strong>
                   </li>
+                  <li>
+                    Catalog version:{" "}
+                    <strong>{provenance.catalogVersionId ? provenance.catalogVersionId.slice(0, 8) : "none"}</strong>
+                  </li>
+                  {provenance.unmappedCount > 0 ? (
+                    <li className="opacity-80">
+                      {provenance.unmappedCount} checked item
+                      {provenance.unmappedCount === 1 ? " has" : "s have"} no mapping in this catalog yet
+                    </li>
+                  ) : null}
                 </ul>
               </CbCard>
             </CbReveal>
@@ -351,14 +404,40 @@ function CbEstimatePage() {
                             {l.basis ? <span className="text-xs opacity-60">{l.basis}</span> : null}
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          aria-label="Remove line"
-                          className="rounded-lg p-2 opacity-50"
-                          onClick={() => setLines((prev) => prev.filter((x) => x.id !== l.id))}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            aria-label="Pick from the price book"
+                            className="rounded-lg p-2 opacity-60"
+                            onClick={() => setPicking(l.id)}
+                          >
+                            <Search className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Move up"
+                            className="rounded-lg p-2 opacity-50"
+                            onClick={() => moveLine(l.id, -1)}
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Move down"
+                            className="rounded-lg p-2 opacity-50"
+                            onClick={() => moveLine(l.id, 1)}
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Remove line"
+                            className="rounded-lg p-2 opacity-50"
+                            onClick={() => setLines((prev) => prev.filter((x) => x.id !== l.id))}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
 
                       {!perSquare ? (
@@ -398,9 +477,12 @@ function CbEstimatePage() {
                 </ul>
               )}
 
-              <div className="px-5 py-4">
+              <div className="flex flex-wrap gap-2 px-5 py-4">
+                <CbButton variant="ghost" size="md" onClick={() => setPicking("new")}>
+                  <Search className="mr-1 h-4 w-4" /> Add from price book
+                </CbButton>
                 <CbButton variant="ghost" size="md" onClick={addLine}>
-                  <Plus className="mr-1 h-4 w-4" /> Add a line
+                  <Plus className="mr-1 h-4 w-4" /> Blank line
                 </CbButton>
               </div>
             </CbCard>
@@ -490,6 +572,12 @@ function CbEstimatePage() {
           </div>
         </div>
       </div>
+
+      <CbLineItemPicker
+        open={picking !== null}
+        onPick={applyPick}
+        onClose={() => setPicking(null)}
+      />
     </CbSurface>
   );
 }
