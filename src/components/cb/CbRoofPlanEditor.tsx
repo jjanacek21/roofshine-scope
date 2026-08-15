@@ -87,6 +87,10 @@ export function CbRoofPlanEditor({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [ready, setReady] = useState(false);
+  /** Bumped whenever the GL sources/layers are (re)created, so paint re-runs. */
+  const [layersVersion, setLayersVersion] = useState(0);
+  /** Layers still not up after a grace period — offer a manual retry. */
+  const [mapStuck, setMapStuck] = useState(false);
   const [mapVersion, setMapVersion] = useState(0);
   const centerRef = useRef(center);
   centerRef.current = center ?? centerRef.current;
