@@ -1208,6 +1208,19 @@ export function CbRoofPlanEditor({
             </div>
           )}
 
+          {regNote ? (
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              className="absolute left-3 right-3 top-16 rounded-[10px] px-3 py-2 text-left text-[13px] font-semibold"
+              style={{ background: "rgba(180,83,9,0.92)", color: "#fff" }}
+            >
+              Squaring changed the area by {regNote.pct > 0 ? "+" : ""}
+              {regNote.pct}% — check the outline before you price it.
+            </button>
+          ) : null}
+
+
           {tool === "line" && !readOnly ? (
             <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2">
               <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
