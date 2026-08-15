@@ -960,9 +960,20 @@ export function CbRoofPlanEditor({
   const vertexHandles: { x: number; y: number; index: number }[] = [];
   const midHandles: { x: number; y: number; index: number }[] = [];
   if (handleSection && !readOnly && ready && !locked && tool === "select") {
+    /*
+     * Thinning: midpoints packed between corners are the reason the wrong
+     * handle gets grabbed. Show them only when zoomed in past 20.3, or the two
+     * either side of the corner being worked.
+     */
+    const zoom = mapRef.current?.getZoom() ?? 0;
+    const n = handleSection.ring.length;
+    const showAllMids = zoom >= 20.3;
     handleSection.ring.forEach((p, i) => {
       const pt = project(p);
       if (pt) vertexHandles.push({ ...pt, index: i });
+      const adjacent =
+        selectedVertex != null && (i === selectedVertex || i === (selectedVertex - 1 + n) % n);
+      if (!showAllMids && !adjacent) return;
       const m = project(edgeCenter(handleSection.ring, i));
       if (m) midHandles.push({ ...m, index: i });
     });
