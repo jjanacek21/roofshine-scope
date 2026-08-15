@@ -991,7 +991,12 @@ export function CbRoofPlanEditor({
           />
 
           {/* vertex + midpoint handles */}
-          <div className="pointer-events-none absolute inset-0" key={tick}>
+          {/*
+            No `key` churn here: re-keying on every map move remounted the
+            handles mid-gesture, which destroyed the element holding the pointer
+            capture and reset the drag. Positions re-render, the nodes persist.
+          */}
+          <div className="pointer-events-none absolute inset-0" data-tick={tick}>
             {midHandles.map((h) => (
               <button
                 key={`m${h.index}`}
