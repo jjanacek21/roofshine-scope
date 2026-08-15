@@ -95,6 +95,7 @@ export function CbRoofPlanEditor({
   const [ready, setReady] = useState(false);
   /** Bumped whenever the GL sources/layers are (re)created, so paint re-runs. */
   const [layersVersion, setLayersVersion] = useState(0);
+  const layersDoneRef = useRef(false);
   /** Layers still not up after a grace period — offer a manual retry. */
   const [mapStuck, setMapStuck] = useState(false);
   const [mapVersion, setMapVersion] = useState(0);
@@ -224,9 +225,15 @@ export function CbRoofPlanEditor({
      * it and the next signal tries again.
      */
     const initLayers = () => {
-      if (map.getLayer("cb-fill-l")) {
+      if (map.getLayer("cb-measure-pin-l")) {
         setReady(true);
         setMapStuck(false);
+        // A previous pass may have died half way through: make sure the paint
+        // effect runs at least once after the layers finally exist.
+        if (!layersDoneRef.current) {
+          layersDoneRef.current = true;
+          setLayersVersion((v) => v + 1);
+        }
         return;
       }
       try {
@@ -242,15 +249,31 @@ export function CbRoofPlanEditor({
       addSource("cb-chip");
       addSource("cb-measure-pin");
 
+      /*
+       * Each layer add is independent. One throw used to abort the whole
+       * function, leaving `cb-fill-l` present but the rest missing — and the
+       * early return above then reported success forever, which is why the
+       * roof highlight only appeared half the time.
+       */
+      const addLayer = (spec: mapboxgl.AnyLayer) => {
+        try {
+          if (!map.getLayer(spec.id)) map.addLayer(spec as never);
+        } catch {
+          /* retried on the next signal */
+        }
+      };
 
-      map.addLayer({
+      addLayer({
         id: "cb-fill-l",
         type: "fill",
         source: "cb-fill",
-        paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "opacity"] },
+        paint: {
+          "fill-color": ["get", "color"],
+          "fill-opacity": ["coalesce", ["get", "opacity"], 0.45],
+        },
       });
       // Untouched AI outline, dashed cyan, sits under everything the rep draws.
-      map.addLayer({
+      addLayer({
         id: "cb-ai-l",
         type: "line",
         source: "cb-ai",
@@ -262,7 +285,7 @@ export function CbRoofPlanEditor({
         },
       });
       // Detected edges tinted by how much we trust them.
-      map.addLayer({
+      addLayer({
         id: "cb-conf-l",
         type: "line",
         source: "cb-conf",
@@ -273,7 +296,7 @@ export function CbRoofPlanEditor({
           "line-blur": 1.5,
         },
       });
-      map.addLayer({
+      addLayer({
         id: "cb-conf-pt",
         type: "circle",
         source: "cb-conf",
@@ -285,7 +308,7 @@ export function CbRoofPlanEditor({
           "circle-stroke-width": 1.5,
         },
       });
-      map.addLayer({
+      addLayer({
         id: "cb-fill-outline",
         type: "line",
         source: "cb-fill",
@@ -295,31 +318,31 @@ export function CbRoofPlanEditor({
           "line-dasharray": [2, 1.4],
         },
       });
-      map.addLayer({
+      addLayer({
         id: "cb-edge-l",
         type: "line",
         source: "cb-edge",
         paint: { "line-color": ["get", "color"], "line-width": 5, "line-opacity": 0.95 },
       });
-      map.addLayer({
+      addLayer({
         id: "cb-edge-hit",
         type: "line",
         source: "cb-edge",
         paint: { "line-color": "#000", "line-opacity": 0.01, "line-width": 26 },
       });
-      map.addLayer({
+      addLayer({
         id: "cb-line-l",
         type: "line",
         source: "cb-line",
         paint: { "line-color": ["get", "color"], "line-width": 5 },
       });
-      map.addLayer({
+      addLayer({
         id: "cb-line-hit",
         type: "line",
         source: "cb-line",
         paint: { "line-color": "#000", "line-opacity": 0.01, "line-width": 26 },
       });
-      map.addLayer({
+      addLayer({
         id: "cb-line-label",
         type: "symbol",
         source: "cb-line",
@@ -331,7 +354,7 @@ export function CbRoofPlanEditor({
         },
         paint: { "text-color": "#fff", "text-halo-color": "#000", "text-halo-width": 1.6 },
       });
-      map.addLayer({
+      addLayer({
         id: "cb-chip-l",
         type: "symbol",
         source: "cb-chip",
@@ -343,7 +366,7 @@ export function CbRoofPlanEditor({
         },
         paint: { "text-color": "#fff", "text-halo-color": "#000", "text-halo-width": 1.8 },
       });
-      map.addLayer({
+      addLayer({
         id: "cb-measure-pin-l",
         type: "circle",
         source: "cb-measure-pin",
@@ -356,6 +379,7 @@ export function CbRoofPlanEditor({
       });
       setReady(true);
       setMapStuck(false);
+      layersDoneRef.current = true;
       // Re-run the paint effect: a style reload wipes source data.
       setLayersVersion((v) => v + 1);
       } catch {
@@ -375,7 +399,7 @@ export function CbRoofPlanEditor({
      */
     const retry = window.setInterval(initLayers, 700);
     const stuck = window.setTimeout(() => {
-      if (!map.getLayer("cb-fill-l")) setMapStuck(true);
+      if (!map.getLayer("cb-measure-pin-l")) setMapStuck(true);
     }, 8000);
     // Guard against a zero-height container at mount.
     const resize = window.setTimeout(() => map.resize(), 300);

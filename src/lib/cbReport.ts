@@ -12,6 +12,7 @@ import {
   CB_ELEVATION_LABEL,
   type CbElevation,
   type CbElevationState,
+  type CbItemEntry,
   type CbRoom,
 } from "@/lib/cbTakeoff";
 
@@ -150,12 +151,14 @@ export function buildLineItems(args: {
   measurement: Record<string, number | string | null> | null;
   sheet: CbSheet;
   elevations: Partial<Record<CbElevation, CbElevationState>>;
+  roofHardware?: Record<string, CbItemEntry>;
   rooms: CbRoom[];
   photos: CbReportPhoto[];
   vent: CbVentResult;
   itemLabels: Record<string, { label: string; unit: string | null }>;
 }): CbLineItem[] {
   const { measurement, sheet, elevations, rooms, photos, vent, itemLabels } = args;
+  const roofHardware = args.roofHardware ?? {};
   const m = (k: string) => Number(measurement?.[k] ?? 0) || 0;
   const out: CbLineItem[] = [];
   const push = (
@@ -293,7 +296,7 @@ export function buildLineItems(args: {
     for (const [key, entry] of Object.entries(roofItems)) {
       const meta = itemLabels[key];
       push(
-        `${meta?.label ?? key} — ${CB_ELEVATION_LABEL[e]} slope`,
+        `${meta?.label ?? key} — ${CB_ELEVATION_LABEL[e]} elevation`,
         Number(entry.qty ?? 0) || 1,
         meta?.unit ?? "EA",
         "takeoff",
@@ -301,6 +304,19 @@ export function buildLineItems(args: {
         entry.note,
       );
     }
+  }
+
+  /* roof hardware & accessories — one job-level list, not per slope */
+  for (const [key, entry] of Object.entries(roofHardware)) {
+    const meta = itemLabels[key];
+    push(
+      `${meta?.label ?? key} — roof`,
+      Number(entry.qty ?? 0) || 1,
+      meta?.unit ?? "EA",
+      "takeoff",
+      photosFor(photos, (p) => p.item_key === key),
+      entry.note,
+    );
   }
 
   /* interior */
@@ -391,6 +407,7 @@ export function composeReport(inputs: Awaited<ReturnType<typeof loadReportInputs
     measurement: inputs.measurement,
     sheet,
     elevations,
+    roofHardware: (takeoffData.roofHardware ?? {}) as Record<string, CbItemEntry>,
     rooms,
     photos: inputs.photos,
     vent,

@@ -23,7 +23,7 @@ import {
 import { resolvePriceBook } from "@/lib/resolve-price-book";
 import { findAssembly, type CbAssembly, type CbQtyBasis } from "@/lib/cbRoofSystems";
 import { resolveCodeRules, type CodeRuleItem, type CodeRuleSet } from "@/lib/cbCodeRules";
-import type { CbElevation, CbElevationState, CbRoom, CbTakeoffData } from "@/lib/cbTakeoff";
+import type { CbElevation, CbElevationState, CbItemEntry, CbRoom, CbTakeoffData } from "@/lib/cbTakeoff";
 
 export type CbEstimateMode = "per_square" | "line_item";
 export type CbLineSource = "measurement" | "takeoff" | "photo_analysis" | "macro" | "code";
@@ -219,6 +219,7 @@ export interface CbEstimateInputs {
   measurement: Record<string, unknown> | null;
   sheet: CbSheet;
   elevations: Partial<Record<CbElevation, CbElevationState>>;
+  roofHardware: Record<string, CbItemEntry>;
   rooms: CbRoom[];
   catalog: Record<string, { label: string; unit: string | null }>;
   analysis: Record<string, unknown> | null;
@@ -315,6 +316,7 @@ export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInp
     measurement: (measurement as Record<string, unknown> | null) ?? null,
     sheet: readSheet(data),
     elevations: (takeoff?.elevations as CbEstimateInputs["elevations"]) ?? {},
+    roofHardware: (data.roofHardware ?? {}) as Record<string, CbItemEntry>,
     rooms: Array.isArray(data.rooms) ? (data.rooms as CbRoom[]) : [],
     catalog,
     analysis: (analysisRes as { data: { analysis?: unknown } | null }).data?.analysis
@@ -554,6 +556,7 @@ function planTakeoffLines(inputs: CbEstimateInputs): PlannedLine[] {
     for (const [key, entry] of Object.entries(state?.items ?? {})) bump(key, n(entry?.qty));
     for (const [key, entry] of Object.entries(state?.roofItems ?? {})) bump(key, n(entry?.qty));
   }
+  for (const [key, entry] of Object.entries(inputs.roofHardware ?? {})) bump(key, n(entry?.qty));
   for (const room of inputs.rooms) {
     for (const [key, entry] of Object.entries(room.items ?? {})) bump(key, n(entry?.qty));
   }

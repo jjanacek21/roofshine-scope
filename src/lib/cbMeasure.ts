@@ -162,16 +162,25 @@ export async function getInstantMeasurement({
   }
 
   try {
-    const res = await cbInstantMeasureFn({
-      data: {
-        workspace_id: workspaceId,
-        job_id: jobId,
-        address: address ?? "",
-        lat: lat ?? undefined,
-        lng: lng ?? undefined,
-        pins,
-      },
-    });
+    /*
+     * Hard ceiling on the round trip. Overpass or Solar hanging used to leave
+     * the screen on "Measuring..." forever with no way back.
+     */
+    const res = await Promise.race([
+      cbInstantMeasureFn({
+        data: {
+          workspace_id: workspaceId,
+          job_id: jobId,
+          address: address ?? "",
+          lat: lat ?? undefined,
+          lng: lng ?? undefined,
+          pins,
+        },
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 45_000),
+      ),
+    ]);
 
     if (!res.ok) return { ok: false, reason: res.reason ?? "failed", credit };
     return {
