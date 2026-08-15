@@ -229,6 +229,7 @@ export async function runCbInstantMeasure(
     footprint_source: sources.map((source) => source.footprint).filter(Boolean).join(",") || null,
     facet_source: sources.map((source) => source.facet).filter(Boolean).join(",") || null,
     trace_confidence: traceConfidence,
+    regularization,
     measurement: {
       /* squares always carry waste: area x (1 + waste%) / 100 */
       total_squares: Math.round(((areaSqft * (1 + finalWaste / 100)) / 100) * 100) / 100,
