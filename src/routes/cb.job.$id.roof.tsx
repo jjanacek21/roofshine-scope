@@ -243,6 +243,23 @@ function CbRoofWalk() {
               </CbButton>
             </div>
 
+            <CbCard elevation="raised" className="mt-4" style={{ padding: 20 }}>
+              <span className="cb-microlabel">Roof measurement</span>
+              <p className="mt-2 text-[15px]" style={{ color: "var(--cb-text)" }}>
+                Drop a pin and pull the footprint — squares, eaves and rakes fill the takeoff for
+                you.
+              </p>
+              <div className="mt-4">
+                <CbButton
+                  block
+                  variant="secondary"
+                  onClick={() => navigate({ to: "/cb/job/$id/measure", params: { id } })}
+                >
+                  Measure this roof
+                </CbButton>
+              </div>
+            </CbCard>
+
             <CbRoofTakeoffFields
               sheet={sheet}
               onPatch={patchSheet}
@@ -253,9 +270,14 @@ function CbRoofWalk() {
 
             <div aria-hidden className="cb-has-dock" />
             <div className="cb-dock">
-              <CbButton block onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}>
-                Complete roof inspection
-              </CbButton>
+              <div className="mx-auto flex w-full max-w-[620px] items-center gap-2">
+                <CbButton block onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}>
+                  <CheckCircle2 size={16} className="mr-2 inline" /> Finish roof inspection
+                </CbButton>
+                <CbButton variant="ghost" size="md" onClick={() => navigate({ to: "/cb" })}>
+                  Save &amp; exit
+                </CbButton>
+              </div>
             </div>
           </div>
 
