@@ -21,17 +21,21 @@ import {
   type CbSheet,
 } from "@/lib/cbSheet";
 import { resolvePriceBook } from "@/lib/resolve-price-book";
+import { findAssembly, type CbAssembly, type CbQtyBasis } from "@/lib/cbRoofSystems";
+import { resolveCodeRules, type CodeRuleItem, type CodeRuleSet } from "@/lib/cbCodeRules";
 import type { CbElevation, CbElevationState, CbRoom, CbTakeoffData } from "@/lib/cbTakeoff";
 
 export type CbEstimateMode = "per_square" | "line_item";
-export type CbLineSource = "measurement" | "takeoff" | "photo_analysis" | "macro";
+export type CbLineSource = "measurement" | "takeoff" | "photo_analysis" | "macro" | "code";
 
 export const CB_SOURCE_LABEL: Record<CbLineSource, string> = {
   measurement: "Measurement",
   takeoff: "Takeoff",
   photo_analysis: "Photos",
   macro: "Assembly",
+  code: "Code",
 };
+
 
 export interface CbDraftLine {
   id: string;
@@ -46,7 +50,10 @@ export interface CbDraftLine {
   source: CbLineSource;
   /** Plain-language explanation of where the quantity came from. */
   basis: string;
+  /** Set on code-injected lines so an adjuster can see the citation. */
+  code_reference?: string | null;
 }
+
 
 export interface CbEstimateTotals {
   subtotal: number;
@@ -112,7 +119,7 @@ function scoreItem(item: MasterItem, spec: Spec, companyId: string | null): numb
 /** Pull a candidate slice of line_item_master for the specs we care about. */
 export async function loadMasterCandidates(specs: Spec[]): Promise<MasterItem[]> {
   const patterns = Array.from(new Set(specs.map((s) => s.must[0])));
-  const or = patterns.map((p) => `name.ilike.%${p}%`).join(",");
+  const or = patterns.map((p) => `name.ilike."%${p}%"`).join(",");
   const { data } = await supabase
     .from("line_item_master")
     .select("id, company_id, code, name, trade, category, unit, waste_pct, default_price")
@@ -198,6 +205,8 @@ export interface CbEstimateJob {
   gc_job_id: string | null;
   address: string | null;
   city: string | null;
+  county: string | null;
+
   state: string | null;
   zip: string | null;
   customer_name: string | null;
@@ -221,7 +230,7 @@ export interface CbEstimateInputs {
 export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInputs> {
   const { data: job, error } = await supabase
     .from("cb_jobs")
-    .select("id, workspace_id, gc_job_id, address, city, state, zip, customer_name")
+    .select("id, workspace_id, gc_job_id, address, city, county, state, zip, customer_name")
     .eq("id", jobId)
     .maybeSingle();
   if (error) throw error;
@@ -345,7 +354,7 @@ interface PlannedLine extends Spec {
   lfToSf?: boolean;
 }
 
-function planRoofLines(inputs: CbEstimateInputs): PlannedLine[] {
+function planRoofLines(inputs: CbEstimateInputs, assembly: CbAssembly): PlannedLine[] {
   const m = inputs.measurement;
   const g = (k: string) => n(m?.[k]);
   const sheet = inputs.sheet;
@@ -369,74 +378,55 @@ function planRoofLines(inputs: CbEstimateInputs): PlannedLine[] {
     if (p.qty > 0) out.push(p);
   };
 
-  add({
-    key: "tearoff",
-    must: ["remove", "shingle"],
-    prefer: ["laminated", "comp."],
-    avoid: ["ridge", "starter"],
-    unit: "SQ",
-    label: "Tear off existing roofing",
-    qty: squares * layers,
-    source: "measurement",
-    basis: `${r2(squares)} SQ × ${layers} layer${layers === 1 ? "" : "s"}`,
-  });
-  add({
-    key: "shingles",
-    must: ["laminated", "shingle"],
-    prefer: ["comp."],
-    avoid: ["remove", "ridge", "hip"],
-    unit: "SQ",
-    label: "Laminated composition shingles",
-    qty: squaresWithWaste,
-    source: "measurement",
-    basis: `${r2(squares)} SQ + ${waste}% waste`,
-  });
-  add({
-    key: "underlayment",
-    must: ["underlayment"],
-    prefer: ["synthetic"],
-    avoid: ["remove"],
-    unit: "SQ",
-    label: "Synthetic underlayment",
-    qty: squares,
-    source: "measurement",
-    basis: `${r2(squares)} SQ of roof area`,
-  });
+  /* ---- the selected roof system's assembly ---- */
+  const basisValue = (b: CbQtyBasis): { qty: number; text: string } => {
+    switch (b) {
+      case "squares":
+        return { qty: squares, text: `${r2(squares)} SQ of roof area` };
+      case "squares_waste":
+        return { qty: squaresWithWaste, text: `${r2(squares)} SQ + ${waste}% waste` };
+      case "tearoff":
+        return {
+          qty: squares * layers,
+          text: `${r2(squares)} SQ × ${layers} layer${layers === 1 ? "" : "s"}`,
+        };
+      case "eave_valley":
+        return { qty: eave + valley, text: `Eave ${r2(eave)} LF + valley ${r2(valley)} LF` };
+      case "eave_rake":
+        return { qty: eave + rake, text: `Eave ${r2(eave)} LF + rake ${r2(rake)} LF` };
+      case "ridge_hip":
+        return { qty: ridge + hip, text: `Ridge ${r2(ridge)} LF + hip ${r2(hip)} LF` };
+      case "ridge":
+        return { qty: ridge, text: `Ridge ${r2(ridge)} LF` };
+      case "eave":
+        return { qty: eave, text: `Eave ${r2(eave)} LF` };
+      case "valley":
+        return { qty: valley, text: `Valley ${r2(valley)} LF` };
+      case "perimeter":
+        return { qty: eave + rake, text: `Perimeter ${r2(eave + rake)} LF` };
+      default:
+        return { qty: 0, text: "" };
+    }
+  };
 
-  add({
-    key: "iws",
-    must: ["ice"],
-    prefer: ["water barrier", "water shield"],
-    avoid: ["remove"],
-    unit: "SF",
-    label: "Ice & water barrier",
-    qty: eave + valley,
-    lfToSf: true,
-    source: "measurement",
-    basis: `Eave ${r2(eave)} LF + valley ${r2(valley)} LF`,
-  });
-  add({
-    key: "starter",
-    must: ["starter"],
-    prefer: ["asphalt", "universal"],
-    avoid: ["remove"],
-    unit: "LF",
-    label: "Starter course",
-    qty: g("starter_lf") || eave + rake,
+  for (const line of assembly.lines) {
+    const { qty, text } = basisValue(line.basis);
+    add({
+      key: line.key,
+      must: line.must,
+      prefer: line.prefer,
+      avoid: line.avoid,
+      unit: line.unit,
+      label: line.label,
+      lfToSf: line.lfToSf,
+      qty,
+      source: "measurement",
+      basis: `${text} — ${assembly.label} assembly`,
+    });
+  }
 
-    source: "measurement",
-    basis: `Eave ${r2(eave)} LF + rake ${r2(rake)} LF`,
-  });
-  add({
-    key: "ridgecap",
-    must: ["ridge cap"],
-    prefer: ["composition", "hip"],
-    unit: "LF",
-    label: "Hip & ridge cap",
-    qty: g("ridge_cap_lf") || ridge + hip,
-    source: "measurement",
-    basis: `Ridge ${r2(ridge)} LF + hip ${r2(hip)} LF`,
-  });
+  /* ---- shared, system-independent scope ---- */
+
   add({
     key: "dripedge",
     must: ["drip edge"],
@@ -664,14 +654,22 @@ function planPhotoLines(inputs: CbEstimateInputs): PlannedLine[] {
 async function expandMacros(
   inputs: CbEstimateInputs,
   prices: PriceBookIndex,
+  assembly: CbAssembly,
 ): Promise<CbDraftLine[]> {
   const squares = n(inputs.measurement?.total_squares);
-  const { data: macros } = await supabase
+  const { data: allMacros } = await supabase
     .from("master_macros")
     .select("id, name, trade, category, is_default, company_id")
     .eq("is_default", true)
     .or(inputs.companyId ? `company_id.eq.${inputs.companyId},company_id.is.null` : "company_id.is.null");
-  if (!macros?.length) return [];
+  /* Only macros written for the SELECTED roof system may expand. A shingle
+     macro must never land on a tile roof. */
+  const macros = (allMacros ?? []).filter((m) => {
+    const name = (m.name ?? "").toLowerCase();
+    return assembly.aliases.some((a) => name.includes(a)) || name.includes(assembly.label.toLowerCase());
+  });
+  if (!macros.length) return [];
+
 
   const { data: items } = await supabase
     .from("master_macro_items")
@@ -740,6 +738,10 @@ function toDraft(planned: PlannedLine[], masters: MasterItem[], inputs: CbEstima
     const match = pick(masters, p, inputs.companyId);
     const unit = (match?.unit ?? p.unit).toUpperCase();
     let qty = p.qty;
+    const plannedUnit = p.unit.toUpperCase();
+    if (plannedUnit === "SQ" && unit === "SF") qty = qty * 100;
+    else if (plannedUnit === "SF" && unit === "SQ") qty = qty / 100;
+
     if (p.lfToSf && unit === "SF") qty = qty * 3; // 3 ft roll width
     const waste = n(match?.waste_pct);
     if (waste > 0) qty = qty * (1 + waste / 100);
@@ -763,12 +765,107 @@ function toDraft(planned: PlannedLine[], masters: MasterItem[], inputs: CbEstima
   return out;
 }
 
+export interface CbEstimateProvenance {
+  roofSystem: string | null;
+  assemblyKey: string | null;
+  assemblyLabel: string | null;
+  codeRuleSetName: string | null;
+  codeRulesApplied: number;
+  priceBookName: string | null;
+  /** Set when the estimate cannot be built — never silently substituted. */
+  error: string | null;
+}
+
+/** Turn resolved code rules into estimate lines. Applied AFTER expansion. */
+async function applyCodeRules(
+  inputs: CbEstimateInputs,
+  prices: PriceBookIndex,
+  assembly: CbAssembly,
+  items: CodeRuleItem[],
+  set: CodeRuleSet | null,
+): Promise<CbDraftLine[]> {
+  if (!set || !items.length) return [];
+  const m = inputs.measurement;
+  const g = (k: string) => n(m?.[k]);
+  const squares = g("total_area_sqft") > 0 ? g("total_area_sqft") / 100 : g("total_squares");
+  const perimeter = g("eave_lf") + g("rake_lf");
+
+  const applicable = items.filter((it) => {
+    const target = (it.applies_to_roof_system ?? "").trim().toLowerCase();
+    if (!target || target === "all") return true;
+    return target === assembly.key || assembly.aliases.some((a) => target.includes(a));
+  });
+  if (!applicable.length) return [];
+
+  const ids = applicable.map((i) => i.line_item_id).filter(Boolean) as string[];
+  const byId = new Map<string, MasterItem>();
+  if (ids.length) {
+    const { data } = await supabase
+      .from("line_item_master")
+      .select("id, company_id, code, name, trade, category, unit, waste_pct, default_price")
+      .in("id", ids);
+    for (const row of data ?? []) byId.set(row.id, row as MasterItem);
+  }
+
+  const out: CbDraftLine[] = [];
+  for (const rule of applicable) {
+    const master = rule.line_item_id ? byId.get(rule.line_item_id) ?? null : null;
+    const factor = n(rule.qty_factor) || 1;
+    const mode = (rule.qty_mode ?? "fixed").toLowerCase();
+    let qty = factor;
+    if (mode.includes("square") || mode.includes("sq")) qty = factor * squares;
+    else if (mode.includes("perimeter") || mode.includes("lf")) qty = factor * perimeter;
+    else if (mode.includes("sf") || mode.includes("area")) qty = factor * g("total_area_sqft");
+    if (qty <= 0) continue;
+    out.push({
+      id: uid(),
+      line_item_id: master?.id ?? null,
+      code: master?.code ?? null,
+      name: master?.name ?? rule.item_name ?? "Code-required item",
+      unit: (rule.unit ?? master?.unit ?? "EA").toUpperCase(),
+      qty: r2(qty),
+      unit_price: priceFor(master, prices),
+      trade: master?.trade ?? "roofing",
+      category: master?.category ?? null,
+      source: "code",
+      code_reference: rule.code_reference,
+      basis: `${set.name} — ${rule.code_reference}${rule.note ? ` · ${rule.note}` : ""}`,
+    });
+  }
+  return out;
+}
+
 export async function buildCbDraft(
   inputs: CbEstimateInputs,
   mode: CbEstimateMode,
-): Promise<{ lines: CbDraftLine[]; bookName: string | null }> {
+): Promise<{ lines: CbDraftLine[]; bookName: string | null; provenance: CbEstimateProvenance }> {
+  const roofSystem =
+    inputs.sheet.roof_system.roof_type === "Other"
+      ? inputs.sheet.roof_system.roof_type_other ?? "Other"
+      : inputs.sheet.roof_system.roof_type ?? null;
+  const assembly = findAssembly(roofSystem);
+
+  const provenance: CbEstimateProvenance = {
+    roofSystem: roofSystem ?? null,
+    assemblyKey: assembly?.key ?? null,
+    assemblyLabel: assembly?.label ?? null,
+    codeRuleSetName: null,
+    codeRulesApplied: 0,
+    priceBookName: null,
+    error: null,
+  };
+
+  if (!roofSystem) {
+    provenance.error = "No roof system recorded on the takeoff — the estimate cannot be built.";
+    return { lines: [], bookName: null, provenance };
+  }
+  if (!assembly) {
+    provenance.error = `No assembly defined for ${roofSystem}`;
+    return { lines: [], bookName: null, provenance };
+  }
+
   const planned = [
-    ...planRoofLines(inputs),
+    ...planRoofLines(inputs, assembly),
     ...planTakeoffLines(inputs),
     ...(mode === "line_item" ? planPhotoLines(inputs) : []),
   ];
@@ -779,12 +876,20 @@ export async function buildCbDraft(
   const masters = await loadMasterCandidates(planned);
   const lines = toDraft(planned, masters, inputs, prices, mode === "line_item");
   if (mode === "line_item") {
-    const macroLines = await expandMacros(inputs, prices);
+    const macroLines = await expandMacros(inputs, prices, assembly);
     const known = new Set(lines.map((l) => l.line_item_id).filter(Boolean));
     for (const l of macroLines) if (!l.line_item_id || !known.has(l.line_item_id)) lines.push(l);
+
+    const rules = await resolveCodeRules({ state: inputs.job.state, county: inputs.job.county });
+    provenance.codeRuleSetName = rules.set?.name ?? null;
+    const codeLines = await applyCodeRules(inputs, prices, assembly, rules.items, rules.set);
+    provenance.codeRulesApplied = codeLines.length;
+    lines.push(...codeLines);
   }
-  return { lines, bookName: prices.bookName };
+  provenance.priceBookName = prices.bookName;
+  return { lines, bookName: prices.bookName, provenance };
 }
+
 
 /* ------------------------------------------------------------------ */
 /* totals                                                              */
