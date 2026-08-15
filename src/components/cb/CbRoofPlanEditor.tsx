@@ -111,6 +111,16 @@ export function CbRoofPlanEditor({
   const [pitchSheet, setPitchSheet] = useState<string | null>(null);
   const [loupe, setLoupe] = useState<{ x: number; y: number } | null>(null);
   const loupeRef = useRef<HTMLCanvasElement | null>(null);
+  /** Corner currently being worked — used to thin out midpoint handles. */
+  const [selectedVertex, setSelectedVertex] = useState<number | null>(null);
+  /**
+   * Buildings are square. On by default; turn it off for curved, octagonal or
+   * bay-window roofs that genuinely are not rectilinear.
+   */
+  const [squareUp, setSquareUp] = useState(true);
+  const [regNote, setRegNote] = useState<{ pct: number } | null>(null);
+  /** Pre-regularization outlines, so "un-square" restores the raw trace. */
+  const rawRingsRef = useRef<Record<string, number[][]>>({});
 
   const selected = plan.sections.find((s) => s.id === selectedId) ?? null;
   const activeSection = selected ?? plan.sections.find((section) => !section.isLocked) ?? plan.sections[0] ?? null;
