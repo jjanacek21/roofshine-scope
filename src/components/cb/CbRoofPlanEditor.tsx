@@ -1013,6 +1013,7 @@ export function CbRoofPlanEditor({
                   height: 44,
                   background: "transparent",
                   border: 0,
+                  touchAction: "none",
                 }}
               >
                 <span
@@ -1042,6 +1043,7 @@ export function CbRoofPlanEditor({
                   height: 44,
                   background: "transparent",
                   border: 0,
+                  touchAction: "none",
                 }}
               >
                 <span
