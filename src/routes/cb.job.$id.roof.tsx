@@ -1,14 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Camera, CheckCircle2, Plus } from "lucide-react";
+import { Camera, CheckCircle2, Ruler } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbBadge, CbLoading } from "@/components/cb/primitives";
-import { CbProgressRail, CbStepper, CbTextarea } from "@/components/cb/forms";
+import { CbTextarea } from "@/components/cb/forms";
 import { CbCamera } from "@/components/cb/CbCamera";
 import { CbPendingPill } from "@/components/claim-buddy/CbJobStepShell";
-import { CbUnifiedChecklist } from "@/components/claim-buddy/CbUnifiedChecklist";
 import { CbPicker } from "@/components/claim-buddy/CbTakeoffFields";
 import { useCbCatalog } from "@/lib/cbCatalog";
 import { buildRoofRows, type CbRow } from "@/lib/cbSheetRows";
@@ -17,6 +16,7 @@ import {
   CB_ELEVATION_LABEL,
   useCbTakeoff,
   type CbElevation,
+  type CbItemEntry,
   type CbTakeoff,
 } from "@/lib/cbTakeoff";
 import {
@@ -30,39 +30,30 @@ import {
 export const Route = createFileRoute("/cb/job/$id/roof")({
   head: () => ({
     meta: [
-      { title: "Roof walk — Claim Buddy" },
+      { title: "Roof takeoff — Claim Buddy" },
       {
         name: "description",
         content:
-          "Guided roof walk: safety and access, a wide shot of every slope, chalked test squares and one merged damage + takeoff sheet.",
+          "One roof screen: four elevation wide shots, the full hardware checklist and close-ups — no slope-by-slope wizard.",
       },
-      { property: "og:title", content: "Roof walk — Claim Buddy" },
-      { property: "og:description", content: "Every slope documented, clean ones included." },
+      { property: "og:title", content: "Roof takeoff — Claim Buddy" },
+      { property: "og:description", content: "Wide shots, hardware, close-ups. One screen." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: CbRoofWalk,
+  component: CbRoofTakeoff,
 });
 
-const ACCESS_POINTS = ["Front ladder", "Rear ladder", "Garage", "Deck / patio", "Interior hatch"];
-const PITCHES = ["3/12", "4/12", "5/12", "6/12", "7/12", "8/12", "9/12", "10/12", "12/12"];
-
-function pitchIsSteep(pitch?: string) {
-  const rise = Number((pitch ?? "").split("/")[0]);
-  return Number.isFinite(rise) && rise >= 8;
-}
-
-function CbRoofWalk() {
+function CbRoofTakeoff() {
   const { id } = useParams({ from: "/cb/job/$id/roof" });
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { takeoff, isLoading, patchElevation, patchData, mutate } = useCbTakeoff(id);
   const { data: catalog, isLoading: catalogLoading } = useCbCatalog("roof");
-  const [safetyDone, setSafetyDone] = useState(false);
-  const [idx, setIdx] = useState(0);
-  const [cam, setCam] = useState<null | "wide" | "test_square">(null);
-  const [hits, setHits] = useState(0);
+
+  const [wideCam, setWideCam] = useState<CbElevation | null>(null);
+  const [closeCam, setCloseCam] = useState<null | { key: string | null; label: string }>(null);
 
   const { data: job } = useQuery({
     queryKey: ["cb-job-ws", id],
@@ -76,85 +67,82 @@ function CbRoofWalk() {
     },
   });
 
-  const safety = takeoff.data.safety ?? {};
-  const sheet = useMemo(() => readSheet(takeoff.data as Record<string, unknown>), [takeoff.data]);
+  /* ---------------- the measurement must happen here ---------------- */
+  const { data: measurement, isLoading: measureLoading } = useQuery({
+    queryKey: ["cb-roof-measurement", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cb_measurements")
+        .select("total_squares, total_area_sqft, pitch, facets")
+        .eq("job_id", id)
+        .maybeSingle();
+      return data ?? null;
+    },
+  });
 
-  /** Safety answers are the takeoff sheet's answers — never ask twice. */
-  function patchSafety(part: { stories?: number; access?: string; pitch?: string }) {
-    const nextSafety = { ...safety, ...part };
-    void patchData({
-      safety: nextSafety,
-      sheet: {
-        ...sheet,
-        roof_system: {
-          ...sheet.roof_system,
-          stories: nextSafety.stories ?? sheet.roof_system.stories,
-          pitch: nextSafety.pitch ?? sheet.roof_system.pitch,
-        },
-      },
-    });
-  }
+  const measured = Number(measurement?.total_squares ?? 0) > 0;
+  const sentToMeasure = useRef(false);
+
+  useEffect(() => {
+    if (measureLoading || measured || sentToMeasure.current) return;
+    sentToMeasure.current = true;
+    navigate({ to: "/cb/job/$id/measure", params: { id } });
+  }, [measureLoading, measured, id, navigate]);
+
+  const sheet = useMemo(() => readSheet(takeoff.data as Record<string, unknown>), [takeoff.data]);
+  const hardware = (takeoff.data.roofHardware ?? {}) as Record<string, CbItemEntry>;
 
   function patchSheet<K extends keyof CbSheet>(key: K, part: Partial<CbSheet[K]>) {
     void patchData({ sheet: { ...sheet, [key]: { ...(sheet[key] as object), ...part } } });
   }
 
-  const { data: takeoffPhotos } = useQuery({
-    queryKey: ["cb-roof-takeoff-photos", id],
+  const { data: roofPhotos } = useQuery({
+    queryKey: ["cb-roof-photos", id],
     queryFn: async () => {
       const { data } = await supabase
         .from("cb_photos")
-        .select("item_key")
+        .select("item_key, shot_type")
         .eq("job_id", id)
-        .eq("category", "takeoff");
+        .eq("category", "roof");
       return data ?? [];
     },
   });
 
   const photoCounts = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const p of takeoffPhotos ?? []) {
+    for (const p of roofPhotos ?? []) {
       const k = (p as { item_key: string | null }).item_key ?? "";
       if (k) map[k] = (map[k] ?? 0) + 1;
     }
     return map;
-  }, [takeoffPhotos]);
+  }, [roofPhotos]);
 
-  const elev = CB_ELEVATIONS[idx] as CbElevation;
-  const label = CB_ELEVATION_LABEL[elev];
-  const state = takeoff.elevations[elev] ?? {};
-  const squares = state.testSquares ?? [];
-  const tally = squares.reduce((n, s) => n + s.hits, 0);
-  const last = idx === CB_ELEVATIONS.length - 1;
-  const railSteps = useMemo(() => CB_ELEVATIONS.map((e) => `${CB_ELEVATION_LABEL[e]} slope`), []);
-  const missingWide = CB_ELEVATIONS.filter((e) => !(takeoff.elevations[e]?.slopeWide ?? 0));
+  const closeUps = (roofPhotos ?? []).filter(
+    (p) => (p as { shot_type: string | null }).shot_type === "detail",
+  ).length;
 
+  /** Flat list — every roof hardware and accessory item, all visible at once. */
   const rows = useMemo(
-    () => buildRoofRows({ catalog, entries: state.roofItems ?? {}, sheet, photoCounts }),
-    [catalog, state.roofItems, sheet, photoCounts],
+    () =>
+      buildRoofRows({ catalog, entries: hardware, sheet, photoCounts }).flatMap((g) => g.rows),
+    [catalog, hardware, sheet, photoCounts],
   );
 
-  /** One atomic write per row: slope checklist item + roof takeoff quantity. */
-  function writeRow(
-    row: CbRow,
-    patch: { selected?: boolean; qty?: number | null; note?: string; shot?: "medium" | "close"; count?: number },
-  ) {
+  const selectedRows = rows.filter((r) => r.selected);
+
+  /** One atomic write per row: hardware selection + roof takeoff quantity. */
+  function writeRow(row: CbRow, patch: { selected?: boolean; qty?: number | null }) {
     void mutate((prev): Omit<CbTakeoff, "job_id"> => {
       const prevSheet = readSheet(prev.data as Record<string, unknown>) as CbSheet;
-      const prevElev = prev.elevations[elev] ?? {};
-      const roofItems = { ...(prevElev.roofItems ?? {}) };
+      const items = { ...((prev.data.roofHardware ?? {}) as Record<string, CbItemEntry>) };
 
       if (row.catalogKey) {
         if (patch.selected === false) {
-          delete roofItems[row.catalogKey];
+          delete items[row.catalogKey];
         } else {
-          const next = { ...(roofItems[row.catalogKey] ?? {}) };
+          const next = { ...(items[row.catalogKey] ?? {}) };
           if (patch.qty !== undefined) next.qty = patch.qty;
-          if (patch.note !== undefined) next.note = patch.note;
-          if (patch.shot && patch.count) {
-            next[patch.shot] = ((next[patch.shot] ?? 0) as number) + patch.count;
-          }
-          roofItems[row.catalogKey] = next;
+          items[row.catalogKey] = next;
         }
       }
 
@@ -167,113 +155,37 @@ function CbRoofWalk() {
       }
 
       return {
-        data: { ...prev.data, sheet: nextSheet },
-        elevations: { ...prev.elevations, [elev]: { ...prevElev, roofItems, cleared: false } },
+        data: { ...prev.data, sheet: nextSheet, roofHardware: items },
+        elevations: prev.elevations,
       };
     });
   }
 
-  if (isLoading) {
+  if (isLoading || measureLoading) {
     return (
       <CbSurface>
         <div className="min-h-screen px-5 py-16" style={{ background: "var(--cb-bg)" }}>
           <div className="mx-auto max-w-[620px]">
-            <CbLoading label="Loading the roof walk…" />
+            <CbLoading label="Loading the roof takeoff…" />
           </div>
         </div>
       </CbSurface>
     );
   }
 
-  if (!safetyDone) {
-    return (
-      <CbSurface>
-        <div className="min-h-screen px-4 py-8" style={{ background: "var(--cb-bg)" }}>
-          <div className="mx-auto w-full max-w-[620px]">
-            <h1 className="cb-display" style={{ fontSize: 24, margin: 0 }}>
-              Safety &amp; access
-            </h1>
-            <p className="mt-1 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
-              Before you go up.
-            </p>
-
-            <CbCard elevation="raised" className="mt-4" style={{ padding: 20 }}>
-              <div className="grid gap-4">
-                <CbStepper
-                  label="Stories"
-                  value={safety.stories ?? 1}
-                  min={1}
-                  max={4}
-                  onChange={(v) => patchSafety({ stories: v })}
-                />
-                <div>
-                  <span className="cb-microlabel">Access point</span>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {ACCESS_POINTS.map((a) => (
-                      <button
-                        key={a}
-                        type="button"
-                        className={`cb-pick ${safety.access === a ? "is-on" : ""}`}
-                        onClick={() => patchSafety({ access: a })}
-                      >
-                        {a}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <span className="cb-microlabel">Pitch</span>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {PITCHES.map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        className={`cb-pick cb-num ${safety.pitch === p ? "is-on" : ""}`}
-                        onClick={() => patchSafety({ pitch: p })}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {pitchIsSteep(safety.pitch) ? (
-                  <div className="cb-warn" role="alert">
-                    <AlertTriangle size={18} />
-                    <span>Steep — rope up.</span>
-                  </div>
-                ) : null}
-              </div>
-            </CbCard>
-
-            <div className="mt-5 grid gap-2">
-              <CbButton block onClick={() => setSafetyDone(true)}>
-                Start the roof walk
-              </CbButton>
-              <CbButton block variant="ghost" onClick={() => navigate({ to: "/cb" })}>
-                Save &amp; exit
-              </CbButton>
-            </div>
-          </div>
-          <CbPendingPill />
-        </div>
-      </CbSurface>
-    );
-  }
+  const missingWide = CB_ELEVATIONS.filter((e) => !(takeoff.elevations[e]?.slopeWide ?? 0));
 
   return (
     <CbSurface>
       <div className="min-h-screen px-4 pb-32 pt-6" style={{ background: "var(--cb-bg)" }}>
         <div className="mx-auto w-full max-w-[620px]">
-          <CbProgressRail steps={railSteps} current={idx} />
-
-          <div className="mt-4 flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <h1 className="cb-display" style={{ fontSize: 24, margin: 0 }}>
-                {label} slope
+                Roof takeoff
               </h1>
-              <p className="mt-1 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
-                Clockwise from the front left corner{safety.pitch ? ` · ${safety.pitch}` : ""}.
+              <p className="mt-1 text-[15px]" style={{ color: "var(--cb-text-muted)" }}>
+                Wide shots, hardware, close-ups. One screen.
               </p>
             </div>
             <CbButton size="md" variant="ghost" onClick={() => navigate({ to: "/cb" })}>
@@ -281,181 +193,250 @@ function CbRoofWalk() {
             </CbButton>
           </div>
 
-          {idx === 0 ? (
-            <CbCard elevation="raised" className="mt-4" style={{ padding: 20 }}>
-              <span className="cb-microlabel">Roof system</span>
-              <div className="mt-3 grid gap-3">
-                <CbPicker
-                  label="Roof type"
-                  options={CB_ROOF_TYPES}
-                  value={sheet.roof_system.roof_type}
-                  onChange={(v) => patchSheet("roof_system", { roof_type: v })}
-                />
-                <CbPicker
-                  label="Decking"
-                  options={CB_DECKING_TYPES}
-                  value={sheet.roof_system.decking_type}
-                  onChange={(v) => patchSheet("roof_system", { decking_type: v })}
-                />
-                <CbPicker
-                  label="Decking condition"
-                  options={CB_DECKING_CONDITION}
-                  value={sheet.roof_system.decking_condition}
-                  onChange={(v) => patchSheet("roof_system", { decking_condition: v })}
-                />
-                <CbButton
-                  block
-                  variant="secondary"
-                  onClick={() => navigate({ to: "/cb/job/$id/measure", params: { id } })}
-                >
-                  Measure this roof
-                </CbButton>
-              </div>
-            </CbCard>
-          ) : null}
-
-          {/* wide shot of every slope, clean ones included */}
+          {/* measurement — required, never skipped */}
           <CbCard elevation="raised" className="mt-4" style={{ padding: 20 }}>
             <div className="flex items-center justify-between gap-3">
-              <span className="cb-microlabel">Slope wide shot</span>
-              {state.slopeWide ? (
+              <span className="cb-microlabel">Measurement</span>
+              {measured ? (
                 <CbBadge tone="success">
                   <CheckCircle2 size={13} className="mr-1 inline" />
-                  {state.slopeWide} captured
+                  {Number(measurement?.total_squares ?? 0).toFixed(1)} SQ
                 </CbBadge>
               ) : (
                 <CbBadge tone="warning">Required</CbBadge>
               )}
             </div>
             <p className="mt-2 text-[15px]" style={{ color: "var(--cb-text)" }}>
-              Shoot the whole {label.toUpperCase()} slope — even if it&apos;s clean.
+              {measured
+                ? `${Number(measurement?.total_area_sqft ?? 0).toLocaleString()} sq ft${
+                    measurement?.pitch ? ` · ${measurement.pitch}` : ""
+                  }${measurement?.facets ? ` · ${measurement.facets} facets` : ""}`
+                : "Drop a pin on the roof and measure before you take it off."}
             </p>
-            <div className="mt-4">
-              <CbButton block variant={state.slopeWide ? "secondary" : "primary"} onClick={() => setCam("wide")}>
-                <Camera size={16} className="mr-2 inline" /> Shoot the slope
+            <div className="mt-3">
+              <CbButton
+                block
+                variant={measured ? "secondary" : "primary"}
+                onClick={() => navigate({ to: "/cb/job/$id/measure", params: { id } })}
+              >
+                <Ruler size={16} className="mr-2 inline" />
+                {measured ? "Open the measurement" : "Measure this roof"}
               </CbButton>
             </div>
           </CbCard>
 
-          {/* test squares */}
+          {/* roof system — drives the estimate assembly */}
+          <CbCard elevation="raised" className="mt-3" style={{ padding: 20 }}>
+            <span className="cb-microlabel">Roof system</span>
+            <div className="mt-3 grid gap-3">
+              <CbPicker
+                label="Roof type"
+                options={CB_ROOF_TYPES}
+                value={sheet.roof_system.roof_type}
+                onChange={(v) => patchSheet("roof_system", { roof_type: v })}
+              />
+              <CbPicker
+                label="Decking"
+                options={CB_DECKING_TYPES}
+                value={sheet.roof_system.decking_type}
+                onChange={(v) => patchSheet("roof_system", { decking_type: v })}
+              />
+              <CbPicker
+                label="Decking condition"
+                options={CB_DECKING_CONDITION}
+                value={sheet.roof_system.decking_condition}
+                onChange={(v) => patchSheet("roof_system", { decking_condition: v })}
+              />
+            </div>
+          </CbCard>
+
+          {/* BLOCK 1 — elevation wide shots */}
           <CbCard elevation="raised" className="mt-3" style={{ padding: 20 }}>
             <div className="flex items-center justify-between gap-3">
-              <span className="cb-microlabel">Test squares</span>
-              <CbBadge tone={tally > 0 ? "accent" : "neutral"}>
-                {squares.length} {squares.length === 1 ? "square" : "squares"} · {tally} hits
+              <span className="cb-microlabel">1 · Elevation wide shots</span>
+              <CbBadge tone={missingWide.length ? "warning" : "success"}>
+                {4 - missingWide.length}/4
               </CbBadge>
             </div>
-            <p className="mt-2 text-[15px]" style={{ color: "var(--cb-text)" }}>
-              Chalk a 10x10 test square, circle each impact, shoot it.
-            </p>
-            <div className="mt-3">
-              <CbStepper label="Hits in this square" value={hits} min={0} max={200} onChange={setHits} />
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {CB_ELEVATIONS.map((e) => {
+                const count = takeoff.elevations[e]?.slopeWide ?? 0;
+                return (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => setWideCam(e)}
+                    className="rounded-[14px] px-3 py-4 text-left"
+                    style={{
+                      minHeight: 88,
+                      border: `1px solid var(--cb-border)`,
+                      background: count ? "var(--cb-surface-2, var(--cb-surface))" : "var(--cb-surface)",
+                    }}
+                  >
+                    <span className="block text-[16px] font-semibold" style={{ color: "var(--cb-text)" }}>
+                      {CB_ELEVATION_LABEL[e]}
+                    </span>
+                    <span className="mt-1 block text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
+                      {count ? `${count} photo${count === 1 ? "" : "s"}` : "Tap to shoot"}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-            <div className="mt-3">
-              <CbButton block variant="secondary" onClick={() => setCam("test_square")}>
-                <Plus size={16} className="mr-2 inline" /> Shoot this test square
-              </CbButton>
-            </div>
-            {squares.length > 0 ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {squares.map((s, i) => (
-                  <span key={i} className="cb-chip cb-num">
-                    #{i + 1} · {s.hits} hits
-                  </span>
-                ))}
-              </div>
-            ) : null}
           </CbCard>
 
-          {/* one merged sheet: damage + takeoff quantities */}
-          <div className="mt-4">
-            <CbUnifiedChecklist
-              groups={rows}
-              isLoading={catalogLoading}
-              jobId={id}
-              workspaceId={job?.workspace_id as string | undefined}
-              contextLabel={`${label} slope`}
-              contextKey={elev}
-              onToggle={(row, next) => writeRow(row, { selected: next })}
-              onQty={(row, value) => writeRow(row, { qty: value, selected: true })}
-              onNote={(row, value) => writeRow(row, { note: value })}
-              onShot={(row, kind, count) => {
-                if (kind === "detail") {
-                  void qc.invalidateQueries({ queryKey: ["cb-roof-takeoff-photos", id] });
-                  return;
-                }
-                writeRow(row, { selected: true, shot: kind, count });
-              }}
-            />
-          </div>
+          {/* BLOCK 2 — roof hardware checklist */}
+          <CbCard elevation="raised" className="mt-3" style={{ padding: 20 }}>
+            <div className="flex items-center justify-between gap-3">
+              <span className="cb-microlabel">2 · Roof hardware</span>
+              <CbBadge tone={selectedRows.length ? "accent" : "neutral"}>
+                {selectedRows.length} selected
+              </CbBadge>
+            </div>
+            {catalogLoading ? (
+              <div className="mt-3">
+                <CbLoading label="Loading the hardware list…" />
+              </div>
+            ) : (
+              <div className="mt-3 grid gap-2">
+                {rows.map((row) => {
+                  const on = row.selected;
+                  return (
+                    <div
+                      key={row.id}
+                      className="flex items-center gap-2 rounded-[14px] px-3 py-2"
+                      style={{ border: `1px solid var(--cb-border)`, minHeight: 52 }}
+                    >
+                      <button
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => writeRow(row, { selected: !on })}
+                        className="flex-1 text-left text-[16px] font-semibold"
+                        style={{ color: on ? "var(--cb-accent)" : "var(--cb-text)", minHeight: 44 }}
+                      >
+                        {on ? "✓ " : ""}
+                        {row.label}
+                        {row.unit ? (
+                          <span className="ml-1 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+                            {row.unit}
+                          </span>
+                        ) : null}
+                      </button>
+                      {on ? (
+                        <input
+                          inputMode="decimal"
+                          aria-label={`${row.label} quantity`}
+                          value={row.qty ?? ""}
+                          placeholder="Qty"
+                          onChange={(ev) => {
+                            const v = ev.target.value.trim();
+                            writeRow(row, { qty: v === "" ? null : Number(v), selected: true });
+                          }}
+                          className="cb-num rounded-[10px] px-2 text-right"
+                          style={{
+                            width: 82,
+                            height: 44,
+                            fontSize: 16,
+                            border: `1px solid var(--cb-border)`,
+                            background: "var(--cb-surface)",
+                            color: "var(--cb-text)",
+                          }}
+                        />
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CbCard>
 
-          {last ? (
-            <CbCard elevation="card" className="mt-3" style={{ padding: 16 }}>
-              <CbTextarea
-                label="Roof notes"
-                rows={4}
-                value={sheet.notes ?? ""}
-                onChange={(e) => void patchData({ sheet: { ...sheet, notes: e.target.value } })}
-              />
-            </CbCard>
-          ) : null}
+          {/* BLOCK 3 — close-ups */}
+          <CbCard elevation="raised" className="mt-3" style={{ padding: 20 }}>
+            <div className="flex items-center justify-between gap-3">
+              <span className="cb-microlabel">3 · Close-ups</span>
+              <CbBadge tone={closeUps ? "success" : "neutral"}>{closeUps} shot</CbBadge>
+            </div>
+            <p className="mt-2 text-[15px]" style={{ color: "var(--cb-text)" }}>
+              Close-ups of the hardware you selected and of the damage.
+            </p>
+            <div className="mt-3 grid gap-2">
+              <CbButton
+                block
+                variant="primary"
+                onClick={() => setCloseCam({ key: null, label: "General damage" })}
+              >
+                <Camera size={16} className="mr-2 inline" /> Shoot general damage
+              </CbButton>
+              {selectedRows.map((row) => (
+                <CbButton
+                  key={`cam-${row.id}`}
+                  block
+                  variant="secondary"
+                  onClick={() => setCloseCam({ key: row.catalogKey ?? row.id, label: row.label })}
+                >
+                  <Camera size={16} className="mr-2 inline" /> {row.label}
+                  {row.photos ? ` · ${row.photos}` : ""}
+                </CbButton>
+              ))}
+            </div>
+          </CbCard>
+
+          <CbCard elevation="card" className="mt-3" style={{ padding: 16 }}>
+            <CbTextarea
+              label="Roof notes"
+              rows={4}
+              value={sheet.notes ?? ""}
+              onChange={(e) => void patchData({ sheet: { ...sheet, notes: e.target.value } })}
+            />
+          </CbCard>
 
           <div aria-hidden className="cb-has-dock" />
           <div className="cb-dock">
             <div className="mx-auto flex w-full max-w-[620px] items-center gap-2">
-              {last ? (
-                <CbButton
-                  block
-                  disabled={missingWide.length > 0}
-                  onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}
-                >
-                  {missingWide.length > 0
-                    ? `Missing wide shot: ${missingWide.map((e) => CB_ELEVATION_LABEL[e]).join(", ")}`
-                    : "Finish roof inspection"}
-                </CbButton>
-              ) : (
-                <CbButton
-                  block
-                  disabled={!state.slopeWide}
-                  onClick={() => {
-                    setIdx(idx + 1);
-                    setHits(0);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                >
-                  {state.slopeWide ? `Complete ${label.toLowerCase()} — next slope` : "Wide shot required"}
-                </CbButton>
-              )}
+              <CbButton
+                block
+                onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}
+              >
+                Finish the roof
+              </CbButton>
             </div>
           </div>
         </div>
 
-        {cam ? (
+        {wideCam ? (
           <CbCamera
             open
             jobId={id}
             workspaceId={job?.workspace_id as string | undefined}
-            title={cam === "wide" ? `${label} slope — wide` : `${label} slope — test square`}
-            instruction={
-              cam === "wide"
-                ? `Shoot the whole ${label.toUpperCase()} slope.`
-                : "Get the chalked square square-on with every circled impact readable."
-            }
-            captionContext={
-              cam === "wide" ? `${label} slope — wide` : `${label} slope — test square — ${hits} hits`
-            }
-            meta={{ category: "roof", elevation: elev, shot_type: cam }}
+            title={`${CB_ELEVATION_LABEL[wideCam]} elevation — wide`}
+            instruction={`Shoot the whole ${CB_ELEVATION_LABEL[wideCam].toUpperCase()} elevation.`}
+            captionContext={`${CB_ELEVATION_LABEL[wideCam]} elevation — wide`}
+            meta={{ category: "roof", elevation: wideCam, shot_type: "wide" }}
             onSaved={async (count) => {
-              if (cam === "wide") {
-                await patchElevation(elev, { slopeWide: (state.slopeWide ?? 0) + count });
-              } else {
-                await patchElevation(elev, {
-                  testSquares: [...squares, { hits, at: new Date().toISOString() }],
-                });
-                setHits(0);
-              }
+              const prev = takeoff.elevations[wideCam]?.slopeWide ?? 0;
+              await patchElevation(wideCam, { slopeWide: prev + count });
             }}
-            onClose={() => setCam(null)}
+            onClose={() => setWideCam(null)}
+          />
+        ) : null}
+
+        {closeCam ? (
+          <CbCamera
+            open
+            jobId={id}
+            workspaceId={job?.workspace_id as string | undefined}
+            title={`${closeCam.label} — close-up`}
+            instruction={`Get in tight on ${closeCam.label.toLowerCase()}.`}
+            captionContext={`Roof — ${closeCam.label} — close-up`}
+            meta={{
+              category: "roof",
+              shot_type: "detail",
+              ...(closeCam.key ? { item_key: closeCam.key } : {}),
+            }}
+            onSaved={async () => {
+              await qc.invalidateQueries({ queryKey: ["cb-roof-photos", id] });
+            }}
+            onClose={() => setCloseCam(null)}
           />
         ) : null}
 
