@@ -39,6 +39,27 @@ export async function runCbInstantMeasure(
   const { saveSolarMeasurement } = await import("@/lib/roof-measurement-save");
   const { traceRoofFromPin } = await import("@/lib/roof-vision-trace.server");
   const { polygonAreaSqft } = await import("@/lib/roof-math");
+  const { regularizeRing } = await import("@/lib/roof-regularize");
+
+  /**
+   * Buildings are rectilinear: snap the traced outline onto its own dominant
+   * axis so a shadow bulge becomes a straight run. Area moves are reported so
+   * the estimate never changes silently.
+   */
+  const regularization: Array<{ delta_pct: number; flagged: boolean }> = [];
+  const squareUp = (ring: number[][]): number[][] => {
+    try {
+      const r = regularizeRing(ring);
+      if (r.ring.length < 3) return ring;
+      regularization.push({
+        delta_pct: Math.round(r.areaDeltaPct * 100) / 100,
+        flagged: r.flagged,
+      });
+      return r.ring;
+    } catch {
+      return ring;
+    }
+  };
 
   const pins = (data.pins?.length
     ? data.pins
