@@ -58,6 +58,7 @@ import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
 import { Route as AdminEmailsRouteImport } from './routes/admin.emails'
 import { Route as AdminContentRouteImport } from './routes/admin.content'
 import { Route as AdminCompaniesRouteImport } from './routes/admin.companies'
+import { Route as AdminClaimBuddyRouteImport } from './routes/admin.claim-buddy'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAnnouncementsRouteImport } from './routes/admin.announcements'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
@@ -382,6 +383,11 @@ const AdminContentRoute = AdminContentRouteImport.update({
 const AdminCompaniesRoute = AdminCompaniesRouteImport.update({
   id: '/companies',
   path: '/companies',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminClaimBuddyRoute = AdminClaimBuddyRouteImport.update({
+  id: '/claim-buddy',
+  path: '/claim-buddy',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAuditRoute = AdminAuditRouteImport.update({
@@ -810,6 +816,7 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/claim-buddy': typeof AdminClaimBuddyRoute
   '/admin/companies': typeof AdminCompaniesRouteWithChildren
   '/admin/content': typeof AdminContentRoute
   '/admin/emails': typeof AdminEmailsRoute
@@ -934,6 +941,7 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/claim-buddy': typeof AdminClaimBuddyRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/emails': typeof AdminEmailsRoute
   '/admin/features': typeof AdminFeaturesRoute
@@ -1063,6 +1071,7 @@ export interface FileRoutesById {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/claim-buddy': typeof AdminClaimBuddyRoute
   '/admin/companies': typeof AdminCompaniesRouteWithChildren
   '/admin/content': typeof AdminContentRoute
   '/admin/emails': typeof AdminEmailsRoute
@@ -1196,6 +1205,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/announcements'
     | '/admin/audit'
+    | '/admin/claim-buddy'
     | '/admin/companies'
     | '/admin/content'
     | '/admin/emails'
@@ -1320,6 +1330,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/announcements'
     | '/admin/audit'
+    | '/admin/claim-buddy'
     | '/admin/content'
     | '/admin/emails'
     | '/admin/features'
@@ -1448,6 +1459,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/announcements'
     | '/admin/audit'
+    | '/admin/claim-buddy'
     | '/admin/companies'
     | '/admin/content'
     | '/admin/emails'
@@ -1953,6 +1965,13 @@ declare module '@tanstack/react-router' {
       path: '/companies'
       fullPath: '/admin/companies'
       preLoaderRoute: typeof AdminCompaniesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/claim-buddy': {
+      id: '/admin/claim-buddy'
+      path: '/claim-buddy'
+      fullPath: '/admin/claim-buddy'
+      preLoaderRoute: typeof AdminClaimBuddyRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/audit': {
@@ -2731,6 +2750,7 @@ interface AdminRouteChildren {
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminAnnouncementsRoute: typeof AdminAnnouncementsRoute
   AdminAuditRoute: typeof AdminAuditRoute
+  AdminClaimBuddyRoute: typeof AdminClaimBuddyRoute
   AdminCompaniesRoute: typeof AdminCompaniesRouteWithChildren
   AdminContentRoute: typeof AdminContentRoute
   AdminEmailsRoute: typeof AdminEmailsRoute
@@ -2753,6 +2773,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminAnnouncementsRoute: AdminAnnouncementsRoute,
   AdminAuditRoute: AdminAuditRoute,
+  AdminClaimBuddyRoute: AdminClaimBuddyRoute,
   AdminCompaniesRoute: AdminCompaniesRouteWithChildren,
   AdminContentRoute: AdminContentRoute,
   AdminEmailsRoute: AdminEmailsRoute,
