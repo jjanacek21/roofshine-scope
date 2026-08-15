@@ -1700,6 +1700,52 @@ function MapBtn({
   );
 }
 
+function DragPointHandle({
+  x,
+  y,
+  label,
+  color,
+  size,
+  onPointerDown,
+}: {
+  x: number;
+  y: number;
+  label: string;
+  color: string;
+  size: number;
+  onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onPointerDown={onPointerDown}
+      className="pointer-events-auto absolute z-10 grid place-items-center"
+      style={{
+        left: x - 22,
+        top: y - 22,
+        width: 44,
+        height: 44,
+        border: 0,
+        background: "transparent",
+        touchAction: "none",
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: size,
+          height: size,
+          borderRadius: 999,
+          border: "3px solid var(--cb-surface)",
+          background: color,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.48)",
+        }}
+      />
+    </button>
+  );
+}
+
 function MapIconBtn({
   children,
   label,
