@@ -305,8 +305,9 @@ export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInp
   }
 
   const data = ((takeoff?.data as CbTakeoffData) ?? {}) as CbTakeoffData;
-  const catalog: Record<string, { label: string; unit: string | null }> = {};
-  for (const row of cat ?? []) catalog[row.item_key] = { label: row.label, unit: row.unit };
+  const catalog: Record<string, { id: string; label: string; unit: string | null }> = {};
+  for (const row of cat ?? [])
+    catalog[row.item_key] = { id: row.id as string, label: row.label, unit: row.unit };
 
   const co = (company as Record<string, unknown> | null) ?? null;
   return {
