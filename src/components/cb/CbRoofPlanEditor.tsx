@@ -1301,9 +1301,35 @@ export function CbRoofPlanEditor({
               </div>
             )}
             {!ready ? (
-              <p className="mt-2 text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
-                Map is still loading — any measurements listed below are still valid.
-              </p>
+              mapStuck ? (
+                <div className="mt-2 flex items-center gap-2">
+                  <p className="text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
+                    Map overlay didn’t come up.
+                  </p>
+                  <button
+                    type="button"
+                    className="rounded-lg px-3 py-1 text-[12px] font-semibold"
+                    style={{ background: "var(--cb-surface-2, rgba(0,0,0,.06))" }}
+                    onClick={() => {
+                      setMapStuck(false);
+                      const map = mapRef.current;
+                      if (!map) return;
+                      map.resize();
+                      try {
+                        map.setStyle("mapbox://styles/mapbox/satellite-streets-v12");
+                      } catch {
+                        /* noop */
+                      }
+                    }}
+                  >
+                    Retry map
+                  </button>
+                </div>
+              ) : (
+                <p className="mt-2 text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
+                  Map is still loading — any measurements listed below are still valid.
+                </p>
+              )
             ) : null}
           </div>
         ) : null}
