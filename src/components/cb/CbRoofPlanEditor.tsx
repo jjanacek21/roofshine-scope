@@ -58,6 +58,8 @@ export function CbRoofPlanEditor({
   pinDropMode = false,
   onPinDrop,
   onPinMove,
+  onUndoPin,
+  canUndoPin = false,
   onTogglePinDrop,
   onClearPins,
   onMeasure,
@@ -76,6 +78,8 @@ export function CbRoofPlanEditor({
   pinDropMode?: boolean;
   onPinDrop?: (pin: { lat: number; lng: number }) => void;
   onPinMove?: (index: number, pin: { lat: number; lng: number }) => void;
+  onUndoPin?: () => void;
+  canUndoPin?: boolean;
   onTogglePinDrop?: () => void;
   onClearPins?: () => void;
   onMeasure?: () => void;
@@ -169,6 +173,11 @@ export function CbRoofPlanEditor({
   );
 
   const undo = () => {
+    if (canUndoPin) {
+      onUndoPin?.();
+      cbHaptic(10);
+      return;
+    }
     setPast((p) => {
       if (!p.length) return p;
       const prev = p[p.length - 1];
@@ -1381,7 +1390,7 @@ export function CbRoofPlanEditor({
               <span className="min-w-0 truncate rounded-[10px] px-3 py-2 text-[13px] font-semibold" style={{ background: "rgba(12,16,22,0.78)", color: "#fff" }}>
                 {activeSection?.name ?? "Drop a roof pin"}
               </span>
-              <MapIconBtn label="Undo" onClick={undo} disabled={!past.length}><Undo2 size={18} /></MapIconBtn>
+              <MapIconBtn label={canUndoPin ? "Undo pin drop" : "Undo"} onClick={undo} disabled={!past.length && !canUndoPin}><Undo2 size={18} /></MapIconBtn>
               <MapIconBtn label="Measurement settings" onClick={() => setSettingsOpen(true)}><Settings size={18} /></MapIconBtn>
             </div>
           ) : (
