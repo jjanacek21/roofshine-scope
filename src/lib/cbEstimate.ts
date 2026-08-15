@@ -221,7 +221,7 @@ export interface CbEstimateInputs {
   elevations: Partial<Record<CbElevation, CbElevationState>>;
   roofHardware: Record<string, CbItemEntry>;
   rooms: CbRoom[];
-  catalog: Record<string, { label: string; unit: string | null }>;
+  catalog: Record<string, { id: string; label: string; unit: string | null }>;
   analysis: Record<string, unknown> | null;
   defaultPricePerSquare: number;
   percents: CbEstimatePercents;
@@ -246,7 +246,7 @@ export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInp
         .maybeSingle(),
       supabase.from("cb_measurements").select("*").eq("job_id", jobId).maybeSingle(),
       supabase.from("cb_takeoffs").select("data, elevations").eq("job_id", jobId).maybeSingle(),
-      supabase.from("cb_item_catalog").select("item_key, label, unit"),
+      supabase.from("cb_item_catalog").select("id, item_key, label, unit"),
       supabase.from("cb_companies").select("*").eq("workspace_id", job.workspace_id).maybeSingle(),
     ]);
 
