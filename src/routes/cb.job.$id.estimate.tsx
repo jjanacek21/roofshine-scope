@@ -19,6 +19,7 @@ import {
   type CbDraftLine,
   type CbEstimateMode,
   type CbEstimatePercents,
+  type CbEstimateProvenance,
 } from "@/lib/cbEstimate";
 import { renderCbEstimatePdf } from "@/lib/cbEstimatePdf";
 
@@ -64,6 +65,7 @@ function CbEstimatePage() {
   });
   const [attach, setAttach] = useState(true);
   const [bookName, setBookName] = useState<string | null>(null);
+  const [provenance, setProvenance] = useState<CbEstimateProvenance | null>(null);
   const [building, setBuilding] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -86,15 +88,18 @@ function CbEstimatePage() {
     if (!inputs) return;
     setBuilding(true);
     try {
-      const { lines: built, bookName: book } = await buildCbDraft(inputs, next);
+      const { lines: built, bookName: book, provenance: prov } = await buildCbDraft(inputs, next);
       setLines(built);
       setBookName(book);
+      setProvenance(prov);
+      if (prov.error) toast.error(prov.error);
     } catch {
       toast.error("Couldn't build the estimate — try again");
     } finally {
       setBuilding(false);
     }
   }
+
 
   function changeMode(next: CbEstimateMode) {
     cbHaptic();
@@ -219,6 +224,58 @@ function CbEstimatePage() {
         </CbStickyHeader>
 
         <div className="mx-auto max-w-[820px] space-y-5 px-5 pt-5">
+          {provenance?.error ? (
+            <CbReveal>
+              <CbCard style={{ padding: 20, borderColor: "var(--cb-danger, #b42318)" }}>
+                <h2 className="text-base font-semibold" style={{ color: "var(--cb-danger, #b42318)" }}>
+                  {provenance.error}
+                </h2>
+                <p className="mt-2 text-sm opacity-75">
+                  Nothing was substituted — no lines were generated. Set the roof system on the roof
+                  takeoff, or have an assembly added for this system, then rebuild.
+                </p>
+                <div className="mt-4">
+                  <CbButton
+                    size="md"
+                    variant="secondary"
+                    onClick={() => navigate({ to: "/cb/job/$id/roof", params: { id } })}
+                  >
+                    Fix the roof takeoff
+                  </CbButton>
+                </div>
+              </CbCard>
+            </CbReveal>
+          ) : provenance ? (
+            <CbReveal>
+              <CbCard style={{ padding: 16 }}>
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-60">
+                  How this estimate was built
+                </p>
+                <ul className="mt-2 space-y-1 text-xs">
+                  <li>
+                    Roof system: <strong>{provenance.roofSystem ?? "not recorded"}</strong>
+                  </li>
+                  <li>
+                    Assembly: <strong>{provenance.assemblyLabel ?? "none"}</strong>
+                  </li>
+                  <li>
+                    Code rule set:{" "}
+                    <strong>
+                      {provenance.codeRuleSetName
+                        ? `${provenance.codeRuleSetName} — ${provenance.codeRulesApplied} rule${
+                            provenance.codeRulesApplied === 1 ? "" : "s"
+                          } applied`
+                        : "none for this jurisdiction"}
+                    </strong>
+                  </li>
+                  <li>
+                    Price book: <strong>{provenance.priceBookName ?? "none resolved — using catalog defaults"}</strong>
+                  </li>
+                </ul>
+              </CbCard>
+            </CbReveal>
+          ) : null}
+
           <CbReveal>
             <CbSegmentedCards
               value={mode}

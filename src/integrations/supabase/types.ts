@@ -644,6 +644,7 @@ export type Database = {
           company_id: string
           converted_at: string | null
           converted_by: string | null
+          county: string | null
           cover_photo_path: string | null
           created_at: string
           created_by: string | null
@@ -674,6 +675,7 @@ export type Database = {
           company_id: string
           converted_at?: string | null
           converted_by?: string | null
+          county?: string | null
           cover_photo_path?: string | null
           created_at?: string
           created_by?: string | null
@@ -704,6 +706,7 @@ export type Database = {
           company_id?: string
           converted_at?: string | null
           converted_by?: string | null
+          county?: string | null
           cover_photo_path?: string | null
           created_at?: string
           created_by?: string | null
@@ -1266,6 +1269,105 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      code_rule_items: {
+        Row: {
+          applies_to_roof_system: string | null
+          code_reference: string
+          condition: string | null
+          created_at: string
+          id: string
+          item_name: string | null
+          line_item_id: string | null
+          note: string | null
+          qty_factor: number
+          qty_mode: string
+          rule_set_id: string
+          sort_order: number
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          applies_to_roof_system?: string | null
+          code_reference: string
+          condition?: string | null
+          created_at?: string
+          id?: string
+          item_name?: string | null
+          line_item_id?: string | null
+          note?: string | null
+          qty_factor?: number
+          qty_mode?: string
+          rule_set_id: string
+          sort_order?: number
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applies_to_roof_system?: string | null
+          code_reference?: string
+          condition?: string | null
+          created_at?: string
+          id?: string
+          item_name?: string | null
+          line_item_id?: string | null
+          note?: string | null
+          qty_factor?: number
+          qty_mode?: string
+          rule_set_id?: string
+          sort_order?: number
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "code_rule_items_line_item_id_fkey"
+            columns: ["line_item_id"]
+            isOneToOne: false
+            referencedRelation: "line_item_master"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "code_rule_items_rule_set_id_fkey"
+            columns: ["rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "code_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      code_rule_sets: {
+        Row: {
+          county: string | null
+          created_at: string
+          effective_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          county?: string | null
+          created_at?: string
+          effective_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          state: string
+          updated_at?: string
+        }
+        Update: {
+          county?: string | null
+          created_at?: string
+          effective_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       companies: {
         Row: {
