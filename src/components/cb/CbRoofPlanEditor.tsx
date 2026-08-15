@@ -405,7 +405,9 @@ export function CbRoofPlanEditor({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready) return;
+    // Not gated on `ready`: `set()` below no-ops until the sources exist, and
+    // `layersVersion` re-runs this the moment they do.
+    if (!map) return;
 
     const fills: GeoJSON.Feature[] = plan.sections.map((s) => ({
       type: "Feature",
