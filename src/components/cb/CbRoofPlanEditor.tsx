@@ -224,9 +224,15 @@ export function CbRoofPlanEditor({
      * it and the next signal tries again.
      */
     const initLayers = () => {
-      if (map.getLayer("cb-fill-l")) {
+      if (map.getLayer("cb-measure-pin-l")) {
         setReady(true);
         setMapStuck(false);
+        // A previous pass may have died half way through: make sure the paint
+        // effect runs at least once after the layers finally exist.
+        if (!layersDoneRef.current) {
+          layersDoneRef.current = true;
+          setLayersVersion((v) => v + 1);
+        }
         return;
       }
       try {
@@ -242,12 +248,28 @@ export function CbRoofPlanEditor({
       addSource("cb-chip");
       addSource("cb-measure-pin");
 
+      /*
+       * Each layer add is independent. One throw used to abort the whole
+       * function, leaving `cb-fill-l` present but the rest missing — and the
+       * early return above then reported success forever, which is why the
+       * roof highlight only appeared half the time.
+       */
+      const addLayer = (spec: mapboxgl.AnyLayer) => {
+        try {
+          if (!map.getLayer(spec.id)) map.addLayer(spec as never);
+        } catch {
+          /* retried on the next signal */
+        }
+      };
 
-      map.addLayer({
+      addLayer({
         id: "cb-fill-l",
         type: "fill",
         source: "cb-fill",
-        paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "opacity"] },
+        paint: {
+          "fill-color": ["get", "color"],
+          "fill-opacity": ["coalesce", ["get", "opacity"], 0.45],
+        },
       });
       // Untouched AI outline, dashed cyan, sits under everything the rep draws.
       map.addLayer({
