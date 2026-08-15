@@ -336,7 +336,7 @@ export async function searchLineItems(term: string, trade?: string | null): Prom
     .from("line_item_master")
     .select("id, code, name, unit, trade, category, waste_pct, default_price, company_id")
     .limit(40);
-  if (trade) q = q.eq("trade", trade);
+  if (trade) q = q.eq("trade", trade as never);
   if (t) q = q.or(`code.ilike.%${t}%,name.ilike.%${t}%`);
   const { data } = await q;
   return (data ?? []) as CbCatalogLineItem[];
