@@ -1141,7 +1141,7 @@ export function CbRoofPlanEditor({
         return projected ? [{ ...projected, index }] : [];
       })
     : [];
-  const lineHandles = tool !== "line" && !locked
+  const lineHandles = tool !== "line"
     ? plan.lines.flatMap((line) =>
         line.coords.flatMap((point, index) => {
           const projected = project(point);
