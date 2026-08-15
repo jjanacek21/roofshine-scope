@@ -388,6 +388,21 @@ export function CbDashboard() {
                           Present
                         </CbButton>
                       ) : null}
+                      <button
+                        type="button"
+                        aria-label={`Delete inspection ${job.address || ""}`.trim()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPendingDelete(job);
+                        }}
+                        className="flex h-11 w-11 items-center justify-center rounded-[12px]"
+                        style={{
+                          border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))",
+                          color: "var(--cb-danger, #b42318)",
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                     <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--cb-text-muted)" }} />
 
@@ -398,7 +413,32 @@ export function CbDashboard() {
           </CbStagger>
         )}
       </div>
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this inspection?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete?.address || "This inspection"} and all of its photos, measurements,
+              reports and contracts will be permanently removed. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmDelete();
+              }}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
 
