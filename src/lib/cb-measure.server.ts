@@ -121,13 +121,15 @@ export async function runCbInstantMeasure(
       const byPitch = new Map<string, number>();
       traced.forEach((segment) => byPitch.set(segment.pitch, (byPitch.get(segment.pitch) ?? 0) + segment.plan_area_sqft));
       const pitch = [...byPitch.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "6/12";
-      segments.push({ ring: vision.ring, pitch, plan_area_sqft: polygonAreaSqft(vision.ring) });
+      const squared = squareUp(vision.ring);
+      segments.push({ ring: squared, pitch, plan_area_sqft: polygonAreaSqft(squared) });
       traceConfidence.push(vision.confidence);
     } else if (candidate && candidate.length >= 3) {
+      const squared = squareUp(candidate);
       segments.push({
-        ring: candidate,
+        ring: squared,
         pitch: traced[0]?.pitch ?? "6/12",
-        plan_area_sqft: polygonAreaSqft(candidate),
+        plan_area_sqft: polygonAreaSqft(squared),
       });
       traceConfidence.push(0);
     }
