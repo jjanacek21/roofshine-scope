@@ -39,6 +39,27 @@ export async function runCbInstantMeasure(
   const { saveSolarMeasurement } = await import("@/lib/roof-measurement-save");
   const { traceRoofFromPin } = await import("@/lib/roof-vision-trace.server");
   const { polygonAreaSqft } = await import("@/lib/roof-math");
+  const { regularizeRing } = await import("@/lib/roof-regularize");
+
+  /**
+   * Buildings are rectilinear: snap the traced outline onto its own dominant
+   * axis so a shadow bulge becomes a straight run. Area moves are reported so
+   * the estimate never changes silently.
+   */
+  const regularization: Array<{ delta_pct: number; flagged: boolean }> = [];
+  const squareUp = (ring: number[][]): number[][] => {
+    try {
+      const r = regularizeRing(ring);
+      if (r.ring.length < 3) return ring;
+      regularization.push({
+        delta_pct: Math.round(r.areaDeltaPct * 100) / 100,
+        flagged: r.flagged,
+      });
+      return r.ring;
+    } catch {
+      return ring;
+    }
+  };
 
   const pins = (data.pins?.length
     ? data.pins
@@ -121,13 +142,15 @@ export async function runCbInstantMeasure(
       const byPitch = new Map<string, number>();
       traced.forEach((segment) => byPitch.set(segment.pitch, (byPitch.get(segment.pitch) ?? 0) + segment.plan_area_sqft));
       const pitch = [...byPitch.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "6/12";
-      segments.push({ ring: vision.ring, pitch, plan_area_sqft: polygonAreaSqft(vision.ring) });
+      const squared = squareUp(vision.ring);
+      segments.push({ ring: squared, pitch, plan_area_sqft: polygonAreaSqft(squared) });
       traceConfidence.push(vision.confidence);
     } else if (candidate && candidate.length >= 3) {
+      const squared = squareUp(candidate);
       segments.push({
-        ring: candidate,
+        ring: squared,
         pitch: traced[0]?.pitch ?? "6/12",
-        plan_area_sqft: polygonAreaSqft(candidate),
+        plan_area_sqft: polygonAreaSqft(squared),
       });
       traceConfidence.push(0);
     }
@@ -206,6 +229,7 @@ export async function runCbInstantMeasure(
     footprint_source: sources.map((source) => source.footprint).filter(Boolean).join(",") || null,
     facet_source: sources.map((source) => source.facet).filter(Boolean).join(",") || null,
     trace_confidence: traceConfidence,
+    regularization,
     measurement: {
       /* squares always carry waste: area x (1 + waste%) / 100 */
       total_squares: Math.round(((areaSqft * (1 + finalWaste / 100)) / 100) * 100) / 100,

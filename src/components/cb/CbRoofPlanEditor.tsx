@@ -36,6 +36,7 @@ import {
   type CbEdgeType,
 } from "@/lib/cbRoofPlan";
 import { confidenceColor, traceConfidence } from "@/lib/cbTraceConfidence";
+import { regularizeRing, ringAxisDeg, snapVertexToAxis } from "@/lib/roof-regularize";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 type Tool = "select" | "line" | "refine" | "label";
@@ -111,6 +112,16 @@ export function CbRoofPlanEditor({
   const [pitchSheet, setPitchSheet] = useState<string | null>(null);
   const [loupe, setLoupe] = useState<{ x: number; y: number } | null>(null);
   const loupeRef = useRef<HTMLCanvasElement | null>(null);
+  /** Corner currently being worked — used to thin out midpoint handles. */
+  const [selectedVertex, setSelectedVertex] = useState<number | null>(null);
+  /**
+   * Buildings are square. On by default; turn it off for curved, octagonal or
+   * bay-window roofs that genuinely are not rectilinear.
+   */
+  const [squareUp, setSquareUp] = useState(true);
+  const [regNote, setRegNote] = useState<{ pct: number } | null>(null);
+  /** Pre-regularization outlines, so "un-square" restores the raw trace. */
+  const rawRingsRef = useRef<Record<string, number[][]>>({});
 
   const selected = plan.sections.find((s) => s.id === selectedId) ?? null;
   const activeSection = selected ?? plan.sections.find((section) => !section.isLocked) ?? plan.sections[0] ?? null;
@@ -709,11 +720,19 @@ export function CbRoofPlanEditor({
   const dragRef = useRef<{
     start: CbPlan;
     moved: boolean;
-    longPress: number | null;
+    engaged: boolean;
+    arm: number | null;
+    hold: number | null;
     x: number;
     y: number;
   } | null>(null);
 
+  /**
+   * One finger, one corner. The gesture is owned by the handle from pointerdown
+   * to pointerup: the pointer is captured (so leaving the 44px hit area cannot
+   * drop the drag), the map's own drag-pan is switched off for the duration, and
+   * a 250ms press with haptics is what picks the vertex up.
+   */
   function beginVertexDrag(
     e: React.PointerEvent,
     sectionId: string,
@@ -723,9 +742,15 @@ export function CbRoofPlanEditor({
     if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    const handle = e.currentTarget as HTMLElement;
+    try {
+      handle.setPointerCapture(e.pointerId);
+    } catch {
+      /* capture unsupported — window listeners below still carry the drag */
+    }
     cbHaptic(8);
 
+    const map = mapRef.current;
     let vIndex = index;
     if (kind === "midpoint") {
       const s = planRef.current.sections.find((x) => x.id === sectionId);
@@ -742,65 +767,99 @@ export function CbRoofPlanEditor({
       });
     }
 
+    const axis = ringAxisDeg(
+      planRef.current.sections.find((x) => x.id === sectionId)?.ring ?? [],
+    );
+
+    const engage = () => {
+      const d = dragRef.current;
+      if (!d || d.engaged) return;
+      d.engaged = true;
+      cbHaptic(16);
+      map?.dragPan.disable();
+      map?.touchZoomRotate.disableRotation();
+      setLoupe({ x: d.x, y: d.y });
+      paintLoupe(d.x, d.y);
+      // A stationary hold past the pickup still removes the corner.
+      d.hold = window.setTimeout(() => {
+        if (dragRef.current?.moved) return;
+        deleteVertex(sectionId, vIndex);
+        finish();
+      }, 900);
+    };
+
     dragRef.current = {
       start: planRef.current,
       moved: false,
-      longPress:
-        kind === "vertex"
-          ? window.setTimeout(() => {
-              if (dragRef.current?.moved) return;
-              deleteVertex(sectionId, vIndex);
-              dragRef.current = null;
-              setLoupe(null);
-            }, 550)
-          : null,
+      engaged: false,
+      arm: kind === "midpoint" ? null : window.setTimeout(engage, 250),
+      hold: null,
       x: e.clientX,
       y: e.clientY,
     };
     setSelectedId(sectionId);
-    setLoupe({ x: e.clientX, y: e.clientY });
-    paintLoupe(e.clientX, e.clientY);
+    setSelectedVertex(vIndex);
+    if (kind === "midpoint") engage();
 
     const move = (ev: PointerEvent) => {
       const d = dragRef.current;
       if (!d) return;
-      if (Math.hypot(ev.clientX - d.x, ev.clientY - d.y) > 6) {
+      if (Math.hypot(ev.clientX - d.x, ev.clientY - d.y) > 8) {
         d.moved = true;
-        if (d.longPress) {
-          clearTimeout(d.longPress);
-          d.longPress = null;
+        if (d.hold) {
+          clearTimeout(d.hold);
+          d.hold = null;
+        }
+        // Deliberate movement is also a pickup — never make the rep wait.
+        if (!d.engaged) {
+          if (d.arm) clearTimeout(d.arm);
+          d.arm = null;
+          engage();
         }
       }
-      const map = mapRef.current;
+      if (!d.engaged) return;
+      const m = mapRef.current;
       const host = containerRef.current;
-      if (!map || !host) return;
+      if (!m || !host) return;
       const rect = host.getBoundingClientRect();
-      const ll = map.unproject([ev.clientX - rect.left, ev.clientY - rect.top]);
+      const ll = m.unproject([ev.clientX - rect.left, ev.clientY - rect.top]);
       const s = planRef.current.sections.find((x) => x.id === sectionId);
       if (!s) return;
-      const snapped = snapVertex(s.ring, vIndex, [ll.lng, ll.lat]);
+      const raw: [number, number] = [ll.lng, ll.lat];
+      const snapped = squareUp
+        ? snapVertexToAxis(s.ring, vIndex, raw, axis)
+        : snapVertex(s.ring, vIndex, raw);
       const ring = s.ring.map((p, i) => (i === vIndex ? snapped : p));
       onPlanChange(updateSection(sectionId, (sec) => ({ ...sec, ring })), { user: true });
       setLoupe({ x: ev.clientX, y: ev.clientY });
       requestAnimationFrame(() => paintLoupe(ev.clientX, ev.clientY));
     };
 
-    const up = () => {
+    function finish() {
       const d = dragRef.current;
       if (d) {
-        if (d.longPress) clearTimeout(d.longPress);
+        if (d.arm) clearTimeout(d.arm);
+        if (d.hold) clearTimeout(d.hold);
+        if (d.engaged) cbHaptic(10);
         if (d.moved || kind === "midpoint") setPast((p) => [...p.slice(-40), d.start]);
       }
       dragRef.current = null;
       setLoupe(null);
+      mapRef.current?.dragPan.enable();
+      mapRef.current?.touchZoomRotate.enableRotation();
+      try {
+        handle.releasePointerCapture(e.pointerId);
+      } catch {
+        /* already released */
+      }
       window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
-    };
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+    }
 
     window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
   }
 
   function deleteVertex(sectionId: string, index: number) {
@@ -833,6 +892,51 @@ export function CbRoofPlanEditor({
       edges: (section.aiRing ?? section.ring).map(() => "unlabeled" as CbEdgeType),
     })));
     setSettingsOpen(false);
+  }
+
+  /**
+   * Square the active outline onto the building's dominant axis, or put the raw
+   * trace back. Area never changes silently: a move over 3% is flagged on screen
+   * because that number feeds the estimate.
+   */
+  function toggleSquareUp() {
+    const section = activeSection;
+    if (!section) {
+      setSquareUp((v) => !v);
+      return;
+    }
+    if (squareUp && rawRingsRef.current[section.id]) {
+      const raw = rawRingsRef.current[section.id];
+      delete rawRingsRef.current[section.id];
+      setSquareUp(false);
+      setRegNote(null);
+      commit(
+        updateSection(section.id, (s) => ({
+          ...s,
+          ring: raw.map((p) => [...p]),
+          edges: raw.map(() => "unlabeled" as CbEdgeType),
+        })),
+      );
+      return;
+    }
+    if (squareUp) {
+      // Nothing stored to revert to — just stop snapping future drags.
+      setSquareUp(false);
+      setRegNote(null);
+      return;
+    }
+    const result = regularizeRing(section.ring);
+    setSquareUp(true);
+    if (result.ring.length < 3) return;
+    rawRingsRef.current[section.id] = section.ring.map((p) => [...p]);
+    setRegNote(result.flagged ? { pct: Math.round(result.areaDeltaPct * 10) / 10 } : null);
+    commit(
+      updateSection(section.id, (s) => ({
+        ...s,
+        ring: result.ring,
+        edges: result.ring.map(() => "unlabeled" as CbEdgeType),
+      })),
+    );
   }
 
   function setPitch(id: string, pitch: string) {
@@ -901,9 +1005,20 @@ export function CbRoofPlanEditor({
   const vertexHandles: { x: number; y: number; index: number }[] = [];
   const midHandles: { x: number; y: number; index: number }[] = [];
   if (handleSection && !readOnly && ready && !locked && tool === "select") {
+    /*
+     * Thinning: midpoints packed between corners are the reason the wrong
+     * handle gets grabbed. Show them only when zoomed in past 20.3, or the two
+     * either side of the corner being worked.
+     */
+    const zoom = mapRef.current?.getZoom() ?? 0;
+    const n = handleSection.ring.length;
+    const showAllMids = zoom >= 20.3;
     handleSection.ring.forEach((p, i) => {
       const pt = project(p);
       if (pt) vertexHandles.push({ ...pt, index: i });
+      const adjacent =
+        selectedVertex != null && (i === selectedVertex || i === (selectedVertex - 1 + n) % n);
+      if (!showAllMids && !adjacent) return;
       const m = project(edgeCenter(handleSection.ring, i));
       if (m) midHandles.push({ ...m, index: i });
     });
@@ -921,7 +1036,12 @@ export function CbRoofPlanEditor({
           />
 
           {/* vertex + midpoint handles */}
-          <div className="pointer-events-none absolute inset-0" key={tick}>
+          {/*
+            No `key` churn here: re-keying on every map move remounted the
+            handles mid-gesture, which destroyed the element holding the pointer
+            capture and reset the drag. Positions re-render, the nodes persist.
+          */}
+          <div className="pointer-events-none absolute inset-0" data-tick={tick}>
             {midHandles.map((h) => (
               <button
                 key={`m${h.index}`}
@@ -938,6 +1058,7 @@ export function CbRoofPlanEditor({
                   height: 44,
                   background: "transparent",
                   border: 0,
+                  touchAction: "none",
                 }}
               >
                 <span
@@ -967,6 +1088,7 @@ export function CbRoofPlanEditor({
                   height: 44,
                   background: "transparent",
                   border: 0,
+                  touchAction: "none",
                 }}
               >
                 <span
@@ -1085,6 +1207,19 @@ export function CbRoofPlanEditor({
               <CbChip>Read only — report generated</CbChip>
             </div>
           )}
+
+          {regNote ? (
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              className="absolute left-3 right-3 top-16 rounded-[10px] px-3 py-2 text-left text-[13px] font-semibold"
+              style={{ background: "rgba(180,83,9,0.92)", color: "#fff" }}
+            >
+              Squaring changed the area by {regNote.pct > 0 ? "+" : ""}
+              {regNote.pct}% — check the outline before you price it.
+            </button>
+          ) : null}
+
 
           {tool === "line" && !readOnly ? (
             <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2">
@@ -1307,6 +1442,13 @@ export function CbRoofPlanEditor({
             </CbCard>
           ) : null}
           {aiPlan?.sections.length ? <CbButton block variant="secondary" onClick={() => setShowTrace((value) => !value)}>{showTrace ? "Hide AI outline" : "Show AI outline"}</CbButton> : null}
+          <CbButton block variant="secondary" onClick={toggleSquareUp}>
+            {squareUp ? "Un-square (use raw trace)" : "Square up edges"}
+          </CbButton>
+          <p className="text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+            Squaring snaps edges onto the building's own axis. Turn it off for curved,
+            octagonal or bay-window roofs.
+          </p>
           {activeSection?.aiRing?.length ? <CbButton block variant="secondary" onClick={restoreActiveAiOutline}><RotateCcw size={18} /> Restore AI outline</CbButton> : canReset ? <CbButton block variant="secondary" onClick={() => { onReset?.(); setSettingsOpen(false); }}><RotateCcw size={18} /> Restore AI outline</CbButton> : null}
           <CbButton block variant="secondary" onClick={redo} disabled={!future.length}>Redo</CbButton>
           {measurePins.length ? <CbButton block variant="danger" onClick={() => { onClearPins?.(); setSettingsOpen(false); }}>Clear roof pins</CbButton> : null}
