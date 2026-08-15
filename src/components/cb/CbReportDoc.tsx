@@ -255,7 +255,7 @@ export function CbReportDoc({
       </Section>
 
       {/* 4 — ROOF FINDINGS */}
-      <Section n={4} title="Roof findings by slope">
+      <Section n={4} title="Roof findings by elevation">
         {CB_ELEVATIONS.map((e) => {
           const st = elevations[e];
           if (!st || (!st.slopeWide && !st.wide && !st.done && !(st.testSquares ?? []).length)) return null;
@@ -266,7 +266,7 @@ export function CbReportDoc({
             <div key={e} className="mb-4">
               <div className="flex items-center gap-2">
                 <h3 className="cb-display" style={{ fontSize: 15, margin: 0 }}>
-                  {CB_ELEVATION_LABEL[e]} slope
+                  {CB_ELEVATION_LABEL[e]} elevation
                 </h3>
                 {damaged ? (
                   <CbBadge tone="warning">{hits} hit{hits === 1 ? "" : "s"} in test square</CbBadge>

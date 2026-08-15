@@ -206,14 +206,14 @@ export async function renderReportPdf(vm: CbReportViewModel, onStep?: CbPdfProgr
   para(vm.narrative.profile_note ?? "");
 
   /* 4 / 5 / 6 — findings */
-  h1("Roof findings by slope");
+  h1("Roof findings by elevation");
   for (const e of CB_ELEVATIONS) {
     const st = vm.elevations[e];
     if (!st) continue;
     const hits = (st.testSquares ?? []).reduce((a, t) => a + (t.hits ?? 0), 0);
     const items = Object.entries(st.roofItems ?? {});
     if (!hits && items.length === 0 && !st.slopeWide && !st.done) continue;
-    h2(`${CB_ELEVATION_LABEL[e]} slope`);
+    h2(`${CB_ELEVATION_LABEL[e]} elevation`);
     para(
       items.length || hits
         ? `${hits} identified impact${hits === 1 ? "" : "s"} in the chalked test square. ${items
