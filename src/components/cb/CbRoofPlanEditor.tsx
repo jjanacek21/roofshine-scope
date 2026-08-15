@@ -343,15 +343,28 @@ export function CbRoofPlanEditor({
         },
       });
       setReady(true);
+      setMapStuck(false);
+      // Re-run the paint effect: a style reload wipes source data.
+      setLayersVersion((v) => v + 1);
+      } catch {
+        /* style not parsed yet — the next signal retries */
+      }
     };
 
     map.on("load", initLayers);
     map.on("style.load", initLayers);
+    map.on("styledata", initLayers);
+    map.on("sourcedata", initLayers);
     map.on("idle", initLayers);
     initLayers();
-    // A late style parse on a slow phone still gets picked up.
-    const retry = window.setInterval(initLayers, 800);
-    const stopRetry = window.setTimeout(() => window.clearInterval(retry), 15000);
+    /*
+     * Keep retrying for as long as the editor is mounted. The old 15s cutoff
+     * meant a slow cellular style parse left the map permanently blank.
+     */
+    const retry = window.setInterval(initLayers, 700);
+    const stuck = window.setTimeout(() => {
+      if (!map.getLayer("cb-fill-l")) setMapStuck(true);
+    }, 8000);
     // Guard against a zero-height container at mount.
     const resize = window.setTimeout(() => map.resize(), 300);
 
@@ -360,7 +373,7 @@ export function CbRoofPlanEditor({
     setMapVersion((v) => v + 1);
     return () => {
       window.clearInterval(retry);
-      window.clearTimeout(stopRetry);
+      window.clearTimeout(stuck);
       window.clearTimeout(resize);
       map.remove();
       mapRef.current = null;
