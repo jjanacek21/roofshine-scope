@@ -36,6 +36,7 @@ import {
   type CbEdgeType,
 } from "@/lib/cbRoofPlan";
 import { confidenceColor, traceConfidence } from "@/lib/cbTraceConfidence";
+import { regularizeRing, ringAxisDeg, snapVertexToAxis } from "@/lib/roof-regularize";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 type Tool = "select" | "line" | "refine" | "label";
