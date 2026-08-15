@@ -839,57 +839,137 @@ async function applyCodeRules(
   return out;
 }
 
+/** Everything the rep checked on the walk, as catalog_item_id → count. */
+function checkedCatalogItems(inputs: CbEstimateInputs): Record<string, number> {
+  const byKey = new Map<string, number>();
+  const bump = (key: string, qty: number) => byKey.set(key, (byKey.get(key) ?? 0) + (qty || 1));
+  for (const state of Object.values(inputs.elevations)) {
+    for (const [key, entry] of Object.entries(state?.items ?? {})) bump(key, n(entry?.qty));
+    for (const [key, entry] of Object.entries(state?.roofItems ?? {})) bump(key, n(entry?.qty));
+  }
+  for (const [key, entry] of Object.entries(inputs.roofHardware ?? {})) bump(key, n(entry?.qty));
+  for (const room of inputs.rooms) {
+    for (const [key, entry] of Object.entries(room.items ?? {})) bump(key, n(entry?.qty));
+  }
+  const out: Record<string, number> = {};
+  for (const [key, qty] of byKey) {
+    const cat = inputs.catalog[key];
+    if (cat?.id) out[cat.id] = (out[cat.id] ?? 0) + qty;
+  }
+  return out;
+}
+
+function qtyContext(inputs: CbEstimateInputs): CbQtyContext {
+  const m = inputs.measurement;
+  const g = (k: string) => n(m?.[k]);
+  const area = g("total_area_sqft");
+  return {
+    squares: area > 0 ? area / 100 : g("total_squares"),
+    area_sqft: area || g("total_squares") * 100,
+    eave_lf: g("eave_lf"),
+    rake_lf: g("rake_lf"),
+    ridge_lf: g("ridge_lf"),
+    hip_lf: g("hip_lf"),
+    valley_lf: g("valley_lf"),
+    step_lf: n(inputs.sheet.flashing.step_flashing_lf) || g("step_flashing_lf"),
+    wall_lf: n(inputs.sheet.flashing.roof_to_wall_lf) || g("wall_flashing_lf"),
+    openings: Object.keys(inputs.sheet.exterior ?? {}).length,
+    elevations: Object.keys(inputs.elevations ?? {}).length,
+    rooms: inputs.rooms.length,
+  };
+}
+
+/**
+ * The estimate is produced from the catalog — base assembly by roof system,
+ * item mappings from the walk, then code rules. Nothing is inferred from the
+ * name of the roof system.
+ */
 export async function buildCbDraft(
   inputs: CbEstimateInputs,
   mode: CbEstimateMode,
+  versionId?: string | null,
 ): Promise<{ lines: CbDraftLine[]; bookName: string | null; provenance: CbEstimateProvenance }> {
   const roofSystem =
     inputs.sheet.roof_system.roof_type === "Other"
       ? inputs.sheet.roof_system.roof_type_other ?? "Other"
       : inputs.sheet.roof_system.roof_type ?? null;
-  const assembly = findAssembly(roofSystem);
+  const roofSystemKey = normalizeRoofSystem(roofSystem);
 
   const provenance: CbEstimateProvenance = {
     roofSystem: roofSystem ?? null,
-    assemblyKey: assembly?.key ?? null,
-    assemblyLabel: assembly?.label ?? null,
+    assemblyKey: roofSystemKey,
+    assemblyLabel: roofSystemKey ? roofSystemLabel(roofSystemKey) : null,
     codeRuleSetName: null,
     codeRulesApplied: 0,
     priceBookName: null,
+    catalogVersionId: null,
+    unmappedCount: 0,
     error: null,
   };
 
-  if (!roofSystem) {
-    provenance.error = "No roof system recorded on the takeoff — the estimate cannot be built.";
-    return { lines: [], bookName: null, provenance };
-  }
-  if (!assembly) {
-    provenance.error = `No assembly defined for ${roofSystem}`;
+  const resolution = await resolveCatalogScope({
+    roofSystemKey,
+    ctx: qtyContext(inputs),
+    checked: checkedCatalogItems(inputs),
+    companyId: inputs.companyId,
+    versionId: versionId ?? null,
+  });
+  provenance.catalogVersionId = resolution.version?.id ?? null;
+  provenance.assemblyLabel = resolution.assembly?.name ?? provenance.assemblyLabel;
+  provenance.unmappedCount = resolution.unmapped.length;
+
+  if (resolution.error) {
+    provenance.error = resolution.error;
     return { lines: [], bookName: null, provenance };
   }
 
-  const planned = [
-    ...planRoofLines(inputs, assembly),
-    ...planTakeoffLines(inputs),
-    ...(mode === "line_item" ? planPhotoLines(inputs) : []),
-  ];
   const prices =
     mode === "line_item"
       ? await loadPricing(inputs.companyId, inputs.job)
       : { macro: {}, book: {}, bookName: null };
-  const masters = await loadMasterCandidates(planned);
-  const lines = toDraft(planned, masters, inputs, prices, mode === "line_item");
-  if (mode === "line_item") {
-    const macroLines = await expandMacros(inputs, prices, assembly);
-    const known = new Set(lines.map((l) => l.line_item_id).filter(Boolean));
-    for (const l of macroLines) if (!l.line_item_id || !known.has(l.line_item_id)) lines.push(l);
 
+  const priced = mode === "line_item";
+  const lines: CbDraftLine[] = resolution.lines.map((l) => ({
+    id: uid(),
+    line_item_id: l.line_item_id,
+    code: l.code,
+    name: l.name,
+    unit: l.unit,
+    qty: priced ? l.qty : 0,
+    unit_price: priced
+      ? n(prices.macro[l.line_item_id ?? ""]) || n(prices.book[l.line_item_id ?? ""]) || l.default_price
+      : 0,
+    trade: l.trade,
+    category: l.category,
+    source: l.source === "assembly" ? "macro" : "takeoff",
+    basis: priced ? l.basis : l.name,
+  }));
+
+  if (mode === "line_item") {
+    /* photo findings the walk did not already cover */
+    const photoPlanned = planPhotoLines(inputs);
+    if (photoPlanned.length) {
+      const masters = await loadMasterCandidates(photoPlanned);
+      const known = new Set(lines.map((l) => l.line_item_id).filter(Boolean));
+      for (const l of toDraft(photoPlanned, masters, inputs, prices, true)) {
+        if (!l.line_item_id || !known.has(l.line_item_id)) lines.push(l);
+      }
+    }
+
+    /* code rules last */
+    const codeAssembly: CbAssembly = {
+      key: roofSystemKey ?? "",
+      label: roofSystemLabel(roofSystemKey),
+      aliases: [roofSystemLabel(roofSystemKey).toLowerCase()],
+      lines: [],
+    };
     const rules = await resolveCodeRules({ state: inputs.job.state, county: inputs.job.county });
     provenance.codeRuleSetName = rules.set?.name ?? null;
-    const codeLines = await applyCodeRules(inputs, prices, assembly, rules.items, rules.set);
+    const codeLines = await applyCodeRules(inputs, prices, codeAssembly, rules.items, rules.set);
     provenance.codeRulesApplied = codeLines.length;
     lines.push(...codeLines);
   }
+
   provenance.priceBookName = prices.bookName;
   return { lines, bookName: prices.bookName, provenance };
 }
