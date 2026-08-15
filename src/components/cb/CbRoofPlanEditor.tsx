@@ -709,11 +709,19 @@ export function CbRoofPlanEditor({
   const dragRef = useRef<{
     start: CbPlan;
     moved: boolean;
-    longPress: number | null;
+    engaged: boolean;
+    arm: number | null;
+    hold: number | null;
     x: number;
     y: number;
   } | null>(null);
 
+  /**
+   * One finger, one corner. The gesture is owned by the handle from pointerdown
+   * to pointerup: the pointer is captured (so leaving the 44px hit area cannot
+   * drop the drag), the map's own drag-pan is switched off for the duration, and
+   * a 250ms press with haptics is what picks the vertex up.
+   */
   function beginVertexDrag(
     e: React.PointerEvent,
     sectionId: string,
@@ -723,9 +731,15 @@ export function CbRoofPlanEditor({
     if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    const handle = e.currentTarget as HTMLElement;
+    try {
+      handle.setPointerCapture(e.pointerId);
+    } catch {
+      /* capture unsupported — window listeners below still carry the drag */
+    }
     cbHaptic(8);
 
+    const map = mapRef.current;
     let vIndex = index;
     if (kind === "midpoint") {
       const s = planRef.current.sections.find((x) => x.id === sectionId);
@@ -742,65 +756,99 @@ export function CbRoofPlanEditor({
       });
     }
 
+    const axis = ringAxisDeg(
+      planRef.current.sections.find((x) => x.id === sectionId)?.ring ?? [],
+    );
+
+    const engage = () => {
+      const d = dragRef.current;
+      if (!d || d.engaged) return;
+      d.engaged = true;
+      cbHaptic(16);
+      map?.dragPan.disable();
+      map?.touchZoomRotate.disableRotation();
+      setLoupe({ x: d.x, y: d.y });
+      paintLoupe(d.x, d.y);
+      // A stationary hold past the pickup still removes the corner.
+      d.hold = window.setTimeout(() => {
+        if (dragRef.current?.moved) return;
+        deleteVertex(sectionId, vIndex);
+        finish();
+      }, 900);
+    };
+
     dragRef.current = {
       start: planRef.current,
       moved: false,
-      longPress:
-        kind === "vertex"
-          ? window.setTimeout(() => {
-              if (dragRef.current?.moved) return;
-              deleteVertex(sectionId, vIndex);
-              dragRef.current = null;
-              setLoupe(null);
-            }, 550)
-          : null,
+      engaged: false,
+      arm: kind === "midpoint" ? null : window.setTimeout(engage, 250),
+      hold: null,
       x: e.clientX,
       y: e.clientY,
     };
     setSelectedId(sectionId);
-    setLoupe({ x: e.clientX, y: e.clientY });
-    paintLoupe(e.clientX, e.clientY);
+    setSelectedVertex(vIndex);
+    if (kind === "midpoint") engage();
 
     const move = (ev: PointerEvent) => {
       const d = dragRef.current;
       if (!d) return;
-      if (Math.hypot(ev.clientX - d.x, ev.clientY - d.y) > 6) {
+      if (Math.hypot(ev.clientX - d.x, ev.clientY - d.y) > 8) {
         d.moved = true;
-        if (d.longPress) {
-          clearTimeout(d.longPress);
-          d.longPress = null;
+        if (d.hold) {
+          clearTimeout(d.hold);
+          d.hold = null;
+        }
+        // Deliberate movement is also a pickup — never make the rep wait.
+        if (!d.engaged) {
+          if (d.arm) clearTimeout(d.arm);
+          d.arm = null;
+          engage();
         }
       }
-      const map = mapRef.current;
+      if (!d.engaged) return;
+      const m = mapRef.current;
       const host = containerRef.current;
-      if (!map || !host) return;
+      if (!m || !host) return;
       const rect = host.getBoundingClientRect();
-      const ll = map.unproject([ev.clientX - rect.left, ev.clientY - rect.top]);
+      const ll = m.unproject([ev.clientX - rect.left, ev.clientY - rect.top]);
       const s = planRef.current.sections.find((x) => x.id === sectionId);
       if (!s) return;
-      const snapped = snapVertex(s.ring, vIndex, [ll.lng, ll.lat]);
+      const raw: [number, number] = [ll.lng, ll.lat];
+      const snapped = squareUp
+        ? snapVertexToAxis(s.ring, vIndex, raw, axis)
+        : snapVertex(s.ring, vIndex, raw);
       const ring = s.ring.map((p, i) => (i === vIndex ? snapped : p));
       onPlanChange(updateSection(sectionId, (sec) => ({ ...sec, ring })), { user: true });
       setLoupe({ x: ev.clientX, y: ev.clientY });
       requestAnimationFrame(() => paintLoupe(ev.clientX, ev.clientY));
     };
 
-    const up = () => {
+    function finish() {
       const d = dragRef.current;
       if (d) {
-        if (d.longPress) clearTimeout(d.longPress);
+        if (d.arm) clearTimeout(d.arm);
+        if (d.hold) clearTimeout(d.hold);
+        if (d.engaged) cbHaptic(10);
         if (d.moved || kind === "midpoint") setPast((p) => [...p.slice(-40), d.start]);
       }
       dragRef.current = null;
       setLoupe(null);
+      mapRef.current?.dragPan.enable();
+      mapRef.current?.touchZoomRotate.enableRotation();
+      try {
+        handle.releasePointerCapture(e.pointerId);
+      } catch {
+        /* already released */
+      }
       window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
-    };
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+    }
 
     window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
   }
 
   function deleteVertex(sectionId: string, index: number) {
