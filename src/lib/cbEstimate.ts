@@ -32,7 +32,7 @@ import {
 import type { CbElevation, CbElevationState, CbItemEntry, CbRoom, CbTakeoffData } from "@/lib/cbTakeoff";
 
 export type CbEstimateMode = "per_square" | "line_item";
-export type CbLineSource = "measurement" | "takeoff" | "photo_analysis" | "macro" | "code";
+export type CbLineSource = "measurement" | "takeoff" | "photo_analysis" | "macro" | "code" | "manual";
 
 export const CB_SOURCE_LABEL: Record<CbLineSource, string> = {
   measurement: "Measurement",
@@ -40,6 +40,7 @@ export const CB_SOURCE_LABEL: Record<CbLineSource, string> = {
   photo_analysis: "Photos",
   macro: "Assembly",
   code: "Code",
+  manual: "Manual",
 };
 
 
@@ -1050,6 +1051,8 @@ export async function saveCbEstimate(args: {
   percents: CbEstimatePercents;
   pricePerSquare: number;
   attachToReport: boolean;
+  /** The catalog version that produced these numbers — stamped, never guessed. */
+  catalogVersionId?: string | null;
 }): Promise<string> {
   const { inputs, mode, lines, percents, pricePerSquare, attachToReport } = args;
   const perSquare = mode === "per_square";
@@ -1078,6 +1081,7 @@ export async function saveCbEstimate(args: {
     profit_pct: perSquare ? 0 : percents.profit_pct,
     tax_pct: perSquare ? 0 : percents.tax_pct,
     notes: perSquare ? math.sentence : null,
+    catalog_version_id: args.catalogVersionId ?? null,
     report_meta: { attach_to_report: attachToReport, cb_mode: mode } as never,
   };
 
