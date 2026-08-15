@@ -23,6 +23,12 @@ import {
 import { resolvePriceBook } from "@/lib/resolve-price-book";
 import { findAssembly, type CbAssembly, type CbQtyBasis } from "@/lib/cbRoofSystems";
 import { resolveCodeRules, type CodeRuleItem, type CodeRuleSet } from "@/lib/cbCodeRules";
+import {
+  normalizeRoofSystem,
+  roofSystemLabel,
+  resolveCatalogScope,
+  type CbQtyContext,
+} from "@/lib/cbCatalogResolve";
 import type { CbElevation, CbElevationState, CbItemEntry, CbRoom, CbTakeoffData } from "@/lib/cbTakeoff";
 
 export type CbEstimateMode = "per_square" | "line_item";
@@ -776,6 +782,10 @@ export interface CbEstimateProvenance {
   codeRuleSetName: string | null;
   codeRulesApplied: number;
   priceBookName: string | null;
+  /** The catalog version the numbers came from — stamped on the estimate. */
+  catalogVersionId: string | null;
+  /** Checked items with no mapping in this catalog version. */
+  unmappedCount: number;
   /** Set when the estimate cannot be built — never silently substituted. */
   error: string | null;
 }
