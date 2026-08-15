@@ -12,6 +12,7 @@ import {
   CB_ELEVATION_LABEL,
   type CbElevation,
   type CbElevationState,
+  type CbItemEntry,
   type CbRoom,
 } from "@/lib/cbTakeoff";
 
