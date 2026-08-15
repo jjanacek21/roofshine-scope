@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -10,7 +10,17 @@ import { useCbLogoUrl } from "@/lib/cbLogo";
 import { CbCard, CbTile, CbButton, CbChip, CbBadge, CbLoading, CbEmptyState, CbSkeleton } from "@/components/cb/primitives";
 import { CbReveal, CbStagger } from "@/components/cb/motion";
 import { CbConvertAction } from "@/components/cb/CbConvertAction";
-import { Search, Camera, ChevronRight, Building2, Settings, PlayCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Search, Camera, ChevronRight, Building2, Settings, PlayCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUSES: { value: string; label: string; tone: "neutral" | "success" | "warning" | "danger" | "accent" }[] = [
@@ -46,6 +56,9 @@ export function CbDashboard() {
   const [filter, setFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [starting, setStarting] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<CbJobRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const queryClient = useQueryClient();
 
   const jobsQuery = useQuery({
     queryKey: ["cb-jobs", workspace?.id],
@@ -151,6 +164,22 @@ export function CbDashboard() {
     }
     navigate({ to: "/cb/job/$id/customer", params: { id: data.id } });
   }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    const { error } = await supabase.from("cb_jobs").delete().eq("id", pendingDelete.id);
+    setDeleting(false);
+    if (error) {
+      toast.error(error.message || "Could not delete the inspection");
+      return;
+    }
+    setPendingDelete(null);
+    toast.success("Inspection deleted");
+    await queryClient.invalidateQueries({ queryKey: ["cb-jobs", workspace?.id] });
+  }
+
+
 
   if (sessionLoading || companyLoading) {
     return (
@@ -359,6 +388,21 @@ export function CbDashboard() {
                           Present
                         </CbButton>
                       ) : null}
+                      <button
+                        type="button"
+                        aria-label={`Delete inspection ${job.address || ""}`.trim()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPendingDelete(job);
+                        }}
+                        className="flex h-11 w-11 items-center justify-center rounded-[12px]"
+                        style={{
+                          border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))",
+                          color: "var(--cb-danger, #b42318)",
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                     <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--cb-text-muted)" }} />
 
@@ -369,7 +413,32 @@ export function CbDashboard() {
           </CbStagger>
         )}
       </div>
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this inspection?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete?.address || "This inspection"} and all of its photos, measurements,
+              reports and contracts will be permanently removed. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmDelete();
+              }}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
 
