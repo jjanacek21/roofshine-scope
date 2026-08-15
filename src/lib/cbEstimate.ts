@@ -23,7 +23,7 @@ import {
 import { resolvePriceBook } from "@/lib/resolve-price-book";
 import { findAssembly, type CbAssembly, type CbQtyBasis } from "@/lib/cbRoofSystems";
 import { resolveCodeRules, type CodeRuleItem, type CodeRuleSet } from "@/lib/cbCodeRules";
-import type { CbElevation, CbElevationState, CbRoom, CbTakeoffData } from "@/lib/cbTakeoff";
+import type { CbElevation, CbElevationState, CbItemEntry, CbRoom, CbTakeoffData } from "@/lib/cbTakeoff";
 
 export type CbEstimateMode = "per_square" | "line_item";
 export type CbLineSource = "measurement" | "takeoff" | "photo_analysis" | "macro" | "code";

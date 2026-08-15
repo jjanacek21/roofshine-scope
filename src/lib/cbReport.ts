@@ -150,12 +150,14 @@ export function buildLineItems(args: {
   measurement: Record<string, number | string | null> | null;
   sheet: CbSheet;
   elevations: Partial<Record<CbElevation, CbElevationState>>;
+  roofHardware?: Record<string, CbItemEntry>;
   rooms: CbRoom[];
   photos: CbReportPhoto[];
   vent: CbVentResult;
   itemLabels: Record<string, { label: string; unit: string | null }>;
 }): CbLineItem[] {
   const { measurement, sheet, elevations, rooms, photos, vent, itemLabels } = args;
+  const roofHardware = args.roofHardware ?? {};
   const m = (k: string) => Number(measurement?.[k] ?? 0) || 0;
   const out: CbLineItem[] = [];
   const push = (
@@ -391,6 +393,7 @@ export function composeReport(inputs: Awaited<ReturnType<typeof loadReportInputs
     measurement: inputs.measurement,
     sheet,
     elevations,
+    roofHardware: (takeoffData.roofHardware ?? {}) as Record<string, CbItemEntry>,
     rooms,
     photos: inputs.photos,
     vent,
