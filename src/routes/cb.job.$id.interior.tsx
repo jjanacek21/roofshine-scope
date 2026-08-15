@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Camera, Plus, Trash2 } from "lucide-react";
@@ -9,7 +9,10 @@ import { CbField } from "@/components/cb/forms";
 import { CbCamera } from "@/components/cb/CbCamera";
 import { CbPendingPill } from "@/components/claim-buddy/CbJobStepShell";
 import { CbDamageChecklist } from "@/components/claim-buddy/CbDamageChecklist";
+import { CbInteriorTakeoffFields } from "@/components/claim-buddy/CbTakeoffFields";
+import { readSheet, type CbInteriorArea } from "@/lib/cbSheet";
 import { useCbTakeoff, type CbRoom, type CbItemEntry } from "@/lib/cbTakeoff";
+
 
 export const Route = createFileRoute("/cb/job/$id/interior")({
   head: () => ({
@@ -34,6 +37,42 @@ function CbInteriorWalk() {
   const { takeoff, isLoading, patchData } = useCbTakeoff(id);
   const [openRoom, setOpenRoom] = useState<string | null>(null);
   const [cam, setCam] = useState<CbRoom | null>(null);
+  const [takeoffCam, setTakeoffCam] = useState<{ itemKey: string; label: string } | null>(null);
+
+  const { data: takeoffPhotos } = useQuery({
+    queryKey: ["cb-int-takeoff-photos", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cb_photos")
+        .select("item_key")
+        .eq("job_id", id)
+        .eq("category", "takeoff");
+      return data ?? [];
+    },
+  });
+
+  const photoCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const p of takeoffPhotos ?? []) {
+      const k = (p as { item_key: string | null }).item_key ?? "";
+      if (k) map[k] = (map[k] ?? 0) + 1;
+    }
+    return map;
+  }, [takeoffPhotos]);
+
+  const sheet = useMemo(() => readSheet(takeoff.data as Record<string, unknown>), [takeoff.data]);
+
+  const patchRoomArea = (roomId: string, part: Partial<CbInteriorArea>) =>
+    patchData({
+      sheet: {
+        ...sheet,
+        interior: {
+          ...(sheet.interior ?? {}),
+          [roomId]: { ...((sheet.interior ?? {})[roomId] ?? {}), ...part },
+        },
+      },
+    });
+
 
   const { data: job } = useQuery({
     queryKey: ["cb-job-ws", id],
@@ -170,6 +209,18 @@ function CbInteriorWalk() {
                           onRemove={(itemKey) => void patchRoomItem(room, itemKey, null)}
                         />
 
+                        <CbInteriorTakeoffFields
+                          roomId={room.id}
+                          roomName={room.name}
+                          area={(sheet.interior ?? {})[room.id] ?? {}}
+                          onPatch={(part) => void patchRoomArea(room.id, part)}
+                          onCamera={(itemKey, itemLabel) =>
+                            setTakeoffCam({ itemKey, label: itemLabel })
+                          }
+                          photoCounts={photoCounts}
+                        />
+
+
                         <CbButton
                           block
                           variant="danger"
@@ -209,6 +260,22 @@ function CbInteriorWalk() {
             onClose={() => setCam(null)}
           />
         ) : null}
+
+        {takeoffCam ? (
+          <CbCamera
+            open
+            jobId={id}
+            workspaceId={job?.workspace_id as string | undefined}
+            title={takeoffCam.label}
+            instruction={`Photograph the ${takeoffCam.label.toLowerCase()} so the line item and the photo stay linked.`}
+            captionContext={`Interior takeoff — ${takeoffCam.label}`}
+            meta={{ category: "takeoff", item_key: takeoffCam.itemKey, shot_type: "detail" }}
+            onSaved={() => setTakeoffCam(null)}
+            onClose={() => setTakeoffCam(null)}
+          />
+        ) : null}
+
+
 
         <CbPendingPill />
       </div>

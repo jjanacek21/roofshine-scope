@@ -33,6 +33,93 @@ export const CB_FLASH_MATERIALS = ["Aluminum", "Galvanized", "Copper"];
 export const CB_GUTTER_SIZES = ["5 inch", "6 inch", "Custom"];
 export const CB_GUTTER_MATERIALS = ["Aluminum", "Steel", "Copper", "Vinyl"];
 export const CB_SKYLIGHT_TYPES = ["Fixed", "Vented", "Tubular"];
+export const CB_SIDING_TYPES = [
+  "Vinyl",
+  "Aluminum",
+  "Wood",
+  "Hardie / fiber cement",
+  "Stucco",
+  "Brick",
+  "Stone",
+  "Other",
+];
+export const CB_FLOORING_TYPES = [
+  "Carpet",
+  "Laminate",
+  "Vinyl plank",
+  "Hardwood",
+  "Tile",
+  "Concrete",
+  "Other",
+];
+
+export interface CbExteriorArea {
+  siding_type?: string;
+  siding_sqft?: number;
+  windows_qty?: number;
+  screens_qty?: number;
+  doors_qty?: number;
+  fascia_lf?: number;
+  soffit_lf?: number;
+  gutter_lf?: number;
+  downspout_qty?: number;
+  shutters_qty?: number;
+  light_fixtures_qty?: number;
+  ac_fin_qty?: number;
+  fence_lf?: number;
+  wrap_qty?: number;
+  detached_qty?: number;
+  notes?: string;
+}
+
+export interface CbInteriorArea {
+  ceiling_sqft?: number;
+  wall_sqft?: number;
+  flooring_type?: string;
+  flooring_sqft?: number;
+  baseboard_lf?: number;
+  drywall_sqft?: number;
+  insulation_sqft?: number;
+  paint_sqft?: number;
+  contents_note?: string;
+}
+
+type NumKeys<T> = { [K in keyof T]-?: number extends T[K] ? K : never }[keyof T];
+
+export interface CbTakeoffFieldSpec<T> {
+  key: NumKeys<T>;
+  label: string;
+  unit: string;
+  /** words the estimate matcher looks for in the price book */
+  match: string[];
+}
+
+export const CB_EXTERIOR_FIELDS: CbTakeoffFieldSpec<CbExteriorArea>[] = [
+  { key: "siding_sqft", label: "Siding", unit: "SF", match: ["siding"] },
+  { key: "windows_qty", label: "Windows", unit: "EA", match: ["window"] },
+  { key: "screens_qty", label: "Window screens", unit: "EA", match: ["screen"] },
+  { key: "doors_qty", label: "Doors", unit: "EA", match: ["door"] },
+  { key: "fascia_lf", label: "Fascia", unit: "LF", match: ["fascia"] },
+  { key: "soffit_lf", label: "Soffit", unit: "LF", match: ["soffit"] },
+  { key: "gutter_lf", label: "Gutter", unit: "LF", match: ["gutter"] },
+  { key: "downspout_qty", label: "Downspouts", unit: "EA", match: ["downspout"] },
+  { key: "shutters_qty", label: "Shutters", unit: "EA", match: ["shutter"] },
+  { key: "light_fixtures_qty", label: "Light fixtures", unit: "EA", match: ["light"] },
+  { key: "ac_fin_qty", label: "A/C condenser fins", unit: "EA", match: ["condenser"] },
+  { key: "fence_lf", label: "Fence", unit: "LF", match: ["fence"] },
+  { key: "wrap_qty", label: "Wraps / trim", unit: "EA", match: ["wrap"] },
+  { key: "detached_qty", label: "Detached structures", unit: "EA", match: ["detached"] },
+];
+
+export const CB_INTERIOR_FIELDS: CbTakeoffFieldSpec<CbInteriorArea>[] = [
+  { key: "ceiling_sqft", label: "Ceiling", unit: "SF", match: ["ceiling"] },
+  { key: "wall_sqft", label: "Walls", unit: "SF", match: ["wall"] },
+  { key: "flooring_sqft", label: "Flooring", unit: "SF", match: ["floor"] },
+  { key: "baseboard_lf", label: "Baseboard", unit: "LF", match: ["baseboard"] },
+  { key: "drywall_sqft", label: "Drywall damage", unit: "SF", match: ["drywall"] },
+  { key: "insulation_sqft", label: "Insulation", unit: "SF", match: ["insulation"] },
+  { key: "paint_sqft", label: "Paint", unit: "SF", match: ["paint"] },
+];
 
 export interface CbSkylightRow {
   id: string;
@@ -42,6 +129,7 @@ export interface CbSkylightRow {
   condition: string;
   flashing_kit: boolean;
 }
+
 
 export interface CbSheet {
   roof_system: {
@@ -109,6 +197,10 @@ export interface CbSheet {
     cameras?: number;
     other?: string;
   };
+  /** Per-elevation exterior takeoff, keyed by elevation ("front" | "right" | ...). */
+  exterior?: Record<string, CbExteriorArea>;
+  /** Per-room interior takeoff, keyed by room id. */
+  interior?: Record<string, CbInteriorArea>;
   notes?: string;
 }
 
@@ -121,6 +213,8 @@ export const CB_EMPTY_SHEET: CbSheet = {
   solar: {},
   gutters: {},
   hardware: {},
+  exterior: {},
+  interior: {},
   notes: "",
 };
 
@@ -137,9 +231,12 @@ export function readSheet(data: Record<string, unknown> | undefined | null): CbS
     solar: { ...(raw?.solar ?? {}) },
     gutters: { ...(raw?.gutters ?? {}) },
     hardware: { ...(raw?.hardware ?? {}) },
+    exterior: { ...(raw?.exterior ?? {}) },
+    interior: { ...(raw?.interior ?? {}) },
     notes: raw?.notes ?? "",
   };
 }
+
 
 /* ---------------- ventilation math ---------------- */
 
@@ -275,6 +372,23 @@ export function scoreSheet(sheet: CbSheet, squares: number): CbSectionScore[] {
     },
     { key: "notes", label: "Roof notes", vals: [sheet.notes] },
   ];
+
+  /* exterior and interior only count once that scope has been walked */
+  for (const [elev, area] of Object.entries(sheet.exterior ?? {})) {
+    sections.push({
+      key: `exterior_${elev}`,
+      label: `${elev[0]?.toUpperCase()}${elev.slice(1)} exterior takeoff`,
+      vals: [area.siding_type, area.siding_sqft, area.windows_qty, area.fascia_lf ?? area.soffit_lf],
+    });
+  }
+  for (const [roomId, area] of Object.entries(sheet.interior ?? {})) {
+    sections.push({
+      key: `interior_${roomId}`,
+      label: "Room takeoff",
+      vals: [area.ceiling_sqft, area.wall_sqft, area.flooring_sqft, area.drywall_sqft],
+    });
+  }
+
 
   return sections.map((s) => {
     const { filled, total } = count(s.vals);
