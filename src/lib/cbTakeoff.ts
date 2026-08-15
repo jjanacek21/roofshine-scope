@@ -133,5 +133,18 @@ export function useCbTakeoff(jobId: string) {
     [current, save],
   );
 
-  return { takeoff: current, isLoading: query.isLoading, patchElevation, patchItem, patchData };
+  /**
+   * Single atomic write against the freshest cache value — use this when one
+   * user action has to touch both `data.sheet` and `elevations` at once.
+   */
+  const mutate = useCallback(
+    async (fn: (prev: Omit<CbTakeoff, "job_id">) => Omit<CbTakeoff, "job_id">) => {
+      const prev = qc.getQueryData<CbTakeoff>(key) ?? { job_id: jobId, ...EMPTY };
+      await save(fn({ data: prev.data, elevations: prev.elevations }));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [jobId, qc, save],
+  );
+
+  return { takeoff: current, isLoading: query.isLoading, patchElevation, patchItem, patchData, mutate };
 }

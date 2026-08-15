@@ -1,23 +1,25 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbBadge, CbLoading } from "@/components/cb/primitives";
-import { CbProgressRail } from "@/components/cb/forms";
+import { CbProgressRail, CbTextarea } from "@/components/cb/forms";
 import { CbCamera } from "@/components/cb/CbCamera";
 import { CbPendingPill } from "@/components/claim-buddy/CbJobStepShell";
-import { CbDamageChecklist } from "@/components/claim-buddy/CbDamageChecklist";
-import { CbExteriorTakeoffFields } from "@/components/claim-buddy/CbTakeoffFields";
-import { readSheet, type CbExteriorArea } from "@/lib/cbSheet";
+import { CbUnifiedChecklist } from "@/components/claim-buddy/CbUnifiedChecklist";
+import { CbPicker } from "@/components/claim-buddy/CbTakeoffFields";
+import { useCbCatalog } from "@/lib/cbCatalog";
+import { buildExteriorRows, type CbRow } from "@/lib/cbSheetRows";
+import { readSheet, CB_SIDING_TYPES, type CbExteriorArea, type CbSheet } from "@/lib/cbSheet";
 import {
   CB_ELEVATIONS,
   CB_ELEVATION_LABEL,
   useCbTakeoff,
   type CbElevation,
+  type CbTakeoff,
 } from "@/lib/cbTakeoff";
-
 
 export const Route = createFileRoute("/cb/job/$id/exterior")({
   head: () => ({
@@ -26,7 +28,7 @@ export const Route = createFileRoute("/cb/job/$id/exterior")({
       {
         name: "description",
         content:
-          "Guided elevation-by-elevation exterior walk: wide shots, damage checklist and two-shot documentation.",
+          "One sheet per elevation: check the item, type the quantity, shoot the photo, move to the next wall.",
       },
       { property: "og:title", content: "Exterior walk — Claim Buddy" },
       { property: "og:description", content: "Walk the building clockwise from the front left corner." },
@@ -40,11 +42,11 @@ export const Route = createFileRoute("/cb/job/$id/exterior")({
 function CbExteriorWalk() {
   const { id } = useParams({ from: "/cb/job/$id/exterior" });
   const navigate = useNavigate();
-  const { takeoff, isLoading, patchElevation, patchItem, patchData } = useCbTakeoff(id);
+  const qc = useQueryClient();
+  const { takeoff, isLoading, patchElevation, patchData, mutate } = useCbTakeoff(id);
+  const { data: catalog, isLoading: catalogLoading } = useCbCatalog("exterior");
   const [idx, setIdx] = useState(0);
   const [wideCam, setWideCam] = useState(false);
-  const [takeoffCam, setTakeoffCam] = useState<{ itemKey: string; label: string } | null>(null);
-  const [mode, setMode] = useState<"choice" | "damage" | "takeoff" | "summary">("choice");
 
   const { data: job } = useQuery({
     queryKey: ["cb-job-ws", id],
@@ -83,10 +85,16 @@ function CbExteriorWalk() {
   const label = CB_ELEVATION_LABEL[elev];
   const state = takeoff.elevations[elev] ?? {};
   const entries = state.items ?? {};
-  const itemCount = Object.keys(entries).length;
 
   const sheet = useMemo(() => readSheet(takeoff.data as Record<string, unknown>), [takeoff.data]);
-  const area = (sheet.exterior ?? {})[elev] ?? {};
+  const area: CbExteriorArea = (sheet.exterior ?? {})[elev] ?? {};
+
+  const rows = useMemo(
+    () => buildExteriorRows({ catalog, entries, area, photoCounts, elevationKey: elev }),
+    [catalog, entries, area, photoCounts, elev],
+  );
+
+  const loggedCount = rows.reduce((n, g) => n + g.rows.filter((r) => r.selected).length, 0);
 
   function patchArea(part: Partial<CbExteriorArea>) {
     void patchData({
@@ -97,13 +105,60 @@ function CbExteriorWalk() {
     });
   }
 
+  /** One atomic write so a row can touch the checklist and the takeoff at once. */
+  function writeRow(
+    row: CbRow,
+    patch: { selected?: boolean; qty?: number | null; note?: string; shot?: "medium" | "close"; count?: number },
+  ) {
+    void mutate((prev): Omit<CbTakeoff, "job_id"> => {
+      const prevSheet = readSheet(prev.data as Record<string, unknown>) as CbSheet;
+      const prevElev = prev.elevations[elev] ?? {};
+      const items = { ...(prevElev.items ?? {}) };
+      const prevArea = { ...((prevSheet.exterior ?? {})[elev] ?? {}) } as Record<string, unknown>;
+
+      if (row.catalogKey) {
+        const existing = items[row.catalogKey];
+        if (patch.selected === false) {
+          delete items[row.catalogKey];
+        } else {
+          const next = { ...(existing ?? {}) };
+          if (patch.selected === true && !existing) Object.assign(next, {});
+          if (patch.qty !== undefined) next.qty = patch.qty;
+          if (patch.note !== undefined) next.note = patch.note;
+          if (patch.shot && patch.count) {
+            next[patch.shot] = ((next[patch.shot] ?? 0) as number) + patch.count;
+          }
+          items[row.catalogKey] = next;
+        }
+      }
+
+      if (row.fieldKey) {
+        if (patch.selected === false) delete prevArea[row.fieldKey];
+        if (patch.qty !== undefined) prevArea[row.fieldKey] = patch.qty ?? undefined;
+      }
+
+      return {
+        data: {
+          ...prev.data,
+          sheet: {
+            ...prevSheet,
+            exterior: { ...(prevSheet.exterior ?? {}), [elev]: prevArea as CbExteriorArea },
+          },
+        },
+        elevations: {
+          ...prev.elevations,
+          [elev]: { ...prevElev, items, cleared: false },
+        },
+      };
+    });
+  }
+
   const railSteps = useMemo(() => CB_ELEVATIONS.map((e) => CB_ELEVATION_LABEL[e]), []);
 
-
-  function next() {
+  async function completeElevation() {
+    await patchElevation(elev, { done: true, cleared: loggedCount === 0 });
     if (idx < CB_ELEVATIONS.length - 1) {
       setIdx(idx + 1);
-      setMode("choice");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
       navigate({ to: "/cb/job/$id/scope", params: { id } });
@@ -124,7 +179,7 @@ function CbExteriorWalk() {
 
   return (
     <CbSurface>
-      <div className="min-h-screen px-4 pb-28 pt-6" style={{ background: "var(--cb-bg)" }}>
+      <div className="min-h-screen px-4 pb-32 pt-6" style={{ background: "var(--cb-bg)" }}>
         <div className="mx-auto w-full max-w-[620px]">
           <CbProgressRail steps={railSteps} current={idx} />
 
@@ -134,7 +189,7 @@ function CbExteriorWalk() {
                 {label} elevation
               </h1>
               <p className="mt-1 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
-                Start at the front left corner and walk clockwise.
+                Check what&apos;s damaged, type the quantity, shoot it — one pass.
               </p>
             </div>
             <CbButton size="md" variant="ghost" onClick={() => navigate({ to: "/cb" })}>
@@ -142,7 +197,7 @@ function CbExteriorWalk() {
             </CbButton>
           </div>
 
-          {/* a) the wide shot, always required */}
+          {/* the wide shot, always required */}
           <CbCard elevation="raised" className="mt-4" style={{ padding: 20 }}>
             <div className="flex items-center justify-between gap-3">
               <span className="cb-microlabel">Wide shot</span>
@@ -166,106 +221,55 @@ function CbExteriorWalk() {
             </div>
           </CbCard>
 
-          {/* b) clear it, or log damage — never gated on the camera working */}
-          {true ? (
+          <CbCard elevation="card" className="mt-3" style={{ padding: 16 }}>
+            <CbPicker
+              label="Siding type"
+              options={CB_SIDING_TYPES}
+              value={area.siding_type}
+              onChange={(v) => patchArea({ siding_type: v })}
+            />
+          </CbCard>
 
-            mode === "damage" ? (
-              <div className="mt-4">
-                <CbDamageChecklist
-                  scope="exterior"
-                  jobId={id}
-                  workspaceId={job?.workspace_id as string | undefined}
-                  elevationKey={elev}
-                  elevationLabel={label}
-                  entries={entries}
-                  photoCategory="exterior"
-                  onShot={(itemKey, kind, count) =>
-                    void patchItem(elev, "items", itemKey, {
-                      [kind]: ((entries[itemKey]?.[kind] ?? 0) as number) + count,
-                    })
-                  }
-                  onEntry={(itemKey, patch) => void patchItem(elev, "items", itemKey, patch)}
-                  onRemove={(itemKey) => void patchItem(elev, "items", itemKey, null)}
-                />
-                <div className="mt-4">
-                  <CbButton block onClick={() => setMode("takeoff")}>
-                    Done with {label} — takeoff
-                  </CbButton>
-                </div>
-              </div>
-            ) : mode === "takeoff" ? (
-              <div className="mt-2">
-                <CbExteriorTakeoffFields
-                  elevationKey={elev}
-                  elevationLabel={label}
-                  area={area}
-                  onPatch={patchArea}
-                  onCamera={(itemKey, itemLabel) => setTakeoffCam({ itemKey, label: itemLabel })}
-                  photoCounts={photoCounts}
-                />
-                <div className="mt-4 grid gap-2">
-                  <CbButton block onClick={() => setMode("summary")}>
-                    Done with {label}
-                  </CbButton>
-                  <CbButton block variant="ghost" onClick={() => setMode("damage")}>
-                    Back to the checklist
-                  </CbButton>
-                </div>
-              </div>
-            ) : mode === "summary" ? (
-              <CbCard elevation="floating" className="mt-4" style={{ padding: 20 }}>
-                <span className="cb-microlabel">{label} summary</span>
-                <p className="mt-2 text-[15px]" style={{ color: "var(--cb-text)" }}>
-                  {state.cleared
-                    ? "No damage logged — the wide shot stays on file so the adjuster can see it was checked."
-                    : `${itemCount} ${itemCount === 1 ? "item" : "items"} logged, ${state.wide} wide ${
-                        state.wide === 1 ? "shot" : "shots"
-                      }.`}
-                </p>
-                <div className="mt-4 grid gap-2">
-                  <CbButton block onClick={next}>
-                    {idx < CB_ELEVATIONS.length - 1 ? "Next elevation" : "Finish exterior inspection"}
-                  </CbButton>
-                  <CbButton block variant="secondary" onClick={() => setMode("takeoff")}>
-                    Open the {label.toLowerCase()} takeoff
-                  </CbButton>
-                  <CbButton block variant="ghost" onClick={() => setMode("damage")}>
-                    Back to the checklist
-                  </CbButton>
-                </div>
-              </CbCard>
-            ) : (
-              <div className="mt-4 grid gap-2">
-                <CbButton
-                  block
-                  variant="secondary"
-                  onClick={async () => {
-                    await patchElevation(elev, { cleared: true, done: true });
-                    setMode("takeoff");
-                  }}
-                >
-                  No damage on this elevation
-                </CbButton>
-                <CbButton
-                  block
-                  onClick={async () => {
-                    await patchElevation(elev, { cleared: false });
-                    setMode("damage");
-                  }}
-                >
-                  Log damage
-                </CbButton>
-                <CbButton block variant="secondary" onClick={() => setMode("takeoff")}>
-                  Go straight to the takeoff
-                </CbButton>
-                <CbButton block variant="ghost" onClick={next}>
-                  Skip this elevation
-                </CbButton>
-              </div>
+          <div className="mt-3">
+            <CbUnifiedChecklist
+              groups={rows}
+              isLoading={catalogLoading}
+              jobId={id}
+              workspaceId={job?.workspace_id as string | undefined}
+              contextLabel={`${label} elevation`}
+              contextKey={elev}
+              onToggle={(row, next) => writeRow(row, { selected: next })}
+              onQty={(row, value) => writeRow(row, { qty: value, selected: true })}
+              onNote={(row, value) => writeRow(row, { note: value })}
+              onShot={(row, kind, count) => {
+                if (kind === "detail") {
+                  void qc.invalidateQueries({ queryKey: ["cb-ext-takeoff-photos", id] });
+                  return;
+                }
+                writeRow(row, { selected: true, shot: kind, count });
+              }}
+            />
+          </div>
 
-            )
+          <CbCard elevation="card" className="mt-3" style={{ padding: 16 }}>
+            <CbTextarea
+              label={`${label} notes`}
+              rows={3}
+              value={area.notes ?? ""}
+              onChange={(e) => patchArea({ notes: e.target.value })}
+            />
+          </CbCard>
 
-          ) : null}
+          <div aria-hidden className="cb-has-dock" />
+          <div className="cb-dock">
+            <div className="mx-auto flex w-full max-w-[620px] items-center gap-2">
+              <CbButton block onClick={completeElevation}>
+                {idx < CB_ELEVATIONS.length - 1
+                  ? `Complete ${label.toLowerCase()} — next elevation`
+                  : "Finish exterior inspection"}
+              </CbButton>
+            </div>
+          </div>
         </div>
 
         {wideCam ? (
@@ -281,22 +285,6 @@ function CbExteriorWalk() {
             onClose={() => setWideCam(false)}
           />
         ) : null}
-
-        {takeoffCam ? (
-          <CbCamera
-            open
-            jobId={id}
-            workspaceId={job?.workspace_id as string | undefined}
-            title={takeoffCam.label}
-            instruction={`Photograph the ${takeoffCam.label.toLowerCase()} on the ${label.toUpperCase()} elevation.`}
-            captionContext={`${label} elevation takeoff — ${takeoffCam.label}`}
-            meta={{ category: "takeoff", item_key: takeoffCam.itemKey, shot_type: "detail" }}
-            onSaved={() => setTakeoffCam(null)}
-            onClose={() => setTakeoffCam(null)}
-          />
-        ) : null}
-
-
 
         <CbPendingPill />
       </div>
