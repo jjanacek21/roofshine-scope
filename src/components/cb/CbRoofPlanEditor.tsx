@@ -518,7 +518,7 @@ export function CbRoofPlanEditor({
         geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
       })),
     );
-  }, [plan, ready, selectedId, draft, measurePins, showTrace, aiPlan, confidence]);
+  }, [plan, layersVersion, selectedId, draft, measurePins, showTrace, aiPlan, confidence]);
 
   /* -------- pin markers: visible even when the GL layers never came up ----- */
 
@@ -1027,7 +1027,7 @@ export function CbRoofPlanEditor({
   const handleSection = activeSection;
   const vertexHandles: { x: number; y: number; index: number }[] = [];
   const midHandles: { x: number; y: number; index: number }[] = [];
-  if (handleSection && !readOnly && ready && !locked && tool === "select") {
+  if (handleSection && !readOnly && mapVersion > 0 && !locked && tool === "select") {
     /*
      * Thinning: midpoints packed between corners are the reason the wrong
      * handle gets grabbed. Show them only when zoomed in past 20.3, or the two
