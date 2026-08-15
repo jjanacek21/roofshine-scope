@@ -1,23 +1,25 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Home, Building2, Sofa } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Home, Building2, Sofa, Check, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
-import { CbCard, CbButton, CbBadge, CbLoading } from "@/components/cb/primitives";
-import { CbJobStepShell } from "@/components/claim-buddy/CbJobStepShell";
+import { CbCard, CbButton, CbLoading } from "@/components/cb/primitives";
+import { CbProgressRail } from "@/components/cb/forms";
+import { CbPendingPill } from "@/components/claim-buddy/CbJobStepShell";
+import { readSheet, scoreSheet, overallCompleteness } from "@/lib/cbSheet";
 import { cbQueueUpdate } from "@/lib/cbOfflineQueue";
 import { cbHaptic } from "@/components/cb/motion";
 
 export const Route = createFileRoute("/cb/job/$id/scope")({
   head: () => ({
     meta: [
-      { title: "Choose inspection — Claim Buddy" },
+      { title: "Inspection type — Claim Buddy" },
       {
         name: "description",
-        content: "Pick roof, exterior or interior scopes for this Claim Buddy inspection.",
+        content: "Pick your first pass: exterior, roof or interior, then work them in any order.",
       },
-      { property: "og:title", content: "Choose inspection — Claim Buddy" },
+      { property: "og:title", content: "Inspection type — Claim Buddy" },
       { property: "og:description", content: "Step three of the Claim Buddy inspection flow." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -28,56 +30,142 @@ export const Route = createFileRoute("/cb/job/$id/scope")({
 
 type ScopeKey = "roof" | "exterior" | "interior";
 
-const SCOPES: { key: ScopeKey; title: string; body: string; icon: typeof Home; total: number; unit: string }[] = [
-  { key: "roof", title: "Roof", body: "Slopes, penetrations, test squares", icon: Home, total: 0, unit: "slopes" },
-  { key: "exterior", title: "Exterior", body: "Four elevations, gutters, screens", icon: Building2, total: 4, unit: "elevations" },
-  { key: "interior", title: "Interior", body: "Off by default — turn on if there's water inside", icon: Sofa, total: 0, unit: "rooms" },
+const SCOPES: {
+  key: ScopeKey;
+  title: string;
+  body: string;
+  icon: typeof Home;
+  to: "/cb/job/$id/roof" | "/cb/job/$id/exterior" | "/cb/job/$id/interior";
+}[] = [
+  {
+    key: "exterior",
+    title: "Exterior",
+    body: "Four elevations, gutters, screens, wraps",
+    icon: Building2,
+    to: "/cb/job/$id/exterior",
+  },
+  {
+    key: "roof",
+    title: "Roof",
+    body: "Every slope wide, test squares, hardware takeoff, instant measurement",
+    icon: Home,
+    to: "/cb/job/$id/roof",
+  },
+  {
+    key: "interior",
+    title: "Interior",
+    body: "Only if water made it inside — rooms, ceilings, moisture",
+    icon: Sofa,
+    to: "/cb/job/$id/interior",
+  },
 ];
+
+function Ring({ pct }: { pct: number }) {
+  const r = 26;
+  const c = 2 * Math.PI * r;
+  return (
+    <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden style={{ flexShrink: 0 }}>
+      <circle cx="32" cy="32" r={r} fill="none" strokeWidth="6" stroke="var(--cb-border)" />
+      <circle
+        cx="32"
+        cy="32"
+        r={r}
+        fill="none"
+        strokeWidth="6"
+        stroke="var(--cb-accent)"
+        strokeLinecap="round"
+        strokeDasharray={`${(c * pct) / 100} ${c}`}
+        transform="rotate(-90 32 32)"
+      />
+      <text
+        x="32"
+        y="37"
+        textAnchor="middle"
+        fontSize="15"
+        fontWeight="700"
+        fill="var(--cb-text)"
+        className="cb-num"
+      >
+        {pct}%
+      </text>
+    </svg>
+  );
+}
 
 function CbJobScopePage() {
   const { id } = useParams({ from: "/cb/job/$id/scope" });
   const navigate = useNavigate();
-  const qc = useQueryClient();
-  const [saving, setSaving] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["cb-job-scope", id],
     queryFn: async () => {
-      const [{ data: job, error }, { data: photos }] = await Promise.all([
-        supabase.from("cb_jobs").select("id, scopes, status").eq("id", id).maybeSingle(),
-        supabase.from("cb_photos").select("category, elevation").eq("job_id", id),
-      ]);
+      const [{ data: job, error }, { data: photos }, { data: takeoff }, { data: measurement }] =
+        await Promise.all([
+          supabase.from("cb_jobs").select("id, scopes, status").eq("id", id).maybeSingle(),
+          supabase.from("cb_photos").select("category, elevation").eq("job_id", id),
+          supabase.from("cb_takeoffs").select("data, elevations").eq("job_id", id).maybeSingle(),
+          supabase.from("cb_measurements").select("squares").eq("job_id", id).maybeSingle(),
+        ]);
       if (error) throw error;
-      return { job, photos: photos ?? [] };
+      return {
+        job,
+        photos: photos ?? [],
+        takeoff: takeoff ?? null,
+        squares: Number((measurement as { squares?: number } | null)?.squares ?? 0),
+      };
     },
   });
 
-  const selected = useMemo<ScopeKey[]>(() => {
-    const raw = (data?.job?.scopes ?? []) as unknown;
-    return Array.isArray(raw) ? (raw as ScopeKey[]) : [];
-  }, [data]);
+  const photos = data?.photos ?? [];
+  const sheet = useMemo(
+    () => readSheet((data?.takeoff?.data ?? {}) as Record<string, unknown>),
+    [data],
+  );
+  const pct = useMemo(
+    () => overallCompleteness(scoreSheet(sheet, data?.squares ?? 0)),
+    [sheet, data],
+  );
 
-  function progressFor(key: ScopeKey): string | null {
-    const photos = data?.photos ?? [];
+  function statusFor(key: ScopeKey): { done: boolean; note: string | null } {
+    const shots = photos.filter((p) => p.category === key).length;
     if (key === "exterior") {
-      const done = new Set(
+      const elevations = new Set(
         photos.filter((p) => p.category === "exterior" && p.elevation).map((p) => p.elevation),
       ).size;
-      return done > 0 ? `${done} of 4 elevations done` : null;
+      const takeoffLines = Object.keys(sheet.exterior ?? {}).length;
+      return {
+        done: elevations >= 4,
+        note: elevations
+          ? `${elevations} of 4 elevations · ${takeoffLines} takeoff ${takeoffLines === 1 ? "area" : "areas"}`
+          : null,
+      };
     }
-    const n = photos.filter((p) => p.category === key).length;
-    return n > 0 ? `${n} photos captured` : null;
+    if (key === "roof") {
+      const slopes = new Set(
+        photos.filter((p) => p.category === "roof" && p.elevation).map((p) => p.elevation),
+      ).size;
+      return {
+        done: slopes >= 4,
+        note: shots ? `${shots} photos · ${slopes} of 4 slopes` : null,
+      };
+    }
+    const rooms = Object.keys(sheet.interior ?? {}).length;
+    return {
+      done: rooms > 0 && shots > 0,
+      note: rooms ? `${rooms} ${rooms === 1 ? "room" : "rooms"} · ${shots} photos` : null,
+    };
   }
 
-  async function toggle(key: ScopeKey) {
+  async function open(key: ScopeKey, to: (typeof SCOPES)[number]["to"]) {
     cbHaptic();
-    const next = selected.includes(key) ? selected.filter((s) => s !== key) : [...selected, key];
-    setSaving(true);
-    const patch: Record<string, unknown> = { scopes: next };
-    if (next.length > 0 && data?.job?.status !== "inspecting") patch.status = "inspecting";
-    await cbQueueUpdate("cb_jobs", id, patch);
-    await qc.invalidateQueries({ queryKey: ["cb-job-scope", id] });
-    setSaving(false);
+    const raw = (data?.job?.scopes ?? []) as unknown;
+    const current = Array.isArray(raw) ? (raw as ScopeKey[]) : [];
+    if (!current.includes(key)) {
+      const patch: Record<string, unknown> = { scopes: [...current, key] };
+      if (data?.job?.status !== "inspecting") patch.status = "inspecting";
+      void cbQueueUpdate("cb_jobs", id, patch);
+    }
+    navigate({ to, params: { id } });
   }
 
   if (isLoading) {
@@ -94,116 +182,100 @@ function CbJobScopePage() {
 
   return (
     <CbSurface>
-      <CbJobStepShell
-        step={2}
-        jobId={id}
-        title="Choose inspection"
-        subtitle="Pick any of them, in any order. You can come back and finish later."
-      >
-        <div className="grid gap-3">
-          {SCOPES.map(({ key, title, body, icon: Icon }) => {
-            const on = selected.includes(key);
-            const progress = progressFor(key);
-            return (
-              <button
-                key={key}
-                type="button"
-                role="checkbox"
-                aria-checked={on}
-                onClick={() => void toggle(key)}
-                className="text-left"
-              >
-                <CbCard
-                  elevation={on ? "floating" : "card"}
-                  className={`cb-scope-card ${on ? "is-selected" : ""}`}
-                  style={{ padding: 20 }}
-                >
-                  <div className="flex items-start gap-4">
-                    <span className="cb-scope-icon" aria-hidden>
-                      <Icon size={22} strokeWidth={1.6} />
-                    </span>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[17px] font-semibold" style={{ color: "var(--cb-text)" }}>
-                          {title}
-                        </span>
-                        {on ? <CbBadge tone="accent">Selected</CbBadge> : null}
-                      </div>
-                      <p className="mt-1 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
-                        {body}
-                      </p>
-                      {progress ? (
-                        <p className="mt-2 cb-num text-[12.5px]" style={{ color: "var(--cb-accent)" }}>
-                          {title} — {progress}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                </CbCard>
-              </button>
-            );
-          })}
-        </div>
+      <div className="min-h-screen px-4 pb-32 pt-6" style={{ background: "var(--cb-bg)" }}>
+        <div className="mx-auto w-full max-w-[620px]">
+          <CbProgressRail
+            steps={["Customer", "Cover photo", "Inspection", "Report"]}
+            current={2}
+          />
 
-        {selected.length > 0 ? (
-          <div className="mt-4 grid gap-2">
-            {SCOPES.filter((s) => selected.includes(s.key)).map((s) => (
-              <CbButton
-                key={s.key}
-                block
-                variant="secondary"
-                onClick={() =>
-                  navigate({
-                    to:
-                      s.key === "roof"
-                        ? "/cb/job/$id/roof"
-                        : s.key === "exterior"
-                          ? "/cb/job/$id/exterior"
-                          : "/cb/job/$id/interior",
-                    params: { id },
-                  })
-                }
-              >
-                Open the {s.title.toLowerCase()} walk
-              </CbButton>
-            ))}
+          <div className="mt-5 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4">
+            <Ring pct={pct} />
+            <div className="min-w-0">
+              <h1 className="cb-display" style={{ fontSize: 24, margin: 0 }}>
+                Pick your first pass
+              </h1>
+              <p className="mt-1 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
+                Any order. Come back to this screen after each one.
+              </p>
+            </div>
           </div>
-        ) : null}
 
-        <div className="mt-5 grid gap-2">
-          <CbButton
-            block
-            variant="secondary"
-            onClick={() => navigate({ to: "/cb/job/$id/takeoff", params: { id } })}
-          >
-            Open the roof takeoff sheet
-          </CbButton>
-          <CbButton
-            block
-            variant="ghost"
-            onClick={() => navigate({ to: "/cb/job/$id/review", params: { id } })}
-          >
-            Pre-flight review
-          </CbButton>
+          <div className="mt-5 grid gap-3">
+            {SCOPES.map(({ key, title, body, icon: Icon, to }) => {
+              const { done, note } = statusFor(key);
+              return (
+                <button key={key} type="button" onClick={() => void open(key, to)} className="text-left">
+                  <CbCard
+                    elevation={done ? "floating" : "card"}
+                    className={`cb-scope-card ${done ? "is-selected" : ""}`}
+                    style={{ padding: 20 }}
+                  >
+                    <div className="flex items-start gap-4">
+                      <span className="cb-scope-icon" aria-hidden>
+                        <Icon size={22} strokeWidth={1.6} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="text-[17px] font-semibold"
+                            style={{ color: "var(--cb-text)" }}
+                          >
+                            {title}
+                          </span>
+                          {done ? (
+                            <span className="cb-chip" style={{ color: "var(--cb-accent)" }}>
+                              <Check size={13} className="mr-1 inline" />
+                              DONE
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+                          {body}
+                        </p>
+                        {note ? (
+                          <p
+                            className="mt-2 cb-num text-[12.5px]"
+                            style={{ color: "var(--cb-accent)" }}
+                          >
+                            {note}
+                          </p>
+                        ) : null}
+                      </div>
+                      <ChevronRight
+                        size={20}
+                        aria-hidden
+                        style={{ color: "var(--cb-text-muted)", flexShrink: 0 }}
+                      />
+                    </div>
+                  </CbCard>
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="mt-4 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+            Photo count so far: <span className="cb-num">{photos.length}</span>. Nothing is lost if
+            you close the app.
+          </p>
+
+          <div aria-hidden className="cb-has-dock" />
+          <div className="cb-dock">
+            <div className="mx-auto flex w-full max-w-[620px] items-center gap-2">
+              <CbButton
+                block
+                onClick={() => navigate({ to: "/cb/job/$id/review", params: { id } })}
+              >
+                Review takeoff
+              </CbButton>
+              <CbButton variant="ghost" size="md" onClick={() => navigate({ to: "/cb" })}>
+                Save &amp; exit
+              </CbButton>
+            </div>
+          </div>
         </div>
-        <div aria-hidden className="cb-has-dock" />
-        <div className="cb-dock">
-          <CbButton
-            block
-            disabled={selected.length === 0}
-            loading={saving}
-            loadingText="Saving…"
-            onClick={() => {
-              const first = SCOPES.map((s) => s.key).find((k) => selected.includes(k));
-              if (first === "roof") navigate({ to: "/cb/job/$id/roof", params: { id } });
-              else if (first === "exterior") navigate({ to: "/cb/job/$id/exterior", params: { id } });
-              else if (first === "interior") navigate({ to: "/cb/job/$id/interior", params: { id } });
-            }}
-          >
-            {selected.length === 0 ? "Pick at least one" : "Start inspecting"}
-          </CbButton>
-        </div>
-      </CbJobStepShell>
+        <CbPendingPill />
+      </div>
     </CbSurface>
   );
 }

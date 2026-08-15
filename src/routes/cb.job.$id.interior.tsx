@@ -241,7 +241,7 @@ function CbInteriorWalk() {
                 <Plus size={16} className="mr-2 inline" /> Add another room
               </CbButton>
               <CbButton block onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}>
-                Finish interior
+                Finish interior inspection
               </CbButton>
             </div>
           )}

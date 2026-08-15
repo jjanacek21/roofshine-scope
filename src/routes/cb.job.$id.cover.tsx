@@ -147,7 +147,7 @@ function CbJobCoverPage() {
     setBusy(false);
     setRetaking(false);
     toast.success("Cover photo queued — it uploads in the background.");
-    navigate({ to: "/cb/job/$id/measure", params: { id } });
+    navigate({ to: "/cb/job/$id/scope", params: { id } });
   }
 
   if (isLoading) {
@@ -181,7 +181,7 @@ function CbJobCoverPage() {
               Cover photo already saved for this inspection.
             </p>
             <div className="mt-4 grid gap-2">
-              <CbButton block onClick={() => navigate({ to: "/cb/job/$id/measure", params: { id } })}>
+              <CbButton block onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}>
                 Keep it — continue
               </CbButton>
               <CbButton block variant="secondary" onClick={() => setRetaking(true)}>
@@ -271,7 +271,7 @@ function CbJobCoverPage() {
               <CbButton
                 block
                 variant="ghost"
-                onClick={() => navigate({ to: "/cb/job/$id/measure", params: { id } })}
+                onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}
               >
                 Skip for now
               </CbButton>
