@@ -415,7 +415,7 @@ function CbJobMeasurePage() {
     if (dest === "estimate") {
       navigate({ to: "/cb/job/$id/estimate", params: { id } });
     } else {
-      navigate({ to: "/cb/job/$id/takeoff", params: { id } });
+      navigate({ to: "/cb/job/$id/roof", params: { id } });
     }
   }
 
@@ -837,7 +837,7 @@ function CbJobMeasurePage() {
               loading={saving}
               loadingText="Saving…"
             >
-              Save roof measurements &amp; start takeoff
+              Save roof measurements &amp; continue
             </CbButton>
             <CbButton
               variant="ghost"

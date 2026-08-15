@@ -224,7 +224,7 @@ function CbExteriorWalk() {
                 </p>
                 <div className="mt-4 grid gap-2">
                   <CbButton block onClick={next}>
-                    {idx < CB_ELEVATIONS.length - 1 ? "Next elevation" : "Finish exterior"}
+                    {idx < CB_ELEVATIONS.length - 1 ? "Next elevation" : "Finish exterior inspection"}
                   </CbButton>
                   <CbButton block variant="secondary" onClick={() => setMode("takeoff")}>
                     Open the {label.toLowerCase()} takeoff
