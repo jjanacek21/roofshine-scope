@@ -87,6 +87,10 @@ export function CbRoofPlanEditor({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [ready, setReady] = useState(false);
+  /** Bumped whenever the GL sources/layers are (re)created, so paint re-runs. */
+  const [layersVersion, setLayersVersion] = useState(0);
+  /** Layers still not up after a grace period — offer a manual retry. */
+  const [mapStuck, setMapStuck] = useState(false);
   const [mapVersion, setMapVersion] = useState(0);
   const centerRef = useRef(center);
   centerRef.current = center ?? centerRef.current;
@@ -200,16 +204,20 @@ export function CbRoofPlanEditor({
     map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
 
     /**
-     * Idempotent: a phone can miss the one-shot `load` event (slow token fetch,
-     * zero-height container, style already parsed). Everything below is safe to
-     * call again, so we can retry from several signals until it sticks.
+     * Idempotent, and deliberately NOT gated on `map.isStyleLoaded()`. On a
+     * phone a stalled sprite or glyph request keeps that flag false for
+     * minutes even though the style is perfectly usable, which left the roof
+     * unhighlighted and the corner handles hidden. We just try to add the
+     * layers: if the style really isn't parsed yet mapbox throws, we swallow
+     * it and the next signal tries again.
      */
     const initLayers = () => {
-      if (!map.isStyleLoaded()) return;
       if (map.getLayer("cb-fill-l")) {
         setReady(true);
+        setMapStuck(false);
         return;
       }
+      try {
       const empty = { type: "FeatureCollection", features: [] } as GeoJSON.FeatureCollection;
       const addSource = (id: string) => {
         if (!map.getSource(id)) map.addSource(id, { type: "geojson", data: empty });
@@ -335,15 +343,28 @@ export function CbRoofPlanEditor({
         },
       });
       setReady(true);
+      setMapStuck(false);
+      // Re-run the paint effect: a style reload wipes source data.
+      setLayersVersion((v) => v + 1);
+      } catch {
+        /* style not parsed yet — the next signal retries */
+      }
     };
 
     map.on("load", initLayers);
     map.on("style.load", initLayers);
+    map.on("styledata", initLayers);
+    map.on("sourcedata", initLayers);
     map.on("idle", initLayers);
     initLayers();
-    // A late style parse on a slow phone still gets picked up.
-    const retry = window.setInterval(initLayers, 800);
-    const stopRetry = window.setTimeout(() => window.clearInterval(retry), 15000);
+    /*
+     * Keep retrying for as long as the editor is mounted. The old 15s cutoff
+     * meant a slow cellular style parse left the map permanently blank.
+     */
+    const retry = window.setInterval(initLayers, 700);
+    const stuck = window.setTimeout(() => {
+      if (!map.getLayer("cb-fill-l")) setMapStuck(true);
+    }, 8000);
     // Guard against a zero-height container at mount.
     const resize = window.setTimeout(() => map.resize(), 300);
 
@@ -352,7 +373,7 @@ export function CbRoofPlanEditor({
     setMapVersion((v) => v + 1);
     return () => {
       window.clearInterval(retry);
-      window.clearTimeout(stopRetry);
+      window.clearTimeout(stuck);
       window.clearTimeout(resize);
       map.remove();
       mapRef.current = null;
@@ -384,7 +405,9 @@ export function CbRoofPlanEditor({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready) return;
+    // Not gated on `ready`: `set()` below no-ops until the sources exist, and
+    // `layersVersion` re-runs this the moment they do.
+    if (!map) return;
 
     const fills: GeoJSON.Feature[] = plan.sections.map((s) => ({
       type: "Feature",
@@ -495,7 +518,7 @@ export function CbRoofPlanEditor({
         geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
       })),
     );
-  }, [plan, ready, selectedId, draft, measurePins, showTrace, aiPlan, confidence]);
+  }, [plan, layersVersion, selectedId, draft, measurePins, showTrace, aiPlan, confidence]);
 
   /* -------- pin markers: visible even when the GL layers never came up ----- */
 
@@ -1004,7 +1027,7 @@ export function CbRoofPlanEditor({
   const handleSection = activeSection;
   const vertexHandles: { x: number; y: number; index: number }[] = [];
   const midHandles: { x: number; y: number; index: number }[] = [];
-  if (handleSection && !readOnly && ready && !locked && tool === "select") {
+  if (handleSection && !readOnly && mapVersion > 0 && !locked && tool === "select") {
     /*
      * Thinning: midpoints packed between corners are the reason the wrong
      * handle gets grabbed. Show them only when zoomed in past 20.3, or the two
@@ -1278,9 +1301,35 @@ export function CbRoofPlanEditor({
               </div>
             )}
             {!ready ? (
-              <p className="mt-2 text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
-                Map is still loading — any measurements listed below are still valid.
-              </p>
+              mapStuck ? (
+                <div className="mt-2 flex items-center gap-2">
+                  <p className="text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
+                    Map overlay didn’t come up.
+                  </p>
+                  <button
+                    type="button"
+                    className="rounded-lg px-3 py-1 text-[12px] font-semibold"
+                    style={{ background: "var(--cb-surface-2, rgba(0,0,0,.06))" }}
+                    onClick={() => {
+                      setMapStuck(false);
+                      const map = mapRef.current;
+                      if (!map) return;
+                      map.resize();
+                      try {
+                        map.setStyle("mapbox://styles/mapbox/satellite-streets-v12");
+                      } catch {
+                        /* noop */
+                      }
+                    }}
+                  >
+                    Retry map
+                  </button>
+                </div>
+              ) : (
+                <p className="mt-2 text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
+                  Map is still loading — any measurements listed below are still valid.
+                </p>
+              )
             ) : null}
           </div>
         ) : null}
