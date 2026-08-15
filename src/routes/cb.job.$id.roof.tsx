@@ -15,7 +15,9 @@ import {
   useCbTakeoff,
   type CbElevation,
 } from "@/lib/cbTakeoff";
-import { readSheet } from "@/lib/cbSheet";
+import { readSheet, type CbSheet } from "@/lib/cbSheet";
+import { CbRoofTakeoffFields } from "@/components/claim-buddy/CbTakeoffFields";
+
 
 
 export const Route = createFileRoute("/cb/job/$id/roof")({
@@ -51,7 +53,10 @@ function CbRoofWalk() {
   const [safetyDone, setSafetyDone] = useState(false);
   const [idx, setIdx] = useState(0);
   const [cam, setCam] = useState<null | "wide" | "test_square">(null);
+  const [takeoffCam, setTakeoffCam] = useState<{ itemKey: string; label: string } | null>(null);
+  const [phase, setPhase] = useState<"slopes" | "takeoff">("slopes");
   const [hits, setHits] = useState(0);
+
 
   const { data: job } = useQuery({
     queryKey: ["cb-job-ws", id],
@@ -83,6 +88,38 @@ function CbRoofWalk() {
       },
     });
   }
+
+  /* ---- the takeoff sheet, now the last step of the walk ---- */
+  const sheet = useMemo(() => readSheet(takeoff.data as Record<string, unknown>), [takeoff.data]);
+
+  const { data: takeoffPhotos } = useQuery({
+    queryKey: ["cb-roof-takeoff-photos", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cb_photos")
+        .select("item_key")
+        .eq("job_id", id)
+        .eq("category", "takeoff");
+      return data ?? [];
+    },
+  });
+
+  const photoCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const p of takeoffPhotos ?? []) {
+      const k = (p as { item_key: string | null }).item_key ?? "";
+      if (k) map[k] = (map[k] ?? 0) + 1;
+    }
+    return map;
+  }, [takeoffPhotos]);
+
+  function patchSheet<K extends keyof CbSheet>(key: K, part: Partial<CbSheet[K]>) {
+    void patchData({
+      sheet: { ...sheet, [key]: { ...(sheet[key] as object), ...part } },
+    });
+  }
+
+
 
   const elev = CB_ELEVATIONS[idx] as CbElevation;
   const label = CB_ELEVATION_LABEL[elev];
@@ -184,6 +221,66 @@ function CbRoofWalk() {
       </CbSurface>
     );
   }
+
+  if (phase === "takeoff") {
+    return (
+      <CbSurface>
+        <div className="min-h-screen px-4 pb-32 pt-6" style={{ background: "var(--cb-bg)" }}>
+          <div className="mx-auto w-full max-w-[620px]">
+            <CbProgressRail steps={railSteps} current={railSteps.length - 1} />
+
+            <div className="mt-4 flex items-start justify-between gap-3">
+              <div>
+                <h1 className="cb-display" style={{ fontSize: 24, margin: 0 }}>
+                  Roof takeoff
+                </h1>
+                <p className="mt-1 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
+                  Quantity or a photo on every line — this is what the estimate reads.
+                </p>
+              </div>
+              <CbButton size="md" variant="ghost" onClick={() => navigate({ to: "/cb" })}>
+                Save &amp; exit
+              </CbButton>
+            </div>
+
+            <CbRoofTakeoffFields
+              sheet={sheet}
+              onPatch={patchSheet}
+              onNotes={(v) => void patchData({ sheet: { ...sheet, notes: v } })}
+              onCamera={(itemKey, label) => setTakeoffCam({ itemKey, label })}
+              photoCounts={photoCounts}
+            />
+
+            <div aria-hidden className="cb-has-dock" />
+            <div className="cb-dock">
+              <CbButton block onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}>
+                Complete roof inspection
+              </CbButton>
+            </div>
+          </div>
+
+          {takeoffCam ? (
+            <CbCamera
+              open
+              jobId={id}
+              workspaceId={job?.workspace_id as string | undefined}
+              meta={{ category: "takeoff", item_key: takeoffCam.itemKey, shot_type: "detail" }}
+              title={takeoffCam.label}
+              instruction={`Photograph the ${takeoffCam.label.toLowerCase()} so the line item and the photo stay linked.`}
+              captionContext={`Takeoff — ${takeoffCam.label}`}
+              onSaved={() => setTakeoffCam(null)}
+              onClose={() => setTakeoffCam(null)}
+
+            />
+          ) : null}
+
+          <CbPendingPill />
+        </div>
+      </CbSurface>
+    );
+  }
+
+
 
   return (
     <CbSurface>
@@ -298,7 +395,11 @@ function CbRoofWalk() {
               <CbButton
                 block
                 disabled={missingWide.length > 0}
-                onClick={() => navigate({ to: "/cb/job/$id/takeoff", params: { id } })}
+                onClick={() => {
+                  setPhase("takeoff");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+
               >
                 {missingWide.length > 0
                   ? `Missing wide shot: ${missingWide.map((e) => CB_ELEVATION_LABEL[e]).join(", ")}`

@@ -13,7 +13,13 @@
  *   line_item   — full carrier-style build from measurement + takeoff + photos.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { readSheet, computeVentilation, type CbSheet } from "@/lib/cbSheet";
+import {
+  readSheet,
+  computeVentilation,
+  CB_EXTERIOR_FIELDS,
+  CB_INTERIOR_FIELDS,
+  type CbSheet,
+} from "@/lib/cbSheet";
 import { resolvePriceBook } from "@/lib/resolve-price-book";
 import type { CbElevation, CbElevationState, CbRoom, CbTakeoffData } from "@/lib/cbTakeoff";
 
@@ -579,8 +585,50 @@ function planTakeoffLines(inputs: CbEstimateInputs): PlannedLine[] {
       basis: "Checked on the inspection walk",
     });
   }
+
+  /* sheet-driven exterior + interior takeoff quantities */
+  const areaLines: { label: string; unit: string; match: string[]; qty: number; where: string }[] = [];
+  for (const [elevKey, area] of Object.entries(inputs.sheet.exterior ?? {})) {
+    for (const spec of CB_EXTERIOR_FIELDS) {
+      const qty = n((area as Record<string, unknown>)[spec.key as string]);
+      if (qty > 0)
+        areaLines.push({ label: spec.label, unit: spec.unit, match: spec.match, qty, where: elevKey });
+    }
+  }
+  for (const [roomId, area] of Object.entries(inputs.sheet.interior ?? {})) {
+    const roomName = inputs.rooms.find((r) => r.id === roomId)?.name ?? "room";
+    for (const spec of CB_INTERIOR_FIELDS) {
+      const qty = n((area as Record<string, unknown>)[spec.key as string]);
+      if (qty > 0)
+        areaLines.push({ label: spec.label, unit: spec.unit, match: spec.match, qty, where: roomName });
+    }
+  }
+  const grouped = new Map<string, { label: string; unit: string; match: string[]; qty: number; where: string[] }>();
+  for (const l of areaLines) {
+    const k = `${l.label}|${l.unit}`;
+    const prev = grouped.get(k);
+    if (prev) {
+      prev.qty += l.qty;
+      prev.where.push(l.where);
+    } else grouped.set(k, { ...l, where: [l.where] });
+  }
+  for (const [k, l] of grouped) {
+    out.push({
+      key: `area-${k}`,
+      must: [l.match[0]],
+      prefer: l.match.slice(1),
+      avoid: ["remove"],
+      unit: l.unit,
+      label: l.label,
+      qty: l.qty,
+      source: "takeoff",
+      basis: `${l.label} takeoff — ${l.where.join(", ")}`,
+    });
+  }
+
   return out;
 }
+
 
 /** Anything the photo analysis saw that the walk did not already cover. */
 function planPhotoLines(inputs: CbEstimateInputs): PlannedLine[] {

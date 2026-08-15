@@ -9,12 +9,15 @@ import { CbProgressRail } from "@/components/cb/forms";
 import { CbCamera } from "@/components/cb/CbCamera";
 import { CbPendingPill } from "@/components/claim-buddy/CbJobStepShell";
 import { CbDamageChecklist } from "@/components/claim-buddy/CbDamageChecklist";
+import { CbExteriorTakeoffFields } from "@/components/claim-buddy/CbTakeoffFields";
+import { readSheet, type CbExteriorArea } from "@/lib/cbSheet";
 import {
   CB_ELEVATIONS,
   CB_ELEVATION_LABEL,
   useCbTakeoff,
   type CbElevation,
 } from "@/lib/cbTakeoff";
+
 
 export const Route = createFileRoute("/cb/job/$id/exterior")({
   head: () => ({
@@ -37,10 +40,11 @@ export const Route = createFileRoute("/cb/job/$id/exterior")({
 function CbExteriorWalk() {
   const { id } = useParams({ from: "/cb/job/$id/exterior" });
   const navigate = useNavigate();
-  const { takeoff, isLoading, patchElevation, patchItem } = useCbTakeoff(id);
+  const { takeoff, isLoading, patchElevation, patchItem, patchData } = useCbTakeoff(id);
   const [idx, setIdx] = useState(0);
   const [wideCam, setWideCam] = useState(false);
-  const [mode, setMode] = useState<"choice" | "damage" | "summary">("choice");
+  const [takeoffCam, setTakeoffCam] = useState<{ itemKey: string; label: string } | null>(null);
+  const [mode, setMode] = useState<"choice" | "damage" | "takeoff" | "summary">("choice");
 
   const { data: job } = useQuery({
     queryKey: ["cb-job-ws", id],
@@ -54,13 +58,47 @@ function CbExteriorWalk() {
     },
   });
 
+  const { data: takeoffPhotos } = useQuery({
+    queryKey: ["cb-ext-takeoff-photos", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cb_photos")
+        .select("item_key")
+        .eq("job_id", id)
+        .eq("category", "takeoff");
+      return data ?? [];
+    },
+  });
+
+  const photoCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const p of takeoffPhotos ?? []) {
+      const k = (p as { item_key: string | null }).item_key ?? "";
+      if (k) map[k] = (map[k] ?? 0) + 1;
+    }
+    return map;
+  }, [takeoffPhotos]);
+
   const elev = CB_ELEVATIONS[idx] as CbElevation;
   const label = CB_ELEVATION_LABEL[elev];
   const state = takeoff.elevations[elev] ?? {};
   const entries = state.items ?? {};
   const itemCount = Object.keys(entries).length;
 
+  const sheet = useMemo(() => readSheet(takeoff.data as Record<string, unknown>), [takeoff.data]);
+  const area = (sheet.exterior ?? {})[elev] ?? {};
+
+  function patchArea(part: Partial<CbExteriorArea>) {
+    void patchData({
+      sheet: {
+        ...sheet,
+        exterior: { ...(sheet.exterior ?? {}), [elev]: { ...area, ...part } },
+      },
+    });
+  }
+
   const railSteps = useMemo(() => CB_ELEVATIONS.map((e) => CB_ELEVATION_LABEL[e]), []);
+
 
   function next() {
     if (idx < CB_ELEVATIONS.length - 1) {
@@ -150,8 +188,27 @@ function CbExteriorWalk() {
                   onRemove={(itemKey) => void patchItem(elev, "items", itemKey, null)}
                 />
                 <div className="mt-4">
+                  <CbButton block onClick={() => setMode("takeoff")}>
+                    Done with {label} — takeoff
+                  </CbButton>
+                </div>
+              </div>
+            ) : mode === "takeoff" ? (
+              <div className="mt-2">
+                <CbExteriorTakeoffFields
+                  elevationKey={elev}
+                  elevationLabel={label}
+                  area={area}
+                  onPatch={patchArea}
+                  onCamera={(itemKey, itemLabel) => setTakeoffCam({ itemKey, label: itemLabel })}
+                  photoCounts={photoCounts}
+                />
+                <div className="mt-4 grid gap-2">
                   <CbButton block onClick={() => setMode("summary")}>
                     Done with {label}
+                  </CbButton>
+                  <CbButton block variant="ghost" onClick={() => setMode("damage")}>
+                    Back to the checklist
                   </CbButton>
                 </div>
               </div>
@@ -169,6 +226,9 @@ function CbExteriorWalk() {
                   <CbButton block onClick={next}>
                     {idx < CB_ELEVATIONS.length - 1 ? "Next elevation" : "Finish exterior"}
                   </CbButton>
+                  <CbButton block variant="secondary" onClick={() => setMode("takeoff")}>
+                    Open the {label.toLowerCase()} takeoff
+                  </CbButton>
                   <CbButton block variant="ghost" onClick={() => setMode("damage")}>
                     Back to the checklist
                   </CbButton>
@@ -181,7 +241,7 @@ function CbExteriorWalk() {
                   variant="secondary"
                   onClick={async () => {
                     await patchElevation(elev, { cleared: true, done: true });
-                    setMode("summary");
+                    setMode("takeoff");
                   }}
                 >
                   No damage on this elevation
@@ -195,12 +255,16 @@ function CbExteriorWalk() {
                 >
                   Log damage
                 </CbButton>
+                <CbButton block variant="secondary" onClick={() => setMode("takeoff")}>
+                  Go straight to the takeoff
+                </CbButton>
                 <CbButton block variant="ghost" onClick={next}>
                   Skip this elevation
                 </CbButton>
               </div>
 
             )
+
           ) : null}
         </div>
 
@@ -217,6 +281,22 @@ function CbExteriorWalk() {
             onClose={() => setWideCam(false)}
           />
         ) : null}
+
+        {takeoffCam ? (
+          <CbCamera
+            open
+            jobId={id}
+            workspaceId={job?.workspace_id as string | undefined}
+            title={takeoffCam.label}
+            instruction={`Photograph the ${takeoffCam.label.toLowerCase()} on the ${label.toUpperCase()} elevation.`}
+            captionContext={`${label} elevation takeoff — ${takeoffCam.label}`}
+            meta={{ category: "takeoff", item_key: takeoffCam.itemKey, shot_type: "detail" }}
+            onSaved={() => setTakeoffCam(null)}
+            onClose={() => setTakeoffCam(null)}
+          />
+        ) : null}
+
+
 
         <CbPendingPill />
       </div>
