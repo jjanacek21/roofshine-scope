@@ -57,6 +57,9 @@ export function CbRoofPlanEditor({
   measurePins = [],
   pinDropMode = false,
   onPinDrop,
+  onPinMove,
+  onUndoPin,
+  canUndoPin = false,
   onTogglePinDrop,
   onClearPins,
   onMeasure,
@@ -74,6 +77,9 @@ export function CbRoofPlanEditor({
   measurePins?: Array<{ lat: number; lng: number }>;
   pinDropMode?: boolean;
   onPinDrop?: (pin: { lat: number; lng: number }) => void;
+  onPinMove?: (index: number, pin: { lat: number; lng: number }) => void;
+  onUndoPin?: () => void;
+  canUndoPin?: boolean;
   onTogglePinDrop?: () => void;
   onClearPins?: () => void;
   onMeasure?: () => void;
@@ -167,6 +173,11 @@ export function CbRoofPlanEditor({
   );
 
   const undo = () => {
+    if (canUndoPin) {
+      onUndoPin?.();
+      cbHaptic(10);
+      return;
+    }
     setPast((p) => {
       if (!p.length) return p;
       const prev = p[p.length - 1];
@@ -199,6 +210,7 @@ export function CbRoofPlanEditor({
       zoom: centerRef.current ? 19.5 : 3,
       pitch: 0,
       attributionControl: false,
+      logoPosition: "bottom-right",
       preserveDrawingBuffer: true,
     });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
@@ -885,6 +897,111 @@ export function CbRoofPlanEditor({
     window.addEventListener("pointercancel", finish);
   }
 
+  /**
+   * Line points and measurement pins use the same tablet gesture as footprint
+   * corners: a 250ms pickup (or deliberate movement), pointer capture, map-pan
+   * suppression and the magnifier. This keeps an ordinary tap available for
+   * adding or labelling a line.
+   */
+  function beginPointDrag(
+    e: React.PointerEvent,
+    target:
+      | { kind: "draft"; index: number }
+      | { kind: "line"; id: string; index: number }
+      | { kind: "pin"; index: number },
+  ) {
+    if (readOnly || (target.kind === "pin" && !onPinMove)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const handle = e.currentTarget as HTMLElement;
+    try {
+      handle.setPointerCapture(e.pointerId);
+    } catch {
+      /* window listeners still carry the drag */
+    }
+
+    const map = mapRef.current;
+    const startPlan = planRef.current;
+    const startDraft = draft.map((point) => [...point]);
+    let moved = false;
+    let engaged = false;
+    const startX = e.clientX;
+    const startY = e.clientY;
+
+    const engage = () => {
+      if (engaged) return;
+      engaged = true;
+      cbHaptic(16);
+      map?.dragPan.disable();
+      map?.touchZoomRotate.disableRotation();
+      setLoupe({ x: startX, y: startY });
+      paintLoupe(startX, startY);
+    };
+    let arm: number | null = window.setTimeout(engage, 250);
+
+    const move = (ev: PointerEvent) => {
+      if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > 8) {
+        moved = true;
+        if (!engaged) {
+          if (arm) window.clearTimeout(arm);
+          arm = null;
+          engage();
+        }
+      }
+      if (!engaged) return;
+      const currentMap = mapRef.current;
+      const host = containerRef.current;
+      if (!currentMap || !host) return;
+      const rect = host.getBoundingClientRect();
+      const ll = currentMap.unproject([ev.clientX - rect.left, ev.clientY - rect.top]);
+      const point = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+      const raw: [number, number] = [ll.lng, ll.lat];
+      const next = target.kind === "pin" ? raw : snapLinePoint(raw, point);
+
+      if (target.kind === "draft") {
+        setDraft((current) => current.map((p, index) => (index === target.index ? next : p)));
+      } else if (target.kind === "line") {
+        onPlanChange(
+          {
+            ...planRef.current,
+            lines: planRef.current.lines.map((line) =>
+              line.id === target.id
+                ? { ...line, coords: line.coords.map((p, index) => (index === target.index ? next : p)) }
+                : line,
+            ),
+          },
+          { user: true },
+        );
+      } else {
+        onPinMove?.(target.index, { lng: next[0], lat: next[1] });
+      }
+      setLoupe({ x: ev.clientX, y: ev.clientY });
+      requestAnimationFrame(() => paintLoupe(ev.clientX, ev.clientY));
+    };
+
+    const finish = () => {
+      if (arm) window.clearTimeout(arm);
+      if (moved && target.kind === "line") setPast((history) => [...history.slice(-40), startPlan]);
+      if (!moved && target.kind === "draft") setDraft(startDraft);
+      if (engaged) cbHaptic(10);
+      setLoupe(null);
+      mapRef.current?.dragPan.enable();
+      mapRef.current?.touchZoomRotate.enableRotation();
+      try {
+        handle.releasePointerCapture(e.pointerId);
+      } catch {
+        /* already released */
+      }
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+    };
+
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
+  }
+
   function deleteVertex(sectionId: string, index: number) {
     const s = planRef.current.sections.find((x) => x.id === sectionId);
     if (!s || s.ring.length <= 3) return;
@@ -1027,6 +1144,24 @@ export function CbRoofPlanEditor({
   const handleSection = activeSection;
   const vertexHandles: { x: number; y: number; index: number }[] = [];
   const midHandles: { x: number; y: number; index: number }[] = [];
+  const draftHandles = tool === "line"
+    ? draft.flatMap((point, index) => {
+        const projected = project(point);
+        return projected ? [{ ...projected, index }] : [];
+      })
+    : [];
+  const lineHandles = tool !== "line"
+    ? plan.lines.flatMap((line) =>
+        line.coords.flatMap((point, index) => {
+          const projected = project(point);
+          return projected ? [{ ...projected, id: line.id, index }] : [];
+        }),
+      )
+    : [];
+  const pinHandles = measurePins.flatMap((pin, index) => {
+    const projected = project([pin.lng, pin.lat]);
+    return projected ? [{ ...projected, index }] : [];
+  });
   if (handleSection && !readOnly && mapVersion > 0 && !locked && tool === "select") {
     /*
      * Thinning: midpoints packed between corners are the reason the wrong
@@ -1065,6 +1200,39 @@ export function CbRoofPlanEditor({
             capture and reset the drag. Positions re-render, the nodes persist.
           */}
           <div className="pointer-events-none absolute inset-0" data-tick={tick}>
+            {pinHandles.map((h) => (
+              <DragPointHandle
+                key={`pin-${h.index}`}
+                x={h.x}
+                y={h.y}
+                label={`Measurement pin ${h.index + 1} — press and hold to move`}
+                color="var(--cb-accent)"
+                size={18}
+                onPointerDown={(e) => beginPointDrag(e, { kind: "pin", index: h.index })}
+              />
+            ))}
+            {lineHandles.map((h) => (
+              <DragPointHandle
+                key={`line-${h.id}-${h.index}`}
+                x={h.x}
+                y={h.y}
+                label="Line endpoint — press and hold to move"
+                color="var(--cb-text)"
+                size={12}
+                onPointerDown={(e) => beginPointDrag(e, { kind: "line", id: h.id, index: h.index })}
+              />
+            ))}
+            {draftHandles.map((h) => (
+              <DragPointHandle
+                key={`draft-${h.index}`}
+                x={h.x}
+                y={h.y}
+                label="Line point — press and hold to move"
+                color="var(--cb-text)"
+                size={14}
+                onPointerDown={(e) => beginPointDrag(e, { kind: "draft", index: h.index })}
+              />
+            ))}
             {midHandles.map((h) => (
               <button
                 key={`m${h.index}`}
@@ -1222,7 +1390,7 @@ export function CbRoofPlanEditor({
               <span className="min-w-0 truncate rounded-[10px] px-3 py-2 text-[13px] font-semibold" style={{ background: "rgba(12,16,22,0.78)", color: "#fff" }}>
                 {activeSection?.name ?? "Drop a roof pin"}
               </span>
-              <MapIconBtn label="Undo" onClick={undo} disabled={!past.length}><Undo2 size={18} /></MapIconBtn>
+              <MapIconBtn label={canUndoPin ? "Undo pin drop" : "Undo"} onClick={undo} disabled={!past.length && !canUndoPin}><Undo2 size={18} /></MapIconBtn>
               <MapIconBtn label="Measurement settings" onClick={() => setSettingsOpen(true)}><Settings size={18} /></MapIconBtn>
             </div>
           ) : (
@@ -1245,7 +1413,10 @@ export function CbRoofPlanEditor({
 
 
           {tool === "line" && !readOnly ? (
-            <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2">
+            <div
+              className="absolute bottom-12 left-3 right-3 z-20 flex flex-wrap items-center gap-2 rounded-[10px] p-2"
+              style={{ background: "var(--cb-surface)" }}
+            >
               <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
                 Undo point
               </MapBtn>
@@ -1264,7 +1435,7 @@ export function CbRoofPlanEditor({
           ) : null}
 
           {!readOnly ? (
-            <div className="pointer-events-none absolute bottom-3 left-3 right-3 flex justify-center">
+            <div className="pointer-events-none absolute bottom-10 left-3 right-3 z-10 flex justify-center">
               {tool !== "line" ? (
                 <span
                   className="rounded-full px-3 py-1.5 text-[12px] font-semibold"
@@ -1534,6 +1705,52 @@ function MapBtn({
       }}
     >
       {children}
+    </button>
+  );
+}
+
+function DragPointHandle({
+  x,
+  y,
+  label,
+  color,
+  size,
+  onPointerDown,
+}: {
+  x: number;
+  y: number;
+  label: string;
+  color: string;
+  size: number;
+  onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onPointerDown={onPointerDown}
+      className="pointer-events-auto absolute z-10 grid place-items-center"
+      style={{
+        left: x - 22,
+        top: y - 22,
+        width: 44,
+        height: 44,
+        border: 0,
+        background: "transparent",
+        touchAction: "none",
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: size,
+          height: size,
+          borderRadius: 999,
+          border: "3px solid var(--cb-surface)",
+          background: color,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.48)",
+        }}
+      />
     </button>
   );
 }

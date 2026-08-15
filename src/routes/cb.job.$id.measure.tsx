@@ -510,6 +510,17 @@ function CbJobMeasurePage() {
                       setPinDropMode(false);
                       toast.success("Roof pin placed");
                     }}
+                    onPinMove={(index, pin) => {
+                      setMeasurePins((pins) =>
+                        pins.map((current, pinIndex) => (pinIndex === index ? pin : current)),
+                      );
+                    }}
+                    canUndoPin={measurePins.length > measuredCount}
+                    onUndoPin={() => {
+                      setMeasurePins((pins) => pins.slice(0, -1));
+                      setPinDropMode(true);
+                      toast.message("Pin removed — tap the roof to place it again");
+                    }}
                     onClearPins={() => {
                       setMeasurePins([]);
                       setMeasuredCount(0);
