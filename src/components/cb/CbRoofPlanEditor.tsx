@@ -1429,6 +1429,13 @@ export function CbRoofPlanEditor({
             </CbCard>
           ) : null}
           {aiPlan?.sections.length ? <CbButton block variant="secondary" onClick={() => setShowTrace((value) => !value)}>{showTrace ? "Hide AI outline" : "Show AI outline"}</CbButton> : null}
+          <CbButton block variant="secondary" onClick={toggleSquareUp}>
+            {squareUp ? "Un-square (use raw trace)" : "Square up edges"}
+          </CbButton>
+          <p className="text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+            Squaring snaps edges onto the building's own axis. Turn it off for curved,
+            octagonal or bay-window roofs.
+          </p>
           {activeSection?.aiRing?.length ? <CbButton block variant="secondary" onClick={restoreActiveAiOutline}><RotateCcw size={18} /> Restore AI outline</CbButton> : canReset ? <CbButton block variant="secondary" onClick={() => { onReset?.(); setSettingsOpen(false); }}><RotateCcw size={18} /> Restore AI outline</CbButton> : null}
           <CbButton block variant="secondary" onClick={redo} disabled={!future.length}>Redo</CbButton>
           {measurePins.length ? <CbButton block variant="danger" onClick={() => { onClearPins?.(); setSettingsOpen(false); }}>Clear roof pins</CbButton> : null}
