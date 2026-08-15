@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -253,6 +254,7 @@ function MappingsTab({
 
   const addMapping = useMutation({
     mutationFn: async (item: CbCatalogLineItem) => {
+      if (!active) return;
       const { error } = await supabase.from("cb_item_mappings").insert({
         version_id: versionId,
         catalog_item_id: active,
@@ -267,7 +269,7 @@ function MappingsTab({
   });
 
   const patch = useMutation({
-    mutationFn: async ({ id, values }: { id: string; values: Record<string, unknown> }) => {
+    mutationFn: async ({ id, values }: { id: string; values: TablesUpdate<"cb_item_mappings"> }) => {
       const { error } = await supabase.from("cb_item_mappings").update(values).eq("id", id);
       if (error) throw error;
     },
@@ -514,7 +516,7 @@ function AssembliesTab({ versionId, editable }: { versionId: string; editable: b
   });
 
   const patch = useMutation({
-    mutationFn: async ({ id, values }: { id: string; values: Record<string, unknown> }) => {
+    mutationFn: async ({ id, values }: { id: string; values: TablesUpdate<"cb_assembly_items"> }) => {
       const { error } = await supabase.from("cb_assembly_items").update(values).eq("id", id);
       if (error) throw error;
     },
@@ -654,6 +656,7 @@ function CodeRulesTab({ editable }: { editable: boolean }) {
 
   const add = useMutation({
     mutationFn: async (item: CbCatalogLineItem) => {
+      if (!activeSet) return;
       const { error } = await supabase.from("code_rule_items").insert({
         rule_set_id: activeSet,
         line_item_id: item.id,
@@ -662,6 +665,7 @@ function CodeRulesTab({ editable }: { editable: boolean }) {
         qty_mode: "per_square",
         qty_factor: 1,
         code_reference: "",
+        sort_order: items.length * 10,
       });
       if (error) throw error;
     },
@@ -670,7 +674,7 @@ function CodeRulesTab({ editable }: { editable: boolean }) {
   });
 
   const patch = useMutation({
-    mutationFn: async ({ id, values }: { id: string; values: Record<string, unknown> }) => {
+    mutationFn: async ({ id, values }: { id: string; values: TablesUpdate<"code_rule_items"> }) => {
       const { error } = await supabase.from("code_rule_items").update(values).eq("id", id);
       if (error) throw error;
     },
