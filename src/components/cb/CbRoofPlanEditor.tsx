@@ -894,6 +894,51 @@ export function CbRoofPlanEditor({
     setSettingsOpen(false);
   }
 
+  /**
+   * Square the active outline onto the building's dominant axis, or put the raw
+   * trace back. Area never changes silently: a move over 3% is flagged on screen
+   * because that number feeds the estimate.
+   */
+  function toggleSquareUp() {
+    const section = activeSection;
+    if (!section) {
+      setSquareUp((v) => !v);
+      return;
+    }
+    if (squareUp && rawRingsRef.current[section.id]) {
+      const raw = rawRingsRef.current[section.id];
+      delete rawRingsRef.current[section.id];
+      setSquareUp(false);
+      setRegNote(null);
+      commit(
+        updateSection(section.id, (s) => ({
+          ...s,
+          ring: raw.map((p) => [...p]),
+          edges: raw.map(() => "unlabeled" as CbEdgeType),
+        })),
+      );
+      return;
+    }
+    if (squareUp) {
+      // Nothing stored to revert to — just stop snapping future drags.
+      setSquareUp(false);
+      setRegNote(null);
+      return;
+    }
+    const result = regularizeRing(section.ring);
+    setSquareUp(true);
+    if (result.ring.length < 3) return;
+    rawRingsRef.current[section.id] = section.ring.map((p) => [...p]);
+    setRegNote(result.flagged ? { pct: Math.round(result.areaDeltaPct * 10) / 10 } : null);
+    commit(
+      updateSection(section.id, (s) => ({
+        ...s,
+        ring: result.ring,
+        edges: result.ring.map(() => "unlabeled" as CbEdgeType),
+      })),
+    );
+  }
+
   function setPitch(id: string, pitch: string) {
     commit(updateSection(id, (s) => ({ ...s, pitch })));
     setPitchSheet(null);
