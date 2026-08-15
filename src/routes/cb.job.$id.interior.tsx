@@ -1,18 +1,19 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbBadge, CbLoading, CbEmptyState } from "@/components/cb/primitives";
-import { CbField } from "@/components/cb/forms";
+import { CbField, CbTextarea } from "@/components/cb/forms";
 import { CbCamera } from "@/components/cb/CbCamera";
 import { CbPendingPill } from "@/components/claim-buddy/CbJobStepShell";
-import { CbDamageChecklist } from "@/components/claim-buddy/CbDamageChecklist";
-import { CbInteriorTakeoffFields } from "@/components/claim-buddy/CbTakeoffFields";
-import { readSheet, type CbInteriorArea } from "@/lib/cbSheet";
-import { useCbTakeoff, type CbRoom, type CbItemEntry } from "@/lib/cbTakeoff";
-
+import { CbUnifiedChecklist } from "@/components/claim-buddy/CbUnifiedChecklist";
+import { CbPicker } from "@/components/claim-buddy/CbTakeoffFields";
+import { useCbCatalog } from "@/lib/cbCatalog";
+import { buildInteriorRows, type CbRow } from "@/lib/cbSheetRows";
+import { readSheet, CB_FLOORING_TYPES, type CbInteriorArea, type CbSheet } from "@/lib/cbSheet";
+import { useCbTakeoff, type CbRoom, type CbTakeoff } from "@/lib/cbTakeoff";
 
 export const Route = createFileRoute("/cb/job/$id/interior")({
   head: () => ({
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/cb/job/$id/interior")({
       { title: "Interior walk — Claim Buddy" },
       {
         name: "description",
-        content: "Room-by-room interior documentation with checklist items, photos and moisture readings.",
+        content: "Room-by-room interior documentation — one sheet per room with photos, quantities and readings.",
       },
       { property: "og:title", content: "Interior walk — Claim Buddy" },
       { property: "og:description", content: "Only walked when there's water inside." },
@@ -34,10 +35,11 @@ export const Route = createFileRoute("/cb/job/$id/interior")({
 function CbInteriorWalk() {
   const { id } = useParams({ from: "/cb/job/$id/interior" });
   const navigate = useNavigate();
-  const { takeoff, isLoading, patchData } = useCbTakeoff(id);
+  const qc = useQueryClient();
+  const { takeoff, isLoading, patchData, mutate } = useCbTakeoff(id);
+  const { data: catalog, isLoading: catalogLoading } = useCbCatalog("interior");
   const [openRoom, setOpenRoom] = useState<string | null>(null);
   const [cam, setCam] = useState<CbRoom | null>(null);
-  const [takeoffCam, setTakeoffCam] = useState<{ itemKey: string; label: string } | null>(null);
 
   const { data: takeoffPhotos } = useQuery({
     queryKey: ["cb-int-takeoff-photos", id],
@@ -62,18 +64,6 @@ function CbInteriorWalk() {
 
   const sheet = useMemo(() => readSheet(takeoff.data as Record<string, unknown>), [takeoff.data]);
 
-  const patchRoomArea = (roomId: string, part: Partial<CbInteriorArea>) =>
-    patchData({
-      sheet: {
-        ...sheet,
-        interior: {
-          ...(sheet.interior ?? {}),
-          [roomId]: { ...((sheet.interior ?? {})[roomId] ?? {}), ...part },
-        },
-      },
-    });
-
-
   const { data: job } = useQuery({
     queryKey: ["cb-job-ws", id],
     queryFn: async () => {
@@ -91,12 +81,64 @@ function CbInteriorWalk() {
   const writeRooms = (next: CbRoom[]) => patchData({ rooms: next });
   const patchRoom = (roomId: string, patch: Partial<CbRoom>) =>
     writeRooms(rooms.map((r) => (r.id === roomId ? { ...r, ...patch } : r)));
-  const patchRoomItem = (room: CbRoom, itemKey: string, patch: Partial<CbItemEntry> | null) => {
-    const items = { ...(room.items ?? {}) };
-    if (patch === null) delete items[itemKey];
-    else items[itemKey] = { ...(items[itemKey] ?? {}), ...patch };
-    return patchRoom(room.id, { items });
-  };
+
+  const patchRoomArea = (roomId: string, part: Partial<CbInteriorArea>) =>
+    patchData({
+      sheet: {
+        ...sheet,
+        interior: {
+          ...(sheet.interior ?? {}),
+          [roomId]: { ...((sheet.interior ?? {})[roomId] ?? {}), ...part },
+        },
+      },
+    });
+
+  /** One atomic write per row: room checklist item + room takeoff field. */
+  function writeRow(
+    roomId: string,
+    row: CbRow,
+    patch: { selected?: boolean; qty?: number | null; note?: string; shot?: "medium" | "close"; count?: number },
+  ) {
+    void mutate((prev): Omit<CbTakeoff, "job_id"> => {
+      const prevSheet = readSheet(prev.data as Record<string, unknown>) as CbSheet;
+      const prevRooms = (prev.data.rooms ?? []) as CbRoom[];
+      const prevArea = { ...((prevSheet.interior ?? {})[roomId] ?? {}) } as Record<string, unknown>;
+
+      const nextRooms = prevRooms.map((r) => {
+        if (r.id !== roomId || !row.catalogKey) return r;
+        const items = { ...(r.items ?? {}) };
+        if (patch.selected === false) {
+          delete items[row.catalogKey];
+        } else {
+          const next = { ...(items[row.catalogKey] ?? {}) };
+          if (patch.qty !== undefined) next.qty = patch.qty;
+          if (patch.note !== undefined) next.note = patch.note;
+          if (patch.shot && patch.count) {
+            next[patch.shot] = ((next[patch.shot] ?? 0) as number) + patch.count;
+          }
+          items[row.catalogKey] = next;
+        }
+        return { ...r, items };
+      });
+
+      if (row.fieldKey) {
+        if (patch.selected === false) delete prevArea[row.fieldKey];
+        if (patch.qty !== undefined) prevArea[row.fieldKey] = patch.qty ?? undefined;
+      }
+
+      return {
+        data: {
+          ...prev.data,
+          rooms: nextRooms,
+          sheet: {
+            ...prevSheet,
+            interior: { ...(prevSheet.interior ?? {}), [roomId]: prevArea as CbInteriorArea },
+          },
+        },
+        elevations: prev.elevations,
+      };
+    });
+  }
 
   function addRoom() {
     const room: CbRoom = { id: crypto.randomUUID(), name: `Room ${rooms.length + 1}` };
@@ -126,7 +168,7 @@ function CbInteriorWalk() {
                 Interior
               </h1>
               <p className="mt-1 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
-                Room by room — name it, log what&apos;s wet, shoot it, take a reading.
+                Room by room — one sheet each: check it, size it, shoot it.
               </p>
             </div>
             <CbButton size="md" variant="ghost" onClick={() => navigate({ to: "/cb" })}>
@@ -151,6 +193,7 @@ function CbInteriorWalk() {
               {rooms.map((room) => {
                 const open = openRoom === room.id;
                 const itemCount = Object.keys(room.items ?? {}).length;
+                const area: CbInteriorArea = (sheet.interior ?? {})[room.id] ?? {};
                 return (
                   <CbCard key={room.id} elevation={open ? "floating" : "card"} style={{ padding: 18 }}>
                     <button
@@ -192,34 +235,48 @@ function CbInteriorWalk() {
                           <Camera size={16} className="mr-2 inline" /> Shoot this room
                         </CbButton>
 
-                        <CbDamageChecklist
-                          scope="interior"
+                        <CbCard elevation="card" style={{ padding: 16 }}>
+                          <CbPicker
+                            label="Flooring"
+                            options={CB_FLOORING_TYPES}
+                            value={area.flooring_type}
+                            onChange={(v) => void patchRoomArea(room.id, { flooring_type: v })}
+                          />
+                        </CbCard>
+
+                        <CbUnifiedChecklist
+                          groups={buildInteriorRows({
+                            catalog,
+                            entries: room.items ?? {},
+                            area,
+                            photoCounts,
+                            roomId: room.id,
+                          })}
+                          isLoading={catalogLoading}
                           jobId={id}
                           workspaceId={job?.workspace_id as string | undefined}
-                          elevationKey={room.id}
-                          elevationLabel={room.name}
-                          entries={room.items ?? {}}
-                          photoCategory="interior"
-                          onShot={(itemKey, kind, count) =>
-                            void patchRoomItem(room, itemKey, {
-                              [kind]: ((room.items?.[itemKey]?.[kind] ?? 0) as number) + count,
-                            })
-                          }
-                          onEntry={(itemKey, patch) => void patchRoomItem(room, itemKey, patch)}
-                          onRemove={(itemKey) => void patchRoomItem(room, itemKey, null)}
+                          contextLabel={room.name}
+                          contextKey={room.id}
+                          onToggle={(row, next) => writeRow(room.id, row, { selected: next })}
+                          onQty={(row, value) => writeRow(room.id, row, { qty: value, selected: true })}
+                          onNote={(row, value) => writeRow(room.id, row, { note: value })}
+                          onShot={(row, kind, count) => {
+                            if (kind === "detail") {
+                              void qc.invalidateQueries({ queryKey: ["cb-int-takeoff-photos", id] });
+                              return;
+                            }
+                            writeRow(room.id, row, { selected: true, shot: kind, count });
+                          }}
                         />
 
-                        <CbInteriorTakeoffFields
-                          roomId={room.id}
-                          roomName={room.name}
-                          area={(sheet.interior ?? {})[room.id] ?? {}}
-                          onPatch={(part) => void patchRoomArea(room.id, part)}
-                          onCamera={(itemKey, itemLabel) =>
-                            setTakeoffCam({ itemKey, label: itemLabel })
-                          }
-                          photoCounts={photoCounts}
-                        />
-
+                        <CbCard elevation="card" style={{ padding: 16 }}>
+                          <CbTextarea
+                            label="Contents note"
+                            rows={3}
+                            value={area.contents_note ?? ""}
+                            onChange={(e) => void patchRoomArea(room.id, { contents_note: e.target.value })}
+                          />
+                        </CbCard>
 
                         <CbButton
                           block
@@ -260,22 +317,6 @@ function CbInteriorWalk() {
             onClose={() => setCam(null)}
           />
         ) : null}
-
-        {takeoffCam ? (
-          <CbCamera
-            open
-            jobId={id}
-            workspaceId={job?.workspace_id as string | undefined}
-            title={takeoffCam.label}
-            instruction={`Photograph the ${takeoffCam.label.toLowerCase()} so the line item and the photo stay linked.`}
-            captionContext={`Interior takeoff — ${takeoffCam.label}`}
-            meta={{ category: "takeoff", item_key: takeoffCam.itemKey, shot_type: "detail" }}
-            onSaved={() => setTakeoffCam(null)}
-            onClose={() => setTakeoffCam(null)}
-          />
-        ) : null}
-
-
 
         <CbPendingPill />
       </div>
