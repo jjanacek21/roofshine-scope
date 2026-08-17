@@ -200,17 +200,46 @@ export interface CbSheet {
     stories?: number;
     pitch?: string;
     layers?: number;
+    /** @deprecated moved to `decking` — kept so old sheets still read. */
     decking_type?: string;
+    /** @deprecated moved to `decking` */
     decking_condition?: string;
+  };
+  decking: {
+    type?: string;
+    thickness?: string;
+    condition?: string;
+    renail?: boolean;
+    sheets_to_replace?: number;
+  };
+  underlayment: {
+    type?: string;
+    layers?: number;
+    ice_water_lf?: number;
+    secondary_water_barrier?: boolean;
   };
   flashing: {
     roof_to_wall_lf?: number;
     step_flashing_lf?: number;
     counterflashing_lf?: number;
     material?: string;
+    /** @deprecated moved to `chimney` */
     chimney_count?: number;
+    /** @deprecated moved to `chimney` */
     chimney_size?: string;
+    /** @deprecated moved to `chimney` */
     cricket?: boolean;
+  };
+  chimney: {
+    count?: number;
+    size?: string;
+    material?: string;
+    chase_cover?: boolean;
+    crown_condition?: string;
+    cap_present?: boolean;
+    cricket?: boolean;
+    flashing_type?: string;
+    action?: string;
   };
   ventilation: {
     ridge_vent_lf?: number;
@@ -226,6 +255,8 @@ export interface CbSheet {
     pipe_2?: number;
     pipe_3?: number;
     pipe_4?: number;
+    pipe_6?: number;
+    pipe_8?: number;
     lead_boots?: number;
     split_boots?: number;
     furnace_caps?: number;
@@ -236,6 +267,36 @@ export interface CbSheet {
     lineset_covers?: number;
   };
   skylights: CbSkylightRow[];
+  flat_roof: {
+    present?: boolean;
+    area_sf?: number;
+    membrane?: string;
+    thickness_mil?: string;
+    attachment?: string;
+    drains?: number;
+    scuppers?: number;
+    curbs?: number;
+    pitch_pans?: number;
+  };
+  insulation: {
+    none?: boolean;
+    type?: string;
+    thickness_in?: string;
+    r_value?: string;
+    layers?: number;
+    tapered?: boolean;
+  };
+  edge_metal: {
+    drip_edge_lf?: number;
+    rake_edge_lf?: number;
+    gravel_stop_lf?: number;
+    fascia_metal_lf?: number;
+    valley_metal_lf?: number;
+    ridge_cap_lf?: number;
+    starter_lf?: number;
+    material?: string;
+    color?: string;
+  };
   solar: {
     panel_count?: number;
     detach_reset?: boolean;
@@ -249,6 +310,27 @@ export interface CbSheet {
     downspout_size?: string;
     guards?: boolean;
   };
+  accessories: {
+    walkway_pads?: number;
+    snow_guards?: number;
+    anchors?: number;
+    lightning_protection?: number;
+    roof_hatch?: number;
+    cupola?: number;
+    dormers?: number;
+    satellite_dish?: number;
+    antenna?: number;
+    condensers?: number;
+    exhaust_fans?: number;
+    ductwork_lf?: number;
+    solar_water_heater?: number;
+    sun_tunnels?: number;
+    heat_cable_lf?: number;
+    lights?: number;
+    cameras?: number;
+    other?: string;
+  };
+  /** @deprecated retired into `accessories` — kept so old sheets still read. */
   hardware: {
     satellite_dish?: number;
     antenna?: number;
@@ -268,36 +350,86 @@ export interface CbSheet {
 
 export const CB_EMPTY_SHEET: CbSheet = {
   roof_system: {},
+  decking: {},
+  underlayment: {},
   flashing: {},
+  chimney: {},
   ventilation: {},
   penetrations: {},
   skylights: [],
+  flat_roof: {},
+  insulation: {},
+  edge_metal: {},
   solar: {},
   gutters: {},
+  accessories: {},
   hardware: {},
   exterior: {},
   interior: {},
   notes: "",
 };
 
+/** Take the first defined value — used to carry legacy fields into their new section. */
+function firstOf<T>(...vals: (T | undefined)[]): T | undefined {
+  for (const v of vals) if (v !== undefined && v !== null && (v as unknown) !== "") return v;
+  return undefined;
+}
+
 export function readSheet(data: Record<string, unknown> | undefined | null): CbSheet {
   const raw = ((data ?? {}) as Record<string, unknown>).sheet as Partial<CbSheet> | undefined;
+  const rs = { ...(raw?.roof_system ?? {}) };
+  const fl = { ...(raw?.flashing ?? {}) };
+  const hw = { ...(raw?.hardware ?? {}) };
+  const decking = { ...(raw?.decking ?? {}) };
+  const chimney = { ...(raw?.chimney ?? {}) };
+  const accessories = { ...(raw?.accessories ?? {}) };
+
   return {
     ...CB_EMPTY_SHEET,
     ...(raw ?? {}),
-    roof_system: { ...(raw?.roof_system ?? {}) },
-    flashing: { ...(raw?.flashing ?? {}) },
+    roof_system: rs,
+    /* legacy: decking used to live on roof_system */
+    decking: {
+      ...decking,
+      type: firstOf(decking.type, rs.decking_type),
+      condition: firstOf(decking.condition, rs.decking_condition),
+    },
+    underlayment: { ...(raw?.underlayment ?? {}) },
+    flashing: fl,
+    /* legacy: chimney used to live inside flashing */
+    chimney: {
+      ...chimney,
+      count: firstOf(chimney.count, fl.chimney_count),
+      size: firstOf(chimney.size, fl.chimney_size),
+      cricket: firstOf(chimney.cricket, fl.cricket),
+    },
     ventilation: { ...(raw?.ventilation ?? {}) },
     penetrations: { ...(raw?.penetrations ?? {}) },
     skylights: Array.isArray(raw?.skylights) ? raw!.skylights! : [],
+    flat_roof: { ...(raw?.flat_roof ?? {}) },
+    insulation: { ...(raw?.insulation ?? {}) },
+    edge_metal: { ...(raw?.edge_metal ?? {}) },
     solar: { ...(raw?.solar ?? {}) },
     gutters: { ...(raw?.gutters ?? {}) },
-    hardware: { ...(raw?.hardware ?? {}) },
+    /* legacy: the old "Roof hardware" section is now Accessories */
+    accessories: {
+      ...accessories,
+      satellite_dish: firstOf(accessories.satellite_dish, hw.satellite_dish),
+      antenna: firstOf(accessories.antenna, hw.antenna),
+      snow_guards: firstOf(accessories.snow_guards, hw.snow_guards),
+      heat_cable_lf: firstOf(accessories.heat_cable_lf, hw.heat_cable_lf),
+      anchors: firstOf(accessories.anchors, hw.anchors),
+      lights: firstOf(accessories.lights, hw.lights),
+      cameras: firstOf(accessories.cameras, hw.cameras),
+      other: firstOf(accessories.other, hw.other),
+    },
+    hardware: hw,
     exterior: { ...(raw?.exterior ?? {}) },
     interior: { ...(raw?.interior ?? {}) },
     notes: raw?.notes ?? "",
   };
 }
+
 
 
 /* ---------------- ventilation math ---------------- */
