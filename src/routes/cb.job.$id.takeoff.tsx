@@ -619,27 +619,66 @@ function CbTakeoffPage() {
               value={sheet.flashing.material}
               onChange={(v) => patch("flashing", { material: v })}
             />
+          </Section>
+
+          {/* CHIMNEY */}
+          <Section title="Chimney" pct={pctOf("chimney")}>
             <QtyLine
               label="Chimneys"
               suffix="count"
               itemKey="chimney"
               photos={photoCounts.chimney ?? 0}
               onCamera={openCam}
-              value={sheet.flashing.chimney_count}
-              onChange={(v) => patch("flashing", { chimney_count: v })}
+              value={sheet.chimney.count}
+              onChange={(v) => patch("chimney", { count: v })}
             />
             <CbField
-              label="Chimney size"
+              label="Size"
               placeholder={`32" x 32"`}
-              value={sheet.flashing.chimney_size ?? ""}
-              onChange={(e) => patch("flashing", { chimney_size: e.target.value })}
+              value={sheet.chimney.size ?? ""}
+              onChange={(e) => patch("chimney", { size: e.target.value })}
+            />
+            <Picker
+              label="Material"
+              options={CB_CHIMNEY_MATERIALS}
+              value={sheet.chimney.material}
+              onChange={(v) => patch("chimney", { material: v })}
+            />
+            <Picker
+              label="Crown condition"
+              options={CB_CHIMNEY_CONDITION}
+              value={sheet.chimney.crown_condition}
+              onChange={(v) => patch("chimney", { crown_condition: v })}
+            />
+            <Picker
+              label="Flashing type"
+              options={CB_FLASH_MATERIALS}
+              value={sheet.chimney.flashing_type}
+              onChange={(v) => patch("chimney", { flashing_type: v })}
+            />
+            <Picker
+              label="Reflash or rebuild"
+              options={CB_CHIMNEY_ACTION}
+              value={sheet.chimney.action}
+              onChange={(v) => patch("chimney", { action: v })}
+            />
+            <CbCheckbox
+              label="Chase cover"
+              checked={!!sheet.chimney.chase_cover}
+              onChange={(v) => patch("chimney", { chase_cover: v })}
+            />
+            <CbCheckbox
+              label="Cap present"
+              checked={!!sheet.chimney.cap_present}
+              onChange={(v) => patch("chimney", { cap_present: v })}
             />
             <CbCheckbox
               label="Cricket present"
-              checked={!!sheet.flashing.cricket}
-              onChange={(v) => patch("flashing", { cricket: v })}
+              checked={!!sheet.chimney.cricket}
+              onChange={(v) => patch("chimney", { cricket: v })}
             />
           </Section>
+
 
           {/* VENTILATION */}
           <Section title="Ventilation" hint="Required NFA is calculated from the squares." pct={pctOf("ventilation")}>
