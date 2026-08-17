@@ -811,6 +811,9 @@ export function CbRoofPlanEditor({
 
     const map = mapRef.current;
     let vIndex = index;
+    /* Grabbing a handle on a saved footprint re-opens it for editing. */
+    const wasLocked =
+      planRef.current.sections.find((x) => x.id === sectionId)?.isLocked ?? false;
     if (kind === "midpoint") {
       const s = planRef.current.sections.find((x) => x.id === sectionId);
       if (!s) return;
@@ -821,7 +824,12 @@ export function CbRoofPlanEditor({
       const nextEdges = [...edges];
       nextEdges.splice(index + 1, 0, edges[index]);
       vIndex = index + 1;
-      onPlanChange(updateSection(sectionId, (sec) => ({ ...sec, ring, edges: nextEdges })), {
+      onPlanChange(
+        updateSection(sectionId, (sec) => ({ ...sec, ring, edges: nextEdges, isLocked: false })),
+        { user: true },
+      );
+    } else if (wasLocked) {
+      onPlanChange(updateSection(sectionId, (sec) => ({ ...sec, isLocked: false })), {
         user: true,
       });
     }
