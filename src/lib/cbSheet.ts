@@ -518,22 +518,44 @@ function count(values: unknown[]): { filled: number; total: number } {
 
 export function scoreSheet(sheet: CbSheet, squares: number): CbSectionScore[] {
   const rs = sheet.roof_system;
+  const dk = sheet.decking;
+  const ul = sheet.underlayment;
   const fl = sheet.flashing;
+  const ch = sheet.chimney;
   const vt = sheet.ventilation;
   const pen = sheet.penetrations;
+  const fr = sheet.flat_roof;
+  const ins = sheet.insulation;
+  const em = sheet.edge_metal;
   const gu = sheet.gutters;
+  const ac = sheet.accessories;
 
   const sections: { key: string; label: string; vals: unknown[] }[] = [
     {
       key: "roof_system",
       label: "Roof system",
-      vals: [rs.roof_type, rs.stories, rs.pitch, rs.layers, rs.decking_type, rs.decking_condition],
+      vals: [rs.roof_type, rs.stories, rs.pitch, rs.layers],
     },
     { key: "measurements", label: "Measurements", vals: [squares > 0 ? squares : undefined] },
+    {
+      key: "decking",
+      label: "Decking",
+      vals: [dk.type, dk.thickness, dk.condition, dk.renail ? 1 : undefined],
+    },
+    {
+      key: "underlayment",
+      label: "Underlayment",
+      vals: [ul.type, ul.layers, ul.ice_water_lf],
+    },
     {
       key: "flashing",
       label: "Flashing",
       vals: [fl.roof_to_wall_lf, fl.step_flashing_lf, fl.counterflashing_lf, fl.material],
+    },
+    {
+      key: "chimney",
+      label: "Chimney",
+      vals: [ch.count, ch.size ?? ch.material, ch.flashing_type ?? ch.action],
     },
     {
       key: "ventilation",
@@ -547,25 +569,47 @@ export function scoreSheet(sheet: CbSheet, squares: number): CbSectionScore[] {
       key: "penetrations",
       label: "Penetrations",
       vals: [
-        pen.pipe_1_5 ?? pen.pipe_2 ?? pen.pipe_3 ?? pen.pipe_4,
+        pen.pipe_1_5 ?? pen.pipe_2 ?? pen.pipe_3 ?? pen.pipe_4 ?? pen.pipe_6 ?? pen.pipe_8,
         pen.exhaust_vents ?? pen.kitchen_vents ?? pen.bath_vents,
       ],
     },
     { key: "skylights", label: "Skylights", vals: [sheet.skylights.length > 0 ? 1 : undefined] },
+    {
+      key: "flat_roof",
+      label: "Flat / low-slope roof",
+      vals: fr.present
+        ? [fr.area_sf, fr.membrane, fr.attachment, fr.drains ?? fr.scuppers]
+        : [fr.present === false ? 1 : undefined],
+    },
+    {
+      key: "insulation",
+      label: "Insulation",
+      vals: ins.none ? [1] : [ins.type, ins.thickness_in, ins.r_value, ins.layers],
+    },
+    {
+      key: "edge_metal",
+      label: "Edge metal",
+      vals: [em.drip_edge_lf, em.rake_edge_lf, em.valley_metal_lf ?? em.ridge_cap_lf, em.material],
+    },
     { key: "solar", label: "Solar", vals: [sheet.solar.panel_count] },
     { key: "gutters", label: "Gutters", vals: [gu.size, gu.material, gu.lf, gu.downspout_qty] },
     {
-      key: "hardware",
-      label: "Roof hardware",
+      key: "accessories",
+      label: "Accessories",
       vals: [
-        sheet.hardware.satellite_dish ??
-          sheet.hardware.antenna ??
-          sheet.hardware.snow_guards ??
-          sheet.hardware.other,
+        ac.walkway_pads ??
+          ac.snow_guards ??
+          ac.anchors ??
+          ac.satellite_dish ??
+          ac.antenna ??
+          ac.condensers ??
+          ac.sun_tunnels ??
+          ac.other,
       ],
     },
     { key: "notes", label: "Roof notes", vals: [sheet.notes] },
   ];
+
 
   /* exterior and interior only count once that scope has been walked */
   for (const [elev, area] of Object.entries(sheet.exterior ?? {})) {
