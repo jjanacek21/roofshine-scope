@@ -924,6 +924,150 @@ function CbTakeoffPage() {
             </CbButton>
           </Section>
 
+          {/* FLAT / LOW-SLOPE ROOF */}
+          <Section title="Flat / low-slope roof" pct={pctOf("flat_roof")}>
+            <CbCheckbox
+              label="Flat or low-slope section present"
+              checked={!!sheet.flat_roof.present}
+              onChange={(v) => patch("flat_roof", { present: v })}
+            />
+            {sheet.flat_roof.present ? (
+              <>
+                <QtyLine
+                  label="Area"
+                  suffix="SF"
+                  itemKey="flat_area"
+                  photos={photoCounts.flat_area ?? 0}
+                  onCamera={openCam}
+                  value={sheet.flat_roof.area_sf}
+                  onChange={(v) => patch("flat_roof", { area_sf: v })}
+                />
+                <Picker
+                  label="Membrane"
+                  options={CB_MEMBRANE_TYPES}
+                  value={sheet.flat_roof.membrane}
+                  onChange={(v) => patch("flat_roof", { membrane: v })}
+                />
+                <CbField
+                  label="Thickness / mil"
+                  placeholder="60 mil"
+                  value={sheet.flat_roof.thickness_mil ?? ""}
+                  onChange={(e) => patch("flat_roof", { thickness_mil: e.target.value })}
+                />
+                <Picker
+                  label="Attachment"
+                  options={CB_MEMBRANE_ATTACHMENT}
+                  value={sheet.flat_roof.attachment}
+                  onChange={(v) => patch("flat_roof", { attachment: v })}
+                />
+                {(
+                  [
+                    ["drains", "Drains"],
+                    ["scuppers", "Scuppers"],
+                    ["curbs", "Curbs"],
+                    ["pitch_pans", "Pitch pans"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <QtyLine
+                    key={key}
+                    label={label}
+                    suffix="qty"
+                    itemKey={`flat_${key}`}
+                    photos={photoCounts[`flat_${key}`] ?? 0}
+                    onCamera={openCam}
+                    value={sheet.flat_roof[key]}
+                    onChange={(v) => patch("flat_roof", { [key]: v } as Partial<CbSheet["flat_roof"]>)}
+                  />
+                ))}
+              </>
+            ) : null}
+          </Section>
+
+          {/* INSULATION */}
+          <Section title="Insulation" pct={pctOf("insulation")}>
+            <CbCheckbox
+              label="Direct to deck — no insulation"
+              checked={!!sheet.insulation.none}
+              onChange={(v) => patch("insulation", { none: v })}
+            />
+            {sheet.insulation.none ? null : (
+              <>
+                <Picker
+                  label="Type"
+                  options={CB_INSULATION_TYPES}
+                  value={sheet.insulation.type}
+                  onChange={(v) => patch("insulation", { type: v })}
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <CbField
+                    label="Thickness"
+                    placeholder={`2"`}
+                    value={sheet.insulation.thickness_in ?? ""}
+                    onChange={(e) => patch("insulation", { thickness_in: e.target.value })}
+                  />
+                  <CbField
+                    label="R-value"
+                    placeholder="R-20"
+                    value={sheet.insulation.r_value ?? ""}
+                    onChange={(e) => patch("insulation", { r_value: e.target.value })}
+                  />
+                </div>
+                <QtyLine
+                  label="Layers"
+                  suffix="count"
+                  itemKey="insulation_layers"
+                  photos={photoCounts.insulation_layers ?? 0}
+                  onCamera={openCam}
+                  value={sheet.insulation.layers}
+                  onChange={(v) => patch("insulation", { layers: v })}
+                />
+                <CbCheckbox
+                  label="Tapered"
+                  checked={!!sheet.insulation.tapered}
+                  onChange={(v) => patch("insulation", { tapered: v })}
+                />
+              </>
+            )}
+          </Section>
+
+          {/* EDGE METAL */}
+          <Section title="Edge metal" pct={pctOf("edge_metal")}>
+            {(
+              [
+                ["drip_edge_lf", "Drip edge"],
+                ["rake_edge_lf", "Rake edge"],
+                ["gravel_stop_lf", "Gravel stop"],
+                ["fascia_metal_lf", "Fascia metal"],
+                ["valley_metal_lf", "Valley metal"],
+                ["ridge_cap_lf", "Ridge cap"],
+                ["starter_lf", "Starter"],
+              ] as const
+            ).map(([key, label]) => (
+              <QtyLine
+                key={key}
+                label={label}
+                suffix="LF"
+                itemKey={`edge_${key}`}
+                photos={photoCounts[`edge_${key}`] ?? 0}
+                onCamera={openCam}
+                value={sheet.edge_metal[key]}
+                onChange={(v) => patch("edge_metal", { [key]: v } as Partial<CbSheet["edge_metal"]>)}
+              />
+            ))}
+            <Picker
+              label="Material"
+              options={CB_EDGE_METAL_MATERIALS}
+              value={sheet.edge_metal.material}
+              onChange={(v) => patch("edge_metal", { material: v })}
+            />
+            <CbField
+              label="Color"
+              value={sheet.edge_metal.color ?? ""}
+              onChange={(e) => patch("edge_metal", { color: e.target.value })}
+            />
+          </Section>
+
+
           {/* SOLAR */}
           <Section title="Solar" pct={pctOf("solar")}>
             <QtyLine
