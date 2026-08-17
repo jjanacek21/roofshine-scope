@@ -1186,23 +1186,23 @@ export function CbRoofPlanEditor({
     const projected = project([pin.lng, pin.lat]);
     return projected ? [{ ...projected, index }] : [];
   });
-  if (handleSection && !readOnly && mapVersion > 0 && !locked && tool === "select") {
+  if (handleSection && !readOnly && mapVersion > 0) {
     /*
-     * Thinning: midpoints packed between corners are the reason the wrong
-     * handle gets grabbed. Show them only when zoomed in past 20.3, or the two
-     * either side of the corner being worked.
+     * Corners and blank edge dots stay on screen in every tool and even after
+     * the footprint is saved — grabbing one re-opens it for editing. A midpoint
+     * is skipped only when it would land on top of one of its own corners.
      */
-    const zoom = mapRef.current?.getZoom() ?? 0;
-    const n = handleSection.ring.length;
-    const showAllMids = zoom >= 20.3;
     handleSection.ring.forEach((p, i) => {
       const pt = project(p);
       if (pt) vertexHandles.push({ ...pt, index: i });
-      const adjacent =
-        selectedVertex != null && (i === selectedVertex || i === (selectedVertex - 1 + n) % n);
-      if (!showAllMids && !adjacent) return;
       const m = project(edgeCenter(handleSection.ring, i));
-      if (m) midHandles.push({ ...m, index: i });
+      const next = project(handleSection.ring[(i + 1) % handleSection.ring.length]);
+      if (!m) return;
+      const tooTight =
+        (pt && Math.hypot(m.x - pt.x, m.y - pt.y) < 18) ||
+        (next && Math.hypot(m.x - next.x, m.y - next.y) < 18);
+      if (tooTight) return;
+      midHandles.push({ ...m, index: i });
     });
   }
 
