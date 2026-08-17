@@ -512,8 +512,80 @@ function CbTakeoffPage() {
             </div>
           </Section>
 
+          {/* DECKING */}
+          <Section title="Decking" pct={pctOf("decking")}>
+            <Picker
+              label="Type"
+              options={CB_DECKING_TYPES}
+              value={sheet.decking.type}
+              onChange={(v) => patch("decking", { type: v })}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <CbField
+                label="Thickness"
+                placeholder={`7/16"`}
+                value={sheet.decking.thickness ?? ""}
+                onChange={(e) => patch("decking", { thickness: e.target.value })}
+              />
+            </div>
+            <Picker
+              label="Condition"
+              options={CB_DECKING_CONDITION}
+              value={sheet.decking.condition}
+              onChange={(v) => patch("decking", { condition: v })}
+            />
+            <CbCheckbox
+              label="Re-nail to code"
+              checked={!!sheet.decking.renail}
+              onChange={(v) => patch("decking", { renail: v })}
+            />
+            <QtyLine
+              label="Sheets to replace"
+              suffix="EA"
+              itemKey="decking_sheets"
+              photos={photoCounts.decking_sheets ?? 0}
+              onCamera={openCam}
+              value={sheet.decking.sheets_to_replace}
+              onChange={(v) => patch("decking", { sheets_to_replace: v })}
+            />
+          </Section>
+
+          {/* UNDERLAYMENT */}
+          <Section title="Underlayment" pct={pctOf("underlayment")}>
+            <Picker
+              label="Type"
+              options={CB_UNDERLAYMENT_TYPES}
+              value={sheet.underlayment.type}
+              onChange={(v) => patch("underlayment", { type: v })}
+            />
+            <QtyLine
+              label="Layers"
+              suffix="count"
+              itemKey="underlayment_layers"
+              photos={photoCounts.underlayment_layers ?? 0}
+              onCamera={openCam}
+              value={sheet.underlayment.layers}
+              onChange={(v) => patch("underlayment", { layers: v })}
+            />
+            <QtyLine
+              label="Ice and water coverage"
+              suffix="LF"
+              itemKey="underlayment_ice_water"
+              photos={photoCounts.underlayment_ice_water ?? 0}
+              onCamera={openCam}
+              value={sheet.underlayment.ice_water_lf}
+              onChange={(v) => patch("underlayment", { ice_water_lf: v })}
+            />
+            <CbCheckbox
+              label="Secondary water barrier"
+              checked={!!sheet.underlayment.secondary_water_barrier}
+              onChange={(v) => patch("underlayment", { secondary_water_barrier: v })}
+            />
+          </Section>
+
           {/* FLASHING */}
-          <Section title="Flashing" pct={pctOf("flashing")}>
+          <Section title="Flashing" hint="Chimney flashing lives in its own section." pct={pctOf("flashing")}>
+
             <QtyLine
               label="Roof-to-wall"
               suffix="LF"
