@@ -784,6 +784,9 @@ function CbTakeoffPage() {
                 ["pipe_2", `Pipe jack 2"`],
                 ["pipe_3", `Pipe jack 3"`],
                 ["pipe_4", `Pipe jack 4"`],
+                ["pipe_6", `Pipe jack 6"`],
+                ["pipe_8", `Pipe jack 8"`],
+
                 ["lead_boots", "Lead boots"],
                 ["split_boots", "Split boots"],
                 ["furnace_caps", "Furnace caps"],
