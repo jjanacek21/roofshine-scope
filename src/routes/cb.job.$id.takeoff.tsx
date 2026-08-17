@@ -375,6 +375,44 @@ function CbTakeoffPage() {
             {squares > 0 ? <CbChip>{squares.toFixed(1)} SQ</CbChip> : null}
           </div>
 
+          {/* WIDE SHOTS — the only per-slope card in the takeoff */}
+          <Section
+            title="Wide shots"
+            hint="One wide shot of each slope. Take as many as you need per side."
+            pct={Math.round(
+              (CB_ELEVATIONS.filter((e) => (wideCounts[e] ?? 0) > 0).length / CB_ELEVATIONS.length) * 100,
+            )}
+          >
+            <div className="grid grid-cols-2 gap-2">
+              {CB_ELEVATIONS.map((e) => {
+                const count = wideCounts[e] ?? 0;
+                return (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => {
+                      cbHaptic();
+                      setWideCam(e);
+                    }}
+                    className="rounded-[14px] px-3 py-4 text-left"
+                    style={{
+                      minHeight: 88,
+                      border: "1px solid var(--cb-border)",
+                      background: "transparent",
+                      color: count ? "var(--cb-accent)" : "var(--cb-text)",
+                    }}
+                  >
+                    <span className="block text-[16px] font-semibold">{CB_ELEVATION_LABEL[e]}</span>
+                    <span className="mt-1 flex items-center gap-1 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
+                      <Camera size={14} strokeWidth={1.7} />
+                      {count ? `${count} photo${count === 1 ? "" : "s"}` : "Tap to shoot"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
           {/* ROOF SYSTEM */}
           <Section title="Roof system" pct={pctOf("roof_system")}>
             <Picker
@@ -414,19 +452,8 @@ function CbTakeoffPage() {
                 }
               />
             </div>
-            <Picker
-              label="Decking type"
-              options={CB_DECKING_TYPES}
-              value={sheet.roof_system.decking_type}
-              onChange={(v) => patch("roof_system", { decking_type: v })}
-            />
-            <Picker
-              label="Decking condition"
-              options={CB_DECKING_CONDITION}
-              value={sheet.roof_system.decking_condition}
-              onChange={(v) => patch("roof_system", { decking_condition: v })}
-            />
           </Section>
+
 
           {/* MEASUREMENTS */}
           <Section
