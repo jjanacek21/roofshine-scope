@@ -198,22 +198,30 @@ function CbTakeoffPage() {
   const navigate = useNavigate();
   useScrollMemory(`takeoff_${id}`);
 
-  const { takeoff, isLoading } = useCbTakeoff(id);
+  const { takeoff, isLoading, patchElevation } = useCbTakeoff(id);
   const [sheet, setSheet] = useState<CbSheet | null>(null);
   const [measure, setMeasure] = useState<Partial<CbMeasurement> | null>(null);
   const [measureDirty, setMeasureDirty] = useState(false);
   const [cam, setCam] = useState<{ itemKey: string; label: string } | null>(null);
+  const [wideCam, setWideCam] = useState<CbElevation | null>(null);
   const hydrated = useRef(false);
+  const sentToMeasure = useRef(false);
 
-  const { data: job } = useQuery({
+  const { data: job, isLoading: jobLoading } = useQuery({
     queryKey: ["cb-takeoff-job", id],
     queryFn: async () => {
-      const [{ data: j }, { data: m }, { data: photos }] = await Promise.all([
+      const [{ data: j }, { data: m }, { data: photos }, { data: wides }] = await Promise.all([
         supabase.from("cb_jobs").select("id, workspace_id, address, city, state").eq("id", id).maybeSingle(),
         supabase.from("cb_measurements").select("*").eq("job_id", id).maybeSingle(),
         supabase.from("cb_photos").select("item_key").eq("job_id", id).eq("category", "takeoff"),
+        supabase
+          .from("cb_photos")
+          .select("elevation")
+          .eq("job_id", id)
+          .eq("category", "roof")
+          .eq("shot_type", "wide"),
       ]);
-      return { job: j, measurement: m, photos: photos ?? [] };
+      return { job: j, measurement: m, photos: photos ?? [], wides: wides ?? [] };
     },
   });
 
@@ -226,6 +234,21 @@ function CbTakeoffPage() {
     return map;
   }, [job?.photos]);
 
+  /** Wide shots per elevation — the stored photo rows are the truth, the
+   *  takeoff counter is the fallback for photos queued offline. */
+  const wideCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const p of job?.wides ?? []) {
+      const e = (p as { elevation: string | null }).elevation ?? "";
+      if (e) map[e] = (map[e] ?? 0) + 1;
+    }
+    for (const e of CB_ELEVATIONS) {
+      const cached = takeoff.elevations[e]?.slopeWide ?? 0;
+      if (!map[e] && cached) map[e] = cached;
+    }
+    return map;
+  }, [job?.wides, takeoff.elevations]);
+
   useEffect(() => {
     if (hydrated.current || isLoading) return;
     hydrated.current = true;
@@ -236,6 +259,15 @@ function CbTakeoffPage() {
     if (measure || !job?.measurement) return;
     setMeasure(job.measurement as Partial<CbMeasurement>);
   }, [job?.measurement, measure]);
+
+  /* the measurement is not skippable — no measurement, no takeoff */
+  useEffect(() => {
+    if (jobLoading || !job || sentToMeasure.current) return;
+    if (Number((job.measurement as { total_squares?: number } | null)?.total_squares ?? 0) > 0) return;
+    sentToMeasure.current = true;
+    navigate({ to: "/cb/job/$id/measure", params: { id } });
+  }, [jobLoading, job, id, navigate]);
+
 
   const squares = Number(measure?.total_squares ?? 0);
   const vent = useMemo(
