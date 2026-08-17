@@ -9,15 +9,23 @@ import { CbField, CbTextarea, CbCheckbox, useScrollMemory } from "@/components/c
 import { CbReveal, cbHaptic } from "@/components/cb/motion";
 import { CbCamera } from "@/components/cb/CbCamera";
 import { CbPendingPill } from "@/components/claim-buddy/CbJobStepShell";
-import { useCbTakeoff } from "@/lib/cbTakeoff";
+import { CB_ELEVATIONS, CB_ELEVATION_LABEL, useCbTakeoff, type CbElevation } from "@/lib/cbTakeoff";
 import {
+  CB_CHIMNEY_ACTION,
+  CB_CHIMNEY_CONDITION,
+  CB_CHIMNEY_MATERIALS,
   CB_DECKING_CONDITION,
   CB_DECKING_TYPES,
+  CB_EDGE_METAL_MATERIALS,
   CB_FLASH_MATERIALS,
   CB_GUTTER_MATERIALS,
   CB_GUTTER_SIZES,
+  CB_INSULATION_TYPES,
+  CB_MEMBRANE_ATTACHMENT,
+  CB_MEMBRANE_TYPES,
   CB_ROOF_TYPES,
   CB_SKYLIGHT_TYPES,
+  CB_UNDERLAYMENT_TYPES,
   computeVentilation,
   overallCompleteness,
   readSheet,
@@ -25,6 +33,7 @@ import {
   type CbSheet,
 } from "@/lib/cbSheet";
 import { CB_LINEAR_FIELDS, type CbMeasurement } from "@/lib/cbMeasure";
+
 
 export const Route = createFileRoute("/cb/job/$id/takeoff")({
   head: () => ({
