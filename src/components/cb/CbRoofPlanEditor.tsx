@@ -897,7 +897,9 @@ export function CbRoofPlanEditor({
         ? snapVertexToAxis(s.ring, vIndex, raw, axis)
         : snapVertex(s.ring, vIndex, raw);
       const ring = s.ring.map((p, i) => (i === vIndex ? snapped : p));
-      onPlanChange(updateSection(sectionId, (sec) => ({ ...sec, ring })), { user: true });
+      onPlanChange(updateSection(sectionId, (sec) => ({ ...sec, ring, isLocked: false })), {
+        user: true,
+      });
       setLoupe({ x: ev.clientX, y: ev.clientY });
       requestAnimationFrame(() => paintLoupe(ev.clientX, ev.clientY));
     };
