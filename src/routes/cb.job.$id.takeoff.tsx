@@ -1137,8 +1137,8 @@ function CbTakeoffPage() {
             />
           </Section>
 
-          {/* HARDWARE */}
-          <Section title="Roof hardware" pct={pctOf("hardware")}>
+          {/* ACCESSORIES */}
+          <Section title="Accessories / everything else" pct={pctOf("accessories")}>
             {(
               [
                 ["satellite_dish", "Satellite dish"],
@@ -1153,19 +1153,20 @@ function CbTakeoffPage() {
               <QtyLine
                 key={key}
                 label={label}
-                itemKey={`hw_${key}`}
-                photos={photoCounts[`hw_${key}`] ?? 0}
+                itemKey={`acc_${key}`}
+                photos={photoCounts[`acc_${key}`] ?? 0}
                 onCamera={openCam}
-                value={sheet.hardware[key] as number | undefined}
-                onChange={(v) => patch("hardware", { [key]: v } as Partial<CbSheet["hardware"]>)}
+                value={sheet.accessories[key] as number | undefined}
+                onChange={(v) => patch("accessories", { [key]: v } as Partial<CbSheet["accessories"]>)}
               />
             ))}
             <CbField
               label="Anything else on the roof"
-              value={sheet.hardware.other ?? ""}
-              onChange={(e) => patch("hardware", { other: e.target.value })}
+              value={sheet.accessories.other ?? ""}
+              onChange={(e) => patch("accessories", { other: e.target.value })}
             />
           </Section>
+
 
           {/* NOTES */}
           <Section title="Roof notes" pct={pctOf("notes")}>
