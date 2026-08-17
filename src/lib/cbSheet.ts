@@ -27,12 +27,74 @@ export const CB_ROOF_TYPES = [
   "Other",
 ] as const;
 
-export const CB_DECKING_TYPES = ["Plywood", "OSB", "Plank / skip sheathing", "Tongue and groove", "Concrete", "Other"];
-export const CB_DECKING_CONDITION = ["Sound", "Minor deterioration", "Soft / rotted areas", "Unknown"];
+export const CB_DECKING_TYPES = [
+  "Plywood",
+  "OSB",
+  "Wood plank / skip sheathing",
+  "Tongue and groove",
+  "Concrete",
+  "Lightweight concrete",
+  "Steel / metal deck",
+  "Gypsum deck",
+  "Tectum",
+  "Other",
+];
+export const CB_DECKING_CONDITION = ["Sound", "Deteriorated", "Rotted", "Unknown"];
+export const CB_UNDERLAYMENT_TYPES = [
+  "15# felt",
+  "30# felt",
+  "Synthetic",
+  "Self-adhered / peel and stick",
+  "Ice and water shield",
+];
+export const CB_CHIMNEY_MATERIALS = ["Brick", "Block", "Stucco", "Siding", "Metal chase"];
+export const CB_CHIMNEY_CONDITION = ["Sound", "Cracked", "Spalling", "Missing"];
+export const CB_CHIMNEY_ACTION = ["Reflash", "Rebuild"];
+export const CB_MEMBRANE_TYPES = [
+  "TPO",
+  "PVC",
+  "EPDM",
+  "Modified bitumen APP",
+  "Modified bitumen SBS",
+  "Torch-down",
+  "Self-adhered mod bit",
+  "BUR / tar and gravel",
+  "Hot mop",
+  "Rolled roofing",
+  "SPF spray foam",
+  "Acrylic coating",
+  "Silicone coating",
+  "Urethane coating",
+  "Ballasted",
+  "Other",
+];
+export const CB_MEMBRANE_ATTACHMENT = [
+  "Mechanically fastened",
+  "Fully adhered",
+  "Ballasted",
+  "Induction welded",
+  "Torched",
+  "Hot asphalt",
+];
+export const CB_INSULATION_TYPES = [
+  "Polyiso",
+  "EPS",
+  "XPS",
+  "Mineral wool",
+  "Wood fiberboard",
+  "Perlite",
+  "Tapered system",
+  "Recover board",
+  "Gypsum cover board (DensDeck)",
+  "HD polyiso cover board",
+  "Other",
+];
+export const CB_EDGE_METAL_MATERIALS = ["Aluminum", "Galvanized", "Copper", "Steel", "Painted steel"];
 export const CB_FLASH_MATERIALS = ["Aluminum", "Galvanized", "Copper"];
 export const CB_GUTTER_SIZES = ["5 inch", "6 inch", "Custom"];
 export const CB_GUTTER_MATERIALS = ["Aluminum", "Steel", "Copper", "Vinyl"];
 export const CB_SKYLIGHT_TYPES = ["Fixed", "Vented", "Tubular"];
+
 export const CB_SIDING_TYPES = [
   "Vinyl",
   "Aluminum",
