@@ -1093,6 +1093,11 @@
 }
 [data-cb] .cb-icon-btn:hover { background: var(--cb-surface-2, rgba(0,0,0,.04)); color: var(--cb-text); }
 [data-cb] .cb-report-section, [data-cb] .cb-report-photo { break-inside: avoid; page-break-inside: avoid; }
+
+/* Map editor: the Mapbox logo/attribution strip must never sit over a control. */
+[data-cb] .mapboxgl-ctrl-bottom-right,
+[data-cb] .mapboxgl-ctrl-bottom-left { z-index: 1; }
+
 /* The report action bar is sticky — keep section headers from resting underneath it. */
 [data-cb] .cb-report { scroll-padding-top: 96px; }
 [data-cb] .cb-report-section, [data-cb] .cb-report h2, [data-cb] .cb-report h3 { scroll-margin-top: 96px; }
