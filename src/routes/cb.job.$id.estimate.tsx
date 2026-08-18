@@ -53,6 +53,9 @@ function CbEstimatePage() {
   const { data: inputs, isLoading } = useQuery({
     queryKey: ["cb-estimate-inputs", id],
     queryFn: () => loadCbEstimateInputs(id),
+    /* Re-entering the screen must show what was saved, never a refetch race. */
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 
   const [mode, setMode] = useState<CbEstimateMode | null>(null);
@@ -71,6 +74,12 @@ function CbEstimatePage() {
   const [busy, setBusy] = useState<string | null>(null);
   /** null = closed, "new" = append a line, otherwise the line id being replaced */
   const [picking, setPicking] = useState<string | null>(null);
+  /** The estimate row this screen owns — every save updates it, never inserts. */
+  const [estimateId, setEstimateId] = useState<string | null>(null);
+  /** Derived lines the rep deleted. A rebuild is not allowed to bring them back. */
+  const [removedKeys, setRemovedKeys] = useState<string[]>([]);
+  const [askRebuild, setAskRebuild] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
 
   /* first load — mode defaults to whichever the measurement can support */
   useEffect(() => {
@@ -83,16 +92,31 @@ function CbEstimatePage() {
     setPps(
       Number(inputs.existing?.estimate.price_per_square) || inputs.defaultPricePerSquare || 0,
     );
-    if (inputs.existing?.lines.length) setLines(inputs.existing.lines);
-    else void regenerate(initial);
+    if (inputs.existing) {
+      /*
+       * An estimate that exists is loaded exactly as saved — including an empty
+       * one. Re-deriving here is what made deleted lines reappear.
+       */
+      setEstimateId(inputs.existing.estimate.id as string);
+      setRemovedKeys(inputs.existing.removedKeys);
+      setLines(inputs.existing.lines);
+      const meta = inputs.existing.estimate.report_meta as { attach_to_report?: boolean } | null;
+      if (meta && typeof meta.attach_to_report === "boolean") setAttach(meta.attach_to_report);
+    } else {
+      void rebuild(initial, [], []);
+    }
   }, [inputs]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function regenerate(next: CbEstimateMode) {
+  /**
+   * Re-derive from the takeoff and fold the result into what is on screen.
+   * Only ever runs when the rep asks for it, or on a brand new estimate.
+   */
+  async function rebuild(next: CbEstimateMode, keep: CbDraftLine[], removed: string[]) {
     if (!inputs) return;
     setBuilding(true);
     try {
       const { lines: built, bookName: book, provenance: prov } = await buildCbDraft(inputs, next);
-      setLines(built);
+      setLines(mergeCbDraft(keep, built, removed));
       setBookName(book);
       setProvenance(prov);
       if (prov.error) toast.error(prov.error);
@@ -103,11 +127,23 @@ function CbEstimatePage() {
     }
   }
 
+  const manualCount = lines.filter((l) => l.is_manual).length;
 
+  function confirmRebuild() {
+    if (!mode) return;
+    setAskRebuild(false);
+    cbHaptic();
+    void rebuild(mode, lines, removedKeys);
+  }
+
+  /**
+   * Switching mode changes how the same scope is presented — nothing is
+   * re-derived, so an edit made in one mode is still there in the other.
+   */
   function changeMode(next: CbEstimateMode) {
     cbHaptic();
     setMode(next);
-    void regenerate(next);
+    markDirty();
   }
 
   const totals = useMemo(() => computeTotals(lines, pct), [lines, pct]);
@@ -117,12 +153,75 @@ function CbEstimatePage() {
   );
   const perSquare = mode === "per_square";
 
+  /* ----------------------------- persistence ---------------------------- */
+
+  const dirty = useRef(false);
+  const markDirty = () => {
+    dirty.current = true;
+  };
+
+  /** Everything a save needs, read through a ref so unmount can still save. */
+  const snapshot = useRef({ inputs, mode, lines, pct, pps, attach, estimateId, removedKeys, provenance });
+  snapshot.current = { inputs, mode, lines, pct, pps, attach, estimateId, removedKeys, provenance };
+
+  const persist = useCallback(async (): Promise<boolean> => {
+    const s = snapshot.current;
+    if (!s.inputs || !s.mode) return false;
+    const savedId = await saveCbEstimate({
+      inputs: s.inputs,
+      mode: s.mode,
+      lines: s.lines.filter((l) => l.name.trim()),
+      percents: s.pct,
+      pricePerSquare: s.pps,
+      attachToReport: s.attach,
+      catalogVersionId: s.provenance?.catalogVersionId ?? null,
+      estimateId: s.estimateId,
+      removedKeys: s.removedKeys,
+    });
+    if (!s.estimateId) setEstimateId(savedId);
+    dirty.current = false;
+    return true;
+  }, []);
+
+  /* autosave — the rep should never lose an edit by leaving the screen */
+  useEffect(() => {
+    if (!mode || building || !dirty.current) return;
+    const t = setTimeout(() => {
+      void persist()
+        .then(() => setSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })))
+        .catch(() => toast.error("Couldn't save that change — tap Save estimate"));
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [lines, pct, pps, attach, mode, building, persist]);
+
+  useEffect(
+    () => () => {
+      if (dirty.current) void persist().catch(() => undefined);
+    },
+    [persist],
+  );
+
+  /* ------------------------------- editing ------------------------------ */
+
+  /** Any hand edit pins the line — a rebuild carries it through untouched. */
   function editLine(lineId: string, patch: Partial<CbDraftLine>) {
-    setLines((prev) => prev.map((l) => (l.id === lineId ? { ...l, ...patch } : l)));
+    markDirty();
+    setLines((prev) =>
+      prev.map((l) => (l.id === lineId ? { ...l, ...patch, is_manual: true } : l)),
+    );
+  }
+
+  function removeLine(lineId: string) {
+    cbHaptic();
+    markDirty();
+    const line = lines.find((l) => l.id === lineId);
+    if (line && !line.is_manual) setRemovedKeys((prev) => [...new Set([...prev, cbLineKey(line)])]);
+    setLines((prev) => prev.filter((x) => x.id !== lineId));
   }
 
   function addLine() {
     cbHaptic();
+    markDirty();
     setLines((prev) => [
       ...prev,
       {
@@ -137,12 +236,14 @@ function CbEstimatePage() {
         category: null,
         source: "manual",
         basis: "Added by hand",
+        is_manual: true,
       },
     ]);
   }
 
   function moveLine(lineId: string, delta: number) {
     cbHaptic();
+    markDirty();
     setLines((prev) => {
       const i = prev.findIndex((l) => l.id === lineId);
       const j = i + delta;
@@ -162,6 +263,7 @@ function CbEstimatePage() {
     category: string | null;
     default_price: number | null;
   }) {
+    markDirty();
     const patch = {
       line_item_id: item.id,
       code: item.code,
@@ -172,6 +274,7 @@ function CbEstimatePage() {
       category: item.category,
       source: "manual" as const,
       basis: "Picked from the price book",
+      is_manual: true,
     };
     if (picking === "new") {
       setLines((prev) => [...prev, { id: Math.random().toString(36).slice(2, 10), qty: 1, ...patch }]);
@@ -181,21 +284,15 @@ function CbEstimatePage() {
   }
 
   async function save(): Promise<boolean> {
-    if (!inputs || !mode) return false;
     setBusy("save");
     try {
-      await saveCbEstimate({
-        inputs,
-        mode,
-        lines: lines.filter((l) => l.name.trim()),
-        percents: pct,
-        pricePerSquare: pps,
-        attachToReport: attach,
-        catalogVersionId: provenance?.catalogVersionId ?? null,
-      });
-      cbHaptic();
-      toast.success("Estimate saved");
-      return true;
+      const ok = await persist();
+      if (ok) {
+        cbHaptic();
+        toast.success("Estimate saved");
+        setSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+      }
+      return ok;
     } catch {
       toast.error("Couldn't save the estimate");
       return false;
@@ -203,6 +300,7 @@ function CbEstimatePage() {
       setBusy(null);
     }
   }
+
 
   async function download() {
     if (!inputs || !mode) return;
