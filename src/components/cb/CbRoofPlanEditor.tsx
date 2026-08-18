@@ -1086,7 +1086,9 @@ export function CbRoofPlanEditor({
       if (!s) return;
       const raw: [number, number] = [ll.lng, ll.lat];
       const screen = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
-      const magnet = magnetPoint(screen, { sectionId, vertexIndex: vIndex });
+      const magnet = magnetOff ? null : magnetPoint(screen, { sectionId, vertexIndex: vIndex });
+      if (magnet) magnetGrabbed = true;
+      else if (magnetGrabbed) magnetOff = true;
       // Straight (axis / square-to-axis) snapping is always on, then the old
       // 15-degree rule catches the in-between angles.
       const axisSnapped = magnet ?? snapVertexToAxis(s.ring, vIndex, raw, axis);
