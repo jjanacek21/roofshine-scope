@@ -1799,7 +1799,8 @@ function DragPointHandle({
       type="button"
       aria-label={label}
       onPointerDown={onPointerDown}
-      className="pointer-events-auto absolute z-30 grid place-items-center"
+      onContextMenu={(e) => e.preventDefault()}
+      className="pointer-events-auto absolute z-30 grid select-none place-items-center"
       style={{
         left: x - 22,
         top: y - 22,
@@ -1808,7 +1809,12 @@ function DragPointHandle({
         border: 0,
         background: "transparent",
         touchAction: "none",
+        WebkitUserSelect: "none",
+        userSelect: "none",
+        WebkitTouchCallout: "none",
+        WebkitTapHighlightColor: "transparent",
       }}
+
     >
       <span
         aria-hidden
