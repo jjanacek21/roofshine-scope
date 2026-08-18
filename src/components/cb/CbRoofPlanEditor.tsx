@@ -1488,9 +1488,32 @@ export function CbRoofPlanEditor({
           ) : null}
         </div>
 
+        {tool === "line" && !readOnly ? (
+          <div
+            className="grid grid-cols-3 gap-2 border-t px-4 py-3"
+            style={{ borderColor: "var(--cb-border)" }}
+          >
+            <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
+              Undo point
+            </MapBtn>
+            <MapBtn onClick={finishLine} disabled={draft.length < 2}>
+              Finish line ({Math.round(lineLengthFeet(draft))} LF)
+            </MapBtn>
+            <MapBtn
+              onClick={() => {
+                setDraft([]);
+                setTool("select");
+              }}
+            >
+              Done drawing
+            </MapBtn>
+          </div>
+        ) : null}
+
         {/* Always-visible measure action — never hunt for it down the page. */}
         {!readOnly ? (
           <div className="border-t px-4 py-3" style={{ borderColor: "var(--cb-border)" }}>
+
             {activeSection && !activeSection.isLocked ? (
               <CbButton block onClick={() => onSaveFootprint?.(activeSection.id)} loading={savingFootprint} loadingText="Saving footprint…">
                 Save this footprint
