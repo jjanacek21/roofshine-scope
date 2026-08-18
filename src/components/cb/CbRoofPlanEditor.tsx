@@ -430,7 +430,16 @@ export function CbRoofPlanEditor({
     // Guard against a zero-height container at mount.
     const resize = window.setTimeout(() => map.resize(), 300);
 
-    map.on("move", () => setTick((t) => t + 1));
+    /*
+     * Every camera change has to re-project the HTML handles, not just `move`:
+     * a pinch-zoom, a rotate or a pitch left the corner dots sitting where the
+     * roof used to be.
+     */
+    const repaint = () => setTick((t) => t + 1);
+    (["move", "zoom", "rotate", "pitch", "moveend", "zoomend", "resize"] as const).forEach((ev) =>
+      map.on(ev, repaint),
+    );
+
     mapRef.current = map;
     setMapVersion((v) => v + 1);
     return () => {
