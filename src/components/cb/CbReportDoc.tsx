@@ -426,7 +426,7 @@ export function CbReportDoc({
         <div className="grid gap-1">
           {lineItems.map((it, i) => (
             <div
-              key={it.id}
+              key={`${it.id ?? "line"}-${i}`}
               className="grid items-center gap-2"
               style={{
                 gridTemplateColumns: editable ? "20px 1fr 80px 60px 66px" : "24px 1fr 90px 56px",
