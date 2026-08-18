@@ -1054,7 +1054,13 @@ export function CbRoofPlanEditor({
     setSelectedVertex(vIndex);
     if (kind === "midpoint") engage();
 
+    // Snap once, then let go: after a corner magnet has grabbed and the finger
+    // moves back out of range, stop magnetting for the rest of this drag.
+    let magnetGrabbed = false;
+    let magnetOff = false;
+
     const move = (ev: PointerEvent) => {
+
       const d = dragRef.current;
       if (!d) return;
       if (Math.hypot(ev.clientX - d.x, ev.clientY - d.y) > 8) {
