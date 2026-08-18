@@ -744,9 +744,14 @@ export function CbRoofPlanEditor({
   function snapLinePointInfo(
     lngLat: [number, number],
     point: { x: number; y: number },
-  ): { point: [number, number]; hit: { sectionId: string; edgeIndex: number } | null } {
+    allowMagnet = true,
+  ): {
+    point: [number, number];
+    hit: { sectionId: string; edgeIndex: number } | null;
+    magnet: boolean;
+  } {
     const map = mapRef.current;
-    if (!map) return { point: lngLat, hit: null };
+    if (!map) return { point: lngLat, hit: null, magnet: false };
     let best: [number, number] = lngLat;
     let hit: { sectionId: string; edgeIndex: number } | null = null;
     let bestDistance = TAP_EDGE_PX;
@@ -763,6 +768,7 @@ export function CbRoofPlanEditor({
     }
 
     // Corner / endpoint magnet wins over the edge projection.
+    let magnet = false;
     let magnetDistance = VERTEX_MAGNET_PX;
     const consider = (p: number[]) => {
       const projected = map.project(p as [number, number]);
@@ -771,13 +777,17 @@ export function CbRoofPlanEditor({
         magnetDistance = d;
         best = [p[0], p[1]];
         hit = null;
+        magnet = true;
       }
     };
-    for (const section of planRef.current.sections) section.ring.forEach(consider);
-    for (const line of planRef.current.lines) line.coords.forEach(consider);
+    if (allowMagnet) {
+      for (const section of planRef.current.sections) section.ring.forEach(consider);
+      for (const line of planRef.current.lines) line.coords.forEach(consider);
+    }
 
-    return { point: best, hit };
+    return { point: best, hit, magnet };
   }
+
 
   /**
    * Nearest other corner / line endpoint in screen space, so two points that
