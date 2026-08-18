@@ -377,11 +377,37 @@ export function CbRoofPlanEditor({
           "circle-stroke-width": 4,
         },
       });
+      /*
+       * Satellite-streets keeps road and label layers above anything added
+       * later in some style revisions, which buried the roof fill. Re-assert
+       * our own stack on top, in draw order, every time we (re)initialise.
+       */
+      [
+        "cb-fill-l",
+        "cb-fill-outline",
+        "cb-ai-l",
+        "cb-conf-l",
+        "cb-conf-pt",
+        "cb-edge-l",
+        "cb-edge-hit",
+        "cb-line-l",
+        "cb-line-hit",
+        "cb-line-label",
+        "cb-chip-l",
+        "cb-measure-pin-l",
+      ].forEach((id) => {
+        try {
+          if (map.getLayer(id)) map.moveLayer(id);
+        } catch {
+          /* layer not ready yet */
+        }
+      });
       setReady(true);
       setMapStuck(false);
       layersDoneRef.current = true;
       // Re-run the paint effect: a style reload wipes source data.
       setLayersVersion((v) => v + 1);
+
       } catch {
         /* style not parsed yet — the next signal retries */
       }
