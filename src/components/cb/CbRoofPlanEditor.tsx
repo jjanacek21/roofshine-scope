@@ -1294,13 +1294,28 @@ export function CbRoofPlanEditor({
   return (
     <div className="space-y-3">
       <CbCard className="-mx-4 overflow-hidden rounded-none p-0 lg:mx-0 lg:rounded-[14px]">
-        <div className="relative">
+        <div
+          className="relative select-none"
+          style={{
+            WebkitUserSelect: "none",
+            userSelect: "none",
+            WebkitTouchCallout: "none",
+            WebkitTapHighlightColor: "transparent",
+          }}
+          onContextMenu={(e) => e.preventDefault()}
+        >
           <div
             ref={containerRef}
-            className="h-[420px] w-full sm:h-[520px]"
-            style={{ touchAction: "none" }}
+            className="h-[420px] w-full select-none sm:h-[520px]"
+            style={{
+              touchAction: "none",
+              WebkitUserSelect: "none",
+              userSelect: "none",
+              WebkitTouchCallout: "none",
+            }}
             aria-label="Roof plan editor"
           />
+
 
           {/* vertex + midpoint handles */}
           {/*
