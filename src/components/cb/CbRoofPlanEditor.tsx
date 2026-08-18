@@ -682,40 +682,76 @@ export function CbRoofPlanEditor({
     }
 
     if (nearestE >= 0 && bestE <= TAP_EDGE_PX) {
-      const edges = normalizeEdges(section.ring, section.edges);
-      const ring = [...section.ring];
-      ring.splice(nearestE + 1, 0, lngLat);
-      const nextEdges = [...edges];
-      nextEdges.splice(nearestE + 1, 0, edges[nearestE]);
-      commit(updateSection(section.id, (s) => ({ ...s, ring, edges: nextEdges })));
+      splitEdgeAt(section.id, nearestE, lngLat);
       cbHaptic(12);
     }
   }
 
-  function snapLinePoint(lngLat: [number, number], point: { x: number; y: number }) {
+  /**
+   * Break a perimeter edge in two at `at`. Both halves start unlabeled so the
+   * bottom of a roof can be eave / rake / rake / eave instead of one long run.
+   * Returns the index of the inserted corner.
+   */
+  function splitEdgeAt(sectionId: string, edgeIndex: number, at: [number, number]): number {
+    const section = planRef.current.sections.find((s) => s.id === sectionId);
+    if (!section || edgeIndex < 0) return -1;
+    const ring = [...section.ring];
+    ring.splice(edgeIndex + 1, 0, [at[0], at[1]]);
+    const edges = normalizeEdges(section.ring, section.edges);
+    const nextEdges = [...edges];
+    nextEdges[edgeIndex] = "unlabeled";
+    nextEdges.splice(edgeIndex + 1, 0, "unlabeled");
+    commit(updateSection(sectionId, (s) => ({ ...s, ring, edges: nextEdges })));
+    return edgeIndex + 1;
+  }
+
+  /**
+   * Snap a free point: first onto a nearby corner or line endpoint (a magnet),
+   * otherwise onto the nearest perimeter edge. When it lands on an edge the hit
+   * is reported so the caller can break that edge there.
+   */
+  function snapLinePointInfo(
+    lngLat: [number, number],
+    point: { x: number; y: number },
+  ): { point: [number, number]; hit: { sectionId: string; edgeIndex: number } | null } {
     const map = mapRef.current;
-    if (!map) return lngLat;
+    if (!map) return { point: lngLat, hit: null };
     let best: [number, number] = lngLat;
+    let hit: { sectionId: string; edgeIndex: number } | null = null;
     let bestDistance = TAP_EDGE_PX;
+
     for (const section of planRef.current.sections) {
-      const candidate = nearestPointOnRing(section.ring, lngLat);
-      const projected = map.project(candidate);
+      const candidate = nearestPointOnRingIndexed(section.ring, lngLat);
+      const projected = map.project(candidate.point);
       const distance = Math.hypot(projected.x - point.x, projected.y - point.y);
       if (distance < bestDistance) {
         bestDistance = distance;
-        best = candidate;
-      }
-      for (const vertex of section.ring) {
-        const projectedVertex = map.project(vertex as [number, number]);
-        const vertexDistance = Math.hypot(projectedVertex.x - point.x, projectedVertex.y - point.y);
-        if (vertexDistance < Math.min(bestDistance, TAP_VERTEX_PX)) {
-          bestDistance = vertexDistance;
-          best = [vertex[0], vertex[1]];
-        }
+        best = candidate.point;
+        hit = { sectionId: section.id, edgeIndex: candidate.index };
       }
     }
-    return best;
+
+    // Corner / endpoint magnet wins over the edge projection.
+    let magnetDistance = VERTEX_MAGNET_PX;
+    const consider = (p: number[]) => {
+      const projected = map.project(p as [number, number]);
+      const d = Math.hypot(projected.x - point.x, projected.y - point.y);
+      if (d < magnetDistance) {
+        magnetDistance = d;
+        best = [p[0], p[1]];
+        hit = null;
+      }
+    };
+    for (const section of planRef.current.sections) section.ring.forEach(consider);
+    for (const line of planRef.current.lines) line.coords.forEach(consider);
+
+    return { point: best, hit };
   }
+
+  function snapLinePoint(lngLat: [number, number], point: { x: number; y: number }) {
+    return snapLinePointInfo(lngLat, point).point;
+  }
+
 
   /* ------------------------------ map taps ------------------------------ */
 
