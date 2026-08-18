@@ -13,6 +13,7 @@ import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { CbButton, CbCard, CbChip, CbSheet } from "@/components/cb/primitives";
 import { cbHaptic } from "@/components/cb/motion";
 import {
+  ftPerDeg,
   CB_EMPTY_PLAN,
   CB_EDGE_COLORS,
   CB_EDGE_LABELS,
@@ -24,6 +25,7 @@ import {
   edgeCenter,
   lineLengthFeet,
   nearestPointOnRing,
+  nearestPointOnRingIndexed,
   normalizeEdges,
   planTotals,
   ringCentroid,
@@ -46,6 +48,35 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 /** Screen-space grab radius (px) for tap-to-refine. */
 const TAP_VERTEX_PX = 34;
 const TAP_EDGE_PX = 28;
+/** A dragged point clicks onto another corner / endpoint inside this radius. */
+const VERTEX_MAGNET_PX = 16;
+
+/**
+ * Hold a segment straight: if the bearing from `anchor` is within `tolDeg` of
+ * the building's axis (or square to it), lock it exactly onto that bearing.
+ */
+function snapStraightFrom(
+  anchor: number[] | undefined,
+  point: [number, number],
+  axisDeg: number,
+  tolDeg = 6,
+): [number, number] {
+  if (!anchor) return point;
+  const s = ftPerDeg(point[1]);
+  const dx = (point[0] - anchor[0]) * s.lng;
+  const dy = (point[1] - anchor[1]) * s.lat;
+  const len = Math.hypot(dx, dy);
+  if (len < 1) return point;
+  const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+  const rel = deg - axisDeg;
+  const target = Math.round(rel / 90) * 90;
+  let delta = rel - target;
+  while (delta > 180) delta -= 360;
+  while (delta < -180) delta += 360;
+  if (Math.abs(delta) > tolDeg) return point;
+  const rad = ((axisDeg + target) * Math.PI) / 180;
+  return [anchor[0] + (Math.cos(rad) * len) / s.lng, anchor[1] + (Math.sin(rad) * len) / s.lat];
+}
 
 export function CbRoofPlanEditor({
   plan,
@@ -682,40 +713,102 @@ export function CbRoofPlanEditor({
     }
 
     if (nearestE >= 0 && bestE <= TAP_EDGE_PX) {
-      const edges = normalizeEdges(section.ring, section.edges);
-      const ring = [...section.ring];
-      ring.splice(nearestE + 1, 0, lngLat);
-      const nextEdges = [...edges];
-      nextEdges.splice(nearestE + 1, 0, edges[nearestE]);
-      commit(updateSection(section.id, (s) => ({ ...s, ring, edges: nextEdges })));
+      splitEdgeAt(section.id, nearestE, lngLat);
       cbHaptic(12);
     }
   }
 
-  function snapLinePoint(lngLat: [number, number], point: { x: number; y: number }) {
+  /**
+   * Break a perimeter edge in two at `at`. Both halves start unlabeled so the
+   * bottom of a roof can be eave / rake / rake / eave instead of one long run.
+   * Returns the index of the inserted corner.
+   */
+  function splitEdgeAt(sectionId: string, edgeIndex: number, at: [number, number]): number {
+    const section = planRef.current.sections.find((s) => s.id === sectionId);
+    if (!section || edgeIndex < 0) return -1;
+    const ring = [...section.ring];
+    ring.splice(edgeIndex + 1, 0, [at[0], at[1]]);
+    const edges = normalizeEdges(section.ring, section.edges);
+    const nextEdges = [...edges];
+    nextEdges[edgeIndex] = "unlabeled";
+    nextEdges.splice(edgeIndex + 1, 0, "unlabeled");
+    commit(updateSection(sectionId, (s) => ({ ...s, ring, edges: nextEdges })));
+    return edgeIndex + 1;
+  }
+
+  /**
+   * Snap a free point: first onto a nearby corner or line endpoint (a magnet),
+   * otherwise onto the nearest perimeter edge. When it lands on an edge the hit
+   * is reported so the caller can break that edge there.
+   */
+  function snapLinePointInfo(
+    lngLat: [number, number],
+    point: { x: number; y: number },
+  ): { point: [number, number]; hit: { sectionId: string; edgeIndex: number } | null } {
     const map = mapRef.current;
-    if (!map) return lngLat;
+    if (!map) return { point: lngLat, hit: null };
     let best: [number, number] = lngLat;
+    let hit: { sectionId: string; edgeIndex: number } | null = null;
     let bestDistance = TAP_EDGE_PX;
+
     for (const section of planRef.current.sections) {
-      const candidate = nearestPointOnRing(section.ring, lngLat);
-      const projected = map.project(candidate);
+      const candidate = nearestPointOnRingIndexed(section.ring, lngLat);
+      const projected = map.project(candidate.point);
       const distance = Math.hypot(projected.x - point.x, projected.y - point.y);
       if (distance < bestDistance) {
         bestDistance = distance;
-        best = candidate;
-      }
-      for (const vertex of section.ring) {
-        const projectedVertex = map.project(vertex as [number, number]);
-        const vertexDistance = Math.hypot(projectedVertex.x - point.x, projectedVertex.y - point.y);
-        if (vertexDistance < Math.min(bestDistance, TAP_VERTEX_PX)) {
-          bestDistance = vertexDistance;
-          best = [vertex[0], vertex[1]];
-        }
+        best = candidate.point;
+        hit = { sectionId: section.id, edgeIndex: candidate.index };
       }
     }
+
+    // Corner / endpoint magnet wins over the edge projection.
+    let magnetDistance = VERTEX_MAGNET_PX;
+    const consider = (p: number[]) => {
+      const projected = map.project(p as [number, number]);
+      const d = Math.hypot(projected.x - point.x, projected.y - point.y);
+      if (d < magnetDistance) {
+        magnetDistance = d;
+        best = [p[0], p[1]];
+        hit = null;
+      }
+    };
+    for (const section of planRef.current.sections) section.ring.forEach(consider);
+    for (const line of planRef.current.lines) line.coords.forEach(consider);
+
+    return { point: best, hit };
+  }
+
+  /**
+   * Nearest other corner / line endpoint in screen space, so two points that
+   * should meet land on exactly the same coordinate.
+   */
+  function magnetPoint(
+    screen: { x: number; y: number },
+    exclude?: { sectionId: string; vertexIndex: number },
+  ): [number, number] | null {
+    const map = mapRef.current;
+    if (!map) return null;
+    let best: [number, number] | null = null;
+    let bestDistance = VERTEX_MAGNET_PX;
+    const consider = (p: number[]) => {
+      const projected = map.project(p as [number, number]);
+      const d = Math.hypot(projected.x - screen.x, projected.y - screen.y);
+      if (d < bestDistance) {
+        bestDistance = d;
+        best = [p[0], p[1]];
+      }
+    };
+    for (const section of planRef.current.sections) {
+      section.ring.forEach((p, i) => {
+        if (exclude && exclude.sectionId === section.id && exclude.vertexIndex === i) return;
+        consider(p);
+      });
+    }
+    for (const line of planRef.current.lines) line.coords.forEach(consider);
     return best;
   }
+
 
   /* ------------------------------ map taps ------------------------------ */
 
@@ -733,7 +826,11 @@ export function CbRoofPlanEditor({
         return;
       }
       if (tool === "line" && !readOnly) {
-        setDraft((d) => [...d, snapLinePoint([e.lngLat.lng, e.lngLat.lat], e.point)]);
+        {
+          const snap = snapLinePointInfo([e.lngLat.lng, e.lngLat.lat], e.point);
+          if (snap.hit) splitEdgeAt(snap.hit.sectionId, snap.hit.edgeIndex, snap.point);
+          setDraft((d) => [...d, snap.point]);
+        }
         cbHaptic(6);
         return;
       }
@@ -902,7 +999,8 @@ export function CbRoofPlanEditor({
       ring.splice(index + 1, 0, [mid[0], mid[1]]);
       const edges = normalizeEdges(s.ring, s.edges);
       const nextEdges = [...edges];
-      nextEdges.splice(index + 1, 0, edges[index]);
+      nextEdges[index] = "unlabeled";
+      nextEdges.splice(index + 1, 0, "unlabeled");
       vIndex = index + 1;
       onPlanChange(
         updateSection(sectionId, (sec) => ({ ...sec, ring, edges: nextEdges, isLocked: false })),
@@ -971,9 +1069,13 @@ export function CbRoofPlanEditor({
       const s = planRef.current.sections.find((x) => x.id === sectionId);
       if (!s) return;
       const raw: [number, number] = [ll.lng, ll.lat];
-      const snapped = squareUp
-        ? snapVertexToAxis(s.ring, vIndex, raw, axis)
-        : snapVertex(s.ring, vIndex, raw);
+      const screen = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+      const magnet = magnetPoint(screen, { sectionId, vertexIndex: vIndex });
+      // Straight (axis / square-to-axis) snapping is always on, then the old
+      // 15-degree rule catches the in-between angles.
+      const axisSnapped = magnet ?? snapVertexToAxis(s.ring, vIndex, raw, axis);
+      const snapped =
+        magnet ?? (axisSnapped !== raw ? axisSnapped : snapVertex(s.ring, vIndex, raw));
       const ring = s.ring.map((p, i) => (i === vIndex ? snapped : p));
       onPlanChange(updateSection(sectionId, (sec) => ({ ...sec, ring, isLocked: false })), {
         user: true,
@@ -1037,6 +1139,12 @@ export function CbRoofPlanEditor({
     const startDraft = draft.map((point) => [...point]);
     let moved = false;
     let engaged = false;
+    let lastHit: { sectionId: string; edgeIndex: number } | null = null;
+    let lastPoint: [number, number] = [0, 0];
+    const dragAxis = ringAxisDeg(
+      (planRef.current.sections.find((s) => s.id === selectedIdRef.current) ??
+        planRef.current.sections[0])?.ring ?? [],
+    );
     const startX = e.clientX;
     const startY = e.clientY;
 
@@ -1066,7 +1174,19 @@ export function CbRoofPlanEditor({
       const ll = currentMap.unproject([ev.clientX - rect.left, ev.clientY - rect.top]);
       const point = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
       const raw: [number, number] = [ll.lng, ll.lat];
-      const next = target.kind === "pin" ? raw : snapLinePoint(raw, point);
+      let next = raw;
+      if (target.kind !== "pin") {
+        const anchor =
+          target.kind === "draft"
+            ? startDraft[target.index - 1] ?? startDraft[target.index + 1]
+            : planRef.current.lines.find((l) => l.id === target.id)?.coords[
+                target.index === 0 ? 1 : target.index - 1
+              ];
+        const straight = snapStraightFrom(anchor, raw, dragAxis);
+        const snap = snapLinePointInfo(straight, point);
+        next = snap.point;
+        lastHit = snap.hit;
+      }
 
       if (target.kind === "draft") {
         setDraft((current) => current.map((p, index) => (index === target.index ? next : p)));
@@ -1085,12 +1205,14 @@ export function CbRoofPlanEditor({
       } else {
         onPinMove?.(target.index, { lng: next[0], lat: next[1] });
       }
+      lastPoint = next;
       setLoupe({ x: ev.clientX, y: ev.clientY });
       requestAnimationFrame(() => paintLoupe(ev.clientX, ev.clientY));
     };
 
     const finish = () => {
       if (arm) window.clearTimeout(arm);
+      if (moved && lastHit) splitEdgeAt(lastHit.sectionId, lastHit.edgeIndex, lastPoint);
       if (moved && target.kind === "line") setPast((history) => [...history.slice(-40), startPlan]);
       if (!moved && target.kind === "draft") setDraft(startDraft);
       if (engaged) cbHaptic(10);

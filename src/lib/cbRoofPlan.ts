@@ -452,11 +452,18 @@ export function pointDistanceFeet(a: number[], b: number[]): number {
   return haversineFeet({ lng: a[0], lat: a[1] }, { lng: b[0], lat: b[1] });
 }
 
-/** Project a point onto the nearest roof-outline segment. */
-export function nearestPointOnRing(ring: number[][], point: [number, number]): [number, number] {
-  if (ring.length < 2) return point;
+/**
+ * Project a point onto the nearest roof-outline segment, reporting WHICH
+ * segment it landed on so the caller can break that edge in two there.
+ */
+export function nearestPointOnRingIndexed(
+  ring: number[][],
+  point: [number, number],
+): { point: [number, number]; index: number } {
+  if (ring.length < 2) return { point, index: -1 };
   const scale = ftPerDeg(point[1]);
   let best: [number, number] = point;
+  let bestIndex = -1;
   let bestDistance = Infinity;
   for (let i = 0; i < ring.length; i++) {
     const a = ring[i];
@@ -473,11 +480,18 @@ export function nearestPointOnRing(ring: number[][], point: [number, number]): [
     const distance = Math.hypot(x, y);
     if (distance < bestDistance) {
       bestDistance = distance;
+      bestIndex = i;
       best = [point[0] + x / scale.lng, point[1] + y / scale.lat];
     }
   }
-  return best;
+  return { point: best, index: bestIndex };
 }
+
+/** Project a point onto the nearest roof-outline segment. */
+export function nearestPointOnRing(ring: number[][], point: [number, number]): [number, number] {
+  return nearestPointOnRingIndexed(ring, point).point;
+}
+
 
 /* ------------------------------- totals ------------------------------- */
 
