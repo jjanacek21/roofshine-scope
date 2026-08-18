@@ -1120,6 +1120,14 @@ export async function saveCbEstimate(args: {
   attachToReport: boolean;
   /** The catalog version that produced these numbers — stamped, never guessed. */
   catalogVersionId?: string | null;
+  /**
+   * The row this screen is already editing. Passed explicitly because the
+   * loaded inputs go stale the moment the first save creates the estimate —
+   * without it every later save inserted a duplicate estimate for the job.
+   */
+  estimateId?: string | null;
+  /** Derived lines the rep removed, so a later rebuild cannot bring them back. */
+  removedKeys?: string[];
 }): Promise<string> {
   const { inputs, mode, lines, percents, pricePerSquare, attachToReport } = args;
   const perSquare = mode === "per_square";
@@ -1149,10 +1157,12 @@ export async function saveCbEstimate(args: {
     tax_pct: perSquare ? 0 : percents.tax_pct,
     notes: perSquare ? math.sentence : null,
     catalog_version_id: args.catalogVersionId ?? null,
+    removed_line_keys: (args.removedKeys ?? []) as never,
     report_meta: { attach_to_report: attachToReport, cb_mode: mode } as never,
   };
 
-  let estimateId = (inputs.existing?.estimate.id as string | undefined) ?? null;
+  let estimateId =
+    args.estimateId ?? ((inputs.existing?.estimate.id as string | undefined) ?? null);
   if (estimateId) {
     const { error } = await supabase.from("estimates").update(payload).eq("id", estimateId);
     if (error) throw error;
@@ -1171,13 +1181,19 @@ export async function saveCbEstimate(args: {
       code: l.code,
       name: l.name,
       unit: l.unit,
-      qty: perSquare ? 0 : l.qty,
-      unit_price: perSquare ? 0 : l.unit_price,
-      total: perSquare ? 0 : r2(l.qty * l.unit_price),
+      /*
+       * Quantities and prices are always stored. Per-square mode only hides
+       * them on screen — zeroing them here emptied the carrier estimate the
+       * moment the rep switched modes and saved.
+       */
+      qty: l.qty,
+      unit_price: l.unit_price,
+      total: r2(l.qty * l.unit_price),
       sort_order: i,
       source: l.source,
       category: l.category,
       note: l.basis || null,
+      is_manual: Boolean(l.is_manual),
     }));
     const { error } = await supabase.from("estimate_line_items").insert(rows);
     if (error) throw error;
