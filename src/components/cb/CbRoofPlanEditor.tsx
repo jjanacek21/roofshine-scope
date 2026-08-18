@@ -49,7 +49,7 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const TAP_VERTEX_PX = 34;
 const TAP_EDGE_PX = 28;
 /** A dragged point clicks onto another corner / endpoint inside this radius. */
-const VERTEX_MAGNET_PX = 22;
+const VERTEX_MAGNET_PX = 12;
 
 /**
  * Hold a segment straight: if the bearing from `anchor` is within `tolDeg` of
