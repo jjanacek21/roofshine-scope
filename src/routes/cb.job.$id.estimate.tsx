@@ -430,6 +430,46 @@ function CbEstimatePage() {
           ) : null}
 
           <CbReveal>
+            <CbCard style={{ padding: 16 }}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">Scope from the takeoff</p>
+                  <p className="text-xs opacity-65">
+                    {manualCount > 0
+                      ? `${manualCount} line${manualCount === 1 ? "" : "s"} you edited by hand — a rebuild keeps them exactly as they are.`
+                      : "Rebuilding pulls fresh quantities from the measurement and takeoff."}
+                    {removedKeys.length > 0
+                      ? ` ${removedKeys.length} removed line${removedKeys.length === 1 ? "" : "s"} stay removed.`
+                      : ""}
+                  </p>
+                </div>
+                <CbButton size="md" variant="secondary" onClick={() => setAskRebuild(true)} disabled={building}>
+                  <RefreshCw className="mr-1 h-4 w-4" /> Rebuild
+                </CbButton>
+              </div>
+              {savedAt ? <p className="mt-2 text-xs opacity-55">Saved at {savedAt}</p> : null}
+            </CbCard>
+          </CbReveal>
+
+          {askRebuild ? (
+            <CbReveal>
+              <CbCard style={{ padding: 20 }}>
+                <h2 className="text-base font-semibold">Rebuild from the takeoff?</h2>
+                <p className="mt-2 text-sm opacity-70">
+                  Quantities and prices on untouched lines are refreshed. Your own edits and the
+                  lines you deleted are left alone.
+                </p>
+                <div className="mt-4 flex gap-2">
+                  <CbButton size="md" onClick={confirmRebuild}>Rebuild</CbButton>
+                  <CbButton size="md" variant="ghost" onClick={() => setAskRebuild(false)}>
+                    Cancel
+                  </CbButton>
+                </div>
+              </CbCard>
+            </CbReveal>
+          ) : null}
+
+          <CbReveal>
             <CbSegmentedCards
               value={mode}
               onChange={(v) => changeMode(v as CbEstimateMode)}
@@ -456,7 +496,10 @@ function CbEstimatePage() {
                   type="number"
                   inputMode="decimal"
                   value={pps ? String(pps) : ""}
-                  onChange={(e) => setPps(Number(e.target.value) || 0)}
+                  onChange={(e) => {
+                    markDirty();
+                    setPps(Number(e.target.value) || 0);
+                  }}
                   hint="Saved as this workspace's default for the next inspection"
                 />
                 <p className="mt-4 text-sm opacity-70">{math.sentence}</p>
@@ -475,9 +518,13 @@ function CbEstimatePage() {
                   <h2 className="text-base font-semibold">
                     {perSquare ? "What's included" : "Line items"}
                   </h2>
-                  {bookName && !perSquare ? (
-                    <p className="text-xs opacity-60">Priced from {bookName}</p>
-                  ) : null}
+                  <p className="text-xs opacity-60">
+                    {perSquare
+                      ? "Shown without quantities or prices — the single total is below"
+                      : bookName
+                        ? `Priced from ${bookName}`
+                        : ""}
+                  </p>
                 </div>
                 <CbBadge>{lines.length}</CbBadge>
               </div>
@@ -501,6 +548,7 @@ function CbEstimatePage() {
                           <div className="mt-1 flex flex-wrap items-center gap-2">
                             {l.code ? <CbChip>{l.code}</CbChip> : null}
                             <CbChip>{CB_SOURCE_LABEL[l.source]}</CbChip>
+                            {l.is_manual ? <CbChip>Your edit</CbChip> : null}
                             {l.basis ? <span className="text-xs opacity-60">{l.basis}</span> : null}
                           </div>
                         </div>
@@ -533,7 +581,7 @@ function CbEstimatePage() {
                             type="button"
                             aria-label="Remove line"
                             className="rounded-lg p-2 opacity-50"
-                            onClick={() => setLines((prev) => prev.filter((x) => x.id !== l.id))}
+                            onClick={() => removeLine(l.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -607,7 +655,10 @@ function CbEstimatePage() {
                       type="number"
                       inputMode="decimal"
                       value={String(pct[key] ?? 0)}
-                      onChange={(e) => setPct((p) => ({ ...p, [key]: Number(e.target.value) || 0 }))}
+                      onChange={(e) => {
+                        markDirty();
+                        setPct((p) => ({ ...p, [key]: Number(e.target.value) || 0 }));
+                      }}
                     />
                   ))}
                 </div>
@@ -645,7 +696,10 @@ function CbEstimatePage() {
                   type="checkbox"
                   className="cb-checkbox"
                   checked={attach}
-                  onChange={(e) => setAttach(e.target.checked)}
+                  onChange={(e) => {
+                    markDirty();
+                    setAttach(e.target.checked);
+                  }}
                 />
                 Attach this estimate to the damage report
               </label>
@@ -675,6 +729,7 @@ function CbEstimatePage() {
 
       <CbLineItemPicker
         open={picking !== null}
+        trade={picking && picking !== "new" ? (lines.find((l) => l.id === picking)?.trade ?? null) : null}
         onPick={applyPick}
         onClose={() => setPicking(null)}
       />
