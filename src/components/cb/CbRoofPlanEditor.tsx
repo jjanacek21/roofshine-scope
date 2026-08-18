@@ -13,6 +13,7 @@ import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { CbButton, CbCard, CbChip, CbSheet } from "@/components/cb/primitives";
 import { cbHaptic } from "@/components/cb/motion";
 import {
+  ftPerDeg,
   CB_EMPTY_PLAN,
   CB_EDGE_COLORS,
   CB_EDGE_LABELS,
@@ -24,6 +25,7 @@ import {
   edgeCenter,
   lineLengthFeet,
   nearestPointOnRing,
+  nearestPointOnRingIndexed,
   normalizeEdges,
   planTotals,
   ringCentroid,
@@ -46,6 +48,35 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 /** Screen-space grab radius (px) for tap-to-refine. */
 const TAP_VERTEX_PX = 34;
 const TAP_EDGE_PX = 28;
+/** A dragged point clicks onto another corner / endpoint inside this radius. */
+const VERTEX_MAGNET_PX = 16;
+
+/**
+ * Hold a segment straight: if the bearing from `anchor` is within `tolDeg` of
+ * the building's axis (or square to it), lock it exactly onto that bearing.
+ */
+function snapStraightFrom(
+  anchor: number[] | undefined,
+  point: [number, number],
+  axisDeg: number,
+  tolDeg = 6,
+): [number, number] {
+  if (!anchor) return point;
+  const s = ftPerDeg(point[1]);
+  const dx = (point[0] - anchor[0]) * s.lng;
+  const dy = (point[1] - anchor[1]) * s.lat;
+  const len = Math.hypot(dx, dy);
+  if (len < 1) return point;
+  const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+  const rel = deg - axisDeg;
+  const target = Math.round(rel / 90) * 90;
+  let delta = rel - target;
+  while (delta > 180) delta -= 360;
+  while (delta < -180) delta += 360;
+  if (Math.abs(delta) > tolDeg) return point;
+  const rad = ((axisDeg + target) * Math.PI) / 180;
+  return [anchor[0] + (Math.cos(rad) * len) / s.lng, anchor[1] + (Math.sin(rad) * len) / s.lat];
+}
 
 export function CbRoofPlanEditor({
   plan,
