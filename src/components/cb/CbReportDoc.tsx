@@ -220,7 +220,7 @@ export function CbReportDoc({
               />
             </div>
           ) : null}
-          <div className="mt-4 grid grid-cols-2 gap-x-5">
+          <div className="mt-4 grid grid-cols-1 gap-x-5 sm:grid-cols-2">
             <Row label="Property" value={String(job?.address ?? "—")} />
             <Row label="City / state" value={[job?.city, job?.state, job?.zip].filter(Boolean).join(", ") || "—"} />
             <Row label="Homeowner" value={String(job?.customer_name ?? "—")} />
@@ -426,7 +426,7 @@ export function CbReportDoc({
         <div className="grid gap-1">
           {lineItems.map((it, i) => (
             <div
-              key={it.id}
+              key={`${it.id ?? "line"}-${i}`}
               className="grid items-center gap-2"
               style={{
                 gridTemplateColumns: editable ? "20px 1fr 80px 60px 66px" : "24px 1fr 90px 56px",

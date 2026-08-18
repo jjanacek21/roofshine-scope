@@ -537,7 +537,7 @@ function CbEstimatePage() {
                 <ul className="divide-y" style={{ borderColor: "var(--cb-border)" }}>
                   {lines.map((l) => (
                     <li key={l.id} className="px-5 py-4">
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                         <div className="min-w-0 flex-1">
                           <input
                             className="w-full bg-transparent text-[15px] font-medium outline-none"
@@ -552,7 +552,8 @@ function CbEstimatePage() {
                             {l.basis ? <span className="text-xs opacity-60">{l.basis}</span> : null}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 self-end sm:self-auto">
+
                           <button
                             type="button"
                             aria-label="Pick from the price book"
