@@ -21,13 +21,16 @@ export function CbLineItemPicker({
   const [term, setTerm] = useState("");
   const [rows, setRows] = useState<CbCatalogLineItem[]>([]);
   const [loading, setLoading] = useState(false);
+  /* A rep often needs a line from another trade — let them widen the search. */
+  const [allTrades, setAllTrades] = useState(false);
+  const activeTrade = allTrades ? null : (trade ?? null);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setLoading(true);
     const t = setTimeout(async () => {
-      const data = await searchLineItems(term, trade ?? null);
+      const data = await searchLineItems(term, activeTrade);
       if (!cancelled) {
         setRows(data);
         setLoading(false);
@@ -37,7 +40,7 @@ export function CbLineItemPicker({
       cancelled = true;
       clearTimeout(t);
     };
-  }, [term, open, trade]);
+  }, [term, open, activeTrade]);
 
   if (!open) return null;
 
@@ -61,6 +64,33 @@ export function CbLineItemPicker({
           </button>
         </div>
 
+        {trade ? (
+          <div className="flex items-center gap-2 border-b px-4 py-2 text-xs" style={{ borderColor: "var(--cb-border)" }}>
+            <button
+              type="button"
+              className="rounded-full border px-3 py-1"
+              style={{
+                borderColor: "var(--cb-border)",
+                background: allTrades ? "transparent" : "var(--cb-accent-soft, rgba(0,0,0,.06))",
+              }}
+              onClick={() => setAllTrades(false)}
+            >
+              {trade}
+            </button>
+            <button
+              type="button"
+              className="rounded-full border px-3 py-1"
+              style={{
+                borderColor: "var(--cb-border)",
+                background: allTrades ? "var(--cb-accent-soft, rgba(0,0,0,.06))" : "transparent",
+              }}
+              onClick={() => setAllTrades(true)}
+            >
+              All trades
+            </button>
+          </div>
+        ) : null}
+
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center gap-2 px-4 py-10 text-sm opacity-70">
@@ -82,7 +112,9 @@ export function CbLineItemPicker({
                   >
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="text-[15px] font-medium">{r.name}</span>
-                      <span className="shrink-0 text-xs opacity-60">{r.unit ?? "EA"}</span>
+                      <span className="shrink-0 rounded-md border px-1.5 py-0.5 text-xs opacity-70" style={{ borderColor: "var(--cb-border)" }}>
+                        {(r.unit ?? "EA").toUpperCase()}
+                      </span>
                     </div>
                     <div className="mt-0.5 flex items-center gap-3 text-xs opacity-60">
                       <span>{r.code ?? "—"}</span>

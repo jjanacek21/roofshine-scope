@@ -59,7 +59,54 @@ export interface CbDraftLine {
   basis: string;
   /** Set on code-injected lines so an adjuster can see the citation. */
   code_reference?: string | null;
+  /**
+   * The rep touched this line. A rebuild from the takeoff carries it through
+   * untouched — a manual correction always beats a re-derived number.
+   */
+  is_manual?: boolean;
 }
+
+/**
+ * Identity of a line across rebuilds. The catalog id is the real key; a code or
+ * the description only stands in for hand-added lines that have neither.
+ */
+export function cbLineKey(l: Pick<CbDraftLine, "line_item_id" | "code" | "name">): string {
+  return l.line_item_id ?? l.code ?? l.name.trim().toLowerCase();
+}
+
+/**
+ * Fold a fresh derivation into what is already on screen.
+ *
+ * Manual lines survive verbatim, removed keys stay removed, and derived lines
+ * the rep never touched pick up the new quantity and price. Anything genuinely
+ * new is appended at the end so the existing order is not shuffled.
+ */
+export function mergeCbDraft(
+  existing: CbDraftLine[],
+  rebuilt: CbDraftLine[],
+  removedKeys: string[],
+): CbDraftLine[] {
+  const removed = new Set(removedKeys);
+  const byKey = new Map(rebuilt.map((l) => [cbLineKey(l), l]));
+  const kept: CbDraftLine[] = [];
+
+  for (const line of existing) {
+    const key = cbLineKey(line);
+    const fresh = byKey.get(key);
+    byKey.delete(key);
+    if (line.is_manual || !fresh) {
+      kept.push(line);
+      continue;
+    }
+    kept.push({ ...fresh, id: line.id });
+  }
+
+  for (const fresh of byKey.values()) {
+    if (!removed.has(cbLineKey(fresh))) kept.push(fresh);
+  }
+  return kept;
+}
+
 
 
 export interface CbEstimateTotals {
@@ -232,7 +279,13 @@ export interface CbEstimateInputs {
   analysis: Record<string, unknown> | null;
   defaultPricePerSquare: number;
   percents: CbEstimatePercents;
-  existing: { estimate: Record<string, unknown>; lines: CbDraftLine[] } | null;
+  existing: {
+    estimate: Record<string, unknown>;
+    lines: CbDraftLine[];
+    /** Derived lines the rep removed — a rebuild must not resurrect them. */
+    removedKeys: string[];
+  } | null;
+
 }
 
 export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInputs> {
@@ -280,13 +333,22 @@ export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInp
       .from("estimates")
       .select("*")
       .eq("cb_job_id", jobId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .order("created_at", { ascending: false }),
   ]);
 
   let existing: CbEstimateInputs["existing"] = null;
-  const estRow = (existingRes as { data: Record<string, unknown> | null }).data;
+  const estRows = ((existingRes as { data: Record<string, unknown>[] | null }).data ?? []);
+  const estRow = estRows[0] ?? null;
+  /*
+   * A stale save path used to insert a second estimate for the same inspection,
+   * so the screen could read back a different row than the one it wrote. Keep
+   * the newest and clear the strays out of the way.
+   */
+  const strays = estRows.slice(1).map((r) => r.id as string);
+  if (strays.length) {
+    await supabase.from("estimate_line_items").delete().in("estimate_id", strays);
+    await supabase.from("estimates").delete().in("id", strays);
+  }
   if (estRow) {
     const { data: lines } = await supabase
       .from("estimate_line_items")
@@ -307,9 +369,14 @@ export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInp
         category: (l.category as string | null) ?? null,
         source: ((l.source as CbLineSource) ?? "takeoff") as CbLineSource,
         basis: (l.note as string) ?? "",
+        is_manual: Boolean(l.is_manual),
       })),
+      removedKeys: Array.isArray(estRow.removed_line_keys)
+        ? (estRow.removed_line_keys as unknown[]).map(String)
+        : [],
     };
   }
+
 
   const data = ((takeoff?.data as CbTakeoffData) ?? {}) as CbTakeoffData;
   const catalog: Record<string, { id: string; label: string; unit: string | null }> = {};
@@ -1053,6 +1120,14 @@ export async function saveCbEstimate(args: {
   attachToReport: boolean;
   /** The catalog version that produced these numbers — stamped, never guessed. */
   catalogVersionId?: string | null;
+  /**
+   * The row this screen is already editing. Passed explicitly because the
+   * loaded inputs go stale the moment the first save creates the estimate —
+   * without it every later save inserted a duplicate estimate for the job.
+   */
+  estimateId?: string | null;
+  /** Derived lines the rep removed, so a later rebuild cannot bring them back. */
+  removedKeys?: string[];
 }): Promise<string> {
   const { inputs, mode, lines, percents, pricePerSquare, attachToReport } = args;
   const perSquare = mode === "per_square";
@@ -1082,10 +1157,12 @@ export async function saveCbEstimate(args: {
     tax_pct: perSquare ? 0 : percents.tax_pct,
     notes: perSquare ? math.sentence : null,
     catalog_version_id: args.catalogVersionId ?? null,
+    removed_line_keys: (args.removedKeys ?? []) as never,
     report_meta: { attach_to_report: attachToReport, cb_mode: mode } as never,
   };
 
-  let estimateId = (inputs.existing?.estimate.id as string | undefined) ?? null;
+  let estimateId =
+    args.estimateId ?? ((inputs.existing?.estimate.id as string | undefined) ?? null);
   if (estimateId) {
     const { error } = await supabase.from("estimates").update(payload).eq("id", estimateId);
     if (error) throw error;
@@ -1104,13 +1181,19 @@ export async function saveCbEstimate(args: {
       code: l.code,
       name: l.name,
       unit: l.unit,
-      qty: perSquare ? 0 : l.qty,
-      unit_price: perSquare ? 0 : l.unit_price,
-      total: perSquare ? 0 : r2(l.qty * l.unit_price),
+      /*
+       * Quantities and prices are always stored. Per-square mode only hides
+       * them on screen — zeroing them here emptied the carrier estimate the
+       * moment the rep switched modes and saved.
+       */
+      qty: l.qty,
+      unit_price: l.unit_price,
+      total: r2(l.qty * l.unit_price),
       sort_order: i,
       source: l.source,
       category: l.category,
       note: l.basis || null,
+      is_manual: Boolean(l.is_manual),
     }));
     const { error } = await supabase.from("estimate_line_items").insert(rows);
     if (error) throw error;
