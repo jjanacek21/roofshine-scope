@@ -308,16 +308,19 @@ export function CbRoofPlanEditor({
           "circle-stroke-width": 1.5,
         },
       });
+      // Solid bright outline around the counted area — a dashed hairline was
+      // invisible against a shingle roof in sunlight.
       addLayer({
         id: "cb-fill-outline",
         type: "line",
         source: "cb-fill",
         paint: {
-          "line-color": "#ffb347",
-          "line-width": 2.5,
-          "line-dasharray": [2, 1.4],
+          "line-color": "#ffffff",
+          "line-width": 3,
+          "line-opacity": 0.95,
         },
       });
+
       addLayer({
         id: "cb-edge-l",
         type: "line",
