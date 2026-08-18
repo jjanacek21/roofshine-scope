@@ -567,8 +567,9 @@ export function CbRoofPlanEditor({
     if (ready) return; // the GL circle layer already draws them
     pinMarkersRef.current = measurePins.map((pin) => {
       const el = document.createElement("div");
+      // pointer-events off: the draggable DOM handle above must get the press.
       el.style.cssText =
-        "width:22px;height:22px;border-radius:999px;background:#f97316;border:4px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5)";
+        "width:22px;height:22px;border-radius:999px;background:#f97316;border:4px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5);pointer-events:none";
       return new mapboxgl.Marker({ element: el })
         .setLngLat([pin.lng, pin.lat])
         .addTo(map);
@@ -811,6 +812,9 @@ export function CbRoofPlanEditor({
 
     const map = mapRef.current;
     let vIndex = index;
+    /* Grabbing a handle on a saved footprint re-opens it for editing. */
+    const wasLocked =
+      planRef.current.sections.find((x) => x.id === sectionId)?.isLocked ?? false;
     if (kind === "midpoint") {
       const s = planRef.current.sections.find((x) => x.id === sectionId);
       if (!s) return;
@@ -821,7 +825,12 @@ export function CbRoofPlanEditor({
       const nextEdges = [...edges];
       nextEdges.splice(index + 1, 0, edges[index]);
       vIndex = index + 1;
-      onPlanChange(updateSection(sectionId, (sec) => ({ ...sec, ring, edges: nextEdges })), {
+      onPlanChange(
+        updateSection(sectionId, (sec) => ({ ...sec, ring, edges: nextEdges, isLocked: false })),
+        { user: true },
+      );
+    } else if (wasLocked) {
+      onPlanChange(updateSection(sectionId, (sec) => ({ ...sec, isLocked: false })), {
         user: true,
       });
     }
@@ -889,7 +898,9 @@ export function CbRoofPlanEditor({
         ? snapVertexToAxis(s.ring, vIndex, raw, axis)
         : snapVertex(s.ring, vIndex, raw);
       const ring = s.ring.map((p, i) => (i === vIndex ? snapped : p));
-      onPlanChange(updateSection(sectionId, (sec) => ({ ...sec, ring })), { user: true });
+      onPlanChange(updateSection(sectionId, (sec) => ({ ...sec, ring, isLocked: false })), {
+        user: true,
+      });
       setLoupe({ x: ev.clientX, y: ev.clientY });
       requestAnimationFrame(() => paintLoupe(ev.clientX, ev.clientY));
     };
@@ -1186,23 +1197,23 @@ export function CbRoofPlanEditor({
     const projected = project([pin.lng, pin.lat]);
     return projected ? [{ ...projected, index }] : [];
   });
-  if (handleSection && !readOnly && mapVersion > 0 && !locked && tool === "select") {
+  if (handleSection && !readOnly && mapVersion > 0) {
     /*
-     * Thinning: midpoints packed between corners are the reason the wrong
-     * handle gets grabbed. Show them only when zoomed in past 20.3, or the two
-     * either side of the corner being worked.
+     * Corners and blank edge dots stay on screen in every tool and even after
+     * the footprint is saved — grabbing one re-opens it for editing. A midpoint
+     * is skipped only when it would land on top of one of its own corners.
      */
-    const zoom = mapRef.current?.getZoom() ?? 0;
-    const n = handleSection.ring.length;
-    const showAllMids = zoom >= 20.3;
     handleSection.ring.forEach((p, i) => {
       const pt = project(p);
       if (pt) vertexHandles.push({ ...pt, index: i });
-      const adjacent =
-        selectedVertex != null && (i === selectedVertex || i === (selectedVertex - 1 + n) % n);
-      if (!showAllMids && !adjacent) return;
       const m = project(edgeCenter(handleSection.ring, i));
-      if (m) midHandles.push({ ...m, index: i });
+      const next = project(handleSection.ring[(i + 1) % handleSection.ring.length]);
+      if (!m) return;
+      const tooTight =
+        (pt && Math.hypot(m.x - pt.x, m.y - pt.y) < 18) ||
+        (next && Math.hypot(m.x - next.x, m.y - next.y) < 18);
+      if (tooTight) return;
+      midHandles.push({ ...m, index: i });
     });
   }
 
@@ -1753,7 +1764,7 @@ function DragPointHandle({
       type="button"
       aria-label={label}
       onPointerDown={onPointerDown}
-      className="pointer-events-auto absolute z-10 grid place-items-center"
+      className="pointer-events-auto absolute z-30 grid place-items-center"
       style={{
         left: x - 22,
         top: y - 22,
