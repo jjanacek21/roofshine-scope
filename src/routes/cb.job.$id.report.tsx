@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Download, Link2, Mail, Loader2, Presentation, Calculator } from "lucide-react";
+import { Download, Link2, Mail, Loader2, Presentation, Calculator, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
-import { CbCard, CbButton, CbChip, CbLoading } from "@/components/cb/primitives";
+import { CbCard, CbButton, CbChip, CbLoading, CbSheet } from "@/components/cb/primitives";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { CbStickyHeader } from "@/components/cb/motion";
 import { CbReportDoc } from "@/components/cb/CbReportDoc";
 import { CbConvertAction, CbConvertedNotice } from "@/components/cb/CbConvertAction";
@@ -44,6 +45,8 @@ function CbReportPage() {
   const [lineItems, setLineItems] = useState<CbLineItem[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [pdfStep, setPdfStep] = useState<string | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const isMobile = useIsMobile();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -200,36 +203,79 @@ function CbReportPage() {
       <div className="min-h-screen px-4 pb-28 pt-4" style={{ background: "var(--cb-bg)" }}>
         <div className="mx-auto w-full max-w-[860px]">
           <CbStickyHeader>
-            <div className="flex flex-wrap items-center justify-between gap-2 py-2">
-              <div className="flex items-center gap-2">
-                <span className="cb-display" style={{ fontSize: 16 }}>
-                  Damage report
-                </span>
-                <CbChip>v{data.report.version}</CbChip>
+            {isMobile ? (
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 py-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="cb-display truncate" style={{ fontSize: 15 }}>
+                    Damage report
+                  </span>
+                  <CbChip>v{data.report.version}</CbChip>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <CbButton size="md" variant="secondary" onClick={download} loading={busy === "pdf"} loadingText="…">
+                    <Download size={16} /> PDF
+                  </CbButton>
+                  <CbButton size="md" variant="ghost" onClick={() => setActionsOpen(true)}>
+                    <MoreHorizontal size={16} /> More
+                  </CbButton>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <CbButton size="md" variant="secondary" onClick={download} loading={busy === "pdf"} loadingText={pdfStep ?? "Rendering…"}>
-                  <Download size={16} /> Download PDF
-                </CbButton>
-                <CbButton size="md" variant="ghost" onClick={() => email("homeowner")} loading={busy === "homeowner"}>
-                  <Mail size={16} /> Homeowner
-                </CbButton>
-                <CbButton size="md" variant="ghost" onClick={() => email("adjuster")} loading={busy === "adjuster"}>
-                  <Mail size={16} /> Adjuster
-                </CbButton>
-                <CbButton size="md" variant="ghost" onClick={() => navigate({ to: "/cb/job/$id/estimate", params: { id } })}>
-                  <Calculator size={16} /> Estimate
-                </CbButton>
-                <CbButton size="md" variant="ghost" onClick={() => navigate({ to: "/cb/job/$id/present", params: { id } })}>
-                  <Presentation size={16} /> Present
-                </CbButton>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="cb-display" style={{ fontSize: 16 }}>
+                    Damage report
+                  </span>
+                  <CbChip>v{data.report.version}</CbChip>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <CbButton size="md" variant="secondary" onClick={download} loading={busy === "pdf"} loadingText={pdfStep ?? "Rendering…"}>
+                    <Download size={16} /> Download PDF
+                  </CbButton>
+                  <CbButton size="md" variant="ghost" onClick={() => email("homeowner")} loading={busy === "homeowner"}>
+                    <Mail size={16} /> Homeowner
+                  </CbButton>
+                  <CbButton size="md" variant="ghost" onClick={() => email("adjuster")} loading={busy === "adjuster"}>
+                    <Mail size={16} /> Adjuster
+                  </CbButton>
+                  <CbButton size="md" variant="ghost" onClick={() => navigate({ to: "/cb/job/$id/estimate", params: { id } })}>
+                    <Calculator size={16} /> Estimate
+                  </CbButton>
+                  <CbButton size="md" variant="ghost" onClick={() => navigate({ to: "/cb/job/$id/present", params: { id } })}>
+                    <Presentation size={16} /> Present
+                  </CbButton>
 
-                <CbButton size="md" variant="ghost" onClick={copyLink} loading={busy === "share"}>
-                  <Link2 size={16} /> Copy link
-                </CbButton>
+                  <CbButton size="md" variant="ghost" onClick={copyLink} loading={busy === "share"}>
+                    <Link2 size={16} /> Copy link
+                  </CbButton>
+                </div>
               </div>
-            </div>
+            )}
           </CbStickyHeader>
+
+          <CbSheet open={actionsOpen} onClose={() => setActionsOpen(false)} title="Report actions">
+            <div className="grid gap-2 pb-2">
+              <CbButton block size="lg" variant="secondary" onClick={download} loading={busy === "pdf"} loadingText={pdfStep ?? "Rendering…"}>
+                <Download size={18} /> Download PDF
+              </CbButton>
+              <CbButton block size="lg" variant="ghost" onClick={() => email("homeowner")} loading={busy === "homeowner"}>
+                <Mail size={18} /> Email homeowner
+              </CbButton>
+              <CbButton block size="lg" variant="ghost" onClick={() => email("adjuster")} loading={busy === "adjuster"}>
+                <Mail size={18} /> Email adjuster
+              </CbButton>
+              <CbButton block size="lg" variant="ghost" onClick={() => navigate({ to: "/cb/job/$id/estimate", params: { id } })}>
+                <Calculator size={18} /> Estimate
+              </CbButton>
+              <CbButton block size="lg" variant="ghost" onClick={() => navigate({ to: "/cb/job/$id/present", params: { id } })}>
+                <Presentation size={18} /> Present
+              </CbButton>
+              <CbButton block size="lg" variant="ghost" onClick={copyLink} loading={busy === "share"}>
+                <Link2 size={18} /> Copy link
+              </CbButton>
+            </div>
+          </CbSheet>
+
 
           {pdfStep ? (
             <p className="mt-2 flex items-center gap-2 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>

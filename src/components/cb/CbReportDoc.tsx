@@ -97,15 +97,29 @@ function Editable({
   );
 }
 
-function Photo({ photo, urls, width = 168 }: { photo: CbReportPhoto; urls: Record<string, string>; width?: number }) {
+function Photo({
+  photo,
+  urls,
+  width = 168,
+  variant = "full",
+  index,
+}: {
+  photo: CbReportPhoto;
+  urls: Record<string, string>;
+  width?: number;
+  /** "thumb" renders a compact contact-sheet tile with no caption text. */
+  variant?: "full" | "thumb";
+  index?: number;
+}) {
   const url = urls[photo.thumb_path ?? photo.storage_path] ?? urls[photo.storage_path];
+  const thumb = variant === "thumb";
   return (
-    <figure className="cb-report-photo m-0" style={{ width }}>
+    <figure className="cb-report-photo m-0" style={{ width: thumb ? undefined : width }}>
       <div
         style={{
           width: "100%",
-          aspectRatio: "4 / 3",
-          borderRadius: 10,
+          aspectRatio: thumb ? "1 / 1" : "4 / 3",
+          borderRadius: thumb ? 7 : 10,
           overflow: "hidden",
           border: "1px solid var(--cb-border)",
           background: "var(--cb-surface-2, rgba(0,0,0,.04))",
@@ -113,11 +127,15 @@ function Photo({ photo, urls, width = 168 }: { photo: CbReportPhoto; urls: Recor
       >
         {url ? <img src={url} alt={photo.caption ?? ""} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : null}
       </div>
-      <figcaption className="mt-1 text-[11.5px]" style={{ color: "var(--cb-text-muted)" }}>
-        {photo.caption || [photo.shot_type, photo.item_key].filter(Boolean).join(" · ") || "—"}
+      <figcaption
+        className={thumb ? "mt-[3px] text-[10px]" : "mt-1 text-[11.5px]"}
+        style={{ color: "var(--cb-text-muted)", ...(thumb ? { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } : null) }}
+      >
+        {thumb ? String(index ?? "") : photo.caption || [photo.shot_type, photo.item_key].filter(Boolean).join(" · ") || "—"}
       </figcaption>
     </figure>
   );
+
 }
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
@@ -155,6 +173,10 @@ export function CbReportDoc({
   }, [photos]);
 
   const photoById = useMemo(() => Object.fromEntries(photos.map((p) => [p.id, p])), [photos]);
+
+  /** 1-based catalogue number for the appendix contact sheet. */
+  const photoIndex = useMemo(() => Object.fromEntries(photos.map((p, i) => [p.id, i + 1])), [photos]);
+
 
   function patchItem(id: string, patch: Partial<CbLineItem>) {
     onLineItems?.(lineItems.map((it) => (it.id === id ? { ...it, ...patch } : it)));
@@ -538,8 +560,11 @@ export function CbReportDoc({
         )}
       </Section>
 
-      {/* 9 — APPENDIX */}
+      {/* 9 — APPENDIX (contact sheet: thumbnails only, no full-size repeats) */}
       <Section n={9} title="Photo appendix">
+        <p className="mb-2 text-[12.5px]" style={{ color: "var(--cb-text-muted)" }}>
+          Contact sheet of all {photos.length} photo{photos.length === 1 ? "" : "s"} — full-size images appear once, inline with the findings above.
+        </p>
         {Object.entries(byCat).map(([cat, list]) => (
           <div key={cat} className="mb-4">
             <span className="cb-microlabel">
@@ -554,22 +579,23 @@ export function CbReportDoc({
                     <p className="text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
                       {CB_ELEVATION_LABEL[e]}
                     </p>
-                    <div className="mt-1 flex flex-wrap gap-3">
+                    <div className="mt-1 grid grid-cols-5 gap-2 sm:grid-cols-6 md:grid-cols-8">
                       {sub.map((p) => (
-                        <Photo key={p.id} photo={p} urls={urls} width={148} />
+                        <Photo key={p.id} photo={p} urls={urls} variant="thumb" index={photoIndex[p.id]} />
                       ))}
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="mt-2 flex flex-wrap gap-3">
+              <div className="mt-2 grid grid-cols-5 gap-2 sm:grid-cols-6 md:grid-cols-8">
                 {list.map((p) => (
-                  <Photo key={p.id} photo={p} urls={urls} width={148} />
+                  <Photo key={p.id} photo={p} urls={urls} variant="thumb" index={photoIndex[p.id]} />
                 ))}
               </div>
             )}
           </div>
+
         ))}
       </Section>
 

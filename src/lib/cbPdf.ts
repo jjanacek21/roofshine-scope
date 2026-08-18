@@ -305,15 +305,22 @@ export async function renderReportPdf(vm: CbReportViewModel, onStep?: CbPdfProgr
   header();
   y = M + 40;
   h1("Photo appendix");
+  para(
+    `Contact sheet of all ${vm.photos.length} photo${vm.photos.length === 1 ? "" : "s"} — full-size images appear once, inline with the findings above.`,
+    9,
+  );
 
   const byCat: Record<string, CbReportPhoto[]> = {};
   for (const p of vm.photos) (byCat[p.category ?? "other"] ??= []).push(p);
 
-  const COLS = 3;
-  const GAP = 12;
+  const indexOf = new Map(vm.photos.map((p, i) => [p.id, i + 1]));
+
+  // Compact contact sheet: square thumbs, six per row, number instead of caption.
+  const COLS = 6;
+  const GAP = 8;
   const cellW = (CONTENT_W - GAP * (COLS - 1)) / COLS;
-  const cellH = cellW * 0.75;
-  const blockH = cellH + 26;
+  const cellH = cellW;
+  const blockH = cellH + 14;
 
   for (const [cat, list] of Object.entries(byCat)) {
     const groups: [string, CbReportPhoto[]][] = [];
@@ -343,14 +350,14 @@ export async function renderReportPdf(vm: CbReportViewModel, onStep?: CbPdfProgr
           } else {
             doc.setDrawColor(225).rect(x, rowTop, cellW, cellH);
           }
-          doc.setFont("helvetica", "normal").setFontSize(7.5).setTextColor(115);
-          const caption = p.caption || [p.shot_type, p.item_key].filter(Boolean).join(" · ") || "—";
-          doc.text((doc.splitTextToSize(caption, cellW) as string[]).slice(0, 2), x, rowTop + cellH + 9);
+          doc.setFont("helvetica", "normal").setFontSize(7).setTextColor(120);
+          doc.text(String(indexOf.get(p.id) ?? ""), x, rowTop + cellH + 8);
         }
         y = rowTop + blockH;
       }
     }
   }
+
 
   /* 10 — statement */
   h1("Statement and signature");
