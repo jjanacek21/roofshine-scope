@@ -220,7 +220,7 @@ export function CbReportDoc({
               />
             </div>
           ) : null}
-          <div className="mt-4 grid grid-cols-2 gap-x-5">
+          <div className="mt-4 grid grid-cols-1 gap-x-5 sm:grid-cols-2">
             <Row label="Property" value={String(job?.address ?? "—")} />
             <Row label="City / state" value={[job?.city, job?.state, job?.zip].filter(Boolean).join(", ") || "—"} />
             <Row label="Homeowner" value={String(job?.customer_name ?? "—")} />
