@@ -1,0 +1,2 @@
+ALTER TABLE public.estimate_line_items ADD COLUMN IF NOT EXISTS is_manual boolean NOT NULL DEFAULT false;
+ALTER TABLE public.estimates ADD COLUMN IF NOT EXISTS removed_line_keys jsonb NOT NULL DEFAULT '[]'::jsonb;

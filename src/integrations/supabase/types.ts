@@ -2267,6 +2267,7 @@ export type Database = {
           depreciation_recoverable: boolean
           estimate_id: string
           id: string
+          is_manual: boolean
           line_item_id: string | null
           name: string
           not_yet_incurred: boolean
@@ -2293,6 +2294,7 @@ export type Database = {
           depreciation_recoverable?: boolean
           estimate_id: string
           id?: string
+          is_manual?: boolean
           line_item_id?: string | null
           name: string
           not_yet_incurred?: boolean
@@ -2319,6 +2321,7 @@ export type Database = {
           depreciation_recoverable?: boolean
           estimate_id?: string
           id?: string
+          is_manual?: boolean
           line_item_id?: string | null
           name?: string
           not_yet_incurred?: boolean
@@ -2373,6 +2376,7 @@ export type Database = {
           price_list_code: string | null
           price_per_square: number | null
           profit_pct: number
+          removed_line_keys: Json
           report_meta: Json
           report_notes: Json
           show_code_pages: boolean
@@ -2406,6 +2410,7 @@ export type Database = {
           price_list_code?: string | null
           price_per_square?: number | null
           profit_pct?: number
+          removed_line_keys?: Json
           report_meta?: Json
           report_notes?: Json
           show_code_pages?: boolean
@@ -2439,6 +2444,7 @@ export type Database = {
           price_list_code?: string | null
           price_per_square?: number | null
           profit_pct?: number
+          removed_line_keys?: Json
           report_meta?: Json
           report_notes?: Json
           show_code_pages?: boolean
