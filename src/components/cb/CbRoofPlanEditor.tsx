@@ -1293,11 +1293,11 @@ export function CbRoofPlanEditor({
 
   return (
     <div className="space-y-3">
-      <CbCard className="overflow-hidden p-0">
+      <CbCard className="-mx-4 overflow-hidden rounded-none p-0 lg:mx-0 lg:rounded-[14px]">
         <div className="relative">
           <div
             ref={containerRef}
-            className="h-[420px] w-full"
+            className="h-[420px] w-full sm:h-[520px]"
             style={{ touchAction: "none" }}
             aria-label="Roof plan editor"
           />
@@ -1463,32 +1463,8 @@ export function CbRoofPlanEditor({
           ) : null}
 
 
-          {tool === "line" && !readOnly ? (
-            /*
-              Sits well clear of the Mapbox logo strip in the bottom-right —
-              tapping "Undo point" used to open mapbox.com instead.
-            */
-            <div
-              className="pointer-events-auto absolute bottom-20 left-3 right-3 z-40 flex flex-wrap items-center gap-2 rounded-[10px] p-2"
-              style={{ background: "var(--cb-surface)" }}
-            >
+          {/* Drawing controls live below the map so they never cover the roof. */}
 
-              <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
-                Undo point
-              </MapBtn>
-              <MapBtn onClick={finishLine} disabled={draft.length < 2}>
-                Finish line ({Math.round(lineLengthFeet(draft))} LF)
-              </MapBtn>
-              <MapBtn
-                onClick={() => {
-                  setDraft([]);
-                  setTool("select");
-                }}
-              >
-                Done drawing
-              </MapBtn>
-            </div>
-          ) : null}
 
           {!readOnly ? (
             <div className="pointer-events-none absolute bottom-10 left-3 right-3 z-10 flex justify-center">
@@ -1512,9 +1488,32 @@ export function CbRoofPlanEditor({
           ) : null}
         </div>
 
+        {tool === "line" && !readOnly ? (
+          <div
+            className="grid grid-cols-3 gap-2 border-t px-4 py-3"
+            style={{ borderColor: "var(--cb-border)" }}
+          >
+            <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
+              Undo point
+            </MapBtn>
+            <MapBtn onClick={finishLine} disabled={draft.length < 2}>
+              Finish line ({Math.round(lineLengthFeet(draft))} LF)
+            </MapBtn>
+            <MapBtn
+              onClick={() => {
+                setDraft([]);
+                setTool("select");
+              }}
+            >
+              Done drawing
+            </MapBtn>
+          </div>
+        ) : null}
+
         {/* Always-visible measure action — never hunt for it down the page. */}
         {!readOnly ? (
           <div className="border-t px-4 py-3" style={{ borderColor: "var(--cb-border)" }}>
+
             {activeSection && !activeSection.isLocked ? (
               <CbButton block onClick={() => onSaveFootprint?.(activeSection.id)} loading={savingFootprint} loadingText="Saving footprint…">
                 Save this footprint
