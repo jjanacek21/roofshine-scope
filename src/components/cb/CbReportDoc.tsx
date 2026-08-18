@@ -556,8 +556,11 @@ export function CbReportDoc({
         )}
       </Section>
 
-      {/* 9 — APPENDIX */}
+      {/* 9 — APPENDIX (contact sheet: thumbnails only, no full-size repeats) */}
       <Section n={9} title="Photo appendix">
+        <p className="mb-2 text-[12.5px]" style={{ color: "var(--cb-text-muted)" }}>
+          Contact sheet of all {photos.length} photo{photos.length === 1 ? "" : "s"} — full-size images appear once, inline with the findings above.
+        </p>
         {Object.entries(byCat).map(([cat, list]) => (
           <div key={cat} className="mb-4">
             <span className="cb-microlabel">
@@ -572,22 +575,23 @@ export function CbReportDoc({
                     <p className="text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
                       {CB_ELEVATION_LABEL[e]}
                     </p>
-                    <div className="mt-1 flex flex-wrap gap-3">
+                    <div className="mt-1 grid grid-cols-5 gap-2 sm:grid-cols-6 md:grid-cols-8">
                       {sub.map((p) => (
-                        <Photo key={p.id} photo={p} urls={urls} width={148} />
+                        <Photo key={p.id} photo={p} urls={urls} variant="thumb" index={photoIndex[p.id]} />
                       ))}
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="mt-2 flex flex-wrap gap-3">
+              <div className="mt-2 grid grid-cols-5 gap-2 sm:grid-cols-6 md:grid-cols-8">
                 {list.map((p) => (
-                  <Photo key={p.id} photo={p} urls={urls} width={148} />
+                  <Photo key={p.id} photo={p} urls={urls} variant="thumb" index={photoIndex[p.id]} />
                 ))}
               </div>
             )}
           </div>
+
         ))}
       </Section>
 
