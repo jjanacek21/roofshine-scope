@@ -811,7 +811,37 @@ export function CbRoofPlanEditor({
     ctx.stroke();
   }, []);
 
+  /**
+   * A finger on a handle belongs to the handle, not to the map. Every camera
+   * gesture is switched off for the whole press — doing this only once the
+   * 250ms pickup fired let mapbox claim the touch first and reset the drag.
+   */
+  const lockMapGestures = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.dragPan.disable();
+    map.dragRotate.disable();
+    map.scrollZoom.disable();
+    map.doubleClickZoom.disable();
+    map.touchZoomRotate.disable();
+    map.touchPitch?.disable();
+    map.boxZoom.disable();
+  }, []);
+
+  const unlockMapGestures = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.dragPan.enable();
+    map.dragRotate.enable();
+    map.scrollZoom.enable();
+    map.doubleClickZoom.enable();
+    map.touchZoomRotate.enable();
+    map.touchPitch?.enable();
+    map.boxZoom.enable();
+  }, []);
+
   /* ------------------------------ handles ------------------------------- */
+
 
   const project = (p: number[]) => {
     const map = mapRef.current;
