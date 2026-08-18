@@ -779,6 +779,36 @@ export function CbRoofPlanEditor({
     return { point: best, hit };
   }
 
+  /**
+   * Nearest other corner / line endpoint in screen space, so two points that
+   * should meet land on exactly the same coordinate.
+   */
+  function magnetPoint(
+    screen: { x: number; y: number },
+    exclude?: { sectionId: string; vertexIndex: number },
+  ): [number, number] | null {
+    const map = mapRef.current;
+    if (!map) return null;
+    let best: [number, number] | null = null;
+    let bestDistance = VERTEX_MAGNET_PX;
+    const consider = (p: number[]) => {
+      const projected = map.project(p as [number, number]);
+      const d = Math.hypot(projected.x - screen.x, projected.y - screen.y);
+      if (d < bestDistance) {
+        bestDistance = d;
+        best = [p[0], p[1]];
+      }
+    };
+    for (const section of planRef.current.sections) {
+      section.ring.forEach((p, i) => {
+        if (exclude && exclude.sectionId === section.id && exclude.vertexIndex === i) return;
+        consider(p);
+      });
+    }
+    for (const line of planRef.current.lines) line.coords.forEach(consider);
+    return best;
+  }
+
   function snapLinePoint(lngLat: [number, number], point: { x: number; y: number }) {
     return snapLinePointInfo(lngLat, point).point;
   }
@@ -800,7 +830,11 @@ export function CbRoofPlanEditor({
         return;
       }
       if (tool === "line" && !readOnly) {
-        setDraft((d) => [...d, snapLinePoint([e.lngLat.lng, e.lngLat.lat], e.point)]);
+        {
+          const snap = snapLinePointInfo([e.lngLat.lng, e.lngLat.lat], e.point);
+          if (snap.hit) splitEdgeAt(snap.hit.sectionId, snap.hit.edgeIndex, snap.point);
+          setDraft((d) => [...d, snap.point]);
+        }
         cbHaptic(6);
         return;
       }
@@ -969,7 +1003,8 @@ export function CbRoofPlanEditor({
       ring.splice(index + 1, 0, [mid[0], mid[1]]);
       const edges = normalizeEdges(s.ring, s.edges);
       const nextEdges = [...edges];
-      nextEdges.splice(index + 1, 0, edges[index]);
+      nextEdges[index] = "unlabeled";
+      nextEdges.splice(index + 1, 0, "unlabeled");
       vIndex = index + 1;
       onPlanChange(
         updateSection(sectionId, (sec) => ({ ...sec, ring, edges: nextEdges, isLocked: false })),
@@ -1038,9 +1073,13 @@ export function CbRoofPlanEditor({
       const s = planRef.current.sections.find((x) => x.id === sectionId);
       if (!s) return;
       const raw: [number, number] = [ll.lng, ll.lat];
-      const snapped = squareUp
-        ? snapVertexToAxis(s.ring, vIndex, raw, axis)
-        : snapVertex(s.ring, vIndex, raw);
+      const screen = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+      const magnet = magnetPoint(screen, { sectionId, vertexIndex: vIndex });
+      // Straight (axis / square-to-axis) snapping is always on, then the old
+      // 15-degree rule catches the in-between angles.
+      const axisSnapped = magnet ?? snapVertexToAxis(s.ring, vIndex, raw, axis);
+      const snapped =
+        magnet ?? (axisSnapped !== raw ? axisSnapped : snapVertex(s.ring, vIndex, raw));
       const ring = s.ring.map((p, i) => (i === vIndex ? snapped : p));
       onPlanChange(updateSection(sectionId, (sec) => ({ ...sec, ring, isLocked: false })), {
         user: true,
@@ -1104,6 +1143,12 @@ export function CbRoofPlanEditor({
     const startDraft = draft.map((point) => [...point]);
     let moved = false;
     let engaged = false;
+    let lastHit: { sectionId: string; edgeIndex: number } | null = null;
+    let lastPoint: [number, number] = [0, 0];
+    const dragAxis = ringAxisDeg(
+      (planRef.current.sections.find((s) => s.id === selectedIdRef.current) ??
+        planRef.current.sections[0])?.ring ?? [],
+    );
     const startX = e.clientX;
     const startY = e.clientY;
 
@@ -1133,7 +1178,19 @@ export function CbRoofPlanEditor({
       const ll = currentMap.unproject([ev.clientX - rect.left, ev.clientY - rect.top]);
       const point = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
       const raw: [number, number] = [ll.lng, ll.lat];
-      const next = target.kind === "pin" ? raw : snapLinePoint(raw, point);
+      let next = raw;
+      if (target.kind !== "pin") {
+        const anchor =
+          target.kind === "draft"
+            ? startDraft[target.index - 1] ?? startDraft[target.index + 1]
+            : planRef.current.lines.find((l) => l.id === target.id)?.coords[
+                target.index === 0 ? 1 : target.index - 1
+              ];
+        const straight = snapStraightFrom(anchor, raw, dragAxis);
+        const snap = snapLinePointInfo(straight, point);
+        next = snap.point;
+        lastHit = snap.hit;
+      }
 
       if (target.kind === "draft") {
         setDraft((current) => current.map((p, index) => (index === target.index ? next : p)));
@@ -1152,12 +1209,14 @@ export function CbRoofPlanEditor({
       } else {
         onPinMove?.(target.index, { lng: next[0], lat: next[1] });
       }
+      lastPoint = next;
       setLoupe({ x: ev.clientX, y: ev.clientY });
       requestAnimationFrame(() => paintLoupe(ev.clientX, ev.clientY));
     };
 
     const finish = () => {
       if (arm) window.clearTimeout(arm);
+      if (moved && lastHit) splitEdgeAt(lastHit.sectionId, lastHit.edgeIndex, lastPoint);
       if (moved && target.kind === "line") setPast((history) => [...history.slice(-40), startPlan]);
       if (!moved && target.kind === "draft") setDraft(startDraft);
       if (engaged) cbHaptic(10);
