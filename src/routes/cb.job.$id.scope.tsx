@@ -35,7 +35,7 @@ const SCOPES: {
   title: string;
   body: string;
   icon: typeof Home;
-  to: "/cb/job/$id/roof" | "/cb/job/$id/exterior" | "/cb/job/$id/interior";
+  to: "/cb/job/$id/takeoff" | "/cb/job/$id/exterior" | "/cb/job/$id/interior";
 }[] = [
   {
     key: "exterior",
@@ -49,7 +49,7 @@ const SCOPES: {
     title: "Roof",
     body: "Every slope wide, test squares, hardware takeoff, instant measurement",
     icon: Home,
-    to: "/cb/job/$id/roof",
+    to: "/cb/job/$id/takeoff",
   },
   {
     key: "interior",

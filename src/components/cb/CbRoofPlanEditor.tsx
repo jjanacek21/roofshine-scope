@@ -49,7 +49,7 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const TAP_VERTEX_PX = 34;
 const TAP_EDGE_PX = 28;
 /** A dragged point clicks onto another corner / endpoint inside this radius. */
-const VERTEX_MAGNET_PX = 22;
+const VERTEX_MAGNET_PX = 12;
 
 /**
  * Hold a segment straight: if the bearing from `anchor` is within `tolDeg` of
@@ -744,9 +744,14 @@ export function CbRoofPlanEditor({
   function snapLinePointInfo(
     lngLat: [number, number],
     point: { x: number; y: number },
-  ): { point: [number, number]; hit: { sectionId: string; edgeIndex: number } | null } {
+    allowMagnet = true,
+  ): {
+    point: [number, number];
+    hit: { sectionId: string; edgeIndex: number } | null;
+    magnet: boolean;
+  } {
     const map = mapRef.current;
-    if (!map) return { point: lngLat, hit: null };
+    if (!map) return { point: lngLat, hit: null, magnet: false };
     let best: [number, number] = lngLat;
     let hit: { sectionId: string; edgeIndex: number } | null = null;
     let bestDistance = TAP_EDGE_PX;
@@ -763,6 +768,7 @@ export function CbRoofPlanEditor({
     }
 
     // Corner / endpoint magnet wins over the edge projection.
+    let magnet = false;
     let magnetDistance = VERTEX_MAGNET_PX;
     const consider = (p: number[]) => {
       const projected = map.project(p as [number, number]);
@@ -771,13 +777,17 @@ export function CbRoofPlanEditor({
         magnetDistance = d;
         best = [p[0], p[1]];
         hit = null;
+        magnet = true;
       }
     };
-    for (const section of planRef.current.sections) section.ring.forEach(consider);
-    for (const line of planRef.current.lines) line.coords.forEach(consider);
+    if (allowMagnet) {
+      for (const section of planRef.current.sections) section.ring.forEach(consider);
+      for (const line of planRef.current.lines) line.coords.forEach(consider);
+    }
 
-    return { point: best, hit };
+    return { point: best, hit, magnet };
   }
+
 
   /**
    * Nearest other corner / line endpoint in screen space, so two points that
@@ -1044,7 +1054,13 @@ export function CbRoofPlanEditor({
     setSelectedVertex(vIndex);
     if (kind === "midpoint") engage();
 
+    // Snap once, then let go: after a corner magnet has grabbed and the finger
+    // moves back out of range, stop magnetting for the rest of this drag.
+    let magnetGrabbed = false;
+    let magnetOff = false;
+
     const move = (ev: PointerEvent) => {
+
       const d = dragRef.current;
       if (!d) return;
       if (Math.hypot(ev.clientX - d.x, ev.clientY - d.y) > 8) {
@@ -1070,7 +1086,9 @@ export function CbRoofPlanEditor({
       if (!s) return;
       const raw: [number, number] = [ll.lng, ll.lat];
       const screen = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
-      const magnet = magnetPoint(screen, { sectionId, vertexIndex: vIndex });
+      const magnet = magnetOff ? null : magnetPoint(screen, { sectionId, vertexIndex: vIndex });
+      if (magnet) magnetGrabbed = true;
+      else if (magnetGrabbed) magnetOff = true;
       // Straight (axis / square-to-axis) snapping is always on, then the old
       // 15-degree rule catches the in-between angles.
       const axisSnapped = magnet ?? snapVertexToAxis(s.ring, vIndex, raw, axis);
@@ -1141,6 +1159,9 @@ export function CbRoofPlanEditor({
     let engaged = false;
     let lastHit: { sectionId: string; edgeIndex: number } | null = null;
     let lastPoint: [number, number] = [0, 0];
+    // Snap once, then let go — see beginVertexDrag.
+    let magnetGrabbed = false;
+    let magnetOff = false;
     const dragAxis = ringAxisDeg(
       (planRef.current.sections.find((s) => s.id === selectedIdRef.current) ??
         planRef.current.sections[0])?.ring ?? [],
@@ -1183,7 +1204,9 @@ export function CbRoofPlanEditor({
                 target.index === 0 ? 1 : target.index - 1
               ];
         const straight = snapStraightFrom(anchor, raw, dragAxis);
-        const snap = snapLinePointInfo(straight, point);
+        const snap = snapLinePointInfo(straight, point, !magnetOff);
+        if (snap.magnet) magnetGrabbed = true;
+        else if (magnetGrabbed) magnetOff = true;
         next = snap.point;
         lastHit = snap.hit;
       }
