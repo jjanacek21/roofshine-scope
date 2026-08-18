@@ -97,15 +97,29 @@ function Editable({
   );
 }
 
-function Photo({ photo, urls, width = 168 }: { photo: CbReportPhoto; urls: Record<string, string>; width?: number }) {
+function Photo({
+  photo,
+  urls,
+  width = 168,
+  variant = "full",
+  index,
+}: {
+  photo: CbReportPhoto;
+  urls: Record<string, string>;
+  width?: number;
+  /** "thumb" renders a compact contact-sheet tile with no caption text. */
+  variant?: "full" | "thumb";
+  index?: number;
+}) {
   const url = urls[photo.thumb_path ?? photo.storage_path] ?? urls[photo.storage_path];
+  const thumb = variant === "thumb";
   return (
-    <figure className="cb-report-photo m-0" style={{ width }}>
+    <figure className="cb-report-photo m-0" style={{ width: thumb ? undefined : width }}>
       <div
         style={{
           width: "100%",
-          aspectRatio: "4 / 3",
-          borderRadius: 10,
+          aspectRatio: thumb ? "1 / 1" : "4 / 3",
+          borderRadius: thumb ? 7 : 10,
           overflow: "hidden",
           border: "1px solid var(--cb-border)",
           background: "var(--cb-surface-2, rgba(0,0,0,.04))",
@@ -113,11 +127,15 @@ function Photo({ photo, urls, width = 168 }: { photo: CbReportPhoto; urls: Recor
       >
         {url ? <img src={url} alt={photo.caption ?? ""} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : null}
       </div>
-      <figcaption className="mt-1 text-[11.5px]" style={{ color: "var(--cb-text-muted)" }}>
-        {photo.caption || [photo.shot_type, photo.item_key].filter(Boolean).join(" · ") || "—"}
+      <figcaption
+        className={thumb ? "mt-[3px] text-[10px]" : "mt-1 text-[11.5px]"}
+        style={{ color: "var(--cb-text-muted)", ...(thumb ? { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } : null) }}
+      >
+        {thumb ? String(index ?? "") : photo.caption || [photo.shot_type, photo.item_key].filter(Boolean).join(" · ") || "—"}
       </figcaption>
     </figure>
   );
+
 }
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
