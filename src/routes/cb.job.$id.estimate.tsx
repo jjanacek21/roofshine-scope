@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Download, Loader2, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
@@ -15,6 +15,8 @@ import {
   measurementIsComplete,
   perSquareMath,
   saveCbEstimate,
+  mergeCbDraft,
+  cbLineKey,
   CB_SOURCE_LABEL,
   type CbDraftLine,
   type CbEstimateMode,
@@ -358,7 +360,7 @@ function CbEstimatePage() {
               ← Report
             </button>
             <span className="text-sm font-semibold">Estimate</span>
-            <CbButton size="md" variant="ghost" onClick={() => void regenerate(mode)} disabled={building}>
+            <CbButton size="md" variant="ghost" onClick={() => setAskRebuild(true)} disabled={building}>
               {building ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </CbButton>
           </div>
