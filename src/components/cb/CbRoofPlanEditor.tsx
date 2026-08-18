@@ -1293,11 +1293,11 @@ export function CbRoofPlanEditor({
 
   return (
     <div className="space-y-3">
-      <CbCard className="overflow-hidden p-0">
+      <CbCard className="-mx-4 overflow-hidden rounded-none p-0 lg:mx-0 lg:rounded-[14px]">
         <div className="relative">
           <div
             ref={containerRef}
-            className="h-[420px] w-full"
+            className="h-[420px] w-full sm:h-[520px]"
             style={{ touchAction: "none" }}
             aria-label="Roof plan editor"
           />
