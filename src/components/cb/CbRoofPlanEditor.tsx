@@ -1764,7 +1764,7 @@ function DragPointHandle({
       type="button"
       aria-label={label}
       onPointerDown={onPointerDown}
-      className="pointer-events-auto absolute z-10 grid place-items-center"
+      className="pointer-events-auto absolute z-30 grid place-items-center"
       style={{
         left: x - 22,
         top: y - 22,

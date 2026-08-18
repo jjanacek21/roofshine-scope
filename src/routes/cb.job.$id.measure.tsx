@@ -828,7 +828,7 @@ function CbJobMeasurePage() {
                 ) : null}
 
                 <div className="space-y-3">
-                  <CbButton block variant="ghost" onClick={() => setPinDropMode(true)} disabled={!plan.sections.every((section) => section.isLocked)}>
+                  <CbButton block variant="ghost" onClick={() => setPinDropMode(true)}>
                     Add another roof
                   </CbButton>
                 </div>
