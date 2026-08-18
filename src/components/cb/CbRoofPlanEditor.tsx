@@ -750,7 +750,7 @@ export function CbRoofPlanEditor({
       const lineHit = hits.find((f) => f.layer?.id === "cb-line-hit");
       if (lineHit && !readOnly) {
         const lineId = lineHit.properties?.id as string | undefined;
-        if (lineId && lineId !== "draft") {
+        if (lineId && !lineId.startsWith("draft")) {
           setTypeSheet({ kind: "lineEdit", id: lineId });
           return;
         }
