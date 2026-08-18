@@ -59,7 +59,54 @@ export interface CbDraftLine {
   basis: string;
   /** Set on code-injected lines so an adjuster can see the citation. */
   code_reference?: string | null;
+  /**
+   * The rep touched this line. A rebuild from the takeoff carries it through
+   * untouched — a manual correction always beats a re-derived number.
+   */
+  is_manual?: boolean;
 }
+
+/**
+ * Identity of a line across rebuilds. The catalog id is the real key; a code or
+ * the description only stands in for hand-added lines that have neither.
+ */
+export function cbLineKey(l: Pick<CbDraftLine, "line_item_id" | "code" | "name">): string {
+  return l.line_item_id ?? l.code ?? l.name.trim().toLowerCase();
+}
+
+/**
+ * Fold a fresh derivation into what is already on screen.
+ *
+ * Manual lines survive verbatim, removed keys stay removed, and derived lines
+ * the rep never touched pick up the new quantity and price. Anything genuinely
+ * new is appended at the end so the existing order is not shuffled.
+ */
+export function mergeCbDraft(
+  existing: CbDraftLine[],
+  rebuilt: CbDraftLine[],
+  removedKeys: string[],
+): CbDraftLine[] {
+  const removed = new Set(removedKeys);
+  const byKey = new Map(rebuilt.map((l) => [cbLineKey(l), l]));
+  const kept: CbDraftLine[] = [];
+
+  for (const line of existing) {
+    const key = cbLineKey(line);
+    const fresh = byKey.get(key);
+    byKey.delete(key);
+    if (line.is_manual || !fresh) {
+      kept.push(line);
+      continue;
+    }
+    kept.push({ ...fresh, id: line.id });
+  }
+
+  for (const fresh of byKey.values()) {
+    if (!removed.has(cbLineKey(fresh))) kept.push(fresh);
+  }
+  return kept;
+}
+
 
 
 export interface CbEstimateTotals {
