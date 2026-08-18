@@ -49,7 +49,7 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const TAP_VERTEX_PX = 34;
 const TAP_EDGE_PX = 28;
 /** A dragged point clicks onto another corner / endpoint inside this radius. */
-const VERTEX_MAGNET_PX = 16;
+const VERTEX_MAGNET_PX = 22;
 
 /**
  * Hold a segment straight: if the bearing from `anchor` is within `tolDeg` of
@@ -1485,9 +1485,13 @@ export function CbRoofPlanEditor({
                 type="button"
                 aria-label={`Insert point on edge ${h.index + 1}`}
                 onPointerDown={(e) =>
-                  handleSection && beginVertexDrag(e, handleSection.id, h.index, "midpoint")
+                  tool !== "line" &&
+                  handleSection &&
+                  beginVertexDrag(e, handleSection.id, h.index, "midpoint")
                 }
-                className="pointer-events-auto absolute grid place-items-center"
+                className={`absolute grid place-items-center ${
+                  tool === "line" ? "pointer-events-none" : "pointer-events-auto"
+                }`}
                 style={{
                   left: h.x - 22,
                   top: h.y - 22,
@@ -1515,9 +1519,13 @@ export function CbRoofPlanEditor({
                 type="button"
                 aria-label={`Corner ${h.index + 1} — drag to move, hold to delete`}
                 onPointerDown={(e) =>
-                  handleSection && beginVertexDrag(e, handleSection.id, h.index, "vertex")
+                  tool !== "line" &&
+                  handleSection &&
+                  beginVertexDrag(e, handleSection.id, h.index, "vertex")
                 }
-                className="pointer-events-auto absolute grid place-items-center"
+                className={`absolute grid place-items-center ${
+                  tool === "line" ? "pointer-events-none" : "pointer-events-auto"
+                }`}
                 style={{
                   left: h.x - 22,
                   top: h.y - 22,
