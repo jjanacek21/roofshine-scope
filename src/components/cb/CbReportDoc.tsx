@@ -174,6 +174,10 @@ export function CbReportDoc({
 
   const photoById = useMemo(() => Object.fromEntries(photos.map((p) => [p.id, p])), [photos]);
 
+  /** 1-based catalogue number for the appendix contact sheet. */
+  const photoIndex = useMemo(() => Object.fromEntries(photos.map((p, i) => [p.id, i + 1])), [photos]);
+
+
   function patchItem(id: string, patch: Partial<CbLineItem>) {
     onLineItems?.(lineItems.map((it) => (it.id === id ? { ...it, ...patch } : it)));
   }
