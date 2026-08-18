@@ -1201,7 +1201,9 @@ export function CbRoofPlanEditor({
                 target.index === 0 ? 1 : target.index - 1
               ];
         const straight = snapStraightFrom(anchor, raw, dragAxis);
-        const snap = snapLinePointInfo(straight, point);
+        const snap = snapLinePointInfo(straight, point, !magnetOff);
+        if (snap.magnet) magnetGrabbed = true;
+        else if (magnetGrabbed) magnetOff = true;
         next = snap.point;
         lastHit = snap.hit;
       }
