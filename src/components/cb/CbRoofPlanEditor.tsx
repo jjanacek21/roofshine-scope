@@ -1463,32 +1463,8 @@ export function CbRoofPlanEditor({
           ) : null}
 
 
-          {tool === "line" && !readOnly ? (
-            /*
-              Sits well clear of the Mapbox logo strip in the bottom-right —
-              tapping "Undo point" used to open mapbox.com instead.
-            */
-            <div
-              className="pointer-events-auto absolute bottom-20 left-3 right-3 z-40 flex flex-wrap items-center gap-2 rounded-[10px] p-2"
-              style={{ background: "var(--cb-surface)" }}
-            >
+          {/* Drawing controls live below the map so they never cover the roof. */}
 
-              <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
-                Undo point
-              </MapBtn>
-              <MapBtn onClick={finishLine} disabled={draft.length < 2}>
-                Finish line ({Math.round(lineLengthFeet(draft))} LF)
-              </MapBtn>
-              <MapBtn
-                onClick={() => {
-                  setDraft([]);
-                  setTool("select");
-                }}
-              >
-                Done drawing
-              </MapBtn>
-            </div>
-          ) : null}
 
           {!readOnly ? (
             <div className="pointer-events-none absolute bottom-10 left-3 right-3 z-10 flex justify-center">
