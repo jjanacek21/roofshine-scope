@@ -922,8 +922,6 @@ export function CbRoofPlanEditor({
       if (!d || d.engaged) return;
       d.engaged = true;
       cbHaptic(16);
-      map?.dragPan.disable();
-      map?.touchZoomRotate.disableRotation();
       setLoupe({ x: d.x, y: d.y });
       paintLoupe(d.x, d.y);
       // A stationary hold past the pickup still removes the corner.
@@ -993,8 +991,7 @@ export function CbRoofPlanEditor({
       }
       dragRef.current = null;
       setLoupe(null);
-      mapRef.current?.dragPan.enable();
-      mapRef.current?.touchZoomRotate.enableRotation();
+      unlockMapGestures();
       try {
         handle.releasePointerCapture(e.pointerId);
       } catch {
@@ -1045,8 +1042,6 @@ export function CbRoofPlanEditor({
       if (engaged) return;
       engaged = true;
       cbHaptic(16);
-      map?.dragPan.disable();
-      map?.touchZoomRotate.disableRotation();
       setLoupe({ x: startX, y: startY });
       paintLoupe(startX, startY);
     };
@@ -1098,8 +1093,7 @@ export function CbRoofPlanEditor({
       if (!moved && target.kind === "draft") setDraft(startDraft);
       if (engaged) cbHaptic(10);
       setLoupe(null);
-      mapRef.current?.dragPan.enable();
-      mapRef.current?.touchZoomRotate.enableRotation();
+      unlockMapGestures();
       try {
         handle.releasePointerCapture(e.pointerId);
       } catch {
