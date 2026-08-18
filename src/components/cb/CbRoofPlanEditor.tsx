@@ -1159,6 +1159,9 @@ export function CbRoofPlanEditor({
     let engaged = false;
     let lastHit: { sectionId: string; edgeIndex: number } | null = null;
     let lastPoint: [number, number] = [0, 0];
+    // Snap once, then let go — see beginVertexDrag.
+    let magnetGrabbed = false;
+    let magnetOff = false;
     const dragAxis = ringAxisDeg(
       (planRef.current.sections.find((s) => s.id === selectedIdRef.current) ??
         planRef.current.sections[0])?.ring ?? [],
