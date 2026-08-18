@@ -333,13 +333,22 @@ export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInp
       .from("estimates")
       .select("*")
       .eq("cb_job_id", jobId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .order("created_at", { ascending: false }),
   ]);
 
   let existing: CbEstimateInputs["existing"] = null;
-  const estRow = (existingRes as { data: Record<string, unknown> | null }).data;
+  const estRows = ((existingRes as { data: Record<string, unknown>[] | null }).data ?? []);
+  const estRow = estRows[0] ?? null;
+  /*
+   * A stale save path used to insert a second estimate for the same inspection,
+   * so the screen could read back a different row than the one it wrote. Keep
+   * the newest and clear the strays out of the way.
+   */
+  const strays = estRows.slice(1).map((r) => r.id as string);
+  if (strays.length) {
+    await supabase.from("estimate_line_items").delete().in("estimate_id", strays);
+    await supabase.from("estimates").delete().in("id", strays);
+  }
   if (estRow) {
     const { data: lines } = await supabase
       .from("estimate_line_items")
@@ -360,9 +369,14 @@ export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInp
         category: (l.category as string | null) ?? null,
         source: ((l.source as CbLineSource) ?? "takeoff") as CbLineSource,
         basis: (l.note as string) ?? "",
+        is_manual: Boolean(l.is_manual),
       })),
+      removedKeys: Array.isArray(estRow.removed_line_keys)
+        ? (estRow.removed_line_keys as unknown[]).map(String)
+        : [],
     };
   }
+
 
   const data = ((takeoff?.data as CbTakeoffData) ?? {}) as CbTakeoffData;
   const catalog: Record<string, { id: string; label: string; unit: string | null }> = {};
