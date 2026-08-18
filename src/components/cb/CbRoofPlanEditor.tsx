@@ -308,16 +308,19 @@ export function CbRoofPlanEditor({
           "circle-stroke-width": 1.5,
         },
       });
+      // Solid bright outline around the counted area — a dashed hairline was
+      // invisible against a shingle roof in sunlight.
       addLayer({
         id: "cb-fill-outline",
         type: "line",
         source: "cb-fill",
         paint: {
-          "line-color": "#ffb347",
-          "line-width": 2.5,
-          "line-dasharray": [2, 1.4],
+          "line-color": "#ffffff",
+          "line-width": 3,
+          "line-opacity": 0.95,
         },
       });
+
       addLayer({
         id: "cb-edge-l",
         type: "line",
@@ -377,11 +380,37 @@ export function CbRoofPlanEditor({
           "circle-stroke-width": 4,
         },
       });
+      /*
+       * Satellite-streets keeps road and label layers above anything added
+       * later in some style revisions, which buried the roof fill. Re-assert
+       * our own stack on top, in draw order, every time we (re)initialise.
+       */
+      [
+        "cb-fill-l",
+        "cb-fill-outline",
+        "cb-ai-l",
+        "cb-conf-l",
+        "cb-conf-pt",
+        "cb-edge-l",
+        "cb-edge-hit",
+        "cb-line-l",
+        "cb-line-hit",
+        "cb-line-label",
+        "cb-chip-l",
+        "cb-measure-pin-l",
+      ].forEach((id) => {
+        try {
+          if (map.getLayer(id)) map.moveLayer(id);
+        } catch {
+          /* layer not ready yet */
+        }
+      });
       setReady(true);
       setMapStuck(false);
       layersDoneRef.current = true;
       // Re-run the paint effect: a style reload wipes source data.
       setLayersVersion((v) => v + 1);
+
       } catch {
         /* style not parsed yet — the next signal retries */
       }
@@ -404,7 +433,16 @@ export function CbRoofPlanEditor({
     // Guard against a zero-height container at mount.
     const resize = window.setTimeout(() => map.resize(), 300);
 
-    map.on("move", () => setTick((t) => t + 1));
+    /*
+     * Every camera change has to re-project the HTML handles, not just `move`:
+     * a pinch-zoom, a rotate or a pitch left the corner dots sitting where the
+     * roof used to be.
+     */
+    const repaint = () => setTick((t) => t + 1);
+    (["move", "zoom", "rotate", "pitch", "moveend", "zoomend", "resize"] as const).forEach((ev) =>
+      map.on(ev, repaint),
+    );
+
     mapRef.current = map;
     setMapVersion((v) => v + 1);
     return () => {
@@ -450,7 +488,7 @@ export function CbRoofPlanEditor({
       properties: {
         id: s.id,
         color: s.color,
-        opacity: s.id === selectedId ? 0.55 : 0.42,
+        opacity: s.id === selectedId ? 0.6 : 0.45,
       },
       geometry: { type: "Polygon", coordinates: [closeRing(s.ring)] },
     }));
@@ -492,13 +530,23 @@ export function CbRoofPlanEditor({
       },
       geometry: { type: "LineString", coordinates: l.coords },
     }));
-    if (draft.length >= 2) {
+    /*
+     * The in-progress line lives in the map layer too, one feature per segment
+     * so each run carries its own length label. Drawing it in screen space made
+     * it slide off the building during pan and zoom.
+     */
+    for (let i = 0; i < draft.length - 1; i++) {
       lines.push({
         type: "Feature",
-        properties: { id: "draft", color: "#ffffff", label: `${Math.round(lineLengthFeet(draft))} LF` },
-        geometry: { type: "LineString", coordinates: draft },
+        properties: {
+          id: `draft-${i}`,
+          color: "#ffffff",
+          label: `${Math.round(lineLengthFeet([draft[i], draft[i + 1]]))} LF`,
+        },
+        geometry: { type: "LineString", coordinates: [draft[i], draft[i + 1]] },
       });
     }
+
 
     const set = (id: string, features: GeoJSON.Feature[]) =>
       (map.getSource(id) as mapboxgl.GeoJSONSource | undefined)?.setData({
@@ -702,7 +750,7 @@ export function CbRoofPlanEditor({
       const lineHit = hits.find((f) => f.layer?.id === "cb-line-hit");
       if (lineHit && !readOnly) {
         const lineId = lineHit.properties?.id as string | undefined;
-        if (lineId && lineId !== "draft") {
+        if (lineId && !lineId.startsWith("draft")) {
           setTypeSheet({ kind: "lineEdit", id: lineId });
           return;
         }
@@ -763,7 +811,37 @@ export function CbRoofPlanEditor({
     ctx.stroke();
   }, []);
 
+  /**
+   * A finger on a handle belongs to the handle, not to the map. Every camera
+   * gesture is switched off for the whole press — doing this only once the
+   * 250ms pickup fired let mapbox claim the touch first and reset the drag.
+   */
+  const lockMapGestures = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.dragPan.disable();
+    map.dragRotate.disable();
+    map.scrollZoom.disable();
+    map.doubleClickZoom.disable();
+    map.touchZoomRotate.disable();
+    map.touchPitch?.disable();
+    map.boxZoom.disable();
+  }, []);
+
+  const unlockMapGestures = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.dragPan.enable();
+    map.dragRotate.enable();
+    map.scrollZoom.enable();
+    map.doubleClickZoom.enable();
+    map.touchZoomRotate.enable();
+    map.touchPitch?.enable();
+    map.boxZoom.enable();
+  }, []);
+
   /* ------------------------------ handles ------------------------------- */
+
 
   const project = (p: number[]) => {
     const map = mapRef.current;
@@ -808,6 +886,7 @@ export function CbRoofPlanEditor({
     } catch {
       /* capture unsupported — window listeners below still carry the drag */
     }
+    lockMapGestures();
     cbHaptic(8);
 
     const map = mapRef.current;
@@ -844,8 +923,6 @@ export function CbRoofPlanEditor({
       if (!d || d.engaged) return;
       d.engaged = true;
       cbHaptic(16);
-      map?.dragPan.disable();
-      map?.touchZoomRotate.disableRotation();
       setLoupe({ x: d.x, y: d.y });
       paintLoupe(d.x, d.y);
       // A stationary hold past the pickup still removes the corner.
@@ -915,8 +992,7 @@ export function CbRoofPlanEditor({
       }
       dragRef.current = null;
       setLoupe(null);
-      mapRef.current?.dragPan.enable();
-      mapRef.current?.touchZoomRotate.enableRotation();
+      unlockMapGestures();
       try {
         handle.releasePointerCapture(e.pointerId);
       } catch {
@@ -954,6 +1030,7 @@ export function CbRoofPlanEditor({
     } catch {
       /* window listeners still carry the drag */
     }
+    lockMapGestures();
 
     const map = mapRef.current;
     const startPlan = planRef.current;
@@ -967,8 +1044,6 @@ export function CbRoofPlanEditor({
       if (engaged) return;
       engaged = true;
       cbHaptic(16);
-      map?.dragPan.disable();
-      map?.touchZoomRotate.disableRotation();
       setLoupe({ x: startX, y: startY });
       paintLoupe(startX, startY);
     };
@@ -1020,8 +1095,7 @@ export function CbRoofPlanEditor({
       if (!moved && target.kind === "draft") setDraft(startDraft);
       if (engaged) cbHaptic(10);
       setLoupe(null);
-      mapRef.current?.dragPan.enable();
-      mapRef.current?.touchZoomRotate.enableRotation();
+      unlockMapGestures();
       try {
         handle.releasePointerCapture(e.pointerId);
       } catch {
@@ -1353,70 +1427,12 @@ export function CbRoofPlanEditor({
             />
           ) : null}
 
-          {/* draft line overlay — always visible, with per-segment lengths */}
-          {tool === "line" && !readOnly && draft.length && mapRef.current
-            ? (() => {
-                const map = mapRef.current!;
-                const pts = draft.map((c) => map.project(c as [number, number]));
-                return (
-                  <svg
-                    className="pointer-events-none absolute inset-0"
-                    style={{ width: "100%", height: "100%" }}
-                  >
-                    {pts.length >= 2 ? (
-                      <polyline
-                        points={pts.map((p) => `${p.x},${p.y}`).join(" ")}
-                        fill="none"
-                        stroke="#ffffff"
-                        strokeWidth={4}
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
-                        style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.8))" }}
-                      />
-                    ) : null}
-                    {pts.slice(0, -1).map((p, i) => {
-                      const q = pts[i + 1];
-                      const len = Math.round(lineLengthFeet([draft[i], draft[i + 1]]));
-                      const mx = (p.x + q.x) / 2;
-                      const my = (p.y + q.y) / 2;
-                      return (
-                        <g key={`seg-${i}`}>
-                          <rect
-                            x={mx - 26}
-                            y={my - 22}
-                            width={52}
-                            height={20}
-                            rx={6}
-                            fill="rgba(0,0,0,0.78)"
-                          />
-                          <text
-                            x={mx}
-                            y={my - 8}
-                            textAnchor="middle"
-                            fontSize={12}
-                            fontWeight={700}
-                            fill="#fff"
-                          >
-                            {len} LF
-                          </text>
-                        </g>
-                      );
-                    })}
-                    {pts.map((p, i) => (
-                      <circle
-                        key={`pt-${i}`}
-                        cx={p.x}
-                        cy={p.y}
-                        r={6}
-                        fill="#ffffff"
-                        stroke="#111"
-                        strokeWidth={2}
-                      />
-                    ))}
-                  </svg>
-                );
-              })()
-            : null}
+          {/*
+            The draft line itself is drawn by the `cb-line` map layer (real
+            lat/long) so it stays on the roof through pan, zoom and rotate. Only
+            its draggable points remain as HTML, above.
+          */}
+
 
           {/* toolbar */}
 
@@ -1448,10 +1464,15 @@ export function CbRoofPlanEditor({
 
 
           {tool === "line" && !readOnly ? (
+            /*
+              Sits well clear of the Mapbox logo strip in the bottom-right —
+              tapping "Undo point" used to open mapbox.com instead.
+            */
             <div
-              className="absolute bottom-12 left-3 right-3 z-20 flex flex-wrap items-center gap-2 rounded-[10px] p-2"
+              className="pointer-events-auto absolute bottom-20 left-3 right-3 z-40 flex flex-wrap items-center gap-2 rounded-[10px] p-2"
               style={{ background: "var(--cb-surface)" }}
             >
+
               <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
                 Undo point
               </MapBtn>

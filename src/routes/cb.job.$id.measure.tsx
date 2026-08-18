@@ -263,16 +263,40 @@ function CbJobMeasurePage() {
     setStepIdx(0);
     const timer = setInterval(() => setStepIdx((i) => Math.min(i + 1, STEPS.length - 1)), 1400);
 
-    const res = await getInstantMeasurement({
-      address: fullAddress,
-      lat: job.lat != null ? Number(job.lat) : null,
-      lng: job.lng != null ? Number(job.lng) : null,
-      workspaceId: job.workspace_id,
-      jobId: id,
-      pins: [newPin],
-    });
+    /*
+     * Hard time budget. A thrown server function or a stalled footprint lookup
+     * used to leave the screen on "Measuring…" forever with no way out.
+     */
+    type MeasureResult = Awaited<ReturnType<typeof getInstantMeasurement>>;
+    let res: MeasureResult;
+    try {
+      res = await Promise.race([
+        getInstantMeasurement({
+          address: fullAddress,
+          lat: job.lat != null ? Number(job.lat) : null,
+          lng: job.lng != null ? Number(job.lng) : null,
+          workspaceId: job.workspace_id,
+          jobId: id,
+          pins: [newPin],
+        }),
+        new Promise<MeasureResult>((_, reject) =>
+          setTimeout(() => reject(new Error("measure_timeout")), 75_000),
+        ),
+      ]);
+    } catch (error) {
+      clearInterval(timer);
+      setPhase("manual");
+      setValues((v) => ({ ...v, source: "manual" }));
+      toast.error(
+        error instanceof Error && error.message === "measure_timeout"
+          ? "Satellite measurement took too long — move the pin and try again, or type it in"
+          : "Couldn't measure from satellite — move the pin and try again, or type it in",
+      );
+      return;
+    }
     clearInterval(timer);
     setRemaining(res.credit.metered ? res.credit.remaining : null);
+
 
     if (res.ok) {
       setOverrides({});
