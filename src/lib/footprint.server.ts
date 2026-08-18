@@ -201,7 +201,7 @@ async function fromOverpassDirect(
 export async function fetchBuildingFootprint(
   lat: number,
   lng: number,
-  radiusM = 30,
+  radiusM = 22,
 ): Promise<FootprintResult | null> {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
@@ -218,15 +218,27 @@ export async function fetchBuildingFootprint(
 
   /*
    * The cache RPC returns the building NEAREST the point, which on a tight
-   * suburban lot is regularly the neighbour's house. If the pin does not sit
-   * inside the ring it handed back, ask Overpass directly -- that path prefers
-   * the building the pin is actually inside -- and only fall back to the
-   * nearest-building answer when Overpass has nothing better.
+   * suburban lot is regularly the neighbour's house. Containment wins; if
+   * nothing contains the pin we only accept a building whose centre is within
+   * NEAR_M of it. Anything further away is the neighbour, and returning it
+   * silently is worse than telling the rep to move the pin.
    */
   if (cached && pointInRing(lng, lat, cached.ring)) return cached;
 
   const direct = await fromOverpassDirect(lat, lng, radiusM);
   if (direct && pointInRing(lng, lat, direct.ring)) return direct;
 
-  return cached ?? direct;
+  const NEAR_M = 14;
+  const nearEnough = (r: FootprintResult | null) => {
+    if (!r) return false;
+    const [cx, cy] = centroid(r.ring);
+    const dx = (cx - lng) * 111_320 * Math.cos((lat * Math.PI) / 180);
+    const dy = (cy - lat) * 110_540;
+    return Math.hypot(dx, dy) <= NEAR_M;
+  };
+
+  if (nearEnough(direct)) return direct;
+  if (nearEnough(cached)) return cached;
+  return null;
 }
+
