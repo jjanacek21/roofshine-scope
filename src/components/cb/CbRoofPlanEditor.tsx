@@ -1438,10 +1438,15 @@ export function CbRoofPlanEditor({
 
 
           {tool === "line" && !readOnly ? (
+            /*
+              Sits well clear of the Mapbox logo strip in the bottom-right —
+              tapping "Undo point" used to open mapbox.com instead.
+            */
             <div
-              className="absolute bottom-12 left-3 right-3 z-20 flex flex-wrap items-center gap-2 rounded-[10px] p-2"
+              className="pointer-events-auto absolute bottom-20 left-3 right-3 z-40 flex flex-wrap items-center gap-2 rounded-[10px] p-2"
               style={{ background: "var(--cb-surface)" }}
             >
+
               <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
                 Undo point
               </MapBtn>
