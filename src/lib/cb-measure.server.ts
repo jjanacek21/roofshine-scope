@@ -112,15 +112,41 @@ export async function runCbInstantMeasure(
   const traceConfidence: number[] = [];
   let runId: string | null = null;
   let firstFailure = "no_footprint";
+
+  /**
+   * Per-step time budget. A stalled Overpass mirror or vision call used to hold
+   * the request open until the client gave up, which is what left the screen on
+   * "Measuring…" forever.
+   */
+  const withTimeout = async <T,>(work: Promise<T>, ms: number, label: string): Promise<T | null> => {
+    try {
+      return await Promise.race([
+        work,
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${label}_timeout`)), ms)),
+      ]);
+    } catch (error) {
+      console.warn("[cb-measure]", label, error instanceof Error ? error.message : String(error));
+      return null;
+    }
+  };
+
   for (const pin of pins) {
-    const extract = await runSolarRoofExtract({
-      supabase,
-      userId,
-      lat: pin.lat,
-      lng: pin.lng,
-      property_id: propertyId,
-      job_id: data.job_id,
-    });
+    const extract = await withTimeout(
+      runSolarRoofExtract({
+        supabase,
+        userId,
+        lat: pin.lat,
+        lng: pin.lng,
+        property_id: propertyId,
+        job_id: data.job_id,
+      }),
+      45_000,
+      "extract",
+    );
+    if (!extract) {
+      firstFailure = "measure_timeout";
+      continue;
+    }
     if (extract.status !== 200) {
       firstFailure =
         (extract.body?.error as string | undefined) ??
@@ -132,12 +158,12 @@ export async function runCbInstantMeasure(
     );
     if (traced.length === 0) continue;
     const candidate = (extract.body.footprint as number[][] | undefined) ?? traced[0]?.ring ?? null;
-    let vision: Awaited<ReturnType<typeof traceRoofFromPin>> = null;
-    try {
-      vision = await traceRoofFromPin({ lat: pin.lat, lng: pin.lng, candidateRing: candidate });
-    } catch (error) {
-      console.warn("[cb-measure] vision trace failed", error instanceof Error ? error.message : String(error));
-    }
+    const vision = await withTimeout(
+      traceRoofFromPin({ lat: pin.lat, lng: pin.lng, candidateRing: candidate }),
+      20_000,
+      "vision",
+    );
+
     if (vision) {
       const byPitch = new Map<string, number>();
       traced.forEach((segment) => byPitch.set(segment.pitch, (byPitch.get(segment.pitch) ?? 0) + segment.plan_area_sqft));
