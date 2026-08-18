@@ -809,10 +809,6 @@ export function CbRoofPlanEditor({
     return best;
   }
 
-  function snapLinePoint(lngLat: [number, number], point: { x: number; y: number }) {
-    return snapLinePointInfo(lngLat, point).point;
-  }
-
 
   /* ------------------------------ map taps ------------------------------ */
 
