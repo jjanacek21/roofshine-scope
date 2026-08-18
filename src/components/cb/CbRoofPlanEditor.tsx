@@ -886,6 +886,7 @@ export function CbRoofPlanEditor({
     } catch {
       /* capture unsupported — window listeners below still carry the drag */
     }
+    lockMapGestures();
     cbHaptic(8);
 
     const map = mapRef.current;
@@ -1029,6 +1030,7 @@ export function CbRoofPlanEditor({
     } catch {
       /* window listeners still carry the drag */
     }
+    lockMapGestures();
 
     const map = mapRef.current;
     const startPlan = planRef.current;
