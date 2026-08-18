@@ -279,7 +279,13 @@ export interface CbEstimateInputs {
   analysis: Record<string, unknown> | null;
   defaultPricePerSquare: number;
   percents: CbEstimatePercents;
-  existing: { estimate: Record<string, unknown>; lines: CbDraftLine[] } | null;
+  existing: {
+    estimate: Record<string, unknown>;
+    lines: CbDraftLine[];
+    /** Derived lines the rep removed — a rebuild must not resurrect them. */
+    removedKeys: string[];
+  } | null;
+
 }
 
 export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInputs> {
