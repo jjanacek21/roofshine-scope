@@ -530,13 +530,23 @@ export function CbRoofPlanEditor({
       },
       geometry: { type: "LineString", coordinates: l.coords },
     }));
-    if (draft.length >= 2) {
+    /*
+     * The in-progress line lives in the map layer too, one feature per segment
+     * so each run carries its own length label. Drawing it in screen space made
+     * it slide off the building during pan and zoom.
+     */
+    for (let i = 0; i < draft.length - 1; i++) {
       lines.push({
         type: "Feature",
-        properties: { id: "draft", color: "#ffffff", label: `${Math.round(lineLengthFeet(draft))} LF` },
-        geometry: { type: "LineString", coordinates: draft },
+        properties: {
+          id: `draft-${i}`,
+          color: "#ffffff",
+          label: `${Math.round(lineLengthFeet([draft[i], draft[i + 1]]))} LF`,
+        },
+        geometry: { type: "LineString", coordinates: [draft[i], draft[i + 1]] },
       });
     }
+
 
     const set = (id: string, features: GeoJSON.Feature[]) =>
       (map.getSource(id) as mapboxgl.GeoJSONSource | undefined)?.setData({
