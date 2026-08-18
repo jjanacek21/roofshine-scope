@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Download, Link2, Mail, Loader2, Presentation, Calculator } from "lucide-react";
+import { Download, Link2, Mail, Loader2, Presentation, Calculator, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
-import { CbCard, CbButton, CbChip, CbLoading } from "@/components/cb/primitives";
+import { CbCard, CbButton, CbChip, CbLoading, CbSheet } from "@/components/cb/primitives";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { CbStickyHeader } from "@/components/cb/motion";
 import { CbReportDoc } from "@/components/cb/CbReportDoc";
 import { CbConvertAction, CbConvertedNotice } from "@/components/cb/CbConvertAction";
@@ -44,6 +45,8 @@ function CbReportPage() {
   const [lineItems, setLineItems] = useState<CbLineItem[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [pdfStep, setPdfStep] = useState<string | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const isMobile = useIsMobile();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
