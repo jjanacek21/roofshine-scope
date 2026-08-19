@@ -1,17 +1,14 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { normalizeTuning, qualityLadder } from "@/lib/measure-tuning";
-import {
-  fitFacetsToFootprint,
-  footprintFromSegmentBoxes,
-  carveFootprintByCenters,
-  consolidateSegmentCenters,
-} from "@/lib/roof-geometry";
 import { fetchBuildingFootprint } from "@/lib/footprint.server";
+import { checkOutline } from "@/lib/roof-outline";
+import { polygonAreaSqft } from "@/lib/roof-math";
 import {
   companyCalibration,
   findNearbyCorrection,
   scaleRing,
 } from "@/lib/roof-corrections.server";
+
 
 
 type SolarApiResponse = {
