@@ -85,6 +85,8 @@ function CbJobMeasurePage() {
   const [repAdjusted, setRepAdjusted] = useState(false);
   const [upgrade, setUpgrade] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
+  /** True when the last measurement fell back to a fitted rectangle. */
+  const [untracedOutline, setUntracedOutline] = useState(false);
   const [saving, setSaving] = useState(false);
   const [measurePins, setMeasurePins] = useState<Array<{ lat: number; lng: number }>>([]);
   /** How many dropped pins have already been traced. */
@@ -301,6 +303,16 @@ function CbJobMeasurePage() {
     if (res.ok) {
       setOverrides({});
       setRepAdjusted(false);
+      /*
+       * `solar_boxes` is a rectangle fitted around Google's roof boxes — never
+       * a traced outline. Flag it instead of letting it pass as measured.
+       */
+      const untraced = (res.footprint_source ?? "").includes("solar_boxes");
+      setUntracedOutline(untraced);
+      if (untraced) {
+        toast.warning("Couldn't trace the roof edges — drag the corners onto the roof");
+      }
+
 
       setPhase("result");
       originalPlanRef.current = null;
@@ -556,6 +568,7 @@ function CbJobMeasurePage() {
                     aiPlan={aiPlan}
                     onSaveFootprint={(sectionId) => void saveFootprint(sectionId)}
                     savingFootprint={saving}
+                    untracedOutline={untracedOutline}
                   />
                 </Suspense>
               </CbErrorBoundary>

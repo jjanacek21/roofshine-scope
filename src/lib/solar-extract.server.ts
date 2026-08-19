@@ -175,21 +175,25 @@ export async function runSolarRoofExtract(params: {
 
         const ladder = qualityLadder(tuning.imagery_quality);
         const offsetQuality = ladder[ladder.length - 1];
-        const attempts: SolarAttempt[] = [
-          ...ladder.map((quality) => ({ lat, lng, quality })),
-          { lat: lat + dLat, lng, quality: offsetQuality },
-          { lat: lat - dLat, lng, quality: offsetQuality },
-          { lat, lng: lng + dLng, quality: offsetQuality },
-          { lat, lng: lng - dLng, quality: offsetQuality },
-        ];
+
+        /*
+         * The building outline does not depend on Google at all, so it starts
+         * now and is awaited once the ladder is done — it used to run after,
+         * adding its whole latency to every measurement.
+         */
+        const wantFootprint = tuning.footprint_source !== "boxes";
+        const footprintPromise = wantFootprint
+          ? fetchBuildingFootprint(lat, lng, 30).catch(() => null)
+          : Promise.resolve(null);
 
         let success: { data: SolarApiResponse; usedQuality: string } | null = null;
         let lastNon404: { status: number; detail: string } | null = null;
 
-        for (const att of attempts) {
-          const r = await trySolar(att, GOOGLE_KEY);
+        // Pass 1 — the pin itself, strictest imagery first.
+        for (const quality of ladder) {
+          const r = await trySolar({ lat, lng, quality }, GOOGLE_KEY);
           if (r.ok) {
-            success = { data: r.data, usedQuality: att.quality };
+            success = { data: r.data, usedQuality: quality };
             break;
           }
           if (r.status !== 404) {
@@ -199,9 +203,28 @@ export async function runSolarRoofExtract(params: {
           }
         }
 
+        // Pass 2 — nudge ~10 m in each direction for a pin that landed on a
+        // driveway or pool cage. Fired together: four sequential round trips
+        // here were a large part of the wait.
+        if (!success && !lastNon404) {
+          const offsets: SolarAttempt[] = [
+            { lat: lat + dLat, lng, quality: offsetQuality },
+            { lat: lat - dLat, lng, quality: offsetQuality },
+            { lat, lng: lng + dLng, quality: offsetQuality },
+            { lat, lng: lng - dLng, quality: offsetQuality },
+          ];
+          const results = await Promise.all(offsets.map((att) => trySolar(att, GOOGLE_KEY)));
+          for (const r of results) {
+            if (r.ok) {
+              success = { data: r.data, usedQuality: offsetQuality };
+              break;
+            }
+            if (r.status !== 404 && !lastNon404) lastNon404 = { status: r.status, detail: r.detail };
+          }
+        }
+
         // Building outline — the accuracy of everything downstream depends on it.
-        const wantFootprint = tuning.footprint_source !== "boxes";
-        const footprintHit = wantFootprint ? await fetchBuildingFootprint(lat, lng, 30) : null;
+        const footprintHit = await footprintPromise;
 
         if (!success) {
           // Google has no roof data here. If we still know the building outline
@@ -249,7 +272,7 @@ export async function runSolarRoofExtract(params: {
                 lat,
                 lng,
                 source: "solar_coverage_gap",
-                solar_response: { error: "no_coverage", attempts: attempts.length },
+                solar_response: { error: "no_coverage", attempts: ladder.length + 4 },
                 ground_truth: {},
                 created_by: userId,
               });

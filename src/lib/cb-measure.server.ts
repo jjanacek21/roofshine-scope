@@ -131,18 +131,28 @@ export async function runCbInstantMeasure(
   };
 
   for (const pin of pins) {
-    const extract = await withTimeout(
-      runSolarRoofExtract({
-        supabase,
-        userId,
-        lat: pin.lat,
-        lng: pin.lng,
-        property_id: propertyId,
-        job_id: data.job_id,
-      }),
-      45_000,
-      "extract",
-    );
+    /*
+     * The vision trace only needs the pin — it does not depend on Google
+     * Solar. Running them back to back meant a slow tracer blew the whole
+     * budget and the crude box rectangle won. Start both at once so the total
+     * is the slowest stage, not the sum.
+     */
+    const [extract, vision] = await Promise.all([
+      withTimeout(
+        runSolarRoofExtract({
+          supabase,
+          userId,
+          lat: pin.lat,
+          lng: pin.lng,
+          property_id: propertyId,
+          job_id: data.job_id,
+        }),
+        45_000,
+        "extract",
+      ),
+      withTimeout(traceRoofFromPin({ lat: pin.lat, lng: pin.lng }), 40_000, "vision"),
+    ]);
+
     if (!extract) {
       firstFailure = "measure_timeout";
       continue;
@@ -158,11 +168,6 @@ export async function runCbInstantMeasure(
     );
     if (traced.length === 0) continue;
     const candidate = (extract.body.footprint as number[][] | undefined) ?? traced[0]?.ring ?? null;
-    const vision = await withTimeout(
-      traceRoofFromPin({ lat: pin.lat, lng: pin.lng, candidateRing: candidate }),
-      20_000,
-      "vision",
-    );
 
     if (vision) {
       const byPitch = new Map<string, number>();
@@ -181,7 +186,14 @@ export async function runCbInstantMeasure(
       traceConfidence.push(0);
     }
     sources.push({
-      footprint: (extract.body.footprint_source as string | null) ?? null,
+      /*
+       * A vision trace is the real outline. Without one the shape is whatever
+       * the extractor produced — and when that is `solar_boxes` it is a fitted
+       * rectangle, not a measurement. Say so, so the UI can.
+       */
+      footprint: vision
+        ? "vision_trace"
+        : ((extract.body.footprint_source as string | null) ?? null),
       facet: (extract.body.facet_source as string | null) ?? null,
     });
     runId ??= (extract.body.run_id as string | null) ?? null;

@@ -98,6 +98,7 @@ export function CbRoofPlanEditor({
   aiPlan = null,
   onSaveFootprint,
   savingFootprint = false,
+  untracedOutline = false,
 }: {
   plan: CbPlan;
   onPlanChange: (next: CbPlan, opts: { user: boolean }) => void;
@@ -119,6 +120,8 @@ export function CbRoofPlanEditor({
   aiPlan?: CbPlan | null;
   onSaveFootprint?: (sectionId: string) => void;
   savingFootprint?: boolean;
+  /** True when the shape is a fitted rectangle, not a traced outline. */
+  untracedOutline?: boolean;
 }) {
   const { data: token } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -1629,6 +1632,18 @@ export function CbRoofPlanEditor({
               {regNote.pct}% — check the outline before you price it.
             </button>
           ) : null}
+
+          {untracedOutline && !regNote ? (
+            <div
+              className="absolute left-3 right-3 top-16 rounded-[10px] px-3 py-2 text-[13px] font-semibold"
+              style={{ background: "rgba(180,83,9,0.92)", color: "#fff" }}
+            >
+              Auto outline couldn't be traced — this is a fitted rectangle. Drag the corners onto
+              the roof before you save.
+            </div>
+          ) : null}
+
+
 
 
           {/* Drawing controls live below the map so they never cover the roof. */}
