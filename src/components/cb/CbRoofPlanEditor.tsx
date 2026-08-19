@@ -1700,7 +1700,14 @@ export function CbRoofPlanEditor({
 
           {!readOnly ? (
             <div className="pointer-events-none absolute bottom-10 left-3 right-3 z-10 flex justify-center">
-              {tool !== "line" ? (
+              {tool === "outline" ? (
+                <span
+                  className="rounded-full px-3 py-1.5 text-[12px] font-semibold"
+                  style={{ background: "rgba(12,16,22,0.78)", color: "#fff" }}
+                >
+                  Tap each corner of the roof, then Finish outline
+                </span>
+              ) : tool !== "line" ? (
                 <span
                   className="rounded-full px-3 py-1.5 text-[12px] font-semibold"
                   style={{ background: "rgba(12,16,22,0.78)", color: "#fff" }}
@@ -1719,6 +1726,28 @@ export function CbRoofPlanEditor({
             </div>
           ) : null}
         </div>
+
+        {tool === "outline" && !readOnly ? (
+          <div
+            className="grid grid-cols-3 gap-2 border-t px-4 py-3"
+            style={{ borderColor: "var(--cb-border)" }}
+          >
+            <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
+              Undo point
+            </MapBtn>
+            <MapBtn onClick={finishOutline} disabled={draft.length < 3}>
+              Finish outline ({draft.length} pts)
+            </MapBtn>
+            <MapBtn
+              onClick={() => {
+                setDraft([]);
+                setTool("select");
+              }}
+            >
+              Cancel
+            </MapBtn>
+          </div>
+        ) : null}
 
         {tool === "line" && !readOnly ? (
           <div
@@ -1756,6 +1785,10 @@ export function CbRoofPlanEditor({
               <div className="grid grid-cols-2 gap-2">
                 <CbButton block variant="secondary" onClick={onTogglePinDrop}>{pinDropMode ? "Tap roof to place pin" : "Add another roof"}</CbButton>
                 <CbButton block onClick={() => { setTool("line"); setDraft([]); }}>Continue to lines</CbButton>
+                {/* Drawing the outline by hand is a way to START, not a fallback. */}
+                <CbButton block variant="secondary" onClick={() => { setTool("outline"); setDraft([]); }}>
+                  Draw roof by hand
+                </CbButton>
               </div>
             )}
             {!ready ? (
