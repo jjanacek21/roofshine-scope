@@ -618,7 +618,10 @@ export function SolarRoofTab({
     drawPaintRef.current = () => {
       const map = mapRef.current;
       if (!map) return;
-      if (!ensureOverlayLayers(map)) return;
+      if (!ensureOverlayLayers(map)) {
+        map.once("idle", () => drawPaintRef.current?.());
+        return;
+      }
       const src = map.getSource("ai-draw") as mapboxgl.GeoJSONSource | undefined;
       if (!src) return;
       const drawPoints = drawPointsRef.current;
