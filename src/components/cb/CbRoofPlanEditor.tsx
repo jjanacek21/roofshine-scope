@@ -98,6 +98,7 @@ export function CbRoofPlanEditor({
   aiPlan = null,
   onSaveFootprint,
   savingFootprint = false,
+  untracedOutline = false,
 }: {
   plan: CbPlan;
   onPlanChange: (next: CbPlan, opts: { user: boolean }) => void;
