@@ -769,7 +769,8 @@ function CbTakeoffPage() {
               photos={photoCounts.vent_ridge ?? 0}
               onCamera={openCam}
               value={sheet.ventilation.ridge_vent_lf}
-              onChange={(v) => patch("ventilation", { ridge_vent_lf: v })}
+              onChange={(v) => setDerived("ventilation.ridge_vent_lf", v)}
+              {...derivedProps("ventilation.ridge_vent_lf")}
             />
             <QtyLine
               label="Box / turtle vents"
