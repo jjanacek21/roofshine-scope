@@ -577,17 +577,22 @@ export function SolarRoofTab({
 
     map.on("rotate", () => setBearing(map.getBearing()));
 
+    // Any event that can rebuild/destroy the style must re-assert the layers
+    // AND repaint both the facet highlights and the in-progress draw polygon.
+    const repaintAll = () => {
+      paintRef.current?.();
+      drawPaintRef.current?.();
+    };
     map.on("load", () => {
       ensureOverlayLayers(map);
-      paintRef.current?.();
+      repaintAll();
       setMapReady((n) => n + 1);
     });
     map.on("styledata", () => {
-      if (ensureOverlayLayers(map)) paintRef.current?.();
+      if (ensureOverlayLayers(map)) repaintAll();
     });
-    map.on("idle", () => {
-      paintRef.current?.();
-    });
+    map.on("idle", repaintAll);
+    map.on("resize", repaintAll);
 
 
 
