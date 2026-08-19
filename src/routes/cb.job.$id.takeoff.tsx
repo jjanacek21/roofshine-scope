@@ -30,6 +30,8 @@ import {
   overallCompleteness,
   readSheet,
   scoreSheet,
+  applySheetDerived,
+  CB_DERIVED_BY_ID,
   type CbSheet,
 } from "@/lib/cbSheet";
 import { CB_LINEAR_FIELDS, type CbMeasurement } from "@/lib/cbMeasure";
