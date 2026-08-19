@@ -655,7 +655,13 @@ export function SolarRoofTab({
     paintRef.current = () => {
       const map = mapRef.current;
       if (!map) return;
-      if (!ensureOverlayLayers(map)) return;
+      if (!ensureOverlayLayers(map)) {
+        // Style still loading — repaint as soon as it settles so a measurement
+        // that lands mid-load still gets highlighted.
+        map.once("idle", () => paintRef.current?.());
+        return;
+      }
+
 
       const kinds: Record<string, GeoJSON.Feature[]> = { pitched: [], flat: [], ignore: [] };
       for (const kind of ["pitched", "flat", "ignore"] as PinKind[]) {
