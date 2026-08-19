@@ -1314,8 +1314,13 @@ export function SolarRoofTab({
 
 
   function startDraw(pinId: string) {
+    // Vertex editing swallows map clicks — drawing always wins over it.
+    setEditingVerticesPinId(null);
+    editingVerticesPinIdRef.current = null;
     setDrawingPinId(pinId);
+    drawingPinIdRef.current = pinId;
     setDrawPoints([]);
+    drawPointsRef.current = [];
     setActivePinId(pinId);
     toast.info("Click 3+ points around the structure, then press Done");
   }
