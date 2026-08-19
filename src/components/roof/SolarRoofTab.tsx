@@ -1695,6 +1695,40 @@ export function SolarRoofTab({
           >
             <Info className="h-3 w-3 text-muted-foreground" />
             <span className="text-muted-foreground">Click each roof to drop a pin · then hit AI measurements above</span>
+            {activePinId && (
+              <button
+                onClick={() => startDraw(activePinId)}
+                className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] font-semibold text-foreground hover:text-[var(--brand)]"
+                style={{ borderColor: "var(--border)" }}
+                title="Trace the structure by hand"
+              >
+                <Pencil className="h-3 w-3" /> Draw area
+              </button>
+            )}
+            {editingVerticesPinId && (
+              <button
+                onClick={() => setEditingVerticesPinId(null)}
+                className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] font-semibold text-[#facc15]"
+                style={{ borderColor: "#facc15" }}
+                title="Vertex editing is on — map clicks won't drop pins"
+              >
+                <X className="h-3 w-3" /> Exit corner editing
+              </button>
+            )}
+          </div>
+        )}
+        {untracedOutline && (
+          <div
+            className="absolute bottom-3 right-3 z-10 max-w-[260px] rounded-md border px-3 py-2 text-[11px] backdrop-blur"
+            style={{
+              borderColor: "#f59e0b",
+              backgroundColor: "color-mix(in oklab, var(--bg-card) 92%, transparent)",
+            }}
+          >
+            <span className="font-semibold text-foreground">Auto outline couldn't be traced</span>
+            <span className="mt-0.5 block text-muted-foreground">
+              This shape is a fitted box, not the real roof edges. Drag the corners or use Draw area.
+            </span>
           </div>
         )}
         {(imageryQuality || estimatedPitch) && (
