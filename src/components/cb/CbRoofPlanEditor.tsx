@@ -1633,6 +1633,18 @@ export function CbRoofPlanEditor({
             </button>
           ) : null}
 
+          {untracedOutline && !regNote ? (
+            <div
+              className="absolute left-3 right-3 top-16 rounded-[10px] px-3 py-2 text-[13px] font-semibold"
+              style={{ background: "rgba(180,83,9,0.92)", color: "#fff" }}
+            >
+              Auto outline couldn't be traced — this is a fitted rectangle. Drag the corners onto
+              the roof before you save.
+            </div>
+          ) : null}
+
+
+
 
           {/* Drawing controls live below the map so they never cover the roof. */}
 
