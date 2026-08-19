@@ -1200,6 +1200,29 @@ function CbTakeoffPage() {
           />
         ) : null}
 
+        {wideCam ? (
+          <CbCamera
+            open
+            onClose={() => setWideCam(null)}
+            jobId={id}
+            workspaceId={job?.job?.workspace_id}
+            meta={{ category: "roof", elevation: wideCam, shot_type: "wide" }}
+            title={`${CB_ELEVATION_LABEL[wideCam]} — wide shot`}
+            instruction="Back up so the whole slope and its edges are in frame."
+            captionContext={`Roof — ${CB_ELEVATION_LABEL[wideCam]} wide shot`}
+            onSaved={(count) => {
+              const e = wideCam;
+              if (e) {
+                void patchElevation(e, { slopeWide: (wideCounts[e] ?? 0) + (count || 1) });
+              }
+              void qc.invalidateQueries({ queryKey: ["cb-takeoff-job", id] });
+              setWideCam(null);
+            }}
+          />
+        ) : null}
+
+
+
         <CbPendingPill />
       </div>
     </CbSurface>
