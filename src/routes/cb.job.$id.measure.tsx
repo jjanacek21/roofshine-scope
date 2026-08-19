@@ -568,6 +568,7 @@ function CbJobMeasurePage() {
                     aiPlan={aiPlan}
                     onSaveFootprint={(sectionId) => void saveFootprint(sectionId)}
                     savingFootprint={saving}
+                    untracedOutline={untracedOutline}
                   />
                 </Suspense>
               </CbErrorBoundary>
