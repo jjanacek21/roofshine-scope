@@ -600,13 +600,21 @@ export function SolarRoofTab({
     };
   }, [token, center.lng, center.lat]);
 
-  // Update draw-polygon visualization when points change
+  /*
+   * Draw-polygon visualization. Held in a ref like the facet painter: the
+   * `ai-draw` source is destroyed whenever the satellite style reloads, so the
+   * points a user already clicked would silently disappear and the tool looked
+   * dead. Every map event that can wipe the style repaints through this.
+   */
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const src = map.getSource("ai-draw") as mapboxgl.GeoJSONSource | undefined;
-    if (!src) return;
-    const features: GeoJSON.Feature[] = drawPoints.map((p) => ({
+    drawPaintRef.current = () => {
+      const map = mapRef.current;
+      if (!map) return;
+      if (!ensureOverlayLayers(map)) return;
+      const src = map.getSource("ai-draw") as mapboxgl.GeoJSONSource | undefined;
+      if (!src) return;
+      const drawPoints = drawPointsRef.current;
+      const features: GeoJSON.Feature[] = drawPoints.map((p) => ({
       type: "Feature",
       geometry: { type: "Point", coordinates: p },
       properties: {},
