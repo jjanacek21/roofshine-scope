@@ -416,9 +416,9 @@ export async function runSolarRoofExtract(params: {
                 raw_response: {
                   ...(data as unknown as Record<string, unknown>),
                   tuning,
-                  footprint: fit.footprint,
-                  footprint_source: footprintHit?.source ?? "solar_boxes",
-                  facet_source: carved ? "footprint_voronoi" : "footprint_faces",
+                  footprint: outlineRing,
+                  footprint_source: footprintHit.source,
+                  facet_source: "single_outline",
                 },
               })
               .select("id")
@@ -437,11 +437,11 @@ export async function runSolarRoofExtract(params: {
           imagery_date: data.imageryDate ?? null,
           total_plan_sqft: totalPlanSqFt,
           pitch_estimated: pitchUnknown,
-          facet_source: carved ? "footprint_voronoi" : "footprint_faces",
+          facet_source: "single_outline",
           max_sunshine_hours_per_year: data.solarPotential?.maxSunshineHoursPerYear ?? 0,
           segment_count: segments.length,
-          footprint: fit.footprint,
-          footprint_source: footprintHit?.source ?? "solar_boxes",
+          footprint: outlineRing,
+          footprint_source: footprintHit.source,
           segments,
           used_quality: success.usedQuality,
         });
