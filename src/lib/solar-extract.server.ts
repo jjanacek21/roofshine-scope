@@ -322,77 +322,57 @@ export async function runSolarRoofExtract(params: {
           (data.solarPotential?.wholeRoofStats?.areaMeters2 ?? 0) * sqMeterToSqFt ||
           kept.reduce((s, seg) => s + (seg.stats?.areaMeters2 ?? 0) * sqMeterToSqFt, 0);
 
-        // Fall back to a rotated rectangle around Google's boxes when the
-        // building isn't in the vector map — still follows the house angle.
-        const footprintRing =
-          footprintHit?.ring ??
-          footprintFromSegmentBoxes(
-            kept
-              .filter((s) => s.boundingBox)
-              .map((s) => ({
-                sw: [s.boundingBox!.sw.longitude, s.boundingBox!.sw.latitude] as [number, number],
-                ne: [s.boundingBox!.ne.longitude, s.boundingBox!.ne.latitude] as [number, number],
-              })),
-            totalPlanSqFtReported,
+        /*
+         * ONE outline per structure. Google Solar contributes pitch only — its
+         * segment boxes are axis-aligned, so deriving shape from them can only
+         * ever produce the placeholder rectangle this engine must never return.
+         */
+        if (!footprintHit || !checkOutline(footprintHit.ring).ok) {
+          return json(
+            {
+              error: "no_footprint",
+              message:
+                "Could not trace the building outline here. Move the pin onto the roof, or draw the roof by hand.",
+              address_lat: lat,
+              address_lng: lng,
+            },
+            404,
           );
-
-        // Primary path: carve the REAL footprint with Voronoi cells seeded on
-        // Google's segment centres. Every facet is a clip of the true outline,
-        // so they tile the house exactly and follow its real shape/angle.
-        const carved = footprintRing
-          ? carveFootprintByCenters(
-              footprintRing,
-              consolidateSegmentCenters(
-                kept
-                  .filter((s) => s.center)
-                  .map((s) => ({
-                    lng: s.center!.longitude,
-                    lat: s.center!.latitude,
-                    pitch_degrees:
-                      typeof s.pitchDegrees === "number" ? s.pitchDegrees : null,
-                    azimuth_degrees: s.azimuthDegrees ?? 0,
-                    area_m2: s.stats?.areaMeters2 ?? 0,
-                  })),
-              ),
-              { minFacetSqft: tuning.min_facet_sqft },
-            )
-          : null;
-
-        const fit =
-          carved ??
-          (footprintRing
-            ? fitFacetsToFootprint(
-                footprintRing,
-                kept.map((s) => ({
-                  azimuth_degrees: s.azimuthDegrees ?? 0,
-                  pitch_degrees: s.pitchDegrees ?? 0,
-                  area_m2: s.stats?.areaMeters2 ?? 0,
-                })),
-                {
-                  mergeSmall: tuning.merge_small,
-                  snapSquare: tuning.snap_square,
-                  minFacetSqft: tuning.min_facet_sqft,
-                },
-              )
-            : { facets: [], footprint: [], plan_area_sqft: 0 });
+        }
 
         // Learned area calibration from this company's saved corrections.
         const cal = tuning.use_calibration === false ? 1 : calibration.factor;
 
-        const segments = fit.facets.map((f, i) => ({
-          index: i,
-          name: `Facet ${i + 1}`,
-          plan_area_sqft: Math.round(f.plan_area_sqft * cal),
-          pitch: f.pitch,
-          pitch_degrees: f.pitch_degrees,
-          pitch_known: (f as { pitch_known?: boolean }).pitch_known !== false,
-          azimuth_degrees: f.azimuth_degrees,
-          ring: cal === 1 ? f.ring : scaleRing(f.ring, cal),
-          center: null as { latitude: number; longitude: number } | null,
-        }));
+        const outlineRing = cal === 1 ? footprintHit.ring : scaleRing(footprintHit.ring, cal);
+        const outlinePlanSqft = Math.round(polygonAreaSqft(outlineRing));
 
-        const pitchUnknown = segments.some((s) => !s.pitch_known);
-        const totalPlanSqFt = (fit.plan_area_sqft || totalPlanSqFtReported) * cal;
+        // Predominant pitch = the Google segment covering the most area.
+        const pitchSeed = [...kept].sort(
+          (a, b) => (b.stats?.areaMeters2 ?? 0) - (a.stats?.areaMeters2 ?? 0),
+        )[0];
+        const pitchDegrees =
+          typeof pitchSeed?.pitchDegrees === "number" ? pitchSeed.pitchDegrees : 26.57;
+        const pitchKnown = typeof pitchSeed?.pitchDegrees === "number";
+        const rise = Math.max(0, Math.round(Math.tan((pitchDegrees * Math.PI) / 180) * 12));
+        const pitchLabel = `${rise}/12`;
+
+        const segments = [
+          {
+            index: 0,
+            name: "Roof outline",
+            plan_area_sqft: outlinePlanSqft,
+            pitch: pitchLabel,
+            pitch_degrees: pitchDegrees,
+            pitch_known: pitchKnown,
+            azimuth_degrees: pitchSeed?.azimuthDegrees ?? 0,
+            ring: outlineRing,
+            center: null as { latitude: number; longitude: number } | null,
+          },
+        ];
+
+        const pitchUnknown = !pitchKnown;
+        const totalPlanSqFt = outlinePlanSqft || totalPlanSqFtReported * cal;
+
 
 
 
