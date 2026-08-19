@@ -1,17 +1,14 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { normalizeTuning, qualityLadder } from "@/lib/measure-tuning";
-import {
-  fitFacetsToFootprint,
-  footprintFromSegmentBoxes,
-  carveFootprintByCenters,
-  consolidateSegmentCenters,
-} from "@/lib/roof-geometry";
 import { fetchBuildingFootprint } from "@/lib/footprint.server";
+import { checkOutline } from "@/lib/roof-outline";
+import { polygonAreaSqft } from "@/lib/roof-math";
 import {
   companyCalibration,
   findNearbyCorrection,
   scaleRing,
 } from "@/lib/roof-corrections.server";
+
 
 
 type SolarApiResponse = {
@@ -227,38 +224,37 @@ export async function runSolarRoofExtract(params: {
         const footprintHit = await footprintPromise;
 
         if (!success) {
-          // Google has no roof data here. If we still know the building outline
-          // we can produce a real measurement instead of failing outright.
-          if (footprintHit) {
-            const fit = fitFacetsToFootprint(footprintHit.ring, [], {
-              mergeSmall: tuning.merge_small,
-              snapSquare: tuning.snap_square,
-              minFacetSqft: tuning.min_facet_sqft,
-            });
-            if (fit.facets.length > 0) {
-              return json({
-                imagery_quality: null,
-                imagery_date: null,
-                total_plan_sqft: fit.plan_area_sqft,
-                max_sunshine_hours_per_year: 0,
-                segment_count: fit.facets.length,
-                footprint: fit.footprint,
-                footprint_source: footprintHit.source,
-                pitch_estimated: true,
-                segments: fit.facets.map((f, i) => ({
-                  index: i,
-                  name: `Facet ${i + 1}`,
-                  plan_area_sqft: f.plan_area_sqft,
-                  pitch: f.pitch,
-                  pitch_degrees: f.pitch_degrees,
-                  azimuth_degrees: f.azimuth_degrees,
-                  ring: f.ring,
+          // Google has no roof data here. The building outline alone is still a
+          // real measurement — ONE outline, never a split into facets.
+          if (footprintHit && checkOutline(footprintHit.ring).ok) {
+            const planSqft = Math.round(polygonAreaSqft(footprintHit.ring));
+            return json({
+              imagery_quality: null,
+              imagery_date: null,
+              total_plan_sqft: planSqft,
+              max_sunshine_hours_per_year: 0,
+              segment_count: 1,
+              footprint: footprintHit.ring,
+              footprint_source: footprintHit.source,
+              pitch_estimated: true,
+              facet_source: "single_outline",
+              segments: [
+                {
+                  index: 0,
+                  name: "Roof outline",
+                  plan_area_sqft: planSqft,
+                  pitch: "6/12",
+                  pitch_degrees: 26.57,
+                  pitch_known: false,
+                  azimuth_degrees: 0,
+                  ring: footprintHit.ring,
                   center: null,
-                })),
-                used_quality: "FOOTPRINT_ONLY",
-              });
-            }
+                },
+              ],
+              used_quality: "FOOTPRINT_ONLY",
+            });
           }
+
 
           // True coverage gap (or upstream error). Log to training_examples
           // for super admins to prioritize manual measurement.
@@ -326,77 +322,57 @@ export async function runSolarRoofExtract(params: {
           (data.solarPotential?.wholeRoofStats?.areaMeters2 ?? 0) * sqMeterToSqFt ||
           kept.reduce((s, seg) => s + (seg.stats?.areaMeters2 ?? 0) * sqMeterToSqFt, 0);
 
-        // Fall back to a rotated rectangle around Google's boxes when the
-        // building isn't in the vector map — still follows the house angle.
-        const footprintRing =
-          footprintHit?.ring ??
-          footprintFromSegmentBoxes(
-            kept
-              .filter((s) => s.boundingBox)
-              .map((s) => ({
-                sw: [s.boundingBox!.sw.longitude, s.boundingBox!.sw.latitude] as [number, number],
-                ne: [s.boundingBox!.ne.longitude, s.boundingBox!.ne.latitude] as [number, number],
-              })),
-            totalPlanSqFtReported,
+        /*
+         * ONE outline per structure. Google Solar contributes pitch only — its
+         * segment boxes are axis-aligned, so deriving shape from them can only
+         * ever produce the placeholder rectangle this engine must never return.
+         */
+        if (!footprintHit || !checkOutline(footprintHit.ring).ok) {
+          return json(
+            {
+              error: "no_footprint",
+              message:
+                "Could not trace the building outline here. Move the pin onto the roof, or draw the roof by hand.",
+              address_lat: lat,
+              address_lng: lng,
+            },
+            404,
           );
-
-        // Primary path: carve the REAL footprint with Voronoi cells seeded on
-        // Google's segment centres. Every facet is a clip of the true outline,
-        // so they tile the house exactly and follow its real shape/angle.
-        const carved = footprintRing
-          ? carveFootprintByCenters(
-              footprintRing,
-              consolidateSegmentCenters(
-                kept
-                  .filter((s) => s.center)
-                  .map((s) => ({
-                    lng: s.center!.longitude,
-                    lat: s.center!.latitude,
-                    pitch_degrees:
-                      typeof s.pitchDegrees === "number" ? s.pitchDegrees : null,
-                    azimuth_degrees: s.azimuthDegrees ?? 0,
-                    area_m2: s.stats?.areaMeters2 ?? 0,
-                  })),
-              ),
-              { minFacetSqft: tuning.min_facet_sqft },
-            )
-          : null;
-
-        const fit =
-          carved ??
-          (footprintRing
-            ? fitFacetsToFootprint(
-                footprintRing,
-                kept.map((s) => ({
-                  azimuth_degrees: s.azimuthDegrees ?? 0,
-                  pitch_degrees: s.pitchDegrees ?? 0,
-                  area_m2: s.stats?.areaMeters2 ?? 0,
-                })),
-                {
-                  mergeSmall: tuning.merge_small,
-                  snapSquare: tuning.snap_square,
-                  minFacetSqft: tuning.min_facet_sqft,
-                },
-              )
-            : { facets: [], footprint: [], plan_area_sqft: 0 });
+        }
 
         // Learned area calibration from this company's saved corrections.
         const cal = tuning.use_calibration === false ? 1 : calibration.factor;
 
-        const segments = fit.facets.map((f, i) => ({
-          index: i,
-          name: `Facet ${i + 1}`,
-          plan_area_sqft: Math.round(f.plan_area_sqft * cal),
-          pitch: f.pitch,
-          pitch_degrees: f.pitch_degrees,
-          pitch_known: (f as { pitch_known?: boolean }).pitch_known !== false,
-          azimuth_degrees: f.azimuth_degrees,
-          ring: cal === 1 ? f.ring : scaleRing(f.ring, cal),
-          center: null as { latitude: number; longitude: number } | null,
-        }));
+        const outlineRing = cal === 1 ? footprintHit.ring : scaleRing(footprintHit.ring, cal);
+        const outlinePlanSqft = Math.round(polygonAreaSqft(outlineRing));
 
-        const pitchUnknown = segments.some((s) => !s.pitch_known);
-        const totalPlanSqFt = (fit.plan_area_sqft || totalPlanSqFtReported) * cal;
+        // Predominant pitch = the Google segment covering the most area.
+        const pitchSeed = [...kept].sort(
+          (a, b) => (b.stats?.areaMeters2 ?? 0) - (a.stats?.areaMeters2 ?? 0),
+        )[0];
+        const pitchDegrees =
+          typeof pitchSeed?.pitchDegrees === "number" ? pitchSeed.pitchDegrees : 26.57;
+        const pitchKnown = typeof pitchSeed?.pitchDegrees === "number";
+        const rise = Math.max(0, Math.round(Math.tan((pitchDegrees * Math.PI) / 180) * 12));
+        const pitchLabel = `${rise}/12`;
+
+        const segments = [
+          {
+            index: 0,
+            name: "Roof outline",
+            plan_area_sqft: outlinePlanSqft,
+            pitch: pitchLabel,
+            pitch_degrees: pitchDegrees,
+            pitch_known: pitchKnown,
+            azimuth_degrees: pitchSeed?.azimuthDegrees ?? 0,
+            ring: outlineRing,
+            center: null as { latitude: number; longitude: number } | null,
+          },
+        ];
+
+        const pitchUnknown = !pitchKnown;
+        const totalPlanSqFt = outlinePlanSqft || totalPlanSqFtReported * cal;
+
 
 
 
@@ -440,9 +416,9 @@ export async function runSolarRoofExtract(params: {
                 raw_response: {
                   ...(data as unknown as Record<string, unknown>),
                   tuning,
-                  footprint: fit.footprint,
-                  footprint_source: footprintHit?.source ?? "solar_boxes",
-                  facet_source: carved ? "footprint_voronoi" : "footprint_faces",
+                  footprint: outlineRing,
+                  footprint_source: footprintHit.source,
+                  facet_source: "single_outline",
                 },
               })
               .select("id")
@@ -461,11 +437,11 @@ export async function runSolarRoofExtract(params: {
           imagery_date: data.imageryDate ?? null,
           total_plan_sqft: totalPlanSqFt,
           pitch_estimated: pitchUnknown,
-          facet_source: carved ? "footprint_voronoi" : "footprint_faces",
+          facet_source: "single_outline",
           max_sunshine_hours_per_year: data.solarPotential?.maxSunshineHoursPerYear ?? 0,
           segment_count: segments.length,
-          footprint: fit.footprint,
-          footprint_source: footprintHit?.source ?? "solar_boxes",
+          footprint: outlineRing,
+          footprint_source: footprintHit.source,
           segments,
           used_quality: success.usedQuality,
         });

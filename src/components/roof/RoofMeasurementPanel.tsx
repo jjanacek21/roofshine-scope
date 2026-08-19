@@ -12,7 +12,7 @@ import {
   blankManualValues,
 } from "./ManualMeasurementForm";
 import { MapboxRoofDraw, type MapboxRoofData, type AnyFeature } from "./MapboxRoofDraw";
-import { SolarRoofTab } from "./SolarRoofTab";
+import { RoofPlanTab } from "./RoofPlanTab";
 import { PropertyLocationPicker } from "./PropertyLocationPicker";
 
 import { ConditionAITab } from "./ConditionAITab";
@@ -28,7 +28,7 @@ type Tab = "manual" | "mapbox" | "solar" | "condition" | "report";
 const TAB_LABELS: Record<Tab, { label: string; icon: typeof MapIcon }> = {
   manual: { label: "Manual Entry", icon: Pencil },
   mapbox: { label: "Mapbox Draw", icon: MapIcon },
-  solar: { label: "AI Measurements", icon: Sparkles },
+  solar: { label: "Roof Measurement", icon: Sparkles },
   condition: { label: "AI Condition", icon: Sparkles },
   report: { label: "Upload Report", icon: FileText },
 };
@@ -495,13 +495,7 @@ export function RoofMeasurementPanel({
         />
       )}
       {tab === "solar" && center && (
-        <SolarRoofTab
-          center={center}
-          propertyId={propertyId}
-          jobId={jobId}
-          onApply={(d) => { setMapboxData(d); setTab("mapbox"); }}
-          onSwitchToMapbox={() => setTab("mapbox")}
-        />
+        <RoofPlanTab propertyId={propertyId} jobId={jobId} center={center} />
       )}
       {tab === "solar" && !center && (
         <div className="rounded-xl border p-12 text-center text-sm text-muted-foreground" style={{ borderColor: "var(--border)" }}>

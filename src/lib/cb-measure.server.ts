@@ -40,6 +40,8 @@ export async function runCbInstantMeasure(
   const { traceRoofFromPin } = await import("@/lib/roof-vision-trace.server");
   const { polygonAreaSqft } = await import("@/lib/roof-math");
   const { regularizeRing } = await import("@/lib/roof-regularize");
+  const { checkOutline } = await import("@/lib/roof-outline");
+
 
   /**
    * Buildings are rectilinear: snap the traced outline onto its own dominant
@@ -153,50 +155,65 @@ export async function runCbInstantMeasure(
       withTimeout(traceRoofFromPin({ lat: pin.lat, lng: pin.lng }), 40_000, "vision"),
     ]);
 
-    if (!extract) {
-      firstFailure = "measure_timeout";
-      continue;
+    /*
+     * ONE outline per structure — docs/MEASUREMENT_INVARIANTS.md. The vision
+     * trace IS the measurement; Google Solar only contributes pitch. A failed
+     * extract must not throw away a good trace, so it is no longer fatal.
+     */
+    const extractOk = extract && extract.status === 200;
+    if (!extractOk) {
+      firstFailure = !extract
+        ? "measure_timeout"
+        : ((extract.body?.error as string | undefined) ??
+          (extract.status === 404 ? "no_coverage" : "measure_failed"));
     }
-    if (extract.status !== 200) {
-      firstFailure =
-        (extract.body?.error as string | undefined) ??
-        (extract.status === 404 ? "no_coverage" : "measure_failed");
-      continue;
-    }
-    const traced = ((extract.body.segments ?? []) as ExtractedSegment[]).filter(
-      (segment) => (segment.ring?.length ?? 0) >= 3 && segment.plan_area_sqft > 0,
-    );
-    if (traced.length === 0) continue;
-    const candidate = (extract.body.footprint as number[][] | undefined) ?? traced[0]?.ring ?? null;
+    const traced = extractOk
+      ? ((extract.body.segments ?? []) as ExtractedSegment[]).filter(
+          (segment) => (segment.ring?.length ?? 0) >= 3 && segment.plan_area_sqft > 0,
+        )
+      : [];
+    const candidate = extractOk
+      ? ((extract.body.footprint as number[][] | undefined) ?? traced[0]?.ring ?? null)
+      : null;
 
     if (vision) {
       const byPitch = new Map<string, number>();
       traced.forEach((segment) => byPitch.set(segment.pitch, (byPitch.get(segment.pitch) ?? 0) + segment.plan_area_sqft));
       const pitch = [...byPitch.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "6/12";
       const squared = squareUp(vision.ring);
+      if (!checkOutline(squared).ok) {
+        firstFailure = "bad_outline";
+        continue;
+      }
       segments.push({ ring: squared, pitch, plan_area_sqft: polygonAreaSqft(squared) });
       traceConfidence.push(vision.confidence);
     } else if (candidate && candidate.length >= 3) {
       const squared = squareUp(candidate);
+      if (!checkOutline(squared).ok) {
+        firstFailure = "bad_outline";
+        continue;
+      }
       segments.push({
         ring: squared,
         pitch: traced[0]?.pitch ?? "6/12",
         plan_area_sqft: polygonAreaSqft(squared),
       });
       traceConfidence.push(0);
+    } else {
+      continue;
     }
     sources.push({
       /*
        * A vision trace is the real outline. Without one the shape is whatever
-       * the extractor produced — and when that is `solar_boxes` it is a fitted
-       * rectangle, not a measurement. Say so, so the UI can.
+       * the extractor produced — say which, so the UI can.
        */
       footprint: vision
         ? "vision_trace"
-        : ((extract.body.footprint_source as string | null) ?? null),
-      facet: (extract.body.facet_source as string | null) ?? null,
+        : ((extract?.body.footprint_source as string | null) ?? null),
+      facet: (extract?.body.facet_source as string | null) ?? null,
     });
-    runId ??= (extract.body.run_id as string | null) ?? null;
+    runId ??= (extract?.body.run_id as string | null) ?? null;
+
   }
 
   /*

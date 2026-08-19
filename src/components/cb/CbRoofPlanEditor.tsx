@@ -24,6 +24,7 @@ import {
   closeRing,
   edgeCenter,
   lineLengthFeet,
+  openRing,
   nearestPointOnRing,
   nearestPointOnRingIndexed,
   normalizeEdges,
@@ -41,7 +42,11 @@ import { confidenceColor, traceConfidence } from "@/lib/cbTraceConfidence";
 import { regularizeRing, ringAxisDeg, snapVertexToAxis } from "@/lib/roof-regularize";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-type Tool = "select" | "line" | "refine" | "label";
+/**
+ * `outline` draws a NEW structure outline by hand — a first-class way to start
+ * a measurement, not a fallback after the trace fails.
+ */
+type Tool = "select" | "line" | "refine" | "label" | "outline";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -847,6 +852,14 @@ export function CbRoofPlanEditor({
         cbHaptic(6);
         return;
       }
+      if (tool === "outline" && !readOnly) {
+        // Hand-drawn outline: snap to existing corners so structures meet cleanly.
+        const snap = snapLinePointInfo([e.lngLat.lng, e.lngLat.lat], e.point);
+        setDraft((d) => [...d, snap.point]);
+        cbHaptic(6);
+        return;
+      }
+
       if (tool === "refine" && !readOnly && !locked) {
         refineTap([e.lngLat.lng, e.lngLat.lat], e.point);
         return;
@@ -1362,6 +1375,41 @@ export function CbRoofPlanEditor({
     cbHaptic();
   }
 
+  /**
+   * Close a hand-drawn outline into a new structure. One closed outline per
+   * structure — never split into facets (docs/MEASUREMENT_INVARIANTS.md).
+   */
+  function finishOutline() {
+    const ring = openRing(draft);
+    if (ring.length < 3) {
+      setDraft([]);
+      setTool("select");
+      return;
+    }
+    const index = plan.sections.length;
+    const id = uid();
+    const section: CbPlanSection = {
+      id,
+      name: index === 0 ? "Main roof" : `Structure ${index + 1}`,
+      color: cbSectionColor(index),
+      ring,
+      pitch: plan.sections[0]?.pitch ?? "6/12",
+      edges: autoClassifyEdges(ring) as CbEdgeType[],
+      structureKey: id,
+      pin: null,
+      isLocked: false,
+      aiRing: null,
+    };
+    commit({ ...plan, sections: [...plan.sections, section] });
+    rawRingsRef.current[id] = ring.map((p) => [...p]);
+    setSelectedId(id);
+    setDraft([]);
+    setTool("select");
+    cbHaptic();
+  }
+
+
+
 
   function applyType(t: CbEdgeType) {
     if (!typeSheet) return;
@@ -1401,13 +1449,14 @@ export function CbRoofPlanEditor({
   const handleSection = activeSection;
   const vertexHandles: { x: number; y: number; index: number }[] = [];
   const midHandles: { x: number; y: number; index: number }[] = [];
-  const draftHandles = tool === "line"
+  const drawing = tool === "line" || tool === "outline";
+  const draftHandles = drawing
     ? draft.flatMap((point, index) => {
         const projected = project(point);
         return projected ? [{ ...projected, index }] : [];
       })
     : [];
-  const lineHandles = tool !== "line"
+  const lineHandles = !drawing
     ? plan.lines.flatMap((line) =>
         line.coords.flatMap((point, index) => {
           const projected = project(point);
@@ -1511,12 +1560,12 @@ export function CbRoofPlanEditor({
                 type="button"
                 aria-label={`Insert point on edge ${h.index + 1}`}
                 onPointerDown={(e) =>
-                  tool !== "line" &&
+                  !drawing &&
                   handleSection &&
                   beginVertexDrag(e, handleSection.id, h.index, "midpoint")
                 }
                 className={`absolute grid place-items-center ${
-                  tool === "line" ? "pointer-events-none" : "pointer-events-auto"
+                  drawing ? "pointer-events-none" : "pointer-events-auto"
                 }`}
                 style={{
                   left: h.x - 22,
@@ -1545,12 +1594,12 @@ export function CbRoofPlanEditor({
                 type="button"
                 aria-label={`Corner ${h.index + 1} — drag to move, hold to delete`}
                 onPointerDown={(e) =>
-                  tool !== "line" &&
+                  !drawing &&
                   handleSection &&
                   beginVertexDrag(e, handleSection.id, h.index, "vertex")
                 }
                 className={`absolute grid place-items-center ${
-                  tool === "line" ? "pointer-events-none" : "pointer-events-auto"
+                  drawing ? "pointer-events-none" : "pointer-events-auto"
                 }`}
                 style={{
                   left: h.x - 22,
@@ -1651,7 +1700,14 @@ export function CbRoofPlanEditor({
 
           {!readOnly ? (
             <div className="pointer-events-none absolute bottom-10 left-3 right-3 z-10 flex justify-center">
-              {tool !== "line" ? (
+              {tool === "outline" ? (
+                <span
+                  className="rounded-full px-3 py-1.5 text-[12px] font-semibold"
+                  style={{ background: "rgba(12,16,22,0.78)", color: "#fff" }}
+                >
+                  Tap each corner of the roof, then Finish outline
+                </span>
+              ) : tool !== "line" ? (
                 <span
                   className="rounded-full px-3 py-1.5 text-[12px] font-semibold"
                   style={{ background: "rgba(12,16,22,0.78)", color: "#fff" }}
@@ -1670,6 +1726,28 @@ export function CbRoofPlanEditor({
             </div>
           ) : null}
         </div>
+
+        {tool === "outline" && !readOnly ? (
+          <div
+            className="grid grid-cols-3 gap-2 border-t px-4 py-3"
+            style={{ borderColor: "var(--cb-border)" }}
+          >
+            <MapBtn onClick={() => setDraft((d) => d.slice(0, -1))} disabled={!draft.length}>
+              Undo point
+            </MapBtn>
+            <MapBtn onClick={finishOutline} disabled={draft.length < 3}>
+              Finish outline ({draft.length} pts)
+            </MapBtn>
+            <MapBtn
+              onClick={() => {
+                setDraft([]);
+                setTool("select");
+              }}
+            >
+              Cancel
+            </MapBtn>
+          </div>
+        ) : null}
 
         {tool === "line" && !readOnly ? (
           <div
@@ -1707,6 +1785,10 @@ export function CbRoofPlanEditor({
               <div className="grid grid-cols-2 gap-2">
                 <CbButton block variant="secondary" onClick={onTogglePinDrop}>{pinDropMode ? "Tap roof to place pin" : "Add another roof"}</CbButton>
                 <CbButton block onClick={() => { setTool("line"); setDraft([]); }}>Continue to lines</CbButton>
+                {/* Drawing the outline by hand is a way to START, not a fallback. */}
+                <CbButton block variant="secondary" onClick={() => { setTool("outline"); setDraft([]); }}>
+                  Draw roof by hand
+                </CbButton>
               </div>
             )}
             {!ready ? (

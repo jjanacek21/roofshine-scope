@@ -213,8 +213,9 @@ export async function runAutoMeasureForProperty(
   const COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ec4899", "#06b6d4"];
   let sortIdx = 0;
 
-  const { fitFacetsToFootprint, footprintFromSegmentBoxes } = await import("./roof-geometry");
   const { fetchBuildingFootprint } = await import("./footprint.server");
+  const { checkOutline } = await import("./roof-outline");
+  const { polygonAreaSqft } = await import("./roof-math");
 
   for (let bi = 0; bi < buildings.length; bi++) {
     const b = buildings[bi];
@@ -230,64 +231,40 @@ export async function runAutoMeasureForProperty(
     const usable = b.segments.filter((s) => (s.stats?.areaMeters2 ?? 0) > 0);
     if (usable.length === 0) continue;
 
-    // Fit facets to the real building outline so they follow the house angle
-    // instead of stacking axis-aligned boxes.
+    /*
+     * ONE outline per structure — see docs/MEASUREMENT_INVARIANTS.md. Google
+     * contributes pitch only; the shape is the real building outline or nothing
+     * (its segment boxes are axis-aligned and can only make a fake rectangle).
+     */
     const hit = await fetchBuildingFootprint(b.center.lat, b.center.lng, 30);
-    const reportedSqFt = usable.reduce(
-      (sum, s) => sum + (s.stats?.areaMeters2 ?? 0) * SQ_M_TO_SQ_FT,
-      0,
-    );
-    const outline =
-      hit?.ring ??
-      footprintFromSegmentBoxes(
-        usable
-          .filter((s) => s.boundingBox)
-          .map((s) => ({
-            sw: [s.boundingBox!.sw.longitude, s.boundingBox!.sw.latitude] as [number, number],
-            ne: [s.boundingBox!.ne.longitude, s.boundingBox!.ne.latitude] as [number, number],
-          })),
-        reportedSqFt,
-      );
-    if (!outline) continue;
+    if (!hit || !checkOutline(hit.ring).ok) continue;
+    const outline = hit.ring;
 
-    // Only hand over segments Google actually gave a slope direction for.
-    // Defaulting a missing azimuth to 0 invents a due-north plane and adds a
-    // facet boundary that isn't on the roof. A missing azimuth on a near-flat
-    // segment is expected and harmless, so keep those; drop the rest.
-    const fit = fitFacetsToFootprint(
-      outline,
-      usable
-        .filter(
-          (s) =>
-            Number.isFinite(s.azimuthDegrees) ||
-            (s.pitchDegrees ?? 90) < 3,
-        )
-        .map((s) => ({
-          azimuth_degrees: Number.isFinite(s.azimuthDegrees) ? s.azimuthDegrees! : 0,
-          pitch_degrees: s.pitchDegrees ?? 0,
-          area_m2: s.stats?.areaMeters2 ?? 0,
-        })),
-    );
+    const pitchSeed = [...usable].sort(
+      (x, y) => (y.stats?.areaMeters2 ?? 0) - (x.stats?.areaMeters2 ?? 0),
+    )[0];
+    const pitchDeg = typeof pitchSeed?.pitchDegrees === "number" ? pitchSeed.pitchDegrees : 26.57;
+    const rise = Math.max(0, Math.round(Math.tan((pitchDeg * Math.PI) / 180) * 12));
+    const pitch = `${rise}/12`;
 
-    fit.facets.forEach((f, si) => {
-      const planSqFt = f.plan_area_sqft;
-      const mult = pitchMultFromDeg(f.pitch_degrees);
-      const actual = planSqFt * mult;
-      totalPlan += planSqFt;
-      totalActual += actual;
-      pitchTotals[f.pitch] = (pitchTotals[f.pitch] ?? 0) + planSqFt;
-      sectionRows.push({
-        name: fit.facets.length > 1 ? `${label} · Facet ${si + 1}` : label,
-        color: COLORS[bi % COLORS.length],
-        polygon_geojson: { type: "Polygon", coordinates: [f.ring] },
-        plan_area_sqft: Math.round(planSqFt),
-        pitch: f.pitch,
-        pitch_multiplier: Number(mult.toFixed(4)),
-        actual_area_sqft: Math.round(actual),
-        sort_order: sortIdx++,
-      });
+    const planSqFt = polygonAreaSqft(outline);
+    const mult = pitchMultFromDeg(pitchDeg);
+    const actual = planSqFt * mult;
+    totalPlan += planSqFt;
+    totalActual += actual;
+    pitchTotals[pitch] = (pitchTotals[pitch] ?? 0) + planSqFt;
+    sectionRows.push({
+      name: label,
+      color: COLORS[bi % COLORS.length],
+      polygon_geojson: { type: "Polygon", coordinates: [outline] },
+      plan_area_sqft: Math.round(planSqFt),
+      pitch,
+      pitch_multiplier: Number(mult.toFixed(4)),
+      actual_area_sqft: Math.round(actual),
+      sort_order: sortIdx++,
     });
   }
+
 
   if (sectionRows.length === 0) return { ok: false, reason: "no_segments" as const };
 
