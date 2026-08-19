@@ -1764,7 +1764,7 @@ export function SolarRoofTab({
 
         {unknownPitchCount > 0 && (
           <div
-            className="absolute left-3 top-3 z-10 rounded-md border px-2.5 py-1.5 text-[11px] font-medium backdrop-blur"
+            className="absolute left-3 top-14 z-10 max-w-[60%] rounded-md border px-2.5 py-1.5 text-[11px] font-medium backdrop-blur"
             style={{
               borderColor: "rgba(245,158,11,0.5)",
               backgroundColor: "color-mix(in oklab, var(--bg-card) 85%, transparent)",
