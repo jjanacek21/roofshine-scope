@@ -228,17 +228,55 @@ export async function fetchBuildingFootprint(
   const direct = await fromOverpassDirect(lat, lng, radiusM);
   if (direct && pointInRing(lng, lat, direct.ring)) return direct;
 
-  const NEAR_M = 14;
-  const nearEnough = (r: FootprintResult | null) => {
-    if (!r) return false;
-    const [cx, cy] = centroid(r.ring);
-    const dx = (cx - lng) * 111_320 * Math.cos((lat * Math.PI) / 180);
-    const dy = (cy - lat) * 110_540;
-    return Math.hypot(dx, dy) <= NEAR_M;
+  /*
+   * Nothing contains the pin. A centroid-only test rejects big / L-shaped
+   * houses whose middle is far from where the rep tapped, which left the map
+   * with no outline at all. Score by distance from the pin to the building's
+   * OUTLINE (plus a looser centroid allowance) and take the closest candidate.
+   */
+  const NEAR_CENTROID_M = 20;
+  const NEAR_EDGE_M = 9;
+  const mPerLng = 111_320 * Math.cos((lat * Math.PI) / 180);
+  const mPerLat = 110_540;
+
+  const edgeDistM = (ring: number[][]) => {
+    let best = Infinity;
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i];
+      const b = ring[(i + 1) % ring.length];
+      const ax = (a[0] - lng) * mPerLng;
+      const ay = (a[1] - lat) * mPerLat;
+      const bx = (b[0] - lng) * mPerLng;
+      const by = (b[1] - lat) * mPerLat;
+      const vx = bx - ax;
+      const vy = by - ay;
+      const len2 = vx * vx + vy * vy;
+      const t = len2 > 0 ? Math.max(0, Math.min(1, -(ax * vx + ay * vy) / len2)) : 0;
+      const px = ax + t * vx;
+      const py = ay + t * vy;
+      best = Math.min(best, Math.hypot(px, py));
+    }
+    return best;
   };
 
-  if (nearEnough(direct)) return direct;
-  if (nearEnough(cached)) return cached;
-  return null;
+  const centroidDistM = (ring: number[][]) => {
+    const [cx, cy] = centroid(ring);
+    return Math.hypot((cx - lng) * mPerLng, (cy - lat) * mPerLat);
+  };
+
+  let best: FootprintResult | null = null;
+  let bestScore = Infinity;
+  for (const cand of [direct, cached]) {
+    if (!cand) continue;
+    const edge = edgeDistM(cand.ring);
+    const mid = centroidDistM(cand.ring);
+    if (edge > NEAR_EDGE_M && mid > NEAR_CENTROID_M) continue;
+    const score = Math.min(edge, mid);
+    if (score < bestScore) {
+      bestScore = score;
+      best = cand;
+    }
+  }
+  return best;
 }
 

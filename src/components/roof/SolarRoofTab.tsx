@@ -339,6 +339,8 @@ export function SolarRoofTab({
   const [estimatedPitch, setEstimatedPitch] = useState(false);
 
   const [showOverlay, setShowOverlay] = useState(true);
+  /** True when the last measurement fell back to a fitted box instead of a traced outline. */
+  const [untracedOutline, setUntracedOutline] = useState(false);
   const [showCoverageGaps, setShowCoverageGaps] = useState(false);
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
   const [measureSource, setMeasureSource] = useState<"ai" | "corrected" | null>(null);
@@ -386,6 +388,7 @@ export function SolarRoofTab({
   const [drawPoints, setDrawPoints] = useState<number[][]>([]);
   const drawingPinIdRef = useRef<string | null>(null);
   const drawPointsRef = useRef<number[][]>([]);
+  const drawPaintRef = useRef<() => void>(() => {});
 
   useEffect(() => { pinsStateRef.current = pins; }, [pins]);
   useEffect(() => { drawingPinIdRef.current = drawingPinId; }, [drawingPinId]);
@@ -576,17 +579,22 @@ export function SolarRoofTab({
 
     map.on("rotate", () => setBearing(map.getBearing()));
 
+    // Any event that can rebuild/destroy the style must re-assert the layers
+    // AND repaint both the facet highlights and the in-progress draw polygon.
+    const repaintAll = () => {
+      paintRef.current?.();
+      drawPaintRef.current?.();
+    };
     map.on("load", () => {
       ensureOverlayLayers(map);
-      paintRef.current?.();
+      repaintAll();
       setMapReady((n) => n + 1);
     });
     map.on("styledata", () => {
-      if (ensureOverlayLayers(map)) paintRef.current?.();
+      if (ensureOverlayLayers(map)) repaintAll();
     });
-    map.on("idle", () => {
-      paintRef.current?.();
-    });
+    map.on("idle", repaintAll);
+    map.on("resize", repaintAll);
 
 
 
@@ -600,33 +608,46 @@ export function SolarRoofTab({
     };
   }, [token, center.lng, center.lat]);
 
-  // Update draw-polygon visualization when points change
+  /*
+   * Draw-polygon visualization. Held in a ref like the facet painter: the
+   * `ai-draw` source is destroyed whenever the satellite style reloads, so the
+   * points a user already clicked would silently disappear and the tool looked
+   * dead. Every map event that can wipe the style repaints through this.
+   */
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const src = map.getSource("ai-draw") as mapboxgl.GeoJSONSource | undefined;
-    if (!src) return;
-    const features: GeoJSON.Feature[] = drawPoints.map((p) => ({
+    drawPaintRef.current = () => {
+      const map = mapRef.current;
+      if (!map) return;
+      if (!ensureOverlayLayers(map)) {
+        map.once("idle", () => drawPaintRef.current?.());
+        return;
+      }
+      const src = map.getSource("ai-draw") as mapboxgl.GeoJSONSource | undefined;
+      if (!src) return;
+      const drawPoints = drawPointsRef.current;
+      const features: GeoJSON.Feature[] = drawPoints.map((p) => ({
       type: "Feature",
       geometry: { type: "Point", coordinates: p },
       properties: {},
     }));
-    if (drawPoints.length >= 2) {
-      features.push({
-        type: "Feature",
-        geometry: { type: "LineString", coordinates: drawPoints },
-        properties: {},
-      });
-    }
-    if (drawPoints.length >= 3) {
-      features.push({
-        type: "Feature",
-        geometry: { type: "Polygon", coordinates: [[...drawPoints, drawPoints[0]]] },
-        properties: {},
-      });
-    }
-    src.setData({ type: "FeatureCollection", features });
-  }, [drawPoints]);
+      if (drawPoints.length >= 2) {
+        features.push({
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: drawPoints },
+          properties: {},
+        });
+      }
+      if (drawPoints.length >= 3) {
+        features.push({
+          type: "Feature",
+          geometry: { type: "Polygon", coordinates: [[...drawPoints, drawPoints[0]]] },
+          properties: {},
+        });
+      }
+      src.setData({ type: "FeatureCollection", features });
+    };
+    drawPaintRef.current();
+  }, [drawPoints, mapReady]);
 
   // Sync facet overlays + labels with pins.
   // The painter lives in a ref so map events (load / styledata / idle) can
@@ -637,13 +658,22 @@ export function SolarRoofTab({
     paintRef.current = () => {
       const map = mapRef.current;
       if (!map) return;
-      if (!ensureOverlayLayers(map)) return;
+      if (!ensureOverlayLayers(map)) {
+        // Style still loading — repaint as soon as it settles so a measurement
+        // that lands mid-load still gets highlighted.
+        map.once("idle", () => paintRef.current?.());
+        return;
+      }
+
+
+      // Read from the ref: a measurement repaints before React re-renders.
+      const livePins = pinsStateRef.current.length > 0 ? pinsStateRef.current : pins;
 
       const kinds: Record<string, GeoJSON.Feature[]> = { pitched: [], flat: [], ignore: [] };
       for (const kind of ["pitched", "flat", "ignore"] as PinKind[]) {
         const features: GeoJSON.Feature[] = [];
         if (showOverlay) {
-          for (const pin of pins) {
+          for (const pin of livePins) {
             if (pin.kind !== kind) continue;
             const rings = pin.facets && pin.facets.length > 0
               ? pin.facets.map((f) => f.ring)
@@ -668,7 +698,7 @@ export function SolarRoofTab({
 
       const foot: GeoJSON.Feature[] = [];
       if (showOverlay) {
-        for (const pin of pins) {
+        for (const pin of livePins) {
           const fp = pin.footprint;
           if (!fp || fp.length < 3 || pin.kind === "ignore") continue;
           const closed =
@@ -679,7 +709,7 @@ export function SolarRoofTab({
 
       const labels: GeoJSON.Feature[] = [];
       if (showOverlay) {
-        for (const pin of pins) {
+        for (const pin of livePins) {
           if (pin.kind === "ignore") continue;
           if ((pin.plan_area_sqft || 0) === 0) continue;
           const sqft = Math.round(pin.plan_area_sqft).toLocaleString();
@@ -1014,6 +1044,11 @@ export function SolarRoofTab({
     if (!data.segments?.length) return { ok: false, reason: "No structure detected here" };
 
     setMeasureSource(data.source ?? "ai");
+    setUntracedOutline(
+      !data.footprint ||
+        data.footprint.length < 3 ||
+        (data.footprint_source ?? "") === "solar_boxes",
+    );
     setCalibrationInfo(data.calibration ?? null);
     setImageryQuality(data.imagery_quality);
     setEstimatedPitch(Boolean(data.pitch_estimated));
@@ -1298,14 +1333,21 @@ export function SolarRoofTab({
 
 
   function startDraw(pinId: string) {
+    // Vertex editing swallows map clicks — drawing always wins over it.
+    setEditingVerticesPinId(null);
+    editingVerticesPinIdRef.current = null;
     setDrawingPinId(pinId);
+    drawingPinIdRef.current = pinId;
     setDrawPoints([]);
+    drawPointsRef.current = [];
     setActivePinId(pinId);
     toast.info("Click 3+ points around the structure, then press Done");
   }
   function cancelDraw() {
     setDrawingPinId(null);
+    drawingPinIdRef.current = null;
     setDrawPoints([]);
+    drawPointsRef.current = [];
   }
   function finishDraw() {
     if (!drawingPinId) return;
@@ -1672,6 +1714,40 @@ export function SolarRoofTab({
           >
             <Info className="h-3 w-3 text-muted-foreground" />
             <span className="text-muted-foreground">Click each roof to drop a pin · then hit AI measurements above</span>
+            {activePinId && (
+              <button
+                onClick={() => startDraw(activePinId)}
+                className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] font-semibold text-foreground hover:text-[var(--brand)]"
+                style={{ borderColor: "var(--border)" }}
+                title="Trace the structure by hand"
+              >
+                <Pencil className="h-3 w-3" /> Draw area
+              </button>
+            )}
+            {editingVerticesPinId && (
+              <button
+                onClick={() => setEditingVerticesPinId(null)}
+                className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] font-semibold text-[#facc15]"
+                style={{ borderColor: "#facc15" }}
+                title="Vertex editing is on — map clicks won't drop pins"
+              >
+                <X className="h-3 w-3" /> Exit corner editing
+              </button>
+            )}
+          </div>
+        )}
+        {untracedOutline && (
+          <div
+            className="absolute bottom-3 right-3 z-10 max-w-[260px] rounded-md border px-3 py-2 text-[11px] backdrop-blur"
+            style={{
+              borderColor: "#f59e0b",
+              backgroundColor: "color-mix(in oklab, var(--bg-card) 92%, transparent)",
+            }}
+          >
+            <span className="font-semibold text-foreground">Auto outline couldn't be traced</span>
+            <span className="mt-0.5 block text-muted-foreground">
+              This shape is a fitted box, not the real roof edges. Drag the corners or use Draw area.
+            </span>
           </div>
         )}
         {(imageryQuality || estimatedPitch) && (
