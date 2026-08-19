@@ -163,8 +163,7 @@ export const CB_EXTERIOR_FIELDS: CbTakeoffFieldSpec<CbExteriorArea>[] = [
   { key: "doors_qty", label: "Doors", unit: "EA", match: ["door"] },
   { key: "fascia_lf", label: "Fascia", unit: "LF", match: ["fascia"] },
   { key: "soffit_lf", label: "Soffit", unit: "LF", match: ["soffit"] },
-  { key: "gutter_lf", label: "Gutter", unit: "LF", match: ["gutter"] },
-  { key: "downspout_qty", label: "Downspouts", unit: "EA", match: ["downspout"] },
+  /* Gutters live on the roof takeoff only — never entered per elevation. */
   { key: "shutters_qty", label: "Shutters", unit: "EA", match: ["shutter"] },
   { key: "light_fixtures_qty", label: "Light fixtures", unit: "EA", match: ["light"] },
   { key: "ac_fin_qty", label: "A/C condenser fins", unit: "EA", match: ["condenser"] },
@@ -345,6 +344,8 @@ export interface CbSheet {
   exterior?: Record<string, CbExteriorArea>;
   /** Per-room interior takeoff, keyed by room id. */
   interior?: Record<string, CbInteriorArea>;
+  /** Derived fields the rep typed over — those stop re-filling from measurement. */
+  derived_overrides?: Record<string, boolean>;
   notes?: string;
 }
 
@@ -366,6 +367,7 @@ export const CB_EMPTY_SHEET: CbSheet = {
   hardware: {},
   exterior: {},
   interior: {},
+  derived_overrides: {},
   notes: "",
 };
 
@@ -426,8 +428,67 @@ export function readSheet(data: Record<string, unknown> | undefined | null): CbS
     hardware: hw,
     exterior: { ...(raw?.exterior ?? {}) },
     interior: { ...(raw?.interior ?? {}) },
+    derived_overrides: { ...(raw?.derived_overrides ?? {}) },
     notes: raw?.notes ?? "",
   };
+}
+
+/* ---------------- fields derived from the roof measurement ---------------- */
+
+/** The measurement numbers the takeoff reads. All optional — 0 means "unknown". */
+export interface CbDerivedSource {
+  ridge_lf?: number | null;
+  hip_lf?: number | null;
+  valley_lf?: number | null;
+  rake_lf?: number | null;
+  eave_lf?: number | null;
+  gutter_lf?: number | null;
+}
+
+export interface CbDerivedField {
+  /** stable id used for the override flag */
+  id: string;
+  section: "edge_metal" | "ventilation" | "gutters";
+  field: string;
+  basis: string;
+  from: (m: CbDerivedSource) => number;
+}
+
+const n = (v: number | null | undefined) => Number(v) || 0;
+const perimeter = (m: CbDerivedSource) => Math.round((n(m.eave_lf) + n(m.rake_lf)) * 10) / 10;
+const round1 = (v: number) => Math.round(v * 10) / 10;
+
+export const CB_DERIVED_FIELDS: CbDerivedField[] = [
+  { id: "edge_metal.drip_edge_lf", section: "edge_metal", field: "drip_edge_lf", basis: "perimeter (eave + rake)", from: perimeter },
+  { id: "edge_metal.starter_lf", section: "edge_metal", field: "starter_lf", basis: "perimeter (eave + rake)", from: perimeter },
+  { id: "edge_metal.rake_edge_lf", section: "edge_metal", field: "rake_edge_lf", basis: "rake", from: (m) => round1(n(m.rake_lf)) },
+  { id: "edge_metal.valley_metal_lf", section: "edge_metal", field: "valley_metal_lf", basis: "valley", from: (m) => round1(n(m.valley_lf)) },
+  { id: "edge_metal.ridge_cap_lf", section: "edge_metal", field: "ridge_cap_lf", basis: "ridge", from: (m) => round1(n(m.ridge_lf)) },
+  { id: "ventilation.ridge_vent_lf", section: "ventilation", field: "ridge_vent_lf", basis: "ridge", from: (m) => round1(n(m.ridge_lf)) },
+  { id: "gutters.lf", section: "gutters", field: "lf", basis: "gutter-labeled runs", from: (m) => round1(n(m.gutter_lf)) },
+];
+
+export const CB_DERIVED_BY_ID: Record<string, CbDerivedField> = Object.fromEntries(
+  CB_DERIVED_FIELDS.map((f) => [f.id, f]),
+);
+
+/**
+ * Push every measurement-derived number into the sheet, skipping any field the
+ * rep typed over. Returns the same object when nothing changed.
+ */
+export function applySheetDerived(sheet: CbSheet, m: CbDerivedSource | null | undefined): CbSheet {
+  if (!m) return sheet;
+  const overrides = sheet.derived_overrides ?? {};
+  let next = sheet;
+  for (const f of CB_DERIVED_FIELDS) {
+    if (overrides[f.id]) continue;
+    const value = f.from(m);
+    if (!(value > 0)) continue;
+    const section = next[f.section] as Record<string, unknown>;
+    if (section[f.field] === value) continue;
+    next = { ...next, [f.section]: { ...section, [f.field]: value } } as CbSheet;
+  }
+  return next;
 }
 
 

@@ -534,8 +534,9 @@ export function planTotals(plan: CbPlan): CbPlanTotals {
     hip_lf: r(byType.hip),
     valley_lf: r(byType.valley),
     rake_lf: r(byType.rake),
-    eave_lf: r(byType.eave),
-    gutter_lf: r(byType.gutter || byType.eave),
+    /* A run labelled Gutter is still an eave — it just also carries gutter. */
+    eave_lf: r(byType.eave + byType.gutter),
+    gutter_lf: r(byType.gutter),
     wall_flashing_lf: r(byType.wall_flashing),
     step_flashing_lf: r(byType.step_flashing),
     perimeter_lf: r(perimeter),
