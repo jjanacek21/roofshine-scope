@@ -83,6 +83,16 @@ function parseResponseText(raw: string): string {
   return text;
 }
 
+/**
+ * Traces already produced for a pin. Re-measuring the same house (a retry, a
+ * back-navigation, a second pin on the same structure) returns instantly
+ * instead of paying for the whole vision round trip again.
+ */
+const traceCache = new Map<string, { trace: VisionRoofTrace; at: number }>();
+const TRACE_TTL_MS = 1000 * 60 * 30;
+/** ~1 m of latitude — same house, same key. */
+const pinKey = (lat: number, lng: number) => `${lat.toFixed(5)},${lng.toFixed(5)}`;
+
 export async function traceRoofFromPin(params: {
   lat: number;
   lng: number;
@@ -91,6 +101,12 @@ export async function traceRoofFromPin(params: {
   const mapboxKey = process.env.MAPBOX_API_TOKEN;
   const lovableKey = process.env.LOVABLE_API_KEY;
   if (!mapboxKey || !lovableKey) return null;
+
+  const key = pinKey(params.lat, params.lng);
+  const hit = traceCache.get(key);
+  if (hit && Date.now() - hit.at < TRACE_TTL_MS) return hit.trace;
+  if (hit) traceCache.delete(key);
+
 
   const imageUrl =
     `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/` +
