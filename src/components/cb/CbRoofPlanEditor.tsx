@@ -120,6 +120,8 @@ export function CbRoofPlanEditor({
   aiPlan?: CbPlan | null;
   onSaveFootprint?: (sectionId: string) => void;
   savingFootprint?: boolean;
+  /** True when the shape is a fitted rectangle, not a traced outline. */
+  untracedOutline?: boolean;
 }) {
   const { data: token } = useMapboxToken();
   const containerRef = useRef<HTMLDivElement | null>(null);
