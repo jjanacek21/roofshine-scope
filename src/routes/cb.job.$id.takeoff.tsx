@@ -139,6 +139,9 @@ function QtyLine({
   itemKey,
   onCamera,
   photos,
+  derivedBasis,
+  overridden,
+  onReset,
 }: {
   label: string;
   suffix?: string;
@@ -147,12 +150,34 @@ function QtyLine({
   itemKey: string;
   onCamera: (itemKey: string, label: string) => void;
   photos: number;
+  /** when set, the number comes from the roof measurement */
+  derivedBasis?: string;
+  overridden?: boolean;
+  onReset?: () => void;
 }) {
   return (
     <div className="flex items-center gap-2">
       <label className="flex-1 min-w-0 text-[15px]" style={{ color: "var(--cb-text)" }}>
         <span className="block truncate">{label}</span>
         {suffix ? <span className="cb-microlabel">{suffix}</span> : null}
+        {derivedBasis ? (
+          <span className="block text-[11.5px]" style={{ color: "var(--cb-text-muted)" }}>
+            {overridden ? (
+              <button
+                type="button"
+                onClick={() => {
+                  cbHaptic();
+                  onReset?.();
+                }}
+                style={{ color: "var(--cb-accent)", textDecoration: "underline" }}
+              >
+                Edited — reset to measurement
+              </button>
+            ) : (
+              `From measurement · ${derivedBasis}`
+            )}
+          </span>
+        ) : null}
       </label>
       <input
         className="cb-input cb-num"
