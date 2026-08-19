@@ -357,6 +357,58 @@ function CbTakeoffPage() {
     [update],
   );
 
+  /* Drip edge, starter, rake, valley metal, ridge cap, ridge vent and gutter LF
+   * all come straight off the measurement unless the rep typed over them. */
+  useEffect(() => {
+    if (!sheet || !measure) return;
+    update((s) => applySheetDerived(s, measure));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    measure?.eave_lf,
+    measure?.rake_lf,
+    measure?.ridge_lf,
+    measure?.valley_lf,
+    measure?.gutter_lf,
+    sheet !== null,
+  ]);
+
+  /** Manual edit of a derived field — the rep's number wins from here on. */
+  const setDerived = useCallback(
+    (id: string, v: number | undefined) => {
+      const spec = CB_DERIVED_BY_ID[id];
+      if (!spec) return;
+      update((s) => ({
+        ...s,
+        derived_overrides: { ...(s.derived_overrides ?? {}), [id]: true },
+        [spec.section]: { ...(s[spec.section] as object), [spec.field]: v },
+      }));
+    },
+    [update],
+  );
+
+  /** Drop the override and pull the measurement value back in. */
+  const resetDerived = useCallback(
+    (id: string) => {
+      update((s) => {
+        const overrides = { ...(s.derived_overrides ?? {}) };
+        delete overrides[id];
+        return applySheetDerived({ ...s, derived_overrides: overrides }, measure);
+      });
+    },
+    [update, measure],
+  );
+
+  const derivedProps = (id: string) => {
+    const spec = CB_DERIVED_BY_ID[id];
+    if (!spec) return {};
+    return {
+      derivedBasis: spec.basis,
+      overridden: !!sheet?.derived_overrides?.[id],
+      onReset: () => resetDerived(id),
+    };
+  };
+
+
   async function saveMeasurement() {
     if (!measure) return;
     await supabase
