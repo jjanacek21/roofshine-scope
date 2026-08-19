@@ -163,8 +163,7 @@ export const CB_EXTERIOR_FIELDS: CbTakeoffFieldSpec<CbExteriorArea>[] = [
   { key: "doors_qty", label: "Doors", unit: "EA", match: ["door"] },
   { key: "fascia_lf", label: "Fascia", unit: "LF", match: ["fascia"] },
   { key: "soffit_lf", label: "Soffit", unit: "LF", match: ["soffit"] },
-  { key: "gutter_lf", label: "Gutter", unit: "LF", match: ["gutter"] },
-  { key: "downspout_qty", label: "Downspouts", unit: "EA", match: ["downspout"] },
+  /* Gutters live on the roof takeoff only — never entered per elevation. */
   { key: "shutters_qty", label: "Shutters", unit: "EA", match: ["shutter"] },
   { key: "light_fixtures_qty", label: "Light fixtures", unit: "EA", match: ["light"] },
   { key: "ac_fin_qty", label: "A/C condenser fins", unit: "EA", match: ["condenser"] },
