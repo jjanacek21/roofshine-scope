@@ -85,6 +85,8 @@ function CbJobMeasurePage() {
   const [repAdjusted, setRepAdjusted] = useState(false);
   const [upgrade, setUpgrade] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
+  /** True when the last measurement fell back to a fitted rectangle. */
+  const [untracedOutline, setUntracedOutline] = useState(false);
   const [saving, setSaving] = useState(false);
   const [measurePins, setMeasurePins] = useState<Array<{ lat: number; lng: number }>>([]);
   /** How many dropped pins have already been traced. */
