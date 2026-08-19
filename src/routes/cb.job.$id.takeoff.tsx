@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, Plus, Trash2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
@@ -204,6 +204,7 @@ function CbTakeoffPage() {
   const [measureDirty, setMeasureDirty] = useState(false);
   const [cam, setCam] = useState<{ itemKey: string; label: string } | null>(null);
   const [wideCam, setWideCam] = useState<CbElevation | null>(null);
+  const qc = useQueryClient();
   const hydrated = useRef(false);
   const sentToMeasure = useRef(false);
 
@@ -1199,6 +1200,29 @@ function CbTakeoffPage() {
             onSaved={() => setCam(null)}
           />
         ) : null}
+
+        {wideCam ? (
+          <CbCamera
+            open
+            onClose={() => setWideCam(null)}
+            jobId={id}
+            workspaceId={job?.job?.workspace_id}
+            meta={{ category: "roof", elevation: wideCam, shot_type: "wide" }}
+            title={`${CB_ELEVATION_LABEL[wideCam]} — wide shot`}
+            instruction="Back up so the whole slope and its edges are in frame."
+            captionContext={`Roof — ${CB_ELEVATION_LABEL[wideCam]} wide shot`}
+            onSaved={(count) => {
+              const e = wideCam;
+              if (e) {
+                void patchElevation(e, { slopeWide: (wideCounts[e] ?? 0) + (count || 1) });
+              }
+              void qc.invalidateQueries({ queryKey: ["cb-takeoff-job", id] });
+              setWideCam(null);
+            }}
+          />
+        ) : null}
+
+
 
         <CbPendingPill />
       </div>
