@@ -1203,7 +1203,8 @@ function CbTakeoffPage() {
               photos={photoCounts.gutter_lf ?? 0}
               onCamera={openCam}
               value={sheet.gutters.lf}
-              onChange={(v) => patch("gutters", { lf: v })}
+              onChange={(v) => setDerived("gutters.lf", v)}
+              {...derivedProps("gutters.lf")}
             />
             <QtyLine
               label="Downspouts"
