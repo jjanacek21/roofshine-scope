@@ -1374,6 +1374,41 @@ export function CbRoofPlanEditor({
     cbHaptic();
   }
 
+  /**
+   * Close a hand-drawn outline into a new structure. One closed outline per
+   * structure — never split into facets (docs/MEASUREMENT_INVARIANTS.md).
+   */
+  function finishOutline() {
+    const ring = openRing(draft);
+    if (ring.length < 3) {
+      setDraft([]);
+      setTool("select");
+      return;
+    }
+    const index = plan.sections.length;
+    const id = uid();
+    const section: CbPlanSection = {
+      id,
+      name: index === 0 ? "Main roof" : `Structure ${index + 1}`,
+      color: cbSectionColor(index),
+      ring,
+      pitch: plan.sections[0]?.pitch ?? "6/12",
+      edges: autoClassifyEdges(ring) as CbEdgeType[],
+      structureKey: id,
+      pin: null,
+      isLocked: false,
+      aiRing: null,
+    };
+    commit({ ...plan, sections: [...plan.sections, section] });
+    rawRingsRef.current[id] = ring.map((p) => [...p]);
+    setSelectedId(id);
+    setDraft([]);
+    setTool("select");
+    cbHaptic();
+  }
+
+
+
 
   function applyType(t: CbEdgeType) {
     if (!typeSheet) return;
