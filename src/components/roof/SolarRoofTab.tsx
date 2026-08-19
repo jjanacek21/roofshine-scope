@@ -386,6 +386,7 @@ export function SolarRoofTab({
   const [drawPoints, setDrawPoints] = useState<number[][]>([]);
   const drawingPinIdRef = useRef<string | null>(null);
   const drawPointsRef = useRef<number[][]>([]);
+  const drawPaintRef = useRef<() => void>(() => {});
 
   useEffect(() => { pinsStateRef.current = pins; }, [pins]);
   useEffect(() => { drawingPinIdRef.current = drawingPinId; }, [drawingPinId]);
