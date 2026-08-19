@@ -272,7 +272,7 @@ export async function runSolarRoofExtract(params: {
                 lat,
                 lng,
                 source: "solar_coverage_gap",
-                solar_response: { error: "no_coverage", attempts: attempts.length },
+                solar_response: { error: "no_coverage", attempts: ladder.length + 4 },
                 ground_truth: {},
                 created_by: userId,
               });
