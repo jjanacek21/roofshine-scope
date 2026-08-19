@@ -205,5 +205,7 @@ Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points
   const edgeConfidence = ring.map((_, index) =>
     Math.max(0, Math.min(1, Number(parsed.edge_confidence?.[index] ?? confidence))),
   );
-  return { ring, confidence, edgeConfidence };
+  const trace = { ring, confidence, edgeConfidence };
+  traceCache.set(key, { trace, at: Date.now() });
+  return trace;
 }
