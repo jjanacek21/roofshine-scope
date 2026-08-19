@@ -344,6 +344,8 @@ export interface CbSheet {
   exterior?: Record<string, CbExteriorArea>;
   /** Per-room interior takeoff, keyed by room id. */
   interior?: Record<string, CbInteriorArea>;
+  /** Derived fields the rep typed over — those stop re-filling from measurement. */
+  derived_overrides?: Record<string, boolean>;
   notes?: string;
 }
 
