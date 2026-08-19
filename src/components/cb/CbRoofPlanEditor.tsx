@@ -41,7 +41,11 @@ import { confidenceColor, traceConfidence } from "@/lib/cbTraceConfidence";
 import { regularizeRing, ringAxisDeg, snapVertexToAxis } from "@/lib/roof-regularize";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-type Tool = "select" | "line" | "refine" | "label";
+/**
+ * `outline` draws a NEW structure outline by hand — a first-class way to start
+ * a measurement, not a fallback after the trace fails.
+ */
+type Tool = "select" | "line" | "refine" | "label" | "outline";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
