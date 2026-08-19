@@ -204,6 +204,7 @@ function CbTakeoffPage() {
   const [measureDirty, setMeasureDirty] = useState(false);
   const [cam, setCam] = useState<{ itemKey: string; label: string } | null>(null);
   const [wideCam, setWideCam] = useState<CbElevation | null>(null);
+  const qc = useQueryClient();
   const hydrated = useRef(false);
   const sentToMeasure = useRef(false);
 
