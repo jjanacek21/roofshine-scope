@@ -186,7 +186,14 @@ export async function runCbInstantMeasure(
       traceConfidence.push(0);
     }
     sources.push({
-      footprint: (extract.body.footprint_source as string | null) ?? null,
+      /*
+       * A vision trace is the real outline. Without one the shape is whatever
+       * the extractor produced — and when that is `solar_boxes` it is a fitted
+       * rectangle, not a measurement. Say so, so the UI can.
+       */
+      footprint: vision
+        ? "vision_trace"
+        : ((extract.body.footprint_source as string | null) ?? null),
       facet: (extract.body.facet_source as string | null) ?? null,
     });
     runId ??= (extract.body.run_id as string | null) ?? null;
