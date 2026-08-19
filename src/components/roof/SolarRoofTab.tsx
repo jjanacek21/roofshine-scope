@@ -666,11 +666,14 @@ export function SolarRoofTab({
       }
 
 
+      // Read from the ref: a measurement repaints before React re-renders.
+      const livePins = pinsStateRef.current.length > 0 ? pinsStateRef.current : pins;
+
       const kinds: Record<string, GeoJSON.Feature[]> = { pitched: [], flat: [], ignore: [] };
       for (const kind of ["pitched", "flat", "ignore"] as PinKind[]) {
         const features: GeoJSON.Feature[] = [];
         if (showOverlay) {
-          for (const pin of pins) {
+          for (const pin of livePins) {
             if (pin.kind !== kind) continue;
             const rings = pin.facets && pin.facets.length > 0
               ? pin.facets.map((f) => f.ring)
@@ -695,7 +698,7 @@ export function SolarRoofTab({
 
       const foot: GeoJSON.Feature[] = [];
       if (showOverlay) {
-        for (const pin of pins) {
+        for (const pin of livePins) {
           const fp = pin.footprint;
           if (!fp || fp.length < 3 || pin.kind === "ignore") continue;
           const closed =
@@ -706,7 +709,7 @@ export function SolarRoofTab({
 
       const labels: GeoJSON.Feature[] = [];
       if (showOverlay) {
-        for (const pin of pins) {
+        for (const pin of livePins) {
           if (pin.kind === "ignore") continue;
           if ((pin.plan_area_sqft || 0) === 0) continue;
           const sqft = Math.round(pin.plan_area_sqft).toLocaleString();
