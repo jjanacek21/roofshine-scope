@@ -367,6 +367,7 @@ export const CB_EMPTY_SHEET: CbSheet = {
   hardware: {},
   exterior: {},
   interior: {},
+  derived_overrides: {},
   notes: "",
 };
 
