@@ -121,7 +121,13 @@ export function applyDerived(
 export type CbMeasureCredit = { allowed: boolean; metered: boolean; remaining: number | null };
 
 export type CbInstantResult =
-  | { ok: true; measurement: CbMeasurement; credit: CbMeasureCredit }
+  | {
+      ok: true;
+      measurement: CbMeasurement;
+      credit: CbMeasureCredit;
+      /** How the outline was obtained — `solar_boxes` means it was NOT traced. */
+      footprint_source: string | null;
+    }
   | { ok: false; reason: string; credit: CbMeasureCredit };
 
 /**
