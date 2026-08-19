@@ -1123,18 +1123,27 @@ function CbTakeoffPage() {
                 ["ridge_cap_lf", "Ridge cap"],
                 ["starter_lf", "Starter"],
               ] as const
-            ).map(([key, label]) => (
-              <QtyLine
-                key={key}
-                label={label}
-                suffix="LF"
-                itemKey={`edge_${key}`}
-                photos={photoCounts[`edge_${key}`] ?? 0}
-                onCamera={openCam}
-                value={sheet.edge_metal[key]}
-                onChange={(v) => patch("edge_metal", { [key]: v } as Partial<CbSheet["edge_metal"]>)}
-              />
-            ))}
+            ).map(([key, label]) => {
+              const derivedId = `edge_metal.${key}`;
+              const isDerived = !!CB_DERIVED_BY_ID[derivedId];
+              return (
+                <QtyLine
+                  key={key}
+                  label={label}
+                  suffix="LF"
+                  itemKey={`edge_${key}`}
+                  photos={photoCounts[`edge_${key}`] ?? 0}
+                  onCamera={openCam}
+                  value={sheet.edge_metal[key]}
+                  onChange={(v) =>
+                    isDerived
+                      ? setDerived(derivedId, v)
+                      : patch("edge_metal", { [key]: v } as Partial<CbSheet["edge_metal"]>)
+                  }
+                  {...derivedProps(derivedId)}
+                />
+              );
+            })}
             <Picker
               label="Material"
               options={CB_EDGE_METAL_MATERIALS}
