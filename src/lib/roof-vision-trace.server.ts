@@ -119,7 +119,12 @@ Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points
     body: JSON.stringify({
       model: "openai/gpt-5.6-sol",
       stream: true,
-      reasoning: { effort: "medium", summary: "auto" },
+      /*
+       * Minimal effort, no reasoning summary. Medium effort routinely pushed
+       * this past the caller's budget, and a timed-out trace silently became
+       * the box-fitted rectangle — the "square roof" the reps kept seeing.
+       */
+      reasoning: { effort: "minimal" },
       input: [
         {
           role: "user",
