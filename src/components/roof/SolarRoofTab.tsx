@@ -619,22 +619,24 @@ export function SolarRoofTab({
       geometry: { type: "Point", coordinates: p },
       properties: {},
     }));
-    if (drawPoints.length >= 2) {
-      features.push({
-        type: "Feature",
-        geometry: { type: "LineString", coordinates: drawPoints },
-        properties: {},
-      });
-    }
-    if (drawPoints.length >= 3) {
-      features.push({
-        type: "Feature",
-        geometry: { type: "Polygon", coordinates: [[...drawPoints, drawPoints[0]]] },
-        properties: {},
-      });
-    }
-    src.setData({ type: "FeatureCollection", features });
-  }, [drawPoints]);
+      if (drawPoints.length >= 2) {
+        features.push({
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: drawPoints },
+          properties: {},
+        });
+      }
+      if (drawPoints.length >= 3) {
+        features.push({
+          type: "Feature",
+          geometry: { type: "Polygon", coordinates: [[...drawPoints, drawPoints[0]]] },
+          properties: {},
+        });
+      }
+      src.setData({ type: "FeatureCollection", features });
+    };
+    drawPaintRef.current();
+  }, [drawPoints, mapReady]);
 
   // Sync facet overlays + labels with pins.
   // The painter lives in a ref so map events (load / styledata / idle) can
