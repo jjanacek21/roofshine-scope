@@ -1032,6 +1032,11 @@ export function SolarRoofTab({
     if (!data.segments?.length) return { ok: false, reason: "No structure detected here" };
 
     setMeasureSource(data.source ?? "ai");
+    setUntracedOutline(
+      !data.footprint ||
+        data.footprint.length < 3 ||
+        (data.footprint_source ?? "") === "solar_boxes",
+    );
     setCalibrationInfo(data.calibration ?? null);
     setImageryQuality(data.imagery_quality);
     setEstimatedPitch(Boolean(data.pitch_estimated));
