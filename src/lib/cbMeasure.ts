@@ -192,6 +192,7 @@ export async function getInstantMeasurement({
     return {
       ok: true,
       credit,
+      footprint_source: res.footprint_source ?? null,
       measurement: {
         ...res.measurement,
         raw: res.measurement,
