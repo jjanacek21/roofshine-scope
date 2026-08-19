@@ -24,6 +24,7 @@ import {
   closeRing,
   edgeCenter,
   lineLengthFeet,
+  openRing,
   nearestPointOnRing,
   nearestPointOnRingIndexed,
   normalizeEdges,
