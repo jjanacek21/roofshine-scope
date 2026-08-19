@@ -40,6 +40,8 @@ export async function runCbInstantMeasure(
   const { traceRoofFromPin } = await import("@/lib/roof-vision-trace.server");
   const { polygonAreaSqft } = await import("@/lib/roof-math");
   const { regularizeRing } = await import("@/lib/roof-regularize");
+  const { checkOutline } = await import("@/lib/roof-outline");
+
 
   /**
    * Buildings are rectilinear: snap the traced outline onto its own dominant
