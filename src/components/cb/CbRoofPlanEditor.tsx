@@ -851,6 +851,14 @@ export function CbRoofPlanEditor({
         cbHaptic(6);
         return;
       }
+      if (tool === "outline" && !readOnly) {
+        // Hand-drawn outline: snap to existing corners so structures meet cleanly.
+        const snap = snapLinePointInfo([e.lngLat.lng, e.lngLat.lat], e.point);
+        setDraft((d) => [...d, snap.point]);
+        cbHaptic(6);
+        return;
+      }
+
       if (tool === "refine" && !readOnly && !locked) {
         refineTap([e.lngLat.lng, e.lngLat.lat], e.point);
         return;
