@@ -339,6 +339,8 @@ export function SolarRoofTab({
   const [estimatedPitch, setEstimatedPitch] = useState(false);
 
   const [showOverlay, setShowOverlay] = useState(true);
+  /** True when the last measurement fell back to a fitted box instead of a traced outline. */
+  const [untracedOutline, setUntracedOutline] = useState(false);
   const [showCoverageGaps, setShowCoverageGaps] = useState(false);
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
   const [measureSource, setMeasureSource] = useState<"ai" | "corrected" | null>(null);
