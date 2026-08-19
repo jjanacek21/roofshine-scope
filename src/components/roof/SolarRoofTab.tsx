@@ -1326,7 +1326,9 @@ export function SolarRoofTab({
   }
   function cancelDraw() {
     setDrawingPinId(null);
+    drawingPinIdRef.current = null;
     setDrawPoints([]);
+    drawPointsRef.current = [];
   }
   function finishDraw() {
     if (!drawingPinId) return;
