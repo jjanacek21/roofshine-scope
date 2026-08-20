@@ -236,7 +236,8 @@ export async function runCbInstantMeasure(
       pitch: s.pitch,
       plan_area_sqft: s.plan_area_sqft,
     })),
-    namePrefix: "Facet",
+    // One outline per structure — never facet labels (docs/MEASUREMENT_INVARIANTS.md).
+    namePrefix: "Structure",
   });
 
   if (!saved.ok) return { ok: false as const, reason: saved.reason };
