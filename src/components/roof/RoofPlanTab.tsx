@@ -147,7 +147,9 @@ export function RoofPlanTab({
   const totals = planTotals(plan);
 
   return (
-    <div className="space-y-3">
+    // `data-cb` scopes the Claim Buddy design tokens so the shared editor looks
+    // and behaves identically here and on gcn.claims.
+    <div data-cb className="space-y-3">
       <CbRoofPlanEditor
         plan={plan}
         onPlanChange={(next) => setPlan(next)}
