@@ -204,12 +204,31 @@ export async function getInstantMeasurement({
   }
 }
 
+/** Sources the cb_measurements CHECK constraint accepts. */
+const CB_ALLOWED_SOURCES = new Set([
+  "instant",
+  "manual",
+  "google_solar",
+  "roof_plan",
+  "photo_ai",
+  "third_party_report",
+  "mapbox_draw",
+]);
+
+/** PostgREST errors are plain objects — surface their real message. */
+function pgError(error: unknown, fallback: string): Error {
+  const e = (error ?? {}) as { message?: string; details?: string; hint?: string; code?: string };
+  const parts = [e.message, e.details, e.hint].filter(Boolean);
+  return new Error(parts.length ? parts.join(" — ") : fallback);
+}
+
 /** Upsert cb_measurements (unique on job_id) and pre-fill the takeoff sheet. */
 export async function saveCbMeasurement(
   jobId: string,
   m: CbMeasurement,
   repAdjusted: boolean,
 ): Promise<void> {
+  const source = CB_ALLOWED_SOURCES.has(m.source) ? m.source : "instant";
   const { error } = await supabase.from("cb_measurements").upsert(
     {
       job_id: jobId,
