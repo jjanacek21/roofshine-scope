@@ -249,14 +249,14 @@ export async function saveCbMeasurement(
       wall_flashing_lf: m.wall_flashing_lf,
       step_flashing_lf: m.step_flashing_lf,
       gutter_lf: m.gutter_lf,
-      source: m.source,
+      source,
       gc_roof_measurement_id: m.gc_roof_measurement_id ?? null,
       rep_adjusted: repAdjusted,
       raw: (m.raw ?? null) as never,
     },
     { onConflict: "job_id" },
   );
-  if (error) throw error;
+  if (error) throw pgError(error, "Couldn't save the measurement");
 
   const { data: existing } = await supabase
     .from("cb_takeoffs")
@@ -294,5 +294,5 @@ export async function saveCbMeasurement(
     },
     { onConflict: "job_id" },
   );
-  if (tErr) throw tErr;
+  if (tErr) throw pgError(tErr, "Couldn't save the takeoff sheet");
 }
