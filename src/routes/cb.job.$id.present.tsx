@@ -456,16 +456,64 @@ function StandardSlide({ slide }: { slide: CbSlide }) {
   );
 }
 
+export type CbPresentPanel = "measure" | "carrier" | "photos";
+
+function StatButton({
+  value,
+  decimals = 0,
+  label,
+  cta,
+  onClick,
+}: {
+  value: number;
+  decimals?: number;
+  label: string;
+  cta: string;
+  onClick: () => void;
+}) {
+  return (
+    <CbCard
+      elevation="raised"
+      tilt
+      className="cb-present-stat"
+      role="button"
+      tabIndex={0}
+      style={{ cursor: "pointer" }}
+      onClick={onClick}
+      onKeyDown={(e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") onClick();
+      }}
+    >
+      <span className="cb-present-stat-value">
+        <CbCountUp value={value} decimals={decimals} />
+      </span>
+      <span className="cb-present-stat-label">{label}</span>
+      <span
+        style={{
+          marginTop: 6,
+          fontSize: 14,
+          fontWeight: 700,
+          color: "var(--cb-accent, #15803d)",
+        }}
+      >
+        {cta} →
+      </span>
+    </CbCard>
+  );
+}
+
 function PropertySlide({
   property,
   companyName,
   onReport,
   onContract,
+  onOpen,
 }: {
   property: CbPropertyDeckData;
   companyName: string;
   onReport: () => void;
   onContract: () => void;
+  onOpen: (panel: CbPresentPanel) => void;
 }) {
   return (
     <div className="cb-slide">
@@ -474,30 +522,32 @@ function PropertySlide({
 
       <div className="cb-present-stats">
         <CbReveal delay={120}>
-          <CbCard elevation="raised" className="cb-present-stat">
-            <span className="cb-present-stat-value">
-              <CbCountUp value={property.squares} decimals={1} />
-            </span>
-            <span className="cb-present-stat-label">Squares of roof</span>
-          </CbCard>
+          <StatButton
+            value={property.squares}
+            decimals={1}
+            label="Squares of roof"
+            cta="Click for roof diagram"
+            onClick={() => onOpen("measure")}
+          />
         </CbReveal>
         <CbReveal delay={190}>
-          <CbCard elevation="raised" className="cb-present-stat">
-            <span className="cb-present-stat-value">
-              <CbCountUp value={property.lineItemCount} />
-            </span>
-            <span className="cb-present-stat-label">Scope line items</span>
-          </CbCard>
+          <StatButton
+            value={property.lineItemCount}
+            label="Scope line items"
+            cta="Click for carrier report"
+            onClick={() => onOpen("carrier")}
+          />
         </CbReveal>
         <CbReveal delay={260}>
-          <CbCard elevation="raised" className="cb-present-stat">
-            <span className="cb-present-stat-value">
-              <CbCountUp value={property.photoCount} />
-            </span>
-            <span className="cb-present-stat-label">Photos documented</span>
-          </CbCard>
+          <StatButton
+            value={property.photoCount}
+            label="Photos documented"
+            cta="Click for photo documentation"
+            onClick={() => onOpen("photos")}
+          />
         </CbReveal>
       </div>
+
 
       <CbReveal delay={300}>
         <CbCard elevation="card" className="cb-present-claim">
