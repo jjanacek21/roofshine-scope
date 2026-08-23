@@ -36,15 +36,18 @@ export const XrFit = forwardRef<HTMLDivElement, { children: ReactNode }>(functio
   return (
     <div ref={outer} style={{ width: "100%", overflow: "hidden" }}>
       <div style={{ height, width: PAGE_W * scale }}>
-        <div
-          ref={(node) => {
-            inner.current = node;
-            if (typeof innerRef === "function") innerRef(node);
-            else if (innerRef) (innerRef as { current: HTMLDivElement | null }).current = node;
-          }}
-          style={{ width: PAGE_W, transform: `scale(${scale})`, transformOrigin: "top left" }}
-        >
-          {children}
+        <div style={{ width: PAGE_W, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+          {/* Untransformed node — the PDF is captured from here at full size. */}
+          <div
+            ref={(node) => {
+              inner.current = node;
+              if (typeof innerRef === "function") innerRef(node);
+              else if (innerRef) (innerRef as { current: HTMLDivElement | null }).current = node;
+            }}
+            style={{ width: PAGE_W }}
+          >
+            {children}
+          </div>
         </div>
       </div>
     </div>
