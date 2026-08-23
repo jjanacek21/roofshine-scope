@@ -1969,53 +1969,83 @@ function generatePdf() {
 
   if (!isInsurance && d.scopeStructured) {
     const trades = d.scopeStructured.trades || {};
-    // Two-column scope-of-work layout (trade per column, pair-by-pair)
-    const colGap = 14;
+    // Two equal, height-balanced columns: content flows across both columns
+    // so neither side is left with a large empty gap.
+    const colGap = 18;
     const colW = (cw - colGap) / 2;
     const colX = [M, M + colW + colGap];
-    const renderTradeColumn = (tradeKey, fieldValues, x, startY) => {
+
+    // 1. Flatten the scope into measurable blocks (trade header + each section)
+    const blocks = [];
+    Object.entries(trades).forEach(([tradeKey, fieldValues]) => {
       const schema = getSchemaForTrade(tradeKey);
-      if (!schema) return startY;
-      let cy = startY;
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(143, 111, 24);
-      doc.text(schema.label.toUpperCase(), x, cy);
-      doc.setDrawColor(216, 210, 192);
-      doc.setLineWidth(0.4);
-      doc.line(x, cy + 2, x + colW, cy + 2);
-      cy += 12;
+      if (!schema) return;
+      const sections = [];
       schema.sections.forEach(sec => {
-        const populatedFields = sec.fields.filter(f => fieldValues[f.id] != null && fieldValues[f.id] !== '');
-        if (populatedFields.length === 0) return;
+        const populated = sec.fields.filter(f => fieldValues[f.id] != null && fieldValues[f.id] !== '');
+        if (populated.length === 0) return;
+        doc.setFontSize(8.5);
+        const rows = populated.map(f => doc.splitTextToSize(`  ${f.label}: ${fieldValues[f.id]}`, colW - 4));
+        const h = 9 + rows.reduce((s, r) => s + r.length * 11 + 2, 0) + 4;
+        sections.push({ title: sec.title.toUpperCase(), rows, height: h });
+      });
+      sections.forEach((sec, i) => {
+        blocks.push({
+          tradeLabel: i === 0 ? schema.label.toUpperCase() : null,
+          section: sec,
+          height: sec.height + (i === 0 ? 12 : 0) + (i === sections.length - 1 ? 6 : 0),
+        });
+      });
+    });
+
+    // 2. Split into two columns of near-equal height
+    const totalH = blocks.reduce((s, b) => s + b.height, 0);
+    const target = totalH / 2;
+    const colBlocks = [[], []];
+    let run = 0;
+    blocks.forEach(b => {
+      const idx = run + b.height / 2 > target && colBlocks[0].length > 0 ? 1 : 0;
+      colBlocks[idx].push(b);
+      run += b.height;
+    });
+
+    // 3. Render each column from the same baseline
+    const drawColumn = (list, x, startY) => {
+      let cy = startY;
+      list.forEach(b => {
+        if (b.tradeLabel) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(10);
+          doc.setTextColor(143, 111, 24);
+          doc.text(b.tradeLabel, x, cy);
+          doc.setDrawColor(216, 210, 192);
+          doc.setLineWidth(0.4);
+          doc.line(x, cy + 2, x + colW, cy + 2);
+          cy += 12;
+        }
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8);
         doc.setTextColor(143, 111, 24);
-        doc.text(sec.title.toUpperCase(), x + 4, cy);
+        doc.text(b.section.title, x + 4, cy);
         cy += 9;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8.5);
         doc.setTextColor(30, 25, 20);
-        populatedFields.forEach(f => {
-          const line = `  ${f.label}: ${fieldValues[f.id]}`;
-          cy = drawWrapped(doc, line, x + 4, cy, colW - 4, 11) + 2;
+        b.section.rows.forEach(r => {
+          doc.text(r, x + 4, cy);
+          cy += r.length * 11 + 2;
         });
         cy += 4;
       });
-      return cy + 6;
+      return cy;
     };
-    const tradeEntries = Object.entries(trades);
-    for (let i = 0; i < tradeEntries.length; i += 2) {
+
+    if (blocks.length) {
       if (y > H - 160) { doc.addPage(); y = M; }
       const rowStart = y;
-      const [k1, v1] = tradeEntries[i];
-      const end1 = renderTradeColumn(k1, v1, colX[0], rowStart);
-      let end2 = rowStart;
-      if (tradeEntries[i + 1]) {
-        const [k2, v2] = tradeEntries[i + 1];
-        end2 = renderTradeColumn(k2, v2, colX[1], rowStart);
-      }
-      y = Math.max(end1, end2);
+      const end1 = drawColumn(colBlocks[0], colX[0], rowStart);
+      const end2 = drawColumn(colBlocks[1], colX[1], rowStart);
+      y = Math.max(end1, end2) + 8;
     }
     const shared = d.scopeStructured.shared || {};
     Object.entries(shared).forEach(([sharedKey, fieldValues]) => {
