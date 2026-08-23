@@ -383,18 +383,10 @@ function CbPresentPage() {
         onDownload={exportPanel}
         downloading={exporting}
       >
-        <div ref={docRef}>
-          {panel === "measure" ? (
-            <CbMeasurementReport
-              jobId={id}
-              measurement={(data.measurement ?? null) as never}
-              lat={data.job.lat != null ? Number(data.job.lat) : null}
-              lng={data.job.lng != null ? Number(data.job.lng) : null}
-            />
-          ) : panel === "photos" ? (
-            <CbPhotoDocSheet jobId={id} />
-          ) : panel === "carrier" ? (
-            estimateInputs ? (
+        {panel === "carrier" ? (
+          /* Letter-size document, scaled to fit the screen but never re-laid out. */
+          <XrFit ref={docRef}>
+            {estimateInputs ? (
               <CbCarrierReport
                 lines={estimateInputs.existing?.lines ?? []}
                 percents={estimateInputs.percents}
@@ -403,9 +395,22 @@ function CbPresentPage() {
               />
             ) : (
               <CbLoading label="Building the carrier report…" />
-            )
-          ) : null}
-        </div>
+            )}
+          </XrFit>
+        ) : (
+          <div ref={docRef}>
+            {panel === "measure" ? (
+              <CbMeasurementReport
+                jobId={id}
+                measurement={(data.measurement ?? null) as never}
+                lat={data.job.lat != null ? Number(data.job.lat) : null}
+                lng={data.job.lng != null ? Number(data.job.lng) : null}
+              />
+            ) : panel === "photos" ? (
+              <CbPhotoDocSheet jobId={id} />
+            ) : null}
+          </div>
+        )}
       </CbDocOverlay>
     </CbSurface>
 
