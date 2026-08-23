@@ -1,4 +1,5 @@
 import { polygonAreaSqft } from "@/lib/roof-math";
+import { checkOutline } from "@/lib/roof-outline";
 import { parseResponsesApiText } from "@/lib/roof-vision-response";
 
 type Point = { x: number; y: number };
@@ -99,14 +100,16 @@ export async function traceRoofFromPin(params: {
   const imageType = imageResponse.headers.get("content-type") || "image/jpeg";
   const imageBytes = Buffer.from(await imageResponse.arrayBuffer()).toString("base64");
   const imageData = `data:${imageType};base64,${imageBytes}`;
-  const candidate = params.candidateRing?.length
+  // Generic solar/building boxes are useful for location but poison the vision
+  // trace by encouraging the exact rectangle the outline invariant forbids.
+  const candidate = params.candidateRing?.length && checkOutline(params.candidateRing).ok
     ? ringToNormalized(params.candidateRing, params)
     : [];
 
   const prompt = `Return JSON that traces exactly ONE roof footprint in this north-up satellite image.
 The dropped pin is exactly at normalized image coordinate x=0.5, y=0.5. Sample the roof color and texture at that pin and follow that same roof surface to its true outer boundary. Separate it from similar-colored patios, concrete, driveways, neighboring roofs, and cast shadows. Shadows may bend or darken an edge; continue the physical roof line through them. Visible gutters, fascia, and drip edges are strong boundary evidence. Do not trace individual roof facets or internal ridge/hip/valley lines. Return one clockwise outer polygon only.
 An existing vector/solar candidate is provided as normalized points and is guidance, not ground truth: ${JSON.stringify(candidate)}.
-Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points). Include one confidence value per polygon edge in the same order.`;
+The result must follow the visible roof edge corner by corner. Never return the roof's bounding box, a generic square, or a 4-point axis-aligned rectangle. Include visible offsets, bump-outs, and direction changes; use at least 5 meaningful corners and at most 24. Every x and y must be between 0 and 1. Include one confidence value per polygon edge in the same order.`;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
     method: "POST",
@@ -119,11 +122,10 @@ Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points
       model: "openai/gpt-5.6-sol",
       stream: true,
       /*
-       * Minimal effort, no reasoning summary. Medium effort routinely pushed
-       * this past the caller's budget, and a timed-out trace silently became
-       * the box-fitted rectangle — the "square roof" the reps kept seeing.
+       * Low effort was fast but repeatedly approximated real roofs as boxes.
+       * Streaming keeps the request alive while medium effort follows edges.
        */
-      reasoning: { effort: "low" },
+      reasoning: { effort: "medium" },
       input: [
         {
           role: "user",
@@ -144,7 +146,7 @@ Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points
             properties: {
               points: {
                 type: "array",
-                minItems: 3,
+                minItems: 5,
                 maxItems: 24,
                 items: {
                   type: "object",
