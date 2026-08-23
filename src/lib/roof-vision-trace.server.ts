@@ -140,7 +140,7 @@ Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points
        * this past the caller's budget, and a timed-out trace silently became
        * the box-fitted rectangle — the "square roof" the reps kept seeing.
        */
-      reasoning: { effort: "minimal" },
+      reasoning: { effort: "low" },
       input: [
         {
           role: "user",
