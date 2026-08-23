@@ -102,7 +102,10 @@ export async function traceRoofFromPin(params: {
 }): Promise<VisionRoofTrace | null> {
   const mapboxKey = process.env.MAPBOX_API_TOKEN;
   const lovableKey = process.env.LOVABLE_API_KEY;
-  if (!mapboxKey || !lovableKey) return null;
+  if (!mapboxKey || !lovableKey) {
+    params.onError?.("tracer_not_configured");
+    return null;
+  }
 
   const key = pinKey(params.lat, params.lng);
   const hit = traceCache.get(key);
