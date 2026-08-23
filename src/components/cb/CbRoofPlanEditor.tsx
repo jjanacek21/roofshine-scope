@@ -646,7 +646,7 @@ export function CbRoofPlanEditor({
         geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
       })),
     );
-  }, [plan, layersVersion, selectedId, draft, measurePins, showTrace, aiPlan, confidence]);
+  }, [plan, layersVersion, selectedId, draft, measurePins, showTrace, aiPlan, confidence, fillAlpha]);
 
   /* -------- pin markers: visible even when the GL layers never came up ----- */
 
