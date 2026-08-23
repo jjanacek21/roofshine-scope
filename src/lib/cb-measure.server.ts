@@ -232,7 +232,9 @@ export async function runCbInstantMeasure(
    * No traced geometry = no measurement. Never hand back a placeholder shape:
    * a wrong number that looks real is worse than a clear failure.
    */
-  if (segments.length === 0) return { ok: false as const, reason: firstFailure };
+  if (segments.length === 0) {
+    return { ok: false as const, reason: tracerFailure ?? firstFailure };
+  }
 
   const wastePct = Number.isFinite(Number(data.waste_pct)) ? Number(data.waste_pct) : 15;
 
