@@ -302,6 +302,8 @@ function CbPresentPage() {
                     companyName={data.company?.name ?? ""}
                     onReport={() => navigate({ to: "/cb/job/$id/report", params: { id }, search: { r: undefined } })}
                     onContract={() => navigate({ to: "/cb/job/$id/contract", params: { id } })}
+                    onOpen={setPanel}
+
                   />
                 ) : (
                   <StandardSlide slide={slide} />
