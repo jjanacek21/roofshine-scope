@@ -85,7 +85,7 @@ export async function traceRoofFromPin(params: {
 
   const key = pinKey(params.lat, params.lng);
   const hit = traceCache.get(key);
-  if (hit && Date.now() - hit.at < TRACE_TTL_MS) return hit.trace;
+  if (hit && Date.now() - hit.at < TRACE_TTL_MS && checkOutline(hit.trace.ring).ok) return hit.trace;
   if (hit) traceCache.delete(key);
 
 
@@ -206,6 +206,12 @@ The result must follow the visible roof edge corner by corner. Never return the 
   const edgeConfidence = ring.map((_, index) =>
     Math.max(0, Math.min(1, Number(parsed.edge_confidence?.[index] ?? confidence))),
   );
+  const outlineCheck = checkOutline(ring);
+  if (!outlineCheck.ok) {
+    console.warn("[roof-vision] rejected model outline", outlineCheck.problems);
+    params.onError?.(`tracer_${outlineCheck.problems[0] ?? "invalid_outline"}`);
+    return null;
+  }
   const trace = { ring, confidence, edgeConfidence };
   traceCache.set(key, { trace, at: Date.now() });
   return trace;
