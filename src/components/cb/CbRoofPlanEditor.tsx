@@ -532,7 +532,7 @@ export function CbRoofPlanEditor({
       properties: {
         id: s.id,
         color: s.color,
-        opacity: s.id === selectedId ? 0.6 : 0.45,
+        opacity: s.id === selectedId ? Math.min(1, fillAlpha * 1.33) : fillAlpha,
       },
       geometry: { type: "Polygon", coordinates: [closeRing(s.ring)] },
     }));
