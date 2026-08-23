@@ -121,6 +121,30 @@ function CbPresentPage() {
 
   const [sectionIdx, setSectionIdx] = useState<number | null>(null);
   const [slideIdx, setSlideIdx] = useState(0);
+  const [panel, setPanel] = useState<CbPresentPanel | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const docRef = useRef<HTMLDivElement>(null);
+
+  /* Estimate lines for the carrier document — only loaded when it is opened. */
+  const { data: estimateInputs } = useQuery({
+    queryKey: ["cb-estimate-inputs", id],
+    queryFn: () => loadCbEstimateInputs(id),
+    enabled: panel === "carrier",
+    staleTime: Infinity,
+  });
+
+  const exportPanel = useCallback(async () => {
+    if (!docRef.current) return;
+    setExporting(true);
+    try {
+      await generateEstimatePdf(docRef.current, `${panel ?? "document"}-claim-buddy.pdf`);
+    } catch {
+      toast.error("Couldn't build the PDF");
+    } finally {
+      setExporting(false);
+    }
+  }, [panel]);
+
 
   const logoUrl = useCbLogoUrl(data?.company?.logo_url ?? null);
   /* Team photos live alongside logos in the private cb-logos bucket. */
