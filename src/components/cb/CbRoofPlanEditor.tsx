@@ -159,6 +159,11 @@ export function CbRoofPlanEditor({
   /** AI trace overlay: dashed original outline + per-edge confidence colouring. */
   const [showTrace, setShowTrace] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [fillAlpha, setFillAlpha] = useState(() => {
+    if (typeof window === "undefined") return 0.45;
+    const raw = Number(window.localStorage.getItem("cb-fill-alpha"));
+    return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 0.45;
+  });
   const [pitchSheet, setPitchSheet] = useState<string | null>(null);
   const [loupe, setLoupe] = useState<{ x: number; y: number } | null>(null);
   const loupeRef = useRef<HTMLCanvasElement | null>(null);
