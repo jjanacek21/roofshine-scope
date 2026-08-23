@@ -369,7 +369,46 @@ function CbPresentPage() {
           </>
         )}
       </div>
+
+      <CbDocOverlay
+        open={panel !== null}
+        title={
+          panel === "measure"
+            ? "Measurement Report"
+            : panel === "carrier"
+              ? "Carrier Report"
+              : "Photo Documentation"
+        }
+        onClose={() => setPanel(null)}
+        onDownload={exportPanel}
+        downloading={exporting}
+      >
+        <div ref={docRef}>
+          {panel === "measure" ? (
+            <CbMeasurementReport
+              jobId={id}
+              measurement={(data.measurement ?? null) as never}
+              lat={data.job.lat != null ? Number(data.job.lat) : null}
+              lng={data.job.lng != null ? Number(data.job.lng) : null}
+            />
+          ) : panel === "photos" ? (
+            <CbPhotoDocSheet jobId={id} />
+          ) : panel === "carrier" ? (
+            estimateInputs ? (
+              <CbCarrierReport
+                lines={estimateInputs.existing?.lines ?? []}
+                percents={estimateInputs.percents}
+                company={data.company}
+                job={data.job as never}
+              />
+            ) : (
+              <CbLoading label="Building the carrier report…" />
+            )
+          ) : null}
+        </div>
+      </CbDocOverlay>
     </CbSurface>
+
   );
 }
 
