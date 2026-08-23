@@ -97,6 +97,8 @@ export async function traceRoofFromPin(params: {
   lat: number;
   lng: number;
   candidateRing?: number[][] | null;
+  /** Called when the tracer itself failed (not "this roof has no coverage"). */
+  onError?: (reason: string) => void;
 }): Promise<VisionRoofTrace | null> {
   const mapboxKey = process.env.MAPBOX_API_TOKEN;
   const lovableKey = process.env.LOVABLE_API_KEY;
