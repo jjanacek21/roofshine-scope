@@ -159,6 +159,11 @@ export function CbRoofPlanEditor({
   /** AI trace overlay: dashed original outline + per-edge confidence colouring. */
   const [showTrace, setShowTrace] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [fillAlpha, setFillAlpha] = useState(() => {
+    if (typeof window === "undefined") return 0.45;
+    const raw = Number(window.localStorage.getItem("cb-fill-alpha"));
+    return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 0.45;
+  });
   const [pitchSheet, setPitchSheet] = useState<string | null>(null);
   const [loupe, setLoupe] = useState<{ x: number; y: number } | null>(null);
   const loupeRef = useRef<HTMLCanvasElement | null>(null);
@@ -527,7 +532,7 @@ export function CbRoofPlanEditor({
       properties: {
         id: s.id,
         color: s.color,
-        opacity: s.id === selectedId ? 0.6 : 0.45,
+        opacity: s.id === selectedId ? Math.min(1, fillAlpha * 1.33) : fillAlpha,
       },
       geometry: { type: "Polygon", coordinates: [closeRing(s.ring)] },
     }));
@@ -641,7 +646,7 @@ export function CbRoofPlanEditor({
         geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
       })),
     );
-  }, [plan, layersVersion, selectedId, draft, measurePins, showTrace, aiPlan, confidence]);
+  }, [plan, layersVersion, selectedId, draft, measurePins, showTrace, aiPlan, confidence, fillAlpha]);
 
   /* -------- pin markers: visible even when the GL layers never came up ----- */
 
@@ -1981,6 +1986,30 @@ export function CbRoofPlanEditor({
               {overallConfidence.low ? <p className="mt-1 text-[13px]">Review {overallConfidence.low} low-confidence edge{overallConfidence.low === 1 ? "" : "s"}.</p> : null}
             </CbCard>
           ) : null}
+          <CbCard className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-[14px] font-semibold">Highlight transparency</p>
+              <span className="cb-num text-[14px] font-bold">{Math.round(fillAlpha * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={Math.round(fillAlpha * 100)}
+              onChange={(e) => {
+                const next = Number(e.target.value) / 100;
+                setFillAlpha(next);
+                try { window.localStorage.setItem("cb-fill-alpha", String(next)); } catch { /* private mode */ }
+              }}
+              className="mt-3 w-full"
+              style={{ accentColor: "var(--cb-accent, #f97316)" }}
+              aria-label="Roof highlight opacity"
+            />
+            <p className="mt-1 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+              Turn it down to see the roof through the orange fill.
+            </p>
+          </CbCard>
           {aiPlan?.sections.length ? <CbButton block variant="secondary" onClick={() => setShowTrace((value) => !value)}>{showTrace ? "Hide AI outline" : "Show AI outline"}</CbButton> : null}
           <CbButton block variant="secondary" onClick={toggleSquareUp}>
             {squareUp ? "Un-square (use raw trace)" : "Square up edges"}
