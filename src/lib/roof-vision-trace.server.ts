@@ -1,4 +1,6 @@
 import { polygonAreaSqft } from "@/lib/roof-math";
+import { checkOutline } from "@/lib/roof-outline";
+import { parseResponsesApiText } from "@/lib/roof-vision-response";
 
 type Point = { x: number; y: number };
 
@@ -57,32 +59,6 @@ function pointInRing(point: [number, number], ring: number[][]): boolean {
   return inside;
 }
 
-function parseResponseText(raw: string): string {
-  let text = "";
-  for (const line of raw.split("\n")) {
-    if (!line.startsWith("data: ")) continue;
-    const payload = line.slice(6);
-    if (payload === "[DONE]") continue;
-    try {
-      const event = JSON.parse(payload) as {
-        type?: string;
-        delta?: string;
-        response?: { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
-      };
-      if (event.type === "response.output_text.delta" && event.delta) text += event.delta;
-      if (!text && event.type === "response.completed") {
-        text =
-          event.response?.output_text ??
-          event.response?.output?.flatMap((item) => item.content ?? []).map((item) => item.text ?? "").join("") ??
-          "";
-      }
-    } catch {
-      // Ignore keepalive and non-JSON SSE lines.
-    }
-  }
-  return text;
-}
-
 /**
  * Traces already produced for a pin. Re-measuring the same house (a retry, a
  * back-navigation, a second pin on the same structure) returns instantly
@@ -109,7 +85,7 @@ export async function traceRoofFromPin(params: {
 
   const key = pinKey(params.lat, params.lng);
   const hit = traceCache.get(key);
-  if (hit && Date.now() - hit.at < TRACE_TTL_MS) return hit.trace;
+  if (hit && Date.now() - hit.at < TRACE_TTL_MS && checkOutline(hit.trace.ring).ok) return hit.trace;
   if (hit) traceCache.delete(key);
 
 
@@ -117,18 +93,23 @@ export async function traceRoofFromPin(params: {
     `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/` +
     `${params.lng},${params.lat},${ZOOM},0/${IMAGE_SIZE}x${IMAGE_SIZE}?access_token=${mapboxKey}`;
   const imageResponse = await fetch(imageUrl);
-  if (!imageResponse.ok) return null;
+  if (!imageResponse.ok) {
+    params.onError?.(`tracer_image_${imageResponse.status}`);
+    return null;
+  }
   const imageType = imageResponse.headers.get("content-type") || "image/jpeg";
   const imageBytes = Buffer.from(await imageResponse.arrayBuffer()).toString("base64");
   const imageData = `data:${imageType};base64,${imageBytes}`;
-  const candidate = params.candidateRing?.length
+  // Generic solar/building boxes are useful for location but poison the vision
+  // trace by encouraging the exact rectangle the outline invariant forbids.
+  const candidate = params.candidateRing?.length && checkOutline(params.candidateRing).ok
     ? ringToNormalized(params.candidateRing, params)
     : [];
 
   const prompt = `Return JSON that traces exactly ONE roof footprint in this north-up satellite image.
 The dropped pin is exactly at normalized image coordinate x=0.5, y=0.5. Sample the roof color and texture at that pin and follow that same roof surface to its true outer boundary. Separate it from similar-colored patios, concrete, driveways, neighboring roofs, and cast shadows. Shadows may bend or darken an edge; continue the physical roof line through them. Visible gutters, fascia, and drip edges are strong boundary evidence. Do not trace individual roof facets or internal ridge/hip/valley lines. Return one clockwise outer polygon only.
 An existing vector/solar candidate is provided as normalized points and is guidance, not ground truth: ${JSON.stringify(candidate)}.
-Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points). Include one confidence value per polygon edge in the same order.`;
+The result must follow the visible roof edge corner by corner. Never return the roof's bounding box, a generic square, or a 4-point axis-aligned rectangle. Include visible offsets, bump-outs, and direction changes; use at least 5 meaningful corners and at most 24. Every x and y must be between 0 and 1. Include one confidence value per polygon edge in the same order.`;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
     method: "POST",
@@ -141,11 +122,10 @@ Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points
       model: "openai/gpt-5.6-sol",
       stream: true,
       /*
-       * Minimal effort, no reasoning summary. Medium effort routinely pushed
-       * this past the caller's budget, and a timed-out trace silently became
-       * the box-fitted rectangle — the "square roof" the reps kept seeing.
+       * Low effort was fast but repeatedly approximated real roofs as boxes.
+       * Streaming keeps the request alive while medium effort follows edges.
        */
-      reasoning: { effort: "low" },
+      reasoning: { effort: "medium" },
       input: [
         {
           role: "user",
@@ -166,7 +146,7 @@ Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points
             properties: {
               points: {
                 type: "array",
-                minItems: 3,
+                minItems: 5,
                 maxItems: 24,
                 items: {
                   type: "object",
@@ -190,27 +170,48 @@ Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points
     return null;
   }
 
-  const output = parseResponseText(await response.text());
-  if (!output) return null;
+  const output = parseResponsesApiText(await response.text());
+  if (!output) {
+    console.warn("[roof-vision] empty model output");
+    params.onError?.("tracer_empty_output");
+    return null;
+  }
   let parsed: { points?: Point[]; confidence?: number; edge_confidence?: number[] };
   try {
     parsed = JSON.parse(output) as typeof parsed;
   } catch {
+    console.warn("[roof-vision] invalid model JSON", output.slice(0, 200));
+    params.onError?.("tracer_invalid_json");
     return null;
   }
   const points = (parsed.points ?? []).filter(
     (point) => Number.isFinite(point.x) && Number.isFinite(point.y) && point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1,
   );
-  if (points.length < 3 || points.length > 24) return null;
+  if (points.length < 3 || points.length > 24) {
+    params.onError?.("tracer_invalid_points");
+    return null;
+  }
   const ring = points.map((point) => normalizedToLngLat(point, params));
   const area = polygonAreaSqft(ring);
-  if (area < 80 || area > 40_000) return null;
+  if (area < 80 || area > 40_000) {
+    params.onError?.("tracer_invalid_area");
+    return null;
+  }
   const pin: [number, number] = [params.lng, params.lat];
-  if (!pointInRing(pin, ring)) return null;
+  if (!pointInRing(pin, ring)) {
+    params.onError?.("tracer_pin_outside_outline");
+    return null;
+  }
   const confidence = Math.max(0, Math.min(1, Number(parsed.confidence) || 0));
   const edgeConfidence = ring.map((_, index) =>
     Math.max(0, Math.min(1, Number(parsed.edge_confidence?.[index] ?? confidence))),
   );
+  const outlineCheck = checkOutline(ring);
+  if (!outlineCheck.ok) {
+    console.warn("[roof-vision] rejected model outline", outlineCheck.problems);
+    params.onError?.(`tracer_${outlineCheck.problems[0] ?? "invalid_outline"}`);
+    return null;
+  }
   const trace = { ring, confidence, edgeConfidence };
   traceCache.set(key, { trace, at: Date.now() });
   return trace;

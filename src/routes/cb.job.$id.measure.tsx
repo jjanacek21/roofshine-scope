@@ -371,7 +371,11 @@ function CbJobMeasurePage() {
       res.reason === "no_credits"
         ? "Out of measurement credits — enter it by hand"
         : res.reason.startsWith("tracer_")
-          ? "The roof tracer is temporarily unavailable — trace it by hand or try again"
+          ? `The roof tracer could not finish (${res.reason.replace("tracer_", "").replaceAll("_", " ")}) — move the pin and try again`
+          : res.reason.startsWith("save_")
+            ? "The roof was traced but could not be saved — try again"
+            : res.reason.startsWith("engine_error:")
+              ? `Measurement failed: ${res.reason.slice("engine_error:".length)}`
           : res.reason === "no_coverage" || res.reason === "no_footprint"
             ? "No satellite roof data for this address — trace it or type it in"
             : "Couldn't measure from satellite — enter it by hand",

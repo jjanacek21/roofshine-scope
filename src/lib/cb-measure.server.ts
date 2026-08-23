@@ -39,7 +39,7 @@ export async function runCbInstantMeasure(
   const { saveSolarMeasurement } = await import("@/lib/roof-measurement-save");
   const { traceRoofFromPin } = await import("@/lib/roof-vision-trace.server");
   const { polygonAreaSqft } = await import("@/lib/roof-math");
-  const { regularizeRing } = await import("@/lib/roof-regularize");
+  const { prepareTraceRing } = await import("@/lib/roof-trace-geometry");
   const { checkOutline } = await import("@/lib/roof-outline");
 
 
@@ -49,18 +49,11 @@ export async function runCbInstantMeasure(
    * the estimate never changes silently.
    */
   const regularization: Array<{ delta_pct: number; flagged: boolean }> = [];
-  const squareUp = (ring: number[][]): number[][] => {
-    try {
-      const r = regularizeRing(ring);
-      if (r.ring.length < 3) return ring;
-      regularization.push({
-        delta_pct: Math.round(r.areaDeltaPct * 100) / 100,
-        flagged: r.flagged,
-      });
-      return r.ring;
-    } catch {
-      return ring;
-    }
+  const squareUp = (ring: number[][]): number[][] | null => {
+    const prepared = prepareTraceRing(ring);
+    if (!prepared) return null;
+    regularization.push({ delta_pct: prepared.delta_pct, flagged: prepared.flagged });
+    return prepared.ring;
   };
 
   const pins = (data.pins?.length
@@ -193,16 +186,18 @@ export async function runCbInstantMeasure(
       traced.forEach((segment) => byPitch.set(segment.pitch, (byPitch.get(segment.pitch) ?? 0) + segment.plan_area_sqft));
       const pitch = [...byPitch.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "6/12";
       const squared = squareUp(vision.ring);
-      if (!checkOutline(squared).ok) {
-        firstFailure = "bad_outline";
+      if (!squared || !checkOutline(squared).ok) {
+        firstFailure = "tracer_invalid_outline";
+        console.warn("[cb-measure] rejected raw vision outline", checkOutline(vision.ring).problems);
         continue;
       }
       segments.push({ ring: squared, pitch, plan_area_sqft: polygonAreaSqft(squared) });
       traceConfidence.push(vision.confidence);
     } else if (candidate && candidate.length >= 3) {
       const squared = squareUp(candidate);
-      if (!checkOutline(squared).ok) {
-        firstFailure = "bad_outline";
+      if (!squared || !checkOutline(squared).ok) {
+        firstFailure = "extract_invalid_outline";
+        console.warn("[cb-measure] rejected extractor outline", checkOutline(candidate).problems);
         continue;
       }
       segments.push({
@@ -254,7 +249,10 @@ export async function runCbInstantMeasure(
     namePrefix: "Structure",
   });
 
-  if (!saved.ok) return { ok: false as const, reason: saved.reason };
+  if (!saved.ok) {
+    console.warn("[cb-measure] save failed", saved.reason);
+    return { ok: false as const, reason: `save_${saved.reason}` };
+  }
 
   const { data: m } = await supabaseAdmin
     .from("roof_measurements")
