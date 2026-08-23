@@ -9,165 +9,139 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
-import { Route as CbIndexRouteImport } from './routes/cb.index'
-import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
-import { Route as RTokenRouteImport } from './routes/r.$token'
-import { Route as PayTokenRouteImport } from './routes/pay.$token'
-import { Route as CbSignupRouteImport } from './routes/cb.signup'
-import { Route as CbSettingsRouteImport } from './routes/cb.settings'
-import { Route as CbOnboardingRouteImport } from './routes/cb.onboarding'
-import { Route as CbLoginRouteImport } from './routes/cb.login'
-import { Route as CbCompaniesRouteImport } from './routes/cb.companies'
-import { Route as CbAdminRouteImport } from './routes/cb.admin'
-import { Route as CSlugRouteImport } from './routes/c.$slug'
-import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
-import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
-import { Route as ApiRkAiRouteImport } from './routes/api.rk-ai'
-import { Route as ApiReportAiRouteImport } from './routes/api.report-ai'
-import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xactimate-pdf'
-import { Route as ApiMapboxTokenRouteImport } from './routes/api.mapbox-token'
-import { Route as ApiImportAssemblyPdfRouteImport } from './routes/api.import-assembly-pdf'
-import { Route as ApiCalibrateSolarRouteImport } from './routes/api.calibrate-solar'
-import { Route as ApiBuildRoofEstimateRouteImport } from './routes/api.build-roof-estimate'
-import { Route as ApiAutoAddPhotoSuggestionsRouteImport } from './routes/api.auto-add-photo-suggestions'
-import { Route as ApiAssistantChatRouteImport } from './routes/api.assistant-chat'
-import { Route as ApiApplyAssemblyImportRouteImport } from './routes/api.apply-assembly-import'
-import { Route as ApiAnalyzeRoofConditionRouteImport } from './routes/api.analyze-roof-condition'
-import { Route as ApiAnalyzePropertyRouteImport } from './routes/api.analyze-property'
-import { Route as ApiAnalyzeJobPhotosRouteImport } from './routes/api.analyze-job-photos'
-import { Route as AdminUsersRouteImport } from './routes/admin.users'
-import { Route as AdminTrainingRouteImport } from './routes/admin.training'
-import { Route as AdminTenantsRouteImport } from './routes/admin.tenants'
-import { Route as AdminSupportRouteImport } from './routes/admin.support'
-import { Route as AdminSpfRouteImport } from './routes/admin.spf'
-import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
-import { Route as AdminPriceBooksRouteImport } from './routes/admin.price-books'
-import { Route as AdminMembershipsRouteImport } from './routes/admin.memberships'
-import { Route as AdminMeasurementReviewsRouteImport } from './routes/admin.measurement-reviews'
-import { Route as AdminMacrosRouteImport } from './routes/admin.macros'
-import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
-import { Route as AdminEmailsRouteImport } from './routes/admin.emails'
-import { Route as AdminContentRouteImport } from './routes/admin.content'
-import { Route as AdminCompaniesRouteImport } from './routes/admin.companies'
-import { Route as AdminClaimBuddyRouteImport } from './routes/admin.claim-buddy'
-import { Route as AdminAuditRouteImport } from './routes/admin.audit'
-import { Route as AdminAnnouncementsRouteImport } from './routes/admin.announcements'
-import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
-import { Route as AppTeamRouteImport } from './routes/_app.team'
-import { Route as AppSurvivalGuideRouteImport } from './routes/_app.survival-guide'
-import { Route as AppStormIntelligenceRouteImport } from './routes/_app.storm-intelligence'
-import { Route as AppSettingsRouteImport } from './routes/_app.settings'
-import { Route as AppRoofkingRouteImport } from './routes/_app.roofking'
-import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
-import { Route as AppLeadsRouteImport } from './routes/_app.leads'
-import { Route as AppDoorToDoorRouteImport } from './routes/_app.door-to-door'
-import { Route as AppClientsRouteImport } from './routes/_app.clients'
-import { Route as AppClaimBuddyRouteImport } from './routes/_app.claim-buddy'
 import { Route as AppCardRouteImport } from './routes/_app.card'
-import { Route as CbAdminIndexRouteImport } from './routes/cb.admin.index'
-import { Route as AdminCompaniesIndexRouteImport } from './routes/admin.companies.index'
-import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
-import { Route as AppRoofkingIndexRouteImport } from './routes/_app.roofking.index'
-import { Route as AppLeadsIndexRouteImport } from './routes/_app.leads.index'
-import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
-import { Route as AppInvoicesIndexRouteImport } from './routes/_app.invoices.index'
-import { Route as AppDoorToDoorIndexRouteImport } from './routes/_app.door-to-door.index'
-import { Route as CbAdminTeamRouteImport } from './routes/cb.admin.team'
-import { Route as CbAdminPricingRouteImport } from './routes/cb.admin.pricing'
-import { Route as CbAdminBrandingRouteImport } from './routes/cb.admin.branding'
-import { Route as ApiPublicSignRouteImport } from './routes/api/public/sign'
-import { Route as ApiPublicCbShareRouteImport } from './routes/api/public/cb-share'
-import { Route as AdminPriceBooksNewRouteImport } from './routes/admin.price-books.new'
-import { Route as AdminCompaniesIdRouteImport } from './routes/admin.companies.$id'
-import { Route as AdminAssembliesImportRouteImport } from './routes/admin.assemblies.import'
-import { Route as AppTeamRequestsRouteImport } from './routes/_app.team.requests'
-import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
-import { Route as AppRoofkingTicketsRouteImport } from './routes/_app.roofking.tickets'
-import { Route as AppRoofkingSpfRouteImport } from './routes/_app.roofking.spf'
-import { Route as AppRoofkingPipelineRouteImport } from './routes/_app.roofking.pipeline'
-import { Route as AppRoofkingMapRouteImport } from './routes/_app.roofking.map'
-import { Route as AppRoofkingFormsRouteImport } from './routes/_app.roofking.forms'
-import { Route as AppRoofkingExportRouteImport } from './routes/_app.roofking.export'
-import { Route as AppRoofkingCustomersRouteImport } from './routes/_app.roofking.customers'
-import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
-import { Route as AppLeadsWizardRouteImport } from './routes/_app.leads.wizard'
-import { Route as AppLeadsTrainingRouteImport } from './routes/_app.leads.training'
-import { Route as AppLeadsSavingsRouteImport } from './routes/_app.leads.savings'
-import { Route as AppLeadsPipelineRouteImport } from './routes/_app.leads.pipeline'
-import { Route as AppLeadsMapRouteImport } from './routes/_app.leads.map'
-import { Route as AppLeadsListRouteImport } from './routes/_app.leads.list'
-import { Route as AppLeadsImportRouteImport } from './routes/_app.leads.import'
-import { Route as AppLeadsFollowupRouteImport } from './routes/_app.leads.followup'
-import { Route as AppJobsNewRouteImport } from './routes/_app.jobs.new'
-import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
-import { Route as AppInvoicesNewRouteImport } from './routes/_app.invoices.new'
-import { Route as AppInvoicesIdRouteImport } from './routes/_app.invoices.$id'
-import { Route as AppDoorToDoorWorldRouteImport } from './routes/_app.door-to-door.world'
-import { Route as AppDoorToDoorProfileRouteImport } from './routes/_app.door-to-door.profile'
-import { Route as AppDoorToDoorDispositionsRouteImport } from './routes/_app.door-to-door.dispositions'
+import { Route as AppClaimBuddyRouteImport } from './routes/_app.claim-buddy'
+import { Route as AppClientsRouteImport } from './routes/_app.clients'
+import { Route as AppDoorToDoorRouteImport } from './routes/_app.door-to-door'
+import { Route as AppLeadsRouteImport } from './routes/_app.leads'
+import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
+import { Route as AppRoofkingRouteImport } from './routes/_app.roofking'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppStormIntelligenceRouteImport } from './routes/_app.storm-intelligence'
+import { Route as AppSurvivalGuideRouteImport } from './routes/_app.survival-guide'
+import { Route as AppTeamRouteImport } from './routes/_app.team'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
+import { Route as AdminAnnouncementsRouteImport } from './routes/admin.announcements'
+import { Route as AdminAuditRouteImport } from './routes/admin.audit'
+import { Route as AdminClaimBuddyRouteImport } from './routes/admin.claim-buddy'
+import { Route as AdminCompaniesRouteImport } from './routes/admin.companies'
+import { Route as AdminContentRouteImport } from './routes/admin.content'
+import { Route as AdminEmailsRouteImport } from './routes/admin.emails'
+import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
+import { Route as AdminMacrosRouteImport } from './routes/admin.macros'
+import { Route as AdminMeasurementReviewsRouteImport } from './routes/admin.measurement-reviews'
+import { Route as AdminMembershipsRouteImport } from './routes/admin.memberships'
+import { Route as AdminPriceBooksRouteImport } from './routes/admin.price-books'
+import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
+import { Route as AdminSpfRouteImport } from './routes/admin.spf'
+import { Route as AdminSupportRouteImport } from './routes/admin.support'
+import { Route as AdminTenantsRouteImport } from './routes/admin.tenants'
+import { Route as AdminTrainingRouteImport } from './routes/admin.training'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as ApiAnalyzeJobPhotosRouteImport } from './routes/api.analyze-job-photos'
+import { Route as ApiAnalyzePropertyRouteImport } from './routes/api.analyze-property'
+import { Route as ApiAnalyzeRoofConditionRouteImport } from './routes/api.analyze-roof-condition'
+import { Route as ApiApplyAssemblyImportRouteImport } from './routes/api.apply-assembly-import'
+import { Route as ApiAssistantChatRouteImport } from './routes/api.assistant-chat'
+import { Route as ApiAutoAddPhotoSuggestionsRouteImport } from './routes/api.auto-add-photo-suggestions'
+import { Route as ApiBuildRoofEstimateRouteImport } from './routes/api.build-roof-estimate'
+import { Route as ApiCalibrateSolarRouteImport } from './routes/api.calibrate-solar'
+import { Route as ApiImportAssemblyPdfRouteImport } from './routes/api.import-assembly-pdf'
+import { Route as ApiMapboxTokenRouteImport } from './routes/api.mapbox-token'
+import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xactimate-pdf'
+import { Route as ApiReportAiRouteImport } from './routes/api.report-ai'
+import { Route as ApiRkAiRouteImport } from './routes/api.rk-ai'
+import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
+import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
+import { Route as CSlugRouteImport } from './routes/c.$slug'
+import { Route as CbIndexRouteImport } from './routes/cb.index'
+import { Route as CbAdminRouteImport } from './routes/cb.admin'
+import { Route as CbCompaniesRouteImport } from './routes/cb.companies'
+import { Route as CbLoginRouteImport } from './routes/cb.login'
+import { Route as CbOnboardingRouteImport } from './routes/cb.onboarding'
+import { Route as CbSettingsRouteImport } from './routes/cb.settings'
+import { Route as CbSignupRouteImport } from './routes/cb.signup'
+import { Route as PayTokenRouteImport } from './routes/pay.$token'
+import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
+import { Route as AppDoorToDoorIndexRouteImport } from './routes/_app.door-to-door.index'
+import { Route as AppDoorToDoorDispositionsRouteImport } from './routes/_app.door-to-door.dispositions'
+import { Route as AppDoorToDoorProfileRouteImport } from './routes/_app.door-to-door.profile'
+import { Route as AppDoorToDoorWorldRouteImport } from './routes/_app.door-to-door.world'
+import { Route as AppInvoicesIndexRouteImport } from './routes/_app.invoices.index'
+import { Route as AppInvoicesIdRouteImport } from './routes/_app.invoices.$id'
+import { Route as AppInvoicesNewRouteImport } from './routes/_app.invoices.new'
+import { Route as AppJobsIndexRouteImport } from './routes/_app.jobs.index'
+import { Route as AppJobsIdRouteImport } from './routes/_app.jobs.$id'
+import { Route as AppJobsNewRouteImport } from './routes/_app.jobs.new'
+import { Route as AppLeadsIndexRouteImport } from './routes/_app.leads.index'
+import { Route as AppLeadsFollowupRouteImport } from './routes/_app.leads.followup'
+import { Route as AppLeadsImportRouteImport } from './routes/_app.leads.import'
+import { Route as AppLeadsListRouteImport } from './routes/_app.leads.list'
+import { Route as AppLeadsMapRouteImport } from './routes/_app.leads.map'
+import { Route as AppLeadsPipelineRouteImport } from './routes/_app.leads.pipeline'
+import { Route as AppLeadsSavingsRouteImport } from './routes/_app.leads.savings'
+import { Route as AppLeadsTrainingRouteImport } from './routes/_app.leads.training'
+import { Route as AppLeadsWizardRouteImport } from './routes/_app.leads.wizard'
+import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
+import { Route as AppRoofkingIndexRouteImport } from './routes/_app.roofking.index'
+import { Route as AppRoofkingCustomersRouteImport } from './routes/_app.roofking.customers'
+import { Route as AppRoofkingExportRouteImport } from './routes/_app.roofking.export'
+import { Route as AppRoofkingFormsRouteImport } from './routes/_app.roofking.forms'
+import { Route as AppRoofkingMapRouteImport } from './routes/_app.roofking.map'
+import { Route as AppRoofkingPipelineRouteImport } from './routes/_app.roofking.pipeline'
+import { Route as AppRoofkingSpfRouteImport } from './routes/_app.roofking.spf'
+import { Route as AppRoofkingTicketsRouteImport } from './routes/_app.roofking.tickets'
+import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
+import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
+import { Route as AppTeamRequestsRouteImport } from './routes/_app.team.requests'
+import { Route as AdminAssembliesImportRouteImport } from './routes/admin.assemblies.import'
+import { Route as AdminCompaniesIndexRouteImport } from './routes/admin.companies.index'
+import { Route as AdminCompaniesIdRouteImport } from './routes/admin.companies.$id'
+import { Route as AdminPriceBooksNewRouteImport } from './routes/admin.price-books.new'
+import { Route as ApiPublicCbShareRouteImport } from './routes/api/public/cb-share'
+import { Route as ApiPublicSignRouteImport } from './routes/api/public/sign'
+import { Route as CbAdminIndexRouteImport } from './routes/cb.admin.index'
+import { Route as CbAdminBrandingRouteImport } from './routes/cb.admin.branding'
+import { Route as CbAdminPricingRouteImport } from './routes/cb.admin.pricing'
+import { Route as CbAdminTeamRouteImport } from './routes/cb.admin.team'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
-import { Route as CbJobIdTakeoffRouteImport } from './routes/cb.job.$id.takeoff'
-import { Route as CbJobIdScopeRouteImport } from './routes/cb.job.$id.scope'
-import { Route as CbJobIdRoofRouteImport } from './routes/cb.job.$id.roof'
-import { Route as CbJobIdReviewRouteImport } from './routes/cb.job.$id.review'
-import { Route as CbJobIdReportRouteImport } from './routes/cb.job.$id.report'
-import { Route as CbJobIdPresentRouteImport } from './routes/cb.job.$id.present'
-import { Route as CbJobIdMeasureRouteImport } from './routes/cb.job.$id.measure'
-import { Route as CbJobIdInteriorRouteImport } from './routes/cb.job.$id.interior'
-import { Route as CbJobIdGeneratingRouteImport } from './routes/cb.job.$id.generating'
-import { Route as CbJobIdExteriorRouteImport } from './routes/cb.job.$id.exterior'
-import { Route as CbJobIdEstimateRouteImport } from './routes/cb.job.$id.estimate'
-import { Route as CbJobIdCustomerRouteImport } from './routes/cb.job.$id.customer'
-import { Route as CbJobIdCoverRouteImport } from './routes/cb.job.$id.cover'
-import { Route as CbJobIdContractRouteImport } from './routes/cb.job.$id.contract'
-import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
-import { Route as AppJobsIdReportRouteImport } from './routes/_app.jobs.$id.report'
-import { Route as AppJobsIdPhotosRouteImport } from './routes/_app.jobs.$id.photos'
-import { Route as AppJobsIdOrderFormRouteImport } from './routes/_app.jobs.$id.order-form'
-import { Route as AppJobsIdMeasureRouteImport } from './routes/_app.jobs.$id.measure'
-import { Route as AppJobsIdInvoicesRouteImport } from './routes/_app.jobs.$id.invoices'
-import { Route as AppJobsIdEstimateRouteImport } from './routes/_app.jobs.$id.estimate'
-import { Route as AppJobsIdDocumentsRouteImport } from './routes/_app.jobs.$id.documents'
 import { Route as AppJobsIdContractRouteImport } from './routes/_app.jobs.$id.contract'
+import { Route as AppJobsIdDocumentsRouteImport } from './routes/_app.jobs.$id.documents'
+import { Route as AppJobsIdEstimateRouteImport } from './routes/_app.jobs.$id.estimate'
+import { Route as AppJobsIdInvoicesRouteImport } from './routes/_app.jobs.$id.invoices'
+import { Route as AppJobsIdMeasureRouteImport } from './routes/_app.jobs.$id.measure'
+import { Route as AppJobsIdOrderFormRouteImport } from './routes/_app.jobs.$id.order-form'
+import { Route as AppJobsIdPhotosRouteImport } from './routes/_app.jobs.$id.photos'
+import { Route as AppJobsIdReportRouteImport } from './routes/_app.jobs.$id.report'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as CbJobIdContractRouteImport } from './routes/cb.job.$id.contract'
+import { Route as CbJobIdCoverRouteImport } from './routes/cb.job.$id.cover'
+import { Route as CbJobIdCustomerRouteImport } from './routes/cb.job.$id.customer'
+import { Route as CbJobIdEstimateRouteImport } from './routes/cb.job.$id.estimate'
+import { Route as CbJobIdExteriorRouteImport } from './routes/cb.job.$id.exterior'
+import { Route as CbJobIdGeneratingRouteImport } from './routes/cb.job.$id.generating'
+import { Route as CbJobIdInteriorRouteImport } from './routes/cb.job.$id.interior'
+import { Route as CbJobIdMeasureRouteImport } from './routes/cb.job.$id.measure'
+import { Route as CbJobIdPresentRouteImport } from './routes/cb.job.$id.present'
+import { Route as CbJobIdReportRouteImport } from './routes/cb.job.$id.report'
+import { Route as CbJobIdReviewRouteImport } from './routes/cb.job.$id.review'
+import { Route as CbJobIdRoofRouteImport } from './routes/cb.job.$id.roof'
+import { Route as CbJobIdScopeRouteImport } from './routes/cb.job.$id.scope'
+import { Route as CbJobIdTakeoffRouteImport } from './routes/cb.job.$id.takeoff'
 
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileSetupRoute = ProfileSetupRouteImport.update({
-  id: '/profile-setup',
-  path: '/profile-setup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -175,113 +149,214 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppRoute = AppRouteImport.update({
-  id: '/_app',
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CbIndexRoute = CbIndexRouteImport.update({
-  id: '/cb/',
-  path: '/cb/',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminRoute,
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileSetupRoute = ProfileSetupRouteImport.update({
+  id: '/profile-setup',
+  path: '/profile-setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const RTokenRoute = RTokenRouteImport.update({
-  id: '/r/$token',
-  path: '/r/$token',
+const AppCardRoute = AppCardRouteImport.update({
+  id: '/card',
+  path: '/card',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClaimBuddyRoute = AppClaimBuddyRouteImport.update({
+  id: '/claim-buddy',
+  path: '/claim-buddy',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClientsRoute = AppClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDoorToDoorRoute = AppDoorToDoorRouteImport.update({
+  id: '/door-to-door',
+  path: '/door-to-door',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLeadsRoute = AppLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPriceBooksRoute = AppPriceBooksRouteImport.update({
+  id: '/price-books',
+  path: '/price-books',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRoofkingRoute = AppRoofkingRouteImport.update({
+  id: '/roofking',
+  path: '/roofking',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStormIntelligenceRoute = AppStormIntelligenceRouteImport.update({
+  id: '/storm-intelligence',
+  path: '/storm-intelligence',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSurvivalGuideRoute = AppSurvivalGuideRouteImport.update({
+  id: '/survival-guide',
+  path: '/survival-guide',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTeamRoute = AppTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AppRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAnnouncementsRoute = AdminAnnouncementsRouteImport.update({
+  id: '/announcements',
+  path: '/announcements',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminClaimBuddyRoute = AdminClaimBuddyRouteImport.update({
+  id: '/claim-buddy',
+  path: '/claim-buddy',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCompaniesRoute = AdminCompaniesRouteImport.update({
+  id: '/companies',
+  path: '/companies',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminContentRoute = AdminContentRouteImport.update({
+  id: '/content',
+  path: '/content',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEmailsRoute = AdminEmailsRouteImport.update({
+  id: '/emails',
+  path: '/emails',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFeaturesRoute = AdminFeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMacrosRoute = AdminMacrosRouteImport.update({
+  id: '/macros',
+  path: '/macros',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMeasurementReviewsRoute = AdminMeasurementReviewsRouteImport.update({
+  id: '/measurement-reviews',
+  path: '/measurement-reviews',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMembershipsRoute = AdminMembershipsRouteImport.update({
+  id: '/memberships',
+  path: '/memberships',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPriceBooksRoute = AdminPriceBooksRouteImport.update({
+  id: '/price-books',
+  path: '/price-books',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReviewsRoute = AdminReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSpfRoute = AdminSpfRouteImport.update({
+  id: '/spf',
+  path: '/spf',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSupportRoute = AdminSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTenantsRoute = AdminTenantsRouteImport.update({
+  id: '/tenants',
+  path: '/tenants',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTrainingRoute = AdminTrainingRouteImport.update({
+  id: '/training',
+  path: '/training',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const ApiAnalyzeJobPhotosRoute = ApiAnalyzeJobPhotosRouteImport.update({
+  id: '/api/analyze-job-photos',
+  path: '/api/analyze-job-photos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PayTokenRoute = PayTokenRouteImport.update({
-  id: '/pay/$token',
-  path: '/pay/$token',
+const ApiAnalyzePropertyRoute = ApiAnalyzePropertyRouteImport.update({
+  id: '/api/analyze-property',
+  path: '/api/analyze-property',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CbSignupRoute = CbSignupRouteImport.update({
-  id: '/cb/signup',
-  path: '/cb/signup',
+const ApiAnalyzeRoofConditionRoute = ApiAnalyzeRoofConditionRouteImport.update({
+  id: '/api/analyze-roof-condition',
+  path: '/api/analyze-roof-condition',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CbSettingsRoute = CbSettingsRouteImport.update({
-  id: '/cb/settings',
-  path: '/cb/settings',
+const ApiApplyAssemblyImportRoute = ApiApplyAssemblyImportRouteImport.update({
+  id: '/api/apply-assembly-import',
+  path: '/api/apply-assembly-import',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CbOnboardingRoute = CbOnboardingRouteImport.update({
-  id: '/cb/onboarding',
-  path: '/cb/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbLoginRoute = CbLoginRouteImport.update({
-  id: '/cb/login',
-  path: '/cb/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbCompaniesRoute = CbCompaniesRouteImport.update({
-  id: '/cb/companies',
-  path: '/cb/companies',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbAdminRoute = CbAdminRouteImport.update({
-  id: '/cb/admin',
-  path: '/cb/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CSlugRoute = CSlugRouteImport.update({
-  id: '/c/$slug',
-  path: '/c/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiTrainFromPdfRoute = ApiTrainFromPdfRouteImport.update({
-  id: '/api/train-from-pdf',
-  path: '/api/train-from-pdf',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSolarRoofExtractRoute = ApiSolarRoofExtractRouteImport.update({
-  id: '/api/solar-roof-extract',
-  path: '/api/solar-roof-extract',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiRkAiRoute = ApiRkAiRouteImport.update({
-  id: '/api/rk-ai',
-  path: '/api/rk-ai',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiReportAiRoute = ApiReportAiRouteImport.update({
-  id: '/api/report-ai',
-  path: '/api/report-ai',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiParseXactimatePdfRoute = ApiParseXactimatePdfRouteImport.update({
-  id: '/api/parse-xactimate-pdf',
-  path: '/api/parse-xactimate-pdf',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiMapboxTokenRoute = ApiMapboxTokenRouteImport.update({
-  id: '/api/mapbox-token',
-  path: '/api/mapbox-token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiImportAssemblyPdfRoute = ApiImportAssemblyPdfRouteImport.update({
-  id: '/api/import-assembly-pdf',
-  path: '/api/import-assembly-pdf',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCalibrateSolarRoute = ApiCalibrateSolarRouteImport.update({
-  id: '/api/calibrate-solar',
-  path: '/api/calibrate-solar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiBuildRoofEstimateRoute = ApiBuildRoofEstimateRouteImport.update({
-  id: '/api/build-roof-estimate',
-  path: '/api/build-roof-estimate',
+const ApiAssistantChatRoute = ApiAssistantChatRouteImport.update({
+  id: '/api/assistant-chat',
+  path: '/api/assistant-chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAutoAddPhotoSuggestionsRoute =
@@ -290,374 +365,109 @@ const ApiAutoAddPhotoSuggestionsRoute =
     path: '/api/auto-add-photo-suggestions',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiAssistantChatRoute = ApiAssistantChatRouteImport.update({
-  id: '/api/assistant-chat',
-  path: '/api/assistant-chat',
+const ApiBuildRoofEstimateRoute = ApiBuildRoofEstimateRouteImport.update({
+  id: '/api/build-roof-estimate',
+  path: '/api/build-roof-estimate',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiApplyAssemblyImportRoute = ApiApplyAssemblyImportRouteImport.update({
-  id: '/api/apply-assembly-import',
-  path: '/api/apply-assembly-import',
+const ApiCalibrateSolarRoute = ApiCalibrateSolarRouteImport.update({
+  id: '/api/calibrate-solar',
+  path: '/api/calibrate-solar',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAnalyzeRoofConditionRoute = ApiAnalyzeRoofConditionRouteImport.update({
-  id: '/api/analyze-roof-condition',
-  path: '/api/analyze-roof-condition',
+const ApiImportAssemblyPdfRoute = ApiImportAssemblyPdfRouteImport.update({
+  id: '/api/import-assembly-pdf',
+  path: '/api/import-assembly-pdf',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAnalyzePropertyRoute = ApiAnalyzePropertyRouteImport.update({
-  id: '/api/analyze-property',
-  path: '/api/analyze-property',
+const ApiMapboxTokenRoute = ApiMapboxTokenRouteImport.update({
+  id: '/api/mapbox-token',
+  path: '/api/mapbox-token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAnalyzeJobPhotosRoute = ApiAnalyzeJobPhotosRouteImport.update({
-  id: '/api/analyze-job-photos',
-  path: '/api/analyze-job-photos',
+const ApiParseXactimatePdfRoute = ApiParseXactimatePdfRouteImport.update({
+  id: '/api/parse-xactimate-pdf',
+  path: '/api/parse-xactimate-pdf',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminUsersRoute = AdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AdminRoute,
+const ApiReportAiRoute = ApiReportAiRouteImport.update({
+  id: '/api/report-ai',
+  path: '/api/report-ai',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminTrainingRoute = AdminTrainingRouteImport.update({
-  id: '/training',
-  path: '/training',
-  getParentRoute: () => AdminRoute,
+const ApiRkAiRoute = ApiRkAiRouteImport.update({
+  id: '/api/rk-ai',
+  path: '/api/rk-ai',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminTenantsRoute = AdminTenantsRouteImport.update({
-  id: '/tenants',
-  path: '/tenants',
-  getParentRoute: () => AdminRoute,
+const ApiSolarRoofExtractRoute = ApiSolarRoofExtractRouteImport.update({
+  id: '/api/solar-roof-extract',
+  path: '/api/solar-roof-extract',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminSupportRoute = AdminSupportRouteImport.update({
-  id: '/support',
-  path: '/support',
-  getParentRoute: () => AdminRoute,
+const ApiTrainFromPdfRoute = ApiTrainFromPdfRouteImport.update({
+  id: '/api/train-from-pdf',
+  path: '/api/train-from-pdf',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminSpfRoute = AdminSpfRouteImport.update({
-  id: '/spf',
-  path: '/spf',
-  getParentRoute: () => AdminRoute,
+const CSlugRoute = CSlugRouteImport.update({
+  id: '/c/$slug',
+  path: '/c/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminReviewsRoute = AdminReviewsRouteImport.update({
-  id: '/reviews',
-  path: '/reviews',
-  getParentRoute: () => AdminRoute,
+const CbIndexRoute = CbIndexRouteImport.update({
+  id: '/cb/',
+  path: '/cb/',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminPriceBooksRoute = AdminPriceBooksRouteImport.update({
-  id: '/price-books',
-  path: '/price-books',
-  getParentRoute: () => AdminRoute,
+const CbAdminRoute = CbAdminRouteImport.update({
+  id: '/cb/admin',
+  path: '/cb/admin',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminMembershipsRoute = AdminMembershipsRouteImport.update({
-  id: '/memberships',
-  path: '/memberships',
-  getParentRoute: () => AdminRoute,
+const CbCompaniesRoute = CbCompaniesRouteImport.update({
+  id: '/cb/companies',
+  path: '/cb/companies',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminMeasurementReviewsRoute = AdminMeasurementReviewsRouteImport.update({
-  id: '/measurement-reviews',
-  path: '/measurement-reviews',
-  getParentRoute: () => AdminRoute,
+const CbLoginRoute = CbLoginRouteImport.update({
+  id: '/cb/login',
+  path: '/cb/login',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminMacrosRoute = AdminMacrosRouteImport.update({
-  id: '/macros',
-  path: '/macros',
-  getParentRoute: () => AdminRoute,
+const CbOnboardingRoute = CbOnboardingRouteImport.update({
+  id: '/cb/onboarding',
+  path: '/cb/onboarding',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminFeaturesRoute = AdminFeaturesRouteImport.update({
-  id: '/features',
-  path: '/features',
-  getParentRoute: () => AdminRoute,
+const CbSettingsRoute = CbSettingsRouteImport.update({
+  id: '/cb/settings',
+  path: '/cb/settings',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminEmailsRoute = AdminEmailsRouteImport.update({
-  id: '/emails',
-  path: '/emails',
-  getParentRoute: () => AdminRoute,
+const CbSignupRoute = CbSignupRouteImport.update({
+  id: '/cb/signup',
+  path: '/cb/signup',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminContentRoute = AdminContentRouteImport.update({
-  id: '/content',
-  path: '/content',
-  getParentRoute: () => AdminRoute,
+const PayTokenRoute = PayTokenRouteImport.update({
+  id: '/pay/$token',
+  path: '/pay/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminCompaniesRoute = AdminCompaniesRouteImport.update({
-  id: '/companies',
-  path: '/companies',
-  getParentRoute: () => AdminRoute,
+const RTokenRoute = RTokenRouteImport.update({
+  id: '/r/$token',
+  path: '/r/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminClaimBuddyRoute = AdminClaimBuddyRouteImport.update({
-  id: '/claim-buddy',
-  path: '/claim-buddy',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminAuditRoute = AdminAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminAnnouncementsRoute = AdminAnnouncementsRouteImport.update({
-  id: '/announcements',
-  path: '/announcements',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AppTeamRoute = AppTeamRouteImport.update({
-  id: '/team',
-  path: '/team',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSurvivalGuideRoute = AppSurvivalGuideRouteImport.update({
-  id: '/survival-guide',
-  path: '/survival-guide',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppStormIntelligenceRoute = AppStormIntelligenceRouteImport.update({
-  id: '/storm-intelligence',
-  path: '/storm-intelligence',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppRoofkingRoute = AppRoofkingRouteImport.update({
-  id: '/roofking',
-  path: '/roofking',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppPriceBooksRoute = AppPriceBooksRouteImport.update({
-  id: '/price-books',
-  path: '/price-books',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppLeadsRoute = AppLeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDoorToDoorRoute = AppDoorToDoorRouteImport.update({
-  id: '/door-to-door',
-  path: '/door-to-door',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppClientsRoute = AppClientsRouteImport.update({
-  id: '/clients',
-  path: '/clients',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppClaimBuddyRoute = AppClaimBuddyRouteImport.update({
-  id: '/claim-buddy',
-  path: '/claim-buddy',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppCardRoute = AppCardRouteImport.update({
-  id: '/card',
-  path: '/card',
-  getParentRoute: () => AppRoute,
-} as any)
-const CbAdminIndexRoute = CbAdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CbAdminRoute,
-} as any)
-const AdminCompaniesIndexRoute = AdminCompaniesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminCompaniesRoute,
-} as any)
-const AppTeamIndexRoute = AppTeamIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppTeamRoute,
-} as any)
-const AppRoofkingIndexRoute = AppRoofkingIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppLeadsIndexRoute = AppLeadsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppLeadsRoute,
-} as any)
-const AppJobsIndexRoute = AppJobsIndexRouteImport.update({
-  id: '/jobs/',
-  path: '/jobs/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppInvoicesIndexRoute = AppInvoicesIndexRouteImport.update({
-  id: '/invoices/',
-  path: '/invoices/',
-  getParentRoute: () => AppRoute,
+const AppClientsIdRoute = AppClientsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppClientsRoute,
 } as any)
 const AppDoorToDoorIndexRoute = AppDoorToDoorIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppDoorToDoorRoute,
-} as any)
-const CbAdminTeamRoute = CbAdminTeamRouteImport.update({
-  id: '/team',
-  path: '/team',
-  getParentRoute: () => CbAdminRoute,
-} as any)
-const CbAdminPricingRoute = CbAdminPricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => CbAdminRoute,
-} as any)
-const CbAdminBrandingRoute = CbAdminBrandingRouteImport.update({
-  id: '/branding',
-  path: '/branding',
-  getParentRoute: () => CbAdminRoute,
-} as any)
-const ApiPublicSignRoute = ApiPublicSignRouteImport.update({
-  id: '/api/public/sign',
-  path: '/api/public/sign',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicCbShareRoute = ApiPublicCbShareRouteImport.update({
-  id: '/api/public/cb-share',
-  path: '/api/public/cb-share',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminPriceBooksNewRoute = AdminPriceBooksNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AdminPriceBooksRoute,
-} as any)
-const AdminCompaniesIdRoute = AdminCompaniesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AdminCompaniesRoute,
-} as any)
-const AdminAssembliesImportRoute = AdminAssembliesImportRouteImport.update({
-  id: '/assemblies/import',
-  path: '/assemblies/import',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AppTeamRequestsRoute = AppTeamRequestsRouteImport.update({
-  id: '/requests',
-  path: '/requests',
-  getParentRoute: () => AppTeamRoute,
-} as any)
-const AppTeamInvitesRoute = AppTeamInvitesRouteImport.update({
-  id: '/invites',
-  path: '/invites',
-  getParentRoute: () => AppTeamRoute,
-} as any)
-const AppRoofkingTicketsRoute = AppRoofkingTicketsRouteImport.update({
-  id: '/tickets',
-  path: '/tickets',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppRoofkingSpfRoute = AppRoofkingSpfRouteImport.update({
-  id: '/spf',
-  path: '/spf',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppRoofkingPipelineRoute = AppRoofkingPipelineRouteImport.update({
-  id: '/pipeline',
-  path: '/pipeline',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppRoofkingMapRoute = AppRoofkingMapRouteImport.update({
-  id: '/map',
-  path: '/map',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppRoofkingFormsRoute = AppRoofkingFormsRouteImport.update({
-  id: '/forms',
-  path: '/forms',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppRoofkingExportRoute = AppRoofkingExportRouteImport.update({
-  id: '/export',
-  path: '/export',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppRoofkingCustomersRoute = AppRoofkingCustomersRouteImport.update({
-  id: '/customers',
-  path: '/customers',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppPriceBooksNewRoute = AppPriceBooksNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AppPriceBooksRoute,
-} as any)
-const AppLeadsWizardRoute = AppLeadsWizardRouteImport.update({
-  id: '/wizard',
-  path: '/wizard',
-  getParentRoute: () => AppLeadsRoute,
-} as any)
-const AppLeadsTrainingRoute = AppLeadsTrainingRouteImport.update({
-  id: '/training',
-  path: '/training',
-  getParentRoute: () => AppLeadsRoute,
-} as any)
-const AppLeadsSavingsRoute = AppLeadsSavingsRouteImport.update({
-  id: '/savings',
-  path: '/savings',
-  getParentRoute: () => AppLeadsRoute,
-} as any)
-const AppLeadsPipelineRoute = AppLeadsPipelineRouteImport.update({
-  id: '/pipeline',
-  path: '/pipeline',
-  getParentRoute: () => AppLeadsRoute,
-} as any)
-const AppLeadsMapRoute = AppLeadsMapRouteImport.update({
-  id: '/map',
-  path: '/map',
-  getParentRoute: () => AppLeadsRoute,
-} as any)
-const AppLeadsListRoute = AppLeadsListRouteImport.update({
-  id: '/list',
-  path: '/list',
-  getParentRoute: () => AppLeadsRoute,
-} as any)
-const AppLeadsImportRoute = AppLeadsImportRouteImport.update({
-  id: '/import',
-  path: '/import',
-  getParentRoute: () => AppLeadsRoute,
-} as any)
-const AppLeadsFollowupRoute = AppLeadsFollowupRouteImport.update({
-  id: '/followup',
-  path: '/followup',
-  getParentRoute: () => AppLeadsRoute,
-} as any)
-const AppJobsNewRoute = AppJobsNewRouteImport.update({
-  id: '/jobs/new',
-  path: '/jobs/new',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppJobsIdRoute = AppJobsIdRouteImport.update({
-  id: '/jobs/$id',
-  path: '/jobs/$id',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppInvoicesNewRoute = AppInvoicesNewRouteImport.update({
-  id: '/invoices/new',
-  path: '/invoices/new',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppInvoicesIdRoute = AppInvoicesIdRouteImport.update({
-  id: '/invoices/$id',
-  path: '/invoices/$id',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDoorToDoorWorldRoute = AppDoorToDoorWorldRouteImport.update({
-  id: '/world',
-  path: '/world',
-  getParentRoute: () => AppDoorToDoorRoute,
-} as any)
-const AppDoorToDoorProfileRoute = AppDoorToDoorProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
   getParentRoute: () => AppDoorToDoorRoute,
 } as any)
 const AppDoorToDoorDispositionsRoute =
@@ -666,120 +476,209 @@ const AppDoorToDoorDispositionsRoute =
     path: '/dispositions',
     getParentRoute: () => AppDoorToDoorRoute,
   } as any)
-const AppClientsIdRoute = AppClientsIdRouteImport.update({
+const AppDoorToDoorProfileRoute = AppDoorToDoorProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppDoorToDoorRoute,
+} as any)
+const AppDoorToDoorWorldRoute = AppDoorToDoorWorldRouteImport.update({
+  id: '/world',
+  path: '/world',
+  getParentRoute: () => AppDoorToDoorRoute,
+} as any)
+const AppInvoicesIndexRoute = AppInvoicesIndexRouteImport.update({
+  id: '/invoices/',
+  path: '/invoices/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInvoicesIdRoute = AppInvoicesIdRouteImport.update({
+  id: '/invoices/$id',
+  path: '/invoices/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInvoicesNewRoute = AppInvoicesNewRouteImport.update({
+  id: '/invoices/new',
+  path: '/invoices/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppJobsIndexRoute = AppJobsIndexRouteImport.update({
+  id: '/jobs/',
+  path: '/jobs/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppJobsIdRoute = AppJobsIdRouteImport.update({
+  id: '/jobs/$id',
+  path: '/jobs/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppJobsNewRoute = AppJobsNewRouteImport.update({
+  id: '/jobs/new',
+  path: '/jobs/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLeadsIndexRoute = AppLeadsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppLeadsFollowupRoute = AppLeadsFollowupRouteImport.update({
+  id: '/followup',
+  path: '/followup',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppLeadsImportRoute = AppLeadsImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppLeadsListRoute = AppLeadsListRouteImport.update({
+  id: '/list',
+  path: '/list',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppLeadsMapRoute = AppLeadsMapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppLeadsPipelineRoute = AppLeadsPipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppLeadsSavingsRoute = AppLeadsSavingsRouteImport.update({
+  id: '/savings',
+  path: '/savings',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppLeadsTrainingRoute = AppLeadsTrainingRouteImport.update({
+  id: '/training',
+  path: '/training',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppLeadsWizardRoute = AppLeadsWizardRouteImport.update({
+  id: '/wizard',
+  path: '/wizard',
+  getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppPriceBooksNewRoute = AppPriceBooksNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppPriceBooksRoute,
+} as any)
+const AppRoofkingIndexRoute = AppRoofkingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoofkingRoute,
+} as any)
+const AppRoofkingCustomersRoute = AppRoofkingCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => AppRoofkingRoute,
+} as any)
+const AppRoofkingExportRoute = AppRoofkingExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => AppRoofkingRoute,
+} as any)
+const AppRoofkingFormsRoute = AppRoofkingFormsRouteImport.update({
+  id: '/forms',
+  path: '/forms',
+  getParentRoute: () => AppRoofkingRoute,
+} as any)
+const AppRoofkingMapRoute = AppRoofkingMapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => AppRoofkingRoute,
+} as any)
+const AppRoofkingPipelineRoute = AppRoofkingPipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => AppRoofkingRoute,
+} as any)
+const AppRoofkingSpfRoute = AppRoofkingSpfRouteImport.update({
+  id: '/spf',
+  path: '/spf',
+  getParentRoute: () => AppRoofkingRoute,
+} as any)
+const AppRoofkingTicketsRoute = AppRoofkingTicketsRouteImport.update({
+  id: '/tickets',
+  path: '/tickets',
+  getParentRoute: () => AppRoofkingRoute,
+} as any)
+const AppTeamIndexRoute = AppTeamIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppTeamRoute,
+} as any)
+const AppTeamInvitesRoute = AppTeamInvitesRouteImport.update({
+  id: '/invites',
+  path: '/invites',
+  getParentRoute: () => AppTeamRoute,
+} as any)
+const AppTeamRequestsRoute = AppTeamRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => AppTeamRoute,
+} as any)
+const AdminAssembliesImportRoute = AdminAssembliesImportRouteImport.update({
+  id: '/assemblies/import',
+  path: '/assemblies/import',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCompaniesIndexRoute = AdminCompaniesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminCompaniesRoute,
+} as any)
+const AdminCompaniesIdRoute = AdminCompaniesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => AppClientsRoute,
+  getParentRoute: () => AdminCompaniesRoute,
+} as any)
+const AdminPriceBooksNewRoute = AdminPriceBooksNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AdminPriceBooksRoute,
+} as any)
+const ApiPublicCbShareRoute = ApiPublicCbShareRouteImport.update({
+  id: '/api/public/cb-share',
+  path: '/api/public/cb-share',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSignRoute = ApiPublicSignRouteImport.update({
+  id: '/api/public/sign',
+  path: '/api/public/sign',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbAdminIndexRoute = CbAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CbAdminRoute,
+} as any)
+const CbAdminBrandingRoute = CbAdminBrandingRouteImport.update({
+  id: '/branding',
+  path: '/branding',
+  getParentRoute: () => CbAdminRoute,
+} as any)
+const CbAdminPricingRoute = CbAdminPricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => CbAdminRoute,
+} as any)
+const CbAdminTeamRoute = CbAdminTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => CbAdminRoute,
 } as any)
 const AppJobsIdIndexRoute = AppJobsIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppJobsIdRoute,
 } as any)
-const CbJobIdTakeoffRoute = CbJobIdTakeoffRouteImport.update({
-  id: '/cb/job/$id/takeoff',
-  path: '/cb/job/$id/takeoff',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbJobIdScopeRoute = CbJobIdScopeRouteImport.update({
-  id: '/cb/job/$id/scope',
-  path: '/cb/job/$id/scope',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbJobIdRoofRoute = CbJobIdRoofRouteImport.update({
-  id: '/cb/job/$id/roof',
-  path: '/cb/job/$id/roof',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbJobIdReviewRoute = CbJobIdReviewRouteImport.update({
-  id: '/cb/job/$id/review',
-  path: '/cb/job/$id/review',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbJobIdReportRoute = CbJobIdReportRouteImport.update({
-  id: '/cb/job/$id/report',
-  path: '/cb/job/$id/report',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbJobIdPresentRoute = CbJobIdPresentRouteImport.update({
-  id: '/cb/job/$id/present',
-  path: '/cb/job/$id/present',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbJobIdMeasureRoute = CbJobIdMeasureRouteImport.update({
-  id: '/cb/job/$id/measure',
-  path: '/cb/job/$id/measure',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbJobIdInteriorRoute = CbJobIdInteriorRouteImport.update({
-  id: '/cb/job/$id/interior',
-  path: '/cb/job/$id/interior',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbJobIdGeneratingRoute = CbJobIdGeneratingRouteImport.update({
-  id: '/cb/job/$id/generating',
-  path: '/cb/job/$id/generating',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbJobIdExteriorRoute = CbJobIdExteriorRouteImport.update({
-  id: '/cb/job/$id/exterior',
-  path: '/cb/job/$id/exterior',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbJobIdEstimateRoute = CbJobIdEstimateRouteImport.update({
-  id: '/cb/job/$id/estimate',
-  path: '/cb/job/$id/estimate',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbJobIdCustomerRoute = CbJobIdCustomerRouteImport.update({
-  id: '/cb/job/$id/customer',
-  path: '/cb/job/$id/customer',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbJobIdCoverRoute = CbJobIdCoverRouteImport.update({
-  id: '/cb/job/$id/cover',
-  path: '/cb/job/$id/cover',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbJobIdContractRoute = CbJobIdContractRouteImport.update({
-  id: '/cb/job/$id/contract',
-  path: '/cb/job/$id/contract',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicPaymentsWebhookRoute =
-  ApiPublicPaymentsWebhookRouteImport.update({
-    id: '/api/public/payments/webhook',
-    path: '/api/public/payments/webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AppJobsIdReportRoute = AppJobsIdReportRouteImport.update({
-  id: '/report',
-  path: '/report',
-  getParentRoute: () => AppJobsIdRoute,
-} as any)
-const AppJobsIdPhotosRoute = AppJobsIdPhotosRouteImport.update({
-  id: '/photos',
-  path: '/photos',
-  getParentRoute: () => AppJobsIdRoute,
-} as any)
-const AppJobsIdOrderFormRoute = AppJobsIdOrderFormRouteImport.update({
-  id: '/order-form',
-  path: '/order-form',
-  getParentRoute: () => AppJobsIdRoute,
-} as any)
-const AppJobsIdMeasureRoute = AppJobsIdMeasureRouteImport.update({
-  id: '/measure',
-  path: '/measure',
-  getParentRoute: () => AppJobsIdRoute,
-} as any)
-const AppJobsIdInvoicesRoute = AppJobsIdInvoicesRouteImport.update({
-  id: '/invoices',
-  path: '/invoices',
-  getParentRoute: () => AppJobsIdRoute,
-} as any)
-const AppJobsIdEstimateRoute = AppJobsIdEstimateRouteImport.update({
-  id: '/estimate',
-  path: '/estimate',
+const AppJobsIdContractRoute = AppJobsIdContractRouteImport.update({
+  id: '/contract',
+  path: '/contract',
   getParentRoute: () => AppJobsIdRoute,
 } as any)
 const AppJobsIdDocumentsRoute = AppJobsIdDocumentsRouteImport.update({
@@ -787,10 +686,111 @@ const AppJobsIdDocumentsRoute = AppJobsIdDocumentsRouteImport.update({
   path: '/documents',
   getParentRoute: () => AppJobsIdRoute,
 } as any)
-const AppJobsIdContractRoute = AppJobsIdContractRouteImport.update({
-  id: '/contract',
-  path: '/contract',
+const AppJobsIdEstimateRoute = AppJobsIdEstimateRouteImport.update({
+  id: '/estimate',
+  path: '/estimate',
   getParentRoute: () => AppJobsIdRoute,
+} as any)
+const AppJobsIdInvoicesRoute = AppJobsIdInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => AppJobsIdRoute,
+} as any)
+const AppJobsIdMeasureRoute = AppJobsIdMeasureRouteImport.update({
+  id: '/measure',
+  path: '/measure',
+  getParentRoute: () => AppJobsIdRoute,
+} as any)
+const AppJobsIdOrderFormRoute = AppJobsIdOrderFormRouteImport.update({
+  id: '/order-form',
+  path: '/order-form',
+  getParentRoute: () => AppJobsIdRoute,
+} as any)
+const AppJobsIdPhotosRoute = AppJobsIdPhotosRouteImport.update({
+  id: '/photos',
+  path: '/photos',
+  getParentRoute: () => AppJobsIdRoute,
+} as any)
+const AppJobsIdReportRoute = AppJobsIdReportRouteImport.update({
+  id: '/report',
+  path: '/report',
+  getParentRoute: () => AppJobsIdRoute,
+} as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CbJobIdContractRoute = CbJobIdContractRouteImport.update({
+  id: '/cb/job/$id/contract',
+  path: '/cb/job/$id/contract',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdCoverRoute = CbJobIdCoverRouteImport.update({
+  id: '/cb/job/$id/cover',
+  path: '/cb/job/$id/cover',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdCustomerRoute = CbJobIdCustomerRouteImport.update({
+  id: '/cb/job/$id/customer',
+  path: '/cb/job/$id/customer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdEstimateRoute = CbJobIdEstimateRouteImport.update({
+  id: '/cb/job/$id/estimate',
+  path: '/cb/job/$id/estimate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdExteriorRoute = CbJobIdExteriorRouteImport.update({
+  id: '/cb/job/$id/exterior',
+  path: '/cb/job/$id/exterior',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdGeneratingRoute = CbJobIdGeneratingRouteImport.update({
+  id: '/cb/job/$id/generating',
+  path: '/cb/job/$id/generating',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdInteriorRoute = CbJobIdInteriorRouteImport.update({
+  id: '/cb/job/$id/interior',
+  path: '/cb/job/$id/interior',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdMeasureRoute = CbJobIdMeasureRouteImport.update({
+  id: '/cb/job/$id/measure',
+  path: '/cb/job/$id/measure',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdPresentRoute = CbJobIdPresentRouteImport.update({
+  id: '/cb/job/$id/present',
+  path: '/cb/job/$id/present',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdReportRoute = CbJobIdReportRouteImport.update({
+  id: '/cb/job/$id/report',
+  path: '/cb/job/$id/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdReviewRoute = CbJobIdReviewRouteImport.update({
+  id: '/cb/job/$id/review',
+  path: '/cb/job/$id/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdRoofRoute = CbJobIdRoofRouteImport.update({
+  id: '/cb/job/$id/roof',
+  path: '/cb/job/$id/roof',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdScopeRoute = CbJobIdScopeRouteImport.update({
+  id: '/cb/job/$id/scope',
+  path: '/cb/job/$id/scope',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbJobIdTakeoffRoute = CbJobIdTakeoffRouteImport.update({
+  id: '/cb/job/$id/takeoff',
+  path: '/cb/job/$id/takeoff',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -1624,46 +1624,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile-setup': {
-      id: '/profile-setup'
-      path: '/profile-setup'
-      fullPath: '/profile-setup'
-      preLoaderRoute: typeof ProfileSetupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -1673,396 +1638,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app': {
-      id: '/_app'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AppRouteImport
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cb/': {
-      id: '/cb/'
-      path: '/cb'
-      fullPath: '/cb/'
-      preLoaderRoute: typeof CbIndexRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/': {
-      id: '/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile-setup': {
+      id: '/profile-setup'
+      path: '/profile-setup'
+      fullPath: '/profile-setup'
+      preLoaderRoute: typeof ProfileSetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/': {
       id: '/_app/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/r/$token': {
-      id: '/r/$token'
-      path: '/r/$token'
-      fullPath: '/r/$token'
-      preLoaderRoute: typeof RTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pay/$token': {
-      id: '/pay/$token'
-      path: '/pay/$token'
-      fullPath: '/pay/$token'
-      preLoaderRoute: typeof PayTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/signup': {
-      id: '/cb/signup'
-      path: '/cb/signup'
-      fullPath: '/cb/signup'
-      preLoaderRoute: typeof CbSignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/settings': {
-      id: '/cb/settings'
-      path: '/cb/settings'
-      fullPath: '/cb/settings'
-      preLoaderRoute: typeof CbSettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/onboarding': {
-      id: '/cb/onboarding'
-      path: '/cb/onboarding'
-      fullPath: '/cb/onboarding'
-      preLoaderRoute: typeof CbOnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/login': {
-      id: '/cb/login'
-      path: '/cb/login'
-      fullPath: '/cb/login'
-      preLoaderRoute: typeof CbLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/companies': {
-      id: '/cb/companies'
-      path: '/cb/companies'
-      fullPath: '/cb/companies'
-      preLoaderRoute: typeof CbCompaniesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/admin': {
-      id: '/cb/admin'
-      path: '/cb/admin'
-      fullPath: '/cb/admin'
-      preLoaderRoute: typeof CbAdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/c/$slug': {
-      id: '/c/$slug'
-      path: '/c/$slug'
-      fullPath: '/c/$slug'
-      preLoaderRoute: typeof CSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/train-from-pdf': {
-      id: '/api/train-from-pdf'
-      path: '/api/train-from-pdf'
-      fullPath: '/api/train-from-pdf'
-      preLoaderRoute: typeof ApiTrainFromPdfRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/solar-roof-extract': {
-      id: '/api/solar-roof-extract'
-      path: '/api/solar-roof-extract'
-      fullPath: '/api/solar-roof-extract'
-      preLoaderRoute: typeof ApiSolarRoofExtractRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/rk-ai': {
-      id: '/api/rk-ai'
-      path: '/api/rk-ai'
-      fullPath: '/api/rk-ai'
-      preLoaderRoute: typeof ApiRkAiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/report-ai': {
-      id: '/api/report-ai'
-      path: '/api/report-ai'
-      fullPath: '/api/report-ai'
-      preLoaderRoute: typeof ApiReportAiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/parse-xactimate-pdf': {
-      id: '/api/parse-xactimate-pdf'
-      path: '/api/parse-xactimate-pdf'
-      fullPath: '/api/parse-xactimate-pdf'
-      preLoaderRoute: typeof ApiParseXactimatePdfRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/mapbox-token': {
-      id: '/api/mapbox-token'
-      path: '/api/mapbox-token'
-      fullPath: '/api/mapbox-token'
-      preLoaderRoute: typeof ApiMapboxTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/import-assembly-pdf': {
-      id: '/api/import-assembly-pdf'
-      path: '/api/import-assembly-pdf'
-      fullPath: '/api/import-assembly-pdf'
-      preLoaderRoute: typeof ApiImportAssemblyPdfRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/calibrate-solar': {
-      id: '/api/calibrate-solar'
-      path: '/api/calibrate-solar'
-      fullPath: '/api/calibrate-solar'
-      preLoaderRoute: typeof ApiCalibrateSolarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/build-roof-estimate': {
-      id: '/api/build-roof-estimate'
-      path: '/api/build-roof-estimate'
-      fullPath: '/api/build-roof-estimate'
-      preLoaderRoute: typeof ApiBuildRoofEstimateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/auto-add-photo-suggestions': {
-      id: '/api/auto-add-photo-suggestions'
-      path: '/api/auto-add-photo-suggestions'
-      fullPath: '/api/auto-add-photo-suggestions'
-      preLoaderRoute: typeof ApiAutoAddPhotoSuggestionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/assistant-chat': {
-      id: '/api/assistant-chat'
-      path: '/api/assistant-chat'
-      fullPath: '/api/assistant-chat'
-      preLoaderRoute: typeof ApiAssistantChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/apply-assembly-import': {
-      id: '/api/apply-assembly-import'
-      path: '/api/apply-assembly-import'
-      fullPath: '/api/apply-assembly-import'
-      preLoaderRoute: typeof ApiApplyAssemblyImportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/analyze-roof-condition': {
-      id: '/api/analyze-roof-condition'
-      path: '/api/analyze-roof-condition'
-      fullPath: '/api/analyze-roof-condition'
-      preLoaderRoute: typeof ApiAnalyzeRoofConditionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/analyze-property': {
-      id: '/api/analyze-property'
-      path: '/api/analyze-property'
-      fullPath: '/api/analyze-property'
-      preLoaderRoute: typeof ApiAnalyzePropertyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/analyze-job-photos': {
-      id: '/api/analyze-job-photos'
-      path: '/api/analyze-job-photos'
-      fullPath: '/api/analyze-job-photos'
-      preLoaderRoute: typeof ApiAnalyzeJobPhotosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/users': {
-      id: '/admin/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AdminUsersRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/training': {
-      id: '/admin/training'
-      path: '/training'
-      fullPath: '/admin/training'
-      preLoaderRoute: typeof AdminTrainingRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/tenants': {
-      id: '/admin/tenants'
-      path: '/tenants'
-      fullPath: '/admin/tenants'
-      preLoaderRoute: typeof AdminTenantsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/support': {
-      id: '/admin/support'
-      path: '/support'
-      fullPath: '/admin/support'
-      preLoaderRoute: typeof AdminSupportRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/spf': {
-      id: '/admin/spf'
-      path: '/spf'
-      fullPath: '/admin/spf'
-      preLoaderRoute: typeof AdminSpfRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/reviews': {
-      id: '/admin/reviews'
-      path: '/reviews'
-      fullPath: '/admin/reviews'
-      preLoaderRoute: typeof AdminReviewsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/price-books': {
-      id: '/admin/price-books'
-      path: '/price-books'
-      fullPath: '/admin/price-books'
-      preLoaderRoute: typeof AdminPriceBooksRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/memberships': {
-      id: '/admin/memberships'
-      path: '/memberships'
-      fullPath: '/admin/memberships'
-      preLoaderRoute: typeof AdminMembershipsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/measurement-reviews': {
-      id: '/admin/measurement-reviews'
-      path: '/measurement-reviews'
-      fullPath: '/admin/measurement-reviews'
-      preLoaderRoute: typeof AdminMeasurementReviewsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/macros': {
-      id: '/admin/macros'
-      path: '/macros'
-      fullPath: '/admin/macros'
-      preLoaderRoute: typeof AdminMacrosRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/features': {
-      id: '/admin/features'
-      path: '/features'
-      fullPath: '/admin/features'
-      preLoaderRoute: typeof AdminFeaturesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/emails': {
-      id: '/admin/emails'
-      path: '/emails'
-      fullPath: '/admin/emails'
-      preLoaderRoute: typeof AdminEmailsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/content': {
-      id: '/admin/content'
-      path: '/content'
-      fullPath: '/admin/content'
-      preLoaderRoute: typeof AdminContentRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/companies': {
-      id: '/admin/companies'
-      path: '/companies'
-      fullPath: '/admin/companies'
-      preLoaderRoute: typeof AdminCompaniesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/claim-buddy': {
-      id: '/admin/claim-buddy'
-      path: '/claim-buddy'
-      fullPath: '/admin/claim-buddy'
-      preLoaderRoute: typeof AdminClaimBuddyRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/audit': {
-      id: '/admin/audit'
-      path: '/audit'
-      fullPath: '/admin/audit'
-      preLoaderRoute: typeof AdminAuditRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/announcements': {
-      id: '/admin/announcements'
-      path: '/announcements'
-      fullPath: '/admin/announcements'
-      preLoaderRoute: typeof AdminAnnouncementsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/analytics': {
-      id: '/admin/analytics'
-      path: '/analytics'
-      fullPath: '/admin/analytics'
-      preLoaderRoute: typeof AdminAnalyticsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/_app/team': {
-      id: '/_app/team'
-      path: '/team'
-      fullPath: '/team'
-      preLoaderRoute: typeof AppTeamRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/survival-guide': {
-      id: '/_app/survival-guide'
-      path: '/survival-guide'
-      fullPath: '/survival-guide'
-      preLoaderRoute: typeof AppSurvivalGuideRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/storm-intelligence': {
-      id: '/_app/storm-intelligence'
-      path: '/storm-intelligence'
-      fullPath: '/storm-intelligence'
-      preLoaderRoute: typeof AppStormIntelligenceRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/settings': {
-      id: '/_app/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/roofking': {
-      id: '/_app/roofking'
-      path: '/roofking'
-      fullPath: '/roofking'
-      preLoaderRoute: typeof AppRoofkingRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/price-books': {
-      id: '/_app/price-books'
-      path: '/price-books'
-      fullPath: '/price-books'
-      preLoaderRoute: typeof AppPriceBooksRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/leads': {
-      id: '/_app/leads'
-      path: '/leads'
-      fullPath: '/leads'
-      preLoaderRoute: typeof AppLeadsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/door-to-door': {
-      id: '/_app/door-to-door'
-      path: '/door-to-door'
-      fullPath: '/door-to-door'
-      preLoaderRoute: typeof AppDoorToDoorRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/clients': {
-      id: '/_app/clients'
-      path: '/clients'
-      fullPath: '/clients'
-      preLoaderRoute: typeof AppClientsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/claim-buddy': {
-      id: '/_app/claim-buddy'
-      path: '/claim-buddy'
-      fullPath: '/claim-buddy'
-      preLoaderRoute: typeof AppClaimBuddyRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/card': {
@@ -2072,284 +1694,396 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCardRouteImport
       parentRoute: typeof AppRoute
     }
-    '/cb/admin/': {
-      id: '/cb/admin/'
-      path: '/'
-      fullPath: '/cb/admin/'
-      preLoaderRoute: typeof CbAdminIndexRouteImport
-      parentRoute: typeof CbAdminRoute
-    }
-    '/admin/companies/': {
-      id: '/admin/companies/'
-      path: '/'
-      fullPath: '/admin/companies/'
-      preLoaderRoute: typeof AdminCompaniesIndexRouteImport
-      parentRoute: typeof AdminCompaniesRoute
-    }
-    '/_app/team/': {
-      id: '/_app/team/'
-      path: '/'
-      fullPath: '/team/'
-      preLoaderRoute: typeof AppTeamIndexRouteImport
-      parentRoute: typeof AppTeamRoute
-    }
-    '/_app/roofking/': {
-      id: '/_app/roofking/'
-      path: '/'
-      fullPath: '/roofking/'
-      preLoaderRoute: typeof AppRoofkingIndexRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/leads/': {
-      id: '/_app/leads/'
-      path: '/'
-      fullPath: '/leads/'
-      preLoaderRoute: typeof AppLeadsIndexRouteImport
-      parentRoute: typeof AppLeadsRoute
-    }
-    '/_app/jobs/': {
-      id: '/_app/jobs/'
-      path: '/jobs'
-      fullPath: '/jobs/'
-      preLoaderRoute: typeof AppJobsIndexRouteImport
+    '/_app/claim-buddy': {
+      id: '/_app/claim-buddy'
+      path: '/claim-buddy'
+      fullPath: '/claim-buddy'
+      preLoaderRoute: typeof AppClaimBuddyRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/invoices/': {
-      id: '/_app/invoices/'
-      path: '/invoices'
-      fullPath: '/invoices/'
-      preLoaderRoute: typeof AppInvoicesIndexRouteImport
+    '/_app/clients': {
+      id: '/_app/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof AppClientsRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_app/door-to-door': {
+      id: '/_app/door-to-door'
+      path: '/door-to-door'
+      fullPath: '/door-to-door'
+      preLoaderRoute: typeof AppDoorToDoorRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/leads': {
+      id: '/_app/leads'
+      path: '/leads'
+      fullPath: '/leads'
+      preLoaderRoute: typeof AppLeadsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/price-books': {
+      id: '/_app/price-books'
+      path: '/price-books'
+      fullPath: '/price-books'
+      preLoaderRoute: typeof AppPriceBooksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/roofking': {
+      id: '/_app/roofking'
+      path: '/roofking'
+      fullPath: '/roofking'
+      preLoaderRoute: typeof AppRoofkingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/storm-intelligence': {
+      id: '/_app/storm-intelligence'
+      path: '/storm-intelligence'
+      fullPath: '/storm-intelligence'
+      preLoaderRoute: typeof AppStormIntelligenceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/survival-guide': {
+      id: '/_app/survival-guide'
+      path: '/survival-guide'
+      fullPath: '/survival-guide'
+      preLoaderRoute: typeof AppSurvivalGuideRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/team': {
+      id: '/_app/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof AppTeamRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/analytics': {
+      id: '/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AdminAnalyticsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/announcements': {
+      id: '/admin/announcements'
+      path: '/announcements'
+      fullPath: '/admin/announcements'
+      preLoaderRoute: typeof AdminAnnouncementsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/claim-buddy': {
+      id: '/admin/claim-buddy'
+      path: '/claim-buddy'
+      fullPath: '/admin/claim-buddy'
+      preLoaderRoute: typeof AdminClaimBuddyRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/companies': {
+      id: '/admin/companies'
+      path: '/companies'
+      fullPath: '/admin/companies'
+      preLoaderRoute: typeof AdminCompaniesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/content': {
+      id: '/admin/content'
+      path: '/content'
+      fullPath: '/admin/content'
+      preLoaderRoute: typeof AdminContentRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/emails': {
+      id: '/admin/emails'
+      path: '/emails'
+      fullPath: '/admin/emails'
+      preLoaderRoute: typeof AdminEmailsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/features': {
+      id: '/admin/features'
+      path: '/features'
+      fullPath: '/admin/features'
+      preLoaderRoute: typeof AdminFeaturesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/macros': {
+      id: '/admin/macros'
+      path: '/macros'
+      fullPath: '/admin/macros'
+      preLoaderRoute: typeof AdminMacrosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/measurement-reviews': {
+      id: '/admin/measurement-reviews'
+      path: '/measurement-reviews'
+      fullPath: '/admin/measurement-reviews'
+      preLoaderRoute: typeof AdminMeasurementReviewsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/memberships': {
+      id: '/admin/memberships'
+      path: '/memberships'
+      fullPath: '/admin/memberships'
+      preLoaderRoute: typeof AdminMembershipsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/price-books': {
+      id: '/admin/price-books'
+      path: '/price-books'
+      fullPath: '/admin/price-books'
+      preLoaderRoute: typeof AdminPriceBooksRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reviews': {
+      id: '/admin/reviews'
+      path: '/reviews'
+      fullPath: '/admin/reviews'
+      preLoaderRoute: typeof AdminReviewsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/spf': {
+      id: '/admin/spf'
+      path: '/spf'
+      fullPath: '/admin/spf'
+      preLoaderRoute: typeof AdminSpfRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/support': {
+      id: '/admin/support'
+      path: '/support'
+      fullPath: '/admin/support'
+      preLoaderRoute: typeof AdminSupportRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/tenants': {
+      id: '/admin/tenants'
+      path: '/tenants'
+      fullPath: '/admin/tenants'
+      preLoaderRoute: typeof AdminTenantsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/training': {
+      id: '/admin/training'
+      path: '/training'
+      fullPath: '/admin/training'
+      preLoaderRoute: typeof AdminTrainingRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/api/analyze-job-photos': {
+      id: '/api/analyze-job-photos'
+      path: '/api/analyze-job-photos'
+      fullPath: '/api/analyze-job-photos'
+      preLoaderRoute: typeof ApiAnalyzeJobPhotosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/analyze-property': {
+      id: '/api/analyze-property'
+      path: '/api/analyze-property'
+      fullPath: '/api/analyze-property'
+      preLoaderRoute: typeof ApiAnalyzePropertyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/analyze-roof-condition': {
+      id: '/api/analyze-roof-condition'
+      path: '/api/analyze-roof-condition'
+      fullPath: '/api/analyze-roof-condition'
+      preLoaderRoute: typeof ApiAnalyzeRoofConditionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/apply-assembly-import': {
+      id: '/api/apply-assembly-import'
+      path: '/api/apply-assembly-import'
+      fullPath: '/api/apply-assembly-import'
+      preLoaderRoute: typeof ApiApplyAssemblyImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/assistant-chat': {
+      id: '/api/assistant-chat'
+      path: '/api/assistant-chat'
+      fullPath: '/api/assistant-chat'
+      preLoaderRoute: typeof ApiAssistantChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auto-add-photo-suggestions': {
+      id: '/api/auto-add-photo-suggestions'
+      path: '/api/auto-add-photo-suggestions'
+      fullPath: '/api/auto-add-photo-suggestions'
+      preLoaderRoute: typeof ApiAutoAddPhotoSuggestionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/build-roof-estimate': {
+      id: '/api/build-roof-estimate'
+      path: '/api/build-roof-estimate'
+      fullPath: '/api/build-roof-estimate'
+      preLoaderRoute: typeof ApiBuildRoofEstimateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/calibrate-solar': {
+      id: '/api/calibrate-solar'
+      path: '/api/calibrate-solar'
+      fullPath: '/api/calibrate-solar'
+      preLoaderRoute: typeof ApiCalibrateSolarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/import-assembly-pdf': {
+      id: '/api/import-assembly-pdf'
+      path: '/api/import-assembly-pdf'
+      fullPath: '/api/import-assembly-pdf'
+      preLoaderRoute: typeof ApiImportAssemblyPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mapbox-token': {
+      id: '/api/mapbox-token'
+      path: '/api/mapbox-token'
+      fullPath: '/api/mapbox-token'
+      preLoaderRoute: typeof ApiMapboxTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/parse-xactimate-pdf': {
+      id: '/api/parse-xactimate-pdf'
+      path: '/api/parse-xactimate-pdf'
+      fullPath: '/api/parse-xactimate-pdf'
+      preLoaderRoute: typeof ApiParseXactimatePdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/report-ai': {
+      id: '/api/report-ai'
+      path: '/api/report-ai'
+      fullPath: '/api/report-ai'
+      preLoaderRoute: typeof ApiReportAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/rk-ai': {
+      id: '/api/rk-ai'
+      path: '/api/rk-ai'
+      fullPath: '/api/rk-ai'
+      preLoaderRoute: typeof ApiRkAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/solar-roof-extract': {
+      id: '/api/solar-roof-extract'
+      path: '/api/solar-roof-extract'
+      fullPath: '/api/solar-roof-extract'
+      preLoaderRoute: typeof ApiSolarRoofExtractRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/train-from-pdf': {
+      id: '/api/train-from-pdf'
+      path: '/api/train-from-pdf'
+      fullPath: '/api/train-from-pdf'
+      preLoaderRoute: typeof ApiTrainFromPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c/$slug': {
+      id: '/c/$slug'
+      path: '/c/$slug'
+      fullPath: '/c/$slug'
+      preLoaderRoute: typeof CSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/': {
+      id: '/cb/'
+      path: '/cb'
+      fullPath: '/cb/'
+      preLoaderRoute: typeof CbIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/admin': {
+      id: '/cb/admin'
+      path: '/cb/admin'
+      fullPath: '/cb/admin'
+      preLoaderRoute: typeof CbAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/companies': {
+      id: '/cb/companies'
+      path: '/cb/companies'
+      fullPath: '/cb/companies'
+      preLoaderRoute: typeof CbCompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/login': {
+      id: '/cb/login'
+      path: '/cb/login'
+      fullPath: '/cb/login'
+      preLoaderRoute: typeof CbLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/onboarding': {
+      id: '/cb/onboarding'
+      path: '/cb/onboarding'
+      fullPath: '/cb/onboarding'
+      preLoaderRoute: typeof CbOnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/settings': {
+      id: '/cb/settings'
+      path: '/cb/settings'
+      fullPath: '/cb/settings'
+      preLoaderRoute: typeof CbSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/signup': {
+      id: '/cb/signup'
+      path: '/cb/signup'
+      fullPath: '/cb/signup'
+      preLoaderRoute: typeof CbSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pay/$token': {
+      id: '/pay/$token'
+      path: '/pay/$token'
+      fullPath: '/pay/$token'
+      preLoaderRoute: typeof PayTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/r/$token': {
+      id: '/r/$token'
+      path: '/r/$token'
+      fullPath: '/r/$token'
+      preLoaderRoute: typeof RTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/clients/$id': {
+      id: '/_app/clients/$id'
+      path: '/$id'
+      fullPath: '/clients/$id'
+      preLoaderRoute: typeof AppClientsIdRouteImport
+      parentRoute: typeof AppClientsRoute
     }
     '/_app/door-to-door/': {
       id: '/_app/door-to-door/'
       path: '/'
       fullPath: '/door-to-door/'
       preLoaderRoute: typeof AppDoorToDoorIndexRouteImport
-      parentRoute: typeof AppDoorToDoorRoute
-    }
-    '/cb/admin/team': {
-      id: '/cb/admin/team'
-      path: '/team'
-      fullPath: '/cb/admin/team'
-      preLoaderRoute: typeof CbAdminTeamRouteImport
-      parentRoute: typeof CbAdminRoute
-    }
-    '/cb/admin/pricing': {
-      id: '/cb/admin/pricing'
-      path: '/pricing'
-      fullPath: '/cb/admin/pricing'
-      preLoaderRoute: typeof CbAdminPricingRouteImport
-      parentRoute: typeof CbAdminRoute
-    }
-    '/cb/admin/branding': {
-      id: '/cb/admin/branding'
-      path: '/branding'
-      fullPath: '/cb/admin/branding'
-      preLoaderRoute: typeof CbAdminBrandingRouteImport
-      parentRoute: typeof CbAdminRoute
-    }
-    '/api/public/sign': {
-      id: '/api/public/sign'
-      path: '/api/public/sign'
-      fullPath: '/api/public/sign'
-      preLoaderRoute: typeof ApiPublicSignRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cb-share': {
-      id: '/api/public/cb-share'
-      path: '/api/public/cb-share'
-      fullPath: '/api/public/cb-share'
-      preLoaderRoute: typeof ApiPublicCbShareRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/price-books/new': {
-      id: '/admin/price-books/new'
-      path: '/new'
-      fullPath: '/admin/price-books/new'
-      preLoaderRoute: typeof AdminPriceBooksNewRouteImport
-      parentRoute: typeof AdminPriceBooksRoute
-    }
-    '/admin/companies/$id': {
-      id: '/admin/companies/$id'
-      path: '/$id'
-      fullPath: '/admin/companies/$id'
-      preLoaderRoute: typeof AdminCompaniesIdRouteImport
-      parentRoute: typeof AdminCompaniesRoute
-    }
-    '/admin/assemblies/import': {
-      id: '/admin/assemblies/import'
-      path: '/assemblies/import'
-      fullPath: '/admin/assemblies/import'
-      preLoaderRoute: typeof AdminAssembliesImportRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/_app/team/requests': {
-      id: '/_app/team/requests'
-      path: '/requests'
-      fullPath: '/team/requests'
-      preLoaderRoute: typeof AppTeamRequestsRouteImport
-      parentRoute: typeof AppTeamRoute
-    }
-    '/_app/team/invites': {
-      id: '/_app/team/invites'
-      path: '/invites'
-      fullPath: '/team/invites'
-      preLoaderRoute: typeof AppTeamInvitesRouteImport
-      parentRoute: typeof AppTeamRoute
-    }
-    '/_app/roofking/tickets': {
-      id: '/_app/roofking/tickets'
-      path: '/tickets'
-      fullPath: '/roofking/tickets'
-      preLoaderRoute: typeof AppRoofkingTicketsRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/roofking/spf': {
-      id: '/_app/roofking/spf'
-      path: '/spf'
-      fullPath: '/roofking/spf'
-      preLoaderRoute: typeof AppRoofkingSpfRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/roofking/pipeline': {
-      id: '/_app/roofking/pipeline'
-      path: '/pipeline'
-      fullPath: '/roofking/pipeline'
-      preLoaderRoute: typeof AppRoofkingPipelineRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/roofking/map': {
-      id: '/_app/roofking/map'
-      path: '/map'
-      fullPath: '/roofking/map'
-      preLoaderRoute: typeof AppRoofkingMapRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/roofking/forms': {
-      id: '/_app/roofking/forms'
-      path: '/forms'
-      fullPath: '/roofking/forms'
-      preLoaderRoute: typeof AppRoofkingFormsRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/roofking/export': {
-      id: '/_app/roofking/export'
-      path: '/export'
-      fullPath: '/roofking/export'
-      preLoaderRoute: typeof AppRoofkingExportRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/roofking/customers': {
-      id: '/_app/roofking/customers'
-      path: '/customers'
-      fullPath: '/roofking/customers'
-      preLoaderRoute: typeof AppRoofkingCustomersRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/price-books/new': {
-      id: '/_app/price-books/new'
-      path: '/new'
-      fullPath: '/price-books/new'
-      preLoaderRoute: typeof AppPriceBooksNewRouteImport
-      parentRoute: typeof AppPriceBooksRoute
-    }
-    '/_app/leads/wizard': {
-      id: '/_app/leads/wizard'
-      path: '/wizard'
-      fullPath: '/leads/wizard'
-      preLoaderRoute: typeof AppLeadsWizardRouteImport
-      parentRoute: typeof AppLeadsRoute
-    }
-    '/_app/leads/training': {
-      id: '/_app/leads/training'
-      path: '/training'
-      fullPath: '/leads/training'
-      preLoaderRoute: typeof AppLeadsTrainingRouteImport
-      parentRoute: typeof AppLeadsRoute
-    }
-    '/_app/leads/savings': {
-      id: '/_app/leads/savings'
-      path: '/savings'
-      fullPath: '/leads/savings'
-      preLoaderRoute: typeof AppLeadsSavingsRouteImport
-      parentRoute: typeof AppLeadsRoute
-    }
-    '/_app/leads/pipeline': {
-      id: '/_app/leads/pipeline'
-      path: '/pipeline'
-      fullPath: '/leads/pipeline'
-      preLoaderRoute: typeof AppLeadsPipelineRouteImport
-      parentRoute: typeof AppLeadsRoute
-    }
-    '/_app/leads/map': {
-      id: '/_app/leads/map'
-      path: '/map'
-      fullPath: '/leads/map'
-      preLoaderRoute: typeof AppLeadsMapRouteImport
-      parentRoute: typeof AppLeadsRoute
-    }
-    '/_app/leads/list': {
-      id: '/_app/leads/list'
-      path: '/list'
-      fullPath: '/leads/list'
-      preLoaderRoute: typeof AppLeadsListRouteImport
-      parentRoute: typeof AppLeadsRoute
-    }
-    '/_app/leads/import': {
-      id: '/_app/leads/import'
-      path: '/import'
-      fullPath: '/leads/import'
-      preLoaderRoute: typeof AppLeadsImportRouteImport
-      parentRoute: typeof AppLeadsRoute
-    }
-    '/_app/leads/followup': {
-      id: '/_app/leads/followup'
-      path: '/followup'
-      fullPath: '/leads/followup'
-      preLoaderRoute: typeof AppLeadsFollowupRouteImport
-      parentRoute: typeof AppLeadsRoute
-    }
-    '/_app/jobs/new': {
-      id: '/_app/jobs/new'
-      path: '/jobs/new'
-      fullPath: '/jobs/new'
-      preLoaderRoute: typeof AppJobsNewRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/jobs/$id': {
-      id: '/_app/jobs/$id'
-      path: '/jobs/$id'
-      fullPath: '/jobs/$id'
-      preLoaderRoute: typeof AppJobsIdRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/invoices/new': {
-      id: '/_app/invoices/new'
-      path: '/invoices/new'
-      fullPath: '/invoices/new'
-      preLoaderRoute: typeof AppInvoicesNewRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/invoices/$id': {
-      id: '/_app/invoices/$id'
-      path: '/invoices/$id'
-      fullPath: '/invoices/$id'
-      preLoaderRoute: typeof AppInvoicesIdRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/door-to-door/world': {
-      id: '/_app/door-to-door/world'
-      path: '/world'
-      fullPath: '/door-to-door/world'
-      preLoaderRoute: typeof AppDoorToDoorWorldRouteImport
-      parentRoute: typeof AppDoorToDoorRoute
-    }
-    '/_app/door-to-door/profile': {
-      id: '/_app/door-to-door/profile'
-      path: '/profile'
-      fullPath: '/door-to-door/profile'
-      preLoaderRoute: typeof AppDoorToDoorProfileRouteImport
       parentRoute: typeof AppDoorToDoorRoute
     }
     '/_app/door-to-door/dispositions': {
@@ -2359,12 +2093,278 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDoorToDoorDispositionsRouteImport
       parentRoute: typeof AppDoorToDoorRoute
     }
-    '/_app/clients/$id': {
-      id: '/_app/clients/$id'
+    '/_app/door-to-door/profile': {
+      id: '/_app/door-to-door/profile'
+      path: '/profile'
+      fullPath: '/door-to-door/profile'
+      preLoaderRoute: typeof AppDoorToDoorProfileRouteImport
+      parentRoute: typeof AppDoorToDoorRoute
+    }
+    '/_app/door-to-door/world': {
+      id: '/_app/door-to-door/world'
+      path: '/world'
+      fullPath: '/door-to-door/world'
+      preLoaderRoute: typeof AppDoorToDoorWorldRouteImport
+      parentRoute: typeof AppDoorToDoorRoute
+    }
+    '/_app/invoices/': {
+      id: '/_app/invoices/'
+      path: '/invoices'
+      fullPath: '/invoices/'
+      preLoaderRoute: typeof AppInvoicesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/invoices/$id': {
+      id: '/_app/invoices/$id'
+      path: '/invoices/$id'
+      fullPath: '/invoices/$id'
+      preLoaderRoute: typeof AppInvoicesIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/invoices/new': {
+      id: '/_app/invoices/new'
+      path: '/invoices/new'
+      fullPath: '/invoices/new'
+      preLoaderRoute: typeof AppInvoicesNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/jobs/': {
+      id: '/_app/jobs/'
+      path: '/jobs'
+      fullPath: '/jobs/'
+      preLoaderRoute: typeof AppJobsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/jobs/$id': {
+      id: '/_app/jobs/$id'
+      path: '/jobs/$id'
+      fullPath: '/jobs/$id'
+      preLoaderRoute: typeof AppJobsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/jobs/new': {
+      id: '/_app/jobs/new'
+      path: '/jobs/new'
+      fullPath: '/jobs/new'
+      preLoaderRoute: typeof AppJobsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/leads/': {
+      id: '/_app/leads/'
+      path: '/'
+      fullPath: '/leads/'
+      preLoaderRoute: typeof AppLeadsIndexRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
+    '/_app/leads/followup': {
+      id: '/_app/leads/followup'
+      path: '/followup'
+      fullPath: '/leads/followup'
+      preLoaderRoute: typeof AppLeadsFollowupRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
+    '/_app/leads/import': {
+      id: '/_app/leads/import'
+      path: '/import'
+      fullPath: '/leads/import'
+      preLoaderRoute: typeof AppLeadsImportRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
+    '/_app/leads/list': {
+      id: '/_app/leads/list'
+      path: '/list'
+      fullPath: '/leads/list'
+      preLoaderRoute: typeof AppLeadsListRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
+    '/_app/leads/map': {
+      id: '/_app/leads/map'
+      path: '/map'
+      fullPath: '/leads/map'
+      preLoaderRoute: typeof AppLeadsMapRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
+    '/_app/leads/pipeline': {
+      id: '/_app/leads/pipeline'
+      path: '/pipeline'
+      fullPath: '/leads/pipeline'
+      preLoaderRoute: typeof AppLeadsPipelineRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
+    '/_app/leads/savings': {
+      id: '/_app/leads/savings'
+      path: '/savings'
+      fullPath: '/leads/savings'
+      preLoaderRoute: typeof AppLeadsSavingsRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
+    '/_app/leads/training': {
+      id: '/_app/leads/training'
+      path: '/training'
+      fullPath: '/leads/training'
+      preLoaderRoute: typeof AppLeadsTrainingRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
+    '/_app/leads/wizard': {
+      id: '/_app/leads/wizard'
+      path: '/wizard'
+      fullPath: '/leads/wizard'
+      preLoaderRoute: typeof AppLeadsWizardRouteImport
+      parentRoute: typeof AppLeadsRoute
+    }
+    '/_app/price-books/new': {
+      id: '/_app/price-books/new'
+      path: '/new'
+      fullPath: '/price-books/new'
+      preLoaderRoute: typeof AppPriceBooksNewRouteImport
+      parentRoute: typeof AppPriceBooksRoute
+    }
+    '/_app/roofking/': {
+      id: '/_app/roofking/'
+      path: '/'
+      fullPath: '/roofking/'
+      preLoaderRoute: typeof AppRoofkingIndexRouteImport
+      parentRoute: typeof AppRoofkingRoute
+    }
+    '/_app/roofking/customers': {
+      id: '/_app/roofking/customers'
+      path: '/customers'
+      fullPath: '/roofking/customers'
+      preLoaderRoute: typeof AppRoofkingCustomersRouteImport
+      parentRoute: typeof AppRoofkingRoute
+    }
+    '/_app/roofking/export': {
+      id: '/_app/roofking/export'
+      path: '/export'
+      fullPath: '/roofking/export'
+      preLoaderRoute: typeof AppRoofkingExportRouteImport
+      parentRoute: typeof AppRoofkingRoute
+    }
+    '/_app/roofking/forms': {
+      id: '/_app/roofking/forms'
+      path: '/forms'
+      fullPath: '/roofking/forms'
+      preLoaderRoute: typeof AppRoofkingFormsRouteImport
+      parentRoute: typeof AppRoofkingRoute
+    }
+    '/_app/roofking/map': {
+      id: '/_app/roofking/map'
+      path: '/map'
+      fullPath: '/roofking/map'
+      preLoaderRoute: typeof AppRoofkingMapRouteImport
+      parentRoute: typeof AppRoofkingRoute
+    }
+    '/_app/roofking/pipeline': {
+      id: '/_app/roofking/pipeline'
+      path: '/pipeline'
+      fullPath: '/roofking/pipeline'
+      preLoaderRoute: typeof AppRoofkingPipelineRouteImport
+      parentRoute: typeof AppRoofkingRoute
+    }
+    '/_app/roofking/spf': {
+      id: '/_app/roofking/spf'
+      path: '/spf'
+      fullPath: '/roofking/spf'
+      preLoaderRoute: typeof AppRoofkingSpfRouteImport
+      parentRoute: typeof AppRoofkingRoute
+    }
+    '/_app/roofking/tickets': {
+      id: '/_app/roofking/tickets'
+      path: '/tickets'
+      fullPath: '/roofking/tickets'
+      preLoaderRoute: typeof AppRoofkingTicketsRouteImport
+      parentRoute: typeof AppRoofkingRoute
+    }
+    '/_app/team/': {
+      id: '/_app/team/'
+      path: '/'
+      fullPath: '/team/'
+      preLoaderRoute: typeof AppTeamIndexRouteImport
+      parentRoute: typeof AppTeamRoute
+    }
+    '/_app/team/invites': {
+      id: '/_app/team/invites'
+      path: '/invites'
+      fullPath: '/team/invites'
+      preLoaderRoute: typeof AppTeamInvitesRouteImport
+      parentRoute: typeof AppTeamRoute
+    }
+    '/_app/team/requests': {
+      id: '/_app/team/requests'
+      path: '/requests'
+      fullPath: '/team/requests'
+      preLoaderRoute: typeof AppTeamRequestsRouteImport
+      parentRoute: typeof AppTeamRoute
+    }
+    '/admin/assemblies/import': {
+      id: '/admin/assemblies/import'
+      path: '/assemblies/import'
+      fullPath: '/admin/assemblies/import'
+      preLoaderRoute: typeof AdminAssembliesImportRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/companies/': {
+      id: '/admin/companies/'
+      path: '/'
+      fullPath: '/admin/companies/'
+      preLoaderRoute: typeof AdminCompaniesIndexRouteImport
+      parentRoute: typeof AdminCompaniesRoute
+    }
+    '/admin/companies/$id': {
+      id: '/admin/companies/$id'
       path: '/$id'
-      fullPath: '/clients/$id'
-      preLoaderRoute: typeof AppClientsIdRouteImport
-      parentRoute: typeof AppClientsRoute
+      fullPath: '/admin/companies/$id'
+      preLoaderRoute: typeof AdminCompaniesIdRouteImport
+      parentRoute: typeof AdminCompaniesRoute
+    }
+    '/admin/price-books/new': {
+      id: '/admin/price-books/new'
+      path: '/new'
+      fullPath: '/admin/price-books/new'
+      preLoaderRoute: typeof AdminPriceBooksNewRouteImport
+      parentRoute: typeof AdminPriceBooksRoute
+    }
+    '/api/public/cb-share': {
+      id: '/api/public/cb-share'
+      path: '/api/public/cb-share'
+      fullPath: '/api/public/cb-share'
+      preLoaderRoute: typeof ApiPublicCbShareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/sign': {
+      id: '/api/public/sign'
+      path: '/api/public/sign'
+      fullPath: '/api/public/sign'
+      preLoaderRoute: typeof ApiPublicSignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/admin/': {
+      id: '/cb/admin/'
+      path: '/'
+      fullPath: '/cb/admin/'
+      preLoaderRoute: typeof CbAdminIndexRouteImport
+      parentRoute: typeof CbAdminRoute
+    }
+    '/cb/admin/branding': {
+      id: '/cb/admin/branding'
+      path: '/branding'
+      fullPath: '/cb/admin/branding'
+      preLoaderRoute: typeof CbAdminBrandingRouteImport
+      parentRoute: typeof CbAdminRoute
+    }
+    '/cb/admin/pricing': {
+      id: '/cb/admin/pricing'
+      path: '/pricing'
+      fullPath: '/cb/admin/pricing'
+      preLoaderRoute: typeof CbAdminPricingRouteImport
+      parentRoute: typeof CbAdminRoute
+    }
+    '/cb/admin/team': {
+      id: '/cb/admin/team'
+      path: '/team'
+      fullPath: '/cb/admin/team'
+      preLoaderRoute: typeof CbAdminTeamRouteImport
+      parentRoute: typeof CbAdminRoute
     }
     '/_app/jobs/$id/': {
       id: '/_app/jobs/$id/'
@@ -2373,151 +2373,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJobsIdIndexRouteImport
       parentRoute: typeof AppJobsIdRoute
     }
-    '/cb/job/$id/takeoff': {
-      id: '/cb/job/$id/takeoff'
-      path: '/cb/job/$id/takeoff'
-      fullPath: '/cb/job/$id/takeoff'
-      preLoaderRoute: typeof CbJobIdTakeoffRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/job/$id/scope': {
-      id: '/cb/job/$id/scope'
-      path: '/cb/job/$id/scope'
-      fullPath: '/cb/job/$id/scope'
-      preLoaderRoute: typeof CbJobIdScopeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/job/$id/roof': {
-      id: '/cb/job/$id/roof'
-      path: '/cb/job/$id/roof'
-      fullPath: '/cb/job/$id/roof'
-      preLoaderRoute: typeof CbJobIdRoofRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/job/$id/review': {
-      id: '/cb/job/$id/review'
-      path: '/cb/job/$id/review'
-      fullPath: '/cb/job/$id/review'
-      preLoaderRoute: typeof CbJobIdReviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/job/$id/report': {
-      id: '/cb/job/$id/report'
-      path: '/cb/job/$id/report'
-      fullPath: '/cb/job/$id/report'
-      preLoaderRoute: typeof CbJobIdReportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/job/$id/present': {
-      id: '/cb/job/$id/present'
-      path: '/cb/job/$id/present'
-      fullPath: '/cb/job/$id/present'
-      preLoaderRoute: typeof CbJobIdPresentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/job/$id/measure': {
-      id: '/cb/job/$id/measure'
-      path: '/cb/job/$id/measure'
-      fullPath: '/cb/job/$id/measure'
-      preLoaderRoute: typeof CbJobIdMeasureRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/job/$id/interior': {
-      id: '/cb/job/$id/interior'
-      path: '/cb/job/$id/interior'
-      fullPath: '/cb/job/$id/interior'
-      preLoaderRoute: typeof CbJobIdInteriorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/job/$id/generating': {
-      id: '/cb/job/$id/generating'
-      path: '/cb/job/$id/generating'
-      fullPath: '/cb/job/$id/generating'
-      preLoaderRoute: typeof CbJobIdGeneratingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/job/$id/exterior': {
-      id: '/cb/job/$id/exterior'
-      path: '/cb/job/$id/exterior'
-      fullPath: '/cb/job/$id/exterior'
-      preLoaderRoute: typeof CbJobIdExteriorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/job/$id/estimate': {
-      id: '/cb/job/$id/estimate'
-      path: '/cb/job/$id/estimate'
-      fullPath: '/cb/job/$id/estimate'
-      preLoaderRoute: typeof CbJobIdEstimateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/job/$id/customer': {
-      id: '/cb/job/$id/customer'
-      path: '/cb/job/$id/customer'
-      fullPath: '/cb/job/$id/customer'
-      preLoaderRoute: typeof CbJobIdCustomerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/job/$id/cover': {
-      id: '/cb/job/$id/cover'
-      path: '/cb/job/$id/cover'
-      fullPath: '/cb/job/$id/cover'
-      preLoaderRoute: typeof CbJobIdCoverRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/job/$id/contract': {
-      id: '/cb/job/$id/contract'
-      path: '/cb/job/$id/contract'
-      fullPath: '/cb/job/$id/contract'
-      preLoaderRoute: typeof CbJobIdContractRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/payments/webhook': {
-      id: '/api/public/payments/webhook'
-      path: '/api/public/payments/webhook'
-      fullPath: '/api/public/payments/webhook'
-      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app/jobs/$id/report': {
-      id: '/_app/jobs/$id/report'
-      path: '/report'
-      fullPath: '/jobs/$id/report'
-      preLoaderRoute: typeof AppJobsIdReportRouteImport
-      parentRoute: typeof AppJobsIdRoute
-    }
-    '/_app/jobs/$id/photos': {
-      id: '/_app/jobs/$id/photos'
-      path: '/photos'
-      fullPath: '/jobs/$id/photos'
-      preLoaderRoute: typeof AppJobsIdPhotosRouteImport
-      parentRoute: typeof AppJobsIdRoute
-    }
-    '/_app/jobs/$id/order-form': {
-      id: '/_app/jobs/$id/order-form'
-      path: '/order-form'
-      fullPath: '/jobs/$id/order-form'
-      preLoaderRoute: typeof AppJobsIdOrderFormRouteImport
-      parentRoute: typeof AppJobsIdRoute
-    }
-    '/_app/jobs/$id/measure': {
-      id: '/_app/jobs/$id/measure'
-      path: '/measure'
-      fullPath: '/jobs/$id/measure'
-      preLoaderRoute: typeof AppJobsIdMeasureRouteImport
-      parentRoute: typeof AppJobsIdRoute
-    }
-    '/_app/jobs/$id/invoices': {
-      id: '/_app/jobs/$id/invoices'
-      path: '/invoices'
-      fullPath: '/jobs/$id/invoices'
-      preLoaderRoute: typeof AppJobsIdInvoicesRouteImport
-      parentRoute: typeof AppJobsIdRoute
-    }
-    '/_app/jobs/$id/estimate': {
-      id: '/_app/jobs/$id/estimate'
-      path: '/estimate'
-      fullPath: '/jobs/$id/estimate'
-      preLoaderRoute: typeof AppJobsIdEstimateRouteImport
+    '/_app/jobs/$id/contract': {
+      id: '/_app/jobs/$id/contract'
+      path: '/contract'
+      fullPath: '/jobs/$id/contract'
+      preLoaderRoute: typeof AppJobsIdContractRouteImport
       parentRoute: typeof AppJobsIdRoute
     }
     '/_app/jobs/$id/documents': {
@@ -2527,12 +2387,152 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJobsIdDocumentsRouteImport
       parentRoute: typeof AppJobsIdRoute
     }
-    '/_app/jobs/$id/contract': {
-      id: '/_app/jobs/$id/contract'
-      path: '/contract'
-      fullPath: '/jobs/$id/contract'
-      preLoaderRoute: typeof AppJobsIdContractRouteImport
+    '/_app/jobs/$id/estimate': {
+      id: '/_app/jobs/$id/estimate'
+      path: '/estimate'
+      fullPath: '/jobs/$id/estimate'
+      preLoaderRoute: typeof AppJobsIdEstimateRouteImport
       parentRoute: typeof AppJobsIdRoute
+    }
+    '/_app/jobs/$id/invoices': {
+      id: '/_app/jobs/$id/invoices'
+      path: '/invoices'
+      fullPath: '/jobs/$id/invoices'
+      preLoaderRoute: typeof AppJobsIdInvoicesRouteImport
+      parentRoute: typeof AppJobsIdRoute
+    }
+    '/_app/jobs/$id/measure': {
+      id: '/_app/jobs/$id/measure'
+      path: '/measure'
+      fullPath: '/jobs/$id/measure'
+      preLoaderRoute: typeof AppJobsIdMeasureRouteImport
+      parentRoute: typeof AppJobsIdRoute
+    }
+    '/_app/jobs/$id/order-form': {
+      id: '/_app/jobs/$id/order-form'
+      path: '/order-form'
+      fullPath: '/jobs/$id/order-form'
+      preLoaderRoute: typeof AppJobsIdOrderFormRouteImport
+      parentRoute: typeof AppJobsIdRoute
+    }
+    '/_app/jobs/$id/photos': {
+      id: '/_app/jobs/$id/photos'
+      path: '/photos'
+      fullPath: '/jobs/$id/photos'
+      preLoaderRoute: typeof AppJobsIdPhotosRouteImport
+      parentRoute: typeof AppJobsIdRoute
+    }
+    '/_app/jobs/$id/report': {
+      id: '/_app/jobs/$id/report'
+      path: '/report'
+      fullPath: '/jobs/$id/report'
+      preLoaderRoute: typeof AppJobsIdReportRouteImport
+      parentRoute: typeof AppJobsIdRoute
+    }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/contract': {
+      id: '/cb/job/$id/contract'
+      path: '/cb/job/$id/contract'
+      fullPath: '/cb/job/$id/contract'
+      preLoaderRoute: typeof CbJobIdContractRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/cover': {
+      id: '/cb/job/$id/cover'
+      path: '/cb/job/$id/cover'
+      fullPath: '/cb/job/$id/cover'
+      preLoaderRoute: typeof CbJobIdCoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/customer': {
+      id: '/cb/job/$id/customer'
+      path: '/cb/job/$id/customer'
+      fullPath: '/cb/job/$id/customer'
+      preLoaderRoute: typeof CbJobIdCustomerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/estimate': {
+      id: '/cb/job/$id/estimate'
+      path: '/cb/job/$id/estimate'
+      fullPath: '/cb/job/$id/estimate'
+      preLoaderRoute: typeof CbJobIdEstimateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/exterior': {
+      id: '/cb/job/$id/exterior'
+      path: '/cb/job/$id/exterior'
+      fullPath: '/cb/job/$id/exterior'
+      preLoaderRoute: typeof CbJobIdExteriorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/generating': {
+      id: '/cb/job/$id/generating'
+      path: '/cb/job/$id/generating'
+      fullPath: '/cb/job/$id/generating'
+      preLoaderRoute: typeof CbJobIdGeneratingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/interior': {
+      id: '/cb/job/$id/interior'
+      path: '/cb/job/$id/interior'
+      fullPath: '/cb/job/$id/interior'
+      preLoaderRoute: typeof CbJobIdInteriorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/measure': {
+      id: '/cb/job/$id/measure'
+      path: '/cb/job/$id/measure'
+      fullPath: '/cb/job/$id/measure'
+      preLoaderRoute: typeof CbJobIdMeasureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/present': {
+      id: '/cb/job/$id/present'
+      path: '/cb/job/$id/present'
+      fullPath: '/cb/job/$id/present'
+      preLoaderRoute: typeof CbJobIdPresentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/report': {
+      id: '/cb/job/$id/report'
+      path: '/cb/job/$id/report'
+      fullPath: '/cb/job/$id/report'
+      preLoaderRoute: typeof CbJobIdReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/review': {
+      id: '/cb/job/$id/review'
+      path: '/cb/job/$id/review'
+      fullPath: '/cb/job/$id/review'
+      preLoaderRoute: typeof CbJobIdReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/roof': {
+      id: '/cb/job/$id/roof'
+      path: '/cb/job/$id/roof'
+      fullPath: '/cb/job/$id/roof'
+      preLoaderRoute: typeof CbJobIdRoofRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/scope': {
+      id: '/cb/job/$id/scope'
+      path: '/cb/job/$id/scope'
+      fullPath: '/cb/job/$id/scope'
+      preLoaderRoute: typeof CbJobIdScopeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/job/$id/takeoff': {
+      id: '/cb/job/$id/takeoff'
+      path: '/cb/job/$id/takeoff'
+      fullPath: '/cb/job/$id/takeoff'
+      preLoaderRoute: typeof CbJobIdTakeoffRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
