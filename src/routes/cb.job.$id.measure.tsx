@@ -370,9 +370,11 @@ function CbJobMeasurePage() {
     toast.message(
       res.reason === "no_credits"
         ? "Out of measurement credits — enter it by hand"
-        : res.reason === "no_coverage" || res.reason === "no_footprint"
-          ? "No satellite roof data for this address — trace it or type it in"
-          : "Couldn't measure from satellite — enter it by hand",
+        : res.reason.startsWith("tracer_")
+          ? "The roof tracer is temporarily unavailable — trace it by hand or try again"
+          : res.reason === "no_coverage" || res.reason === "no_footprint"
+            ? "No satellite roof data for this address — trace it or type it in"
+            : "Couldn't measure from satellite — enter it by hand",
     );
 
   }

@@ -114,6 +114,8 @@ export async function runCbInstantMeasure(
   const traceConfidence: number[] = [];
   let runId: string | null = null;
   let firstFailure = "no_footprint";
+  /** Set when the tracer itself broke — that is not "this address has no coverage". */
+  let tracerFailure: string | null = null;
 
   /**
    * Per-step time budget. A stalled Overpass mirror or vision call used to hold
@@ -152,7 +154,17 @@ export async function runCbInstantMeasure(
         45_000,
         "extract",
       ),
-      withTimeout(traceRoofFromPin({ lat: pin.lat, lng: pin.lng }), 40_000, "vision"),
+      withTimeout(
+        traceRoofFromPin({
+          lat: pin.lat,
+          lng: pin.lng,
+          onError: (reason) => {
+            tracerFailure ??= reason;
+          },
+        }),
+        40_000,
+        "vision",
+      ),
     ]);
 
     /*
@@ -220,7 +232,9 @@ export async function runCbInstantMeasure(
    * No traced geometry = no measurement. Never hand back a placeholder shape:
    * a wrong number that looks real is worse than a clear failure.
    */
-  if (segments.length === 0) return { ok: false as const, reason: firstFailure };
+  if (segments.length === 0) {
+    return { ok: false as const, reason: tracerFailure ?? firstFailure };
+  }
 
   const wastePct = Number.isFinite(Number(data.waste_pct)) ? Number(data.waste_pct) : 15;
 

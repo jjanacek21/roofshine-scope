@@ -97,10 +97,15 @@ export async function traceRoofFromPin(params: {
   lat: number;
   lng: number;
   candidateRing?: number[][] | null;
+  /** Called when the tracer itself failed (not "this roof has no coverage"). */
+  onError?: (reason: string) => void;
 }): Promise<VisionRoofTrace | null> {
   const mapboxKey = process.env.MAPBOX_API_TOKEN;
   const lovableKey = process.env.LOVABLE_API_KEY;
-  if (!mapboxKey || !lovableKey) return null;
+  if (!mapboxKey || !lovableKey) {
+    params.onError?.("tracer_not_configured");
+    return null;
+  }
 
   const key = pinKey(params.lat, params.lng);
   const hit = traceCache.get(key);
@@ -140,7 +145,7 @@ Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points
        * this past the caller's budget, and a timed-out trace silently became
        * the box-fitted rectangle — the "square roof" the reps kept seeing.
        */
-      reasoning: { effort: "minimal" },
+      reasoning: { effort: "low" },
       input: [
         {
           role: "user",
@@ -181,6 +186,7 @@ Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points
   });
   if (!response.ok) {
     console.warn("[roof-vision] gateway failed", response.status, (await response.text()).slice(0, 300));
+    params.onError?.(`tracer_unavailable_${response.status}`);
     return null;
   }
 
