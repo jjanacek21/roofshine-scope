@@ -154,7 +154,17 @@ export async function runCbInstantMeasure(
         45_000,
         "extract",
       ),
-      withTimeout(traceRoofFromPin({ lat: pin.lat, lng: pin.lng }), 40_000, "vision"),
+      withTimeout(
+        traceRoofFromPin({
+          lat: pin.lat,
+          lng: pin.lng,
+          onError: (reason) => {
+            tracerFailure ??= reason;
+          },
+        }),
+        40_000,
+        "vision",
+      ),
     ]);
 
     /*
