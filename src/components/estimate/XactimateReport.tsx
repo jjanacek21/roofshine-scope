@@ -883,9 +883,11 @@ function NotesPage({ notes }: { notes: ReportNote[] }) {
 const pageStyle: CSSProperties = {
   background: "#ffffff",
   color: "#000000",
-  width: "8.5in",
+  /* Always the true letter page — never reflow to the device width. */
+  width: 816,
+  minWidth: 816,
+  flex: "none",
   minHeight: "11in",
-  maxWidth: "100%",
   margin: "0 auto",
   padding: "0.5in 0.55in",
   boxSizing: "border-box",
