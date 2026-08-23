@@ -25,6 +25,8 @@ import {
 } from "@/lib/cbEstimate";
 import { renderCbEstimatePdf } from "@/lib/cbEstimatePdf";
 import { CbLineItemPicker } from "@/components/cb/CbLineItemPicker";
+import { CbCarrierReport } from "@/components/cb/CbCarrierReport";
+import { generateEstimatePdf } from "@/lib/estimate-pdf";
 
 export const Route = createFileRoute("/cb/job/$id/estimate")({
   head: () => ({
@@ -158,6 +160,7 @@ function CbEstimatePage() {
   /* ----------------------------- persistence ---------------------------- */
 
   const dirty = useRef(false);
+  const carrierRef = useRef<HTMLDivElement>(null);
   const markDirty = () => {
     dirty.current = true;
   };
@@ -733,6 +736,21 @@ function CbEstimatePage() {
           </div>
         </div>
       </div>
+
+      {/* Offscreen carrier document — the source for the PDF download. */}
+      {mode === "line_item" && inputs ? (
+        <div aria-hidden style={{ position: "fixed", left: -10000, top: 0, width: 900 }}>
+          <div ref={carrierRef}>
+            <CbCarrierReport
+              lines={lines.filter((l) => l.name.trim())}
+              percents={pct}
+              company={(inputs.company as never) ?? null}
+              job={(inputs.job as never) ?? null}
+              bookName={bookName}
+            />
+          </div>
+        </div>
+      ) : null}
 
       <CbLineItemPicker
         open={picking !== null}
