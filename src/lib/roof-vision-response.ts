@@ -1,15 +1,16 @@
 type ResponseContent = { text?: string; type?: string };
 type ResponseOutput = { content?: ResponseContent[] };
+type ResponsePayload = { output_text?: string; output?: ResponseOutput[] };
 type ResponseEvent = {
   type?: string;
   delta?: string;
   text?: string;
-  response?: { output_text?: string; output?: ResponseOutput[] };
+  response?: ResponsePayload;
 };
 
-function completedText(event: ResponseEvent): string {
-  if (event.response?.output_text) return event.response.output_text;
-  return (event.response?.output ?? [])
+function payloadText(payload?: ResponsePayload): string {
+  if (payload?.output_text) return payload.output_text;
+  return (payload?.output ?? [])
     .flatMap((item) => item.content ?? [])
     .map((item) => item.text ?? "")
     .join("");
@@ -24,8 +25,8 @@ export function parseResponsesApiText(raw: string): string {
   // gateway/proxy response normalization.
   if (trimmed.startsWith("{")) {
     try {
-      const parsed = JSON.parse(trimmed) as ResponseEvent;
-      return parsed.output_text ?? completedText({ response: parsed.response ?? parsed });
+      const parsed = JSON.parse(trimmed) as ResponseEvent & ResponsePayload;
+      return payloadText(parsed.response ?? parsed);
     } catch {
       // Continue with SSE parsing.
     }
@@ -47,7 +48,7 @@ export function parseResponsesApiText(raw: string): string {
       } else if (event.type === "response.output_text.done" && !deltas) {
         completed = event.text ?? event.delta ?? completed;
       } else if (event.type === "response.completed") {
-        completed = completedText(event) || completed;
+        completed = payloadText(event.response) || completed;
       }
     } catch {
       // Ignore keepalives and non-JSON event blocks.
