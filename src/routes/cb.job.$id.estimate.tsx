@@ -308,6 +308,11 @@ function CbEstimatePage() {
     if (!inputs || !mode) return;
     setBusy("pdf");
     try {
+      /* Full line item mode downloads the carrier-format document. */
+      if (mode === "line_item" && carrierRef.current) {
+        await generateEstimatePdf(carrierRef.current, `estimate-${inputs.job.address ?? "claim-buddy"}.pdf`);
+        return;
+      }
       const blob = await renderCbEstimatePdf({
         mode,
         lines: lines.filter((l) => l.name.trim()),
@@ -334,6 +339,7 @@ function CbEstimatePage() {
       setBusy(null);
     }
   }
+
 
   if (isLoading || !mode) {
     return (
