@@ -12,6 +12,14 @@ import { useCbLogoUrl } from "@/lib/cbLogo";
 import { CB_ELEVATION_LABEL, type CbElevation, type CbElevationState } from "@/lib/cbTakeoff";
 import { buildCbDeck, type CbPropertyDeckData, type CbSection, type CbSlide } from "@/lib/cbDeck";
 import type { CbCompany } from "@/components/auth/CbCompanyProvider";
+import { toast } from "sonner";
+import { CbDocOverlay } from "@/components/cb/CbDocOverlay";
+import { CbMeasurementReport } from "@/components/cb/CbMeasurementReport";
+import { CbPhotoDocSheet } from "@/components/cb/CbPhotoDocSheet";
+import { CbCarrierReport } from "@/components/cb/CbCarrierReport";
+import { loadCbEstimateInputs } from "@/lib/cbEstimate";
+import { generateEstimatePdf } from "@/lib/estimate-pdf";
+
 
 export const Route = createFileRoute("/cb/job/$id/present")({
   head: () => ({
@@ -121,6 +129,30 @@ function CbPresentPage() {
 
   const [sectionIdx, setSectionIdx] = useState<number | null>(null);
   const [slideIdx, setSlideIdx] = useState(0);
+  const [panel, setPanel] = useState<CbPresentPanel | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const docRef = useRef<HTMLDivElement>(null);
+
+  /* Estimate lines for the carrier document — only loaded when it is opened. */
+  const { data: estimateInputs } = useQuery({
+    queryKey: ["cb-estimate-inputs", id],
+    queryFn: () => loadCbEstimateInputs(id),
+    enabled: panel === "carrier",
+    staleTime: Infinity,
+  });
+
+  const exportPanel = useCallback(async () => {
+    if (!docRef.current) return;
+    setExporting(true);
+    try {
+      await generateEstimatePdf(docRef.current, `${panel ?? "document"}-claim-buddy.pdf`);
+    } catch {
+      toast.error("Couldn't build the PDF");
+    } finally {
+      setExporting(false);
+    }
+  }, [panel]);
+
 
   const logoUrl = useCbLogoUrl(data?.company?.logo_url ?? null);
   /* Team photos live alongside logos in the private cb-logos bucket. */
@@ -302,6 +334,8 @@ function CbPresentPage() {
                     companyName={data.company?.name ?? ""}
                     onReport={() => navigate({ to: "/cb/job/$id/report", params: { id }, search: { r: undefined } })}
                     onContract={() => navigate({ to: "/cb/job/$id/contract", params: { id } })}
+                    onOpen={setPanel}
+
                   />
                 ) : (
                   <StandardSlide slide={slide} />
@@ -456,16 +490,64 @@ function StandardSlide({ slide }: { slide: CbSlide }) {
   );
 }
 
+export type CbPresentPanel = "measure" | "carrier" | "photos";
+
+function StatButton({
+  value,
+  decimals = 0,
+  label,
+  cta,
+  onClick,
+}: {
+  value: number;
+  decimals?: number;
+  label: string;
+  cta: string;
+  onClick: () => void;
+}) {
+  return (
+    <CbCard
+      elevation="raised"
+      tilt
+      className="cb-present-stat"
+      role="button"
+      tabIndex={0}
+      style={{ cursor: "pointer" }}
+      onClick={onClick}
+      onKeyDown={(e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") onClick();
+      }}
+    >
+      <span className="cb-present-stat-value">
+        <CbCountUp value={value} decimals={decimals} />
+      </span>
+      <span className="cb-present-stat-label">{label}</span>
+      <span
+        style={{
+          marginTop: 6,
+          fontSize: 14,
+          fontWeight: 700,
+          color: "var(--cb-accent, #15803d)",
+        }}
+      >
+        {cta} →
+      </span>
+    </CbCard>
+  );
+}
+
 function PropertySlide({
   property,
   companyName,
   onReport,
   onContract,
+  onOpen,
 }: {
   property: CbPropertyDeckData;
   companyName: string;
   onReport: () => void;
   onContract: () => void;
+  onOpen: (panel: CbPresentPanel) => void;
 }) {
   return (
     <div className="cb-slide">
@@ -474,30 +556,32 @@ function PropertySlide({
 
       <div className="cb-present-stats">
         <CbReveal delay={120}>
-          <CbCard elevation="raised" className="cb-present-stat">
-            <span className="cb-present-stat-value">
-              <CbCountUp value={property.squares} decimals={1} />
-            </span>
-            <span className="cb-present-stat-label">Squares of roof</span>
-          </CbCard>
+          <StatButton
+            value={property.squares}
+            decimals={1}
+            label="Squares of roof"
+            cta="Click for roof diagram"
+            onClick={() => onOpen("measure")}
+          />
         </CbReveal>
         <CbReveal delay={190}>
-          <CbCard elevation="raised" className="cb-present-stat">
-            <span className="cb-present-stat-value">
-              <CbCountUp value={property.lineItemCount} />
-            </span>
-            <span className="cb-present-stat-label">Scope line items</span>
-          </CbCard>
+          <StatButton
+            value={property.lineItemCount}
+            label="Scope line items"
+            cta="Click for carrier report"
+            onClick={() => onOpen("carrier")}
+          />
         </CbReveal>
         <CbReveal delay={260}>
-          <CbCard elevation="raised" className="cb-present-stat">
-            <span className="cb-present-stat-value">
-              <CbCountUp value={property.photoCount} />
-            </span>
-            <span className="cb-present-stat-label">Photos documented</span>
-          </CbCard>
+          <StatButton
+            value={property.photoCount}
+            label="Photos documented"
+            cta="Click for photo documentation"
+            onClick={() => onOpen("photos")}
+          />
         </CbReveal>
       </div>
+
 
       <CbReveal delay={300}>
         <CbCard elevation="card" className="cb-present-claim">
