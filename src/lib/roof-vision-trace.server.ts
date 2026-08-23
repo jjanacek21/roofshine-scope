@@ -1,4 +1,5 @@
 import { polygonAreaSqft } from "@/lib/roof-math";
+import { parseResponsesApiText } from "@/lib/roof-vision-response";
 
 type Point = { x: number; y: number };
 
@@ -57,32 +58,6 @@ function pointInRing(point: [number, number], ring: number[][]): boolean {
   return inside;
 }
 
-function parseResponseText(raw: string): string {
-  let text = "";
-  for (const line of raw.split("\n")) {
-    if (!line.startsWith("data: ")) continue;
-    const payload = line.slice(6);
-    if (payload === "[DONE]") continue;
-    try {
-      const event = JSON.parse(payload) as {
-        type?: string;
-        delta?: string;
-        response?: { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
-      };
-      if (event.type === "response.output_text.delta" && event.delta) text += event.delta;
-      if (!text && event.type === "response.completed") {
-        text =
-          event.response?.output_text ??
-          event.response?.output?.flatMap((item) => item.content ?? []).map((item) => item.text ?? "").join("") ??
-          "";
-      }
-    } catch {
-      // Ignore keepalive and non-JSON SSE lines.
-    }
-  }
-  return text;
-}
-
 /**
  * Traces already produced for a pin. Re-measuring the same house (a retry, a
  * back-navigation, a second pin on the same structure) returns instantly
@@ -117,7 +92,10 @@ export async function traceRoofFromPin(params: {
     `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/` +
     `${params.lng},${params.lat},${ZOOM},0/${IMAGE_SIZE}x${IMAGE_SIZE}?access_token=${mapboxKey}`;
   const imageResponse = await fetch(imageUrl);
-  if (!imageResponse.ok) return null;
+  if (!imageResponse.ok) {
+    params.onError?.(`tracer_image_${imageResponse.status}`);
+    return null;
+  }
   const imageType = imageResponse.headers.get("content-type") || "image/jpeg";
   const imageBytes = Buffer.from(await imageResponse.arrayBuffer()).toString("base64");
   const imageData = `data:${imageType};base64,${imageBytes}`;
@@ -190,23 +168,38 @@ Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points
     return null;
   }
 
-  const output = parseResponseText(await response.text());
-  if (!output) return null;
+  const output = parseResponsesApiText(await response.text());
+  if (!output) {
+    console.warn("[roof-vision] empty model output");
+    params.onError?.("tracer_empty_output");
+    return null;
+  }
   let parsed: { points?: Point[]; confidence?: number; edge_confidence?: number[] };
   try {
     parsed = JSON.parse(output) as typeof parsed;
   } catch {
+    console.warn("[roof-vision] invalid model JSON", output.slice(0, 200));
+    params.onError?.("tracer_invalid_json");
     return null;
   }
   const points = (parsed.points ?? []).filter(
     (point) => Number.isFinite(point.x) && Number.isFinite(point.y) && point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1,
   );
-  if (points.length < 3 || points.length > 24) return null;
+  if (points.length < 3 || points.length > 24) {
+    params.onError?.("tracer_invalid_points");
+    return null;
+  }
   const ring = points.map((point) => normalizedToLngLat(point, params));
   const area = polygonAreaSqft(ring);
-  if (area < 80 || area > 40_000) return null;
+  if (area < 80 || area > 40_000) {
+    params.onError?.("tracer_invalid_area");
+    return null;
+  }
   const pin: [number, number] = [params.lng, params.lat];
-  if (!pointInRing(pin, ring)) return null;
+  if (!pointInRing(pin, ring)) {
+    params.onError?.("tracer_pin_outside_outline");
+    return null;
+  }
   const confidence = Math.max(0, Math.min(1, Number(parsed.confidence) || 0));
   const edgeConfidence = ring.map((_, index) =>
     Math.max(0, Math.min(1, Number(parsed.edge_confidence?.[index] ?? confidence))),

@@ -199,8 +199,9 @@ export async function getInstantMeasurement({
         gc_roof_measurement_id: res.roof_measurement_id ?? null,
       } as CbMeasurement,
     };
-  } catch {
-    return { ok: false, reason: "engine_error", credit };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "engine_error";
+    return { ok: false, reason: message === "timeout" ? "engine_timeout" : `engine_error:${message}`, credit };
   }
 }
 
