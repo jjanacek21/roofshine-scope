@@ -739,7 +739,7 @@ function CbEstimatePage() {
 
       {/* Offscreen carrier document — the source for the PDF download. */}
       {mode === "line_item" && inputs ? (
-        <div aria-hidden style={{ position: "fixed", left: -10000, top: 0, width: 900 }}>
+        <div aria-hidden style={{ position: "fixed", left: -10000, top: 0, width: 816 }}>
           <div ref={carrierRef}>
             <CbCarrierReport
               lines={lines.filter((l) => l.name.trim())}

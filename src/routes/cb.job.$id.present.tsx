@@ -17,6 +17,7 @@ import { CbDocOverlay } from "@/components/cb/CbDocOverlay";
 import { CbMeasurementReport } from "@/components/cb/CbMeasurementReport";
 import { CbPhotoDocSheet } from "@/components/cb/CbPhotoDocSheet";
 import { CbCarrierReport } from "@/components/cb/CbCarrierReport";
+import { XrFit } from "@/components/estimate/XrFit";
 import { loadCbEstimateInputs } from "@/lib/cbEstimate";
 import { generateEstimatePdf } from "@/lib/estimate-pdf";
 
