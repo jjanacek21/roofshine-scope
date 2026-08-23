@@ -183,6 +183,7 @@ Every x and y must be between 0 and 1. Keep only meaningful corners (3-24 points
   });
   if (!response.ok) {
     console.warn("[roof-vision] gateway failed", response.status, (await response.text()).slice(0, 300));
+    params.onError?.(`tracer_unavailable_${response.status}`);
     return null;
   }
 
