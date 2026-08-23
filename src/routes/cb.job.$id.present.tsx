@@ -12,6 +12,14 @@ import { useCbLogoUrl } from "@/lib/cbLogo";
 import { CB_ELEVATION_LABEL, type CbElevation, type CbElevationState } from "@/lib/cbTakeoff";
 import { buildCbDeck, type CbPropertyDeckData, type CbSection, type CbSlide } from "@/lib/cbDeck";
 import type { CbCompany } from "@/components/auth/CbCompanyProvider";
+import { toast } from "sonner";
+import { CbDocOverlay } from "@/components/cb/CbDocOverlay";
+import { CbMeasurementReport } from "@/components/cb/CbMeasurementReport";
+import { CbPhotoDocSheet } from "@/components/cb/CbPhotoDocSheet";
+import { CbCarrierReport } from "@/components/cb/CbCarrierReport";
+import { loadCbEstimateInputs } from "@/lib/cbEstimate";
+import { generateEstimatePdf } from "@/lib/estimate-pdf";
+
 
 export const Route = createFileRoute("/cb/job/$id/present")({
   head: () => ({
