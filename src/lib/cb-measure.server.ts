@@ -114,6 +114,8 @@ export async function runCbInstantMeasure(
   const traceConfidence: number[] = [];
   let runId: string | null = null;
   let firstFailure = "no_footprint";
+  /** Set when the tracer itself broke — that is not "this address has no coverage". */
+  let tracerFailure: string | null = null;
 
   /**
    * Per-step time budget. A stalled Overpass mirror or vision call used to hold
