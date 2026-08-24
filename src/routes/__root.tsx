@@ -125,6 +125,7 @@ function StandaloneGate() {
   const { user, loading } = useAuth();
 
   useEffect(() => {
+    console.log("[gate]", pathname, getSurface(), loading, !!user);
     if (getSurface() !== "standalone") return;
     if (isClaimBuddyPath(pathname) || isMarketingPath(pathname)) return;
     if (pathname === "/" && (loading || !user)) return;
