@@ -18,6 +18,7 @@ import { getRequestHostname, resolveSurfaceFromHost, surfaceMeta } from "@/lib/s
 import { getSiteContent } from "@/lib/site-content.functions";
 import { EMPTY_SITE_CONTENT, type SiteContent } from "@/lib/site-content.types";
 import { Toaster } from "@/components/ui/sonner";
+import { SiteContentProvider } from "@/lib/useSiteContent";
 
 import appCss from "../styles.css?url";
 
@@ -47,9 +48,9 @@ function NotFoundComponent() {
 export const Route = createRootRoute({
   loader: async ({ location }) => {
     const surface = resolveSurfaceFromHost(getRequestHostname());
-    // Only the marketing landing page needs CMS content; it is cached 60s server-side.
+    // Every public marketing page reads CMS copy/photos; cached 60s server-side.
     let site: SiteContent = EMPTY_SITE_CONTENT;
-    if (location.pathname === "/") {
+    if (location.pathname === "/" || isMarketingPath(location.pathname)) {
       try {
         site = await getSiteContent();
       } catch {
@@ -144,15 +145,28 @@ function SurfaceOutlet() {
     setStandalone(getSurface() === "standalone");
   }, []);
 
+  const site = rootData?.site ?? EMPTY_SITE_CONTENT;
+
   if (standalone && pathname === "/") {
     // Render the marketing page during the auth check too, so it is fully
     // server-rendered and crawlable instead of blanking behind a spinner.
-    if (loading || !user) return <Landing content={rootData?.site ?? EMPTY_SITE_CONTENT} />;
+    if (loading || !user) {
+      return (
+        <SiteContentProvider value={site}>
+          <Landing content={site} />
+        </SiteContentProvider>
+      );
+    }
     return null;
   }
 
-  return <Outlet />;
+  return (
+    <SiteContentProvider value={site}>
+      <Outlet />
+    </SiteContentProvider>
+  );
 }
+
 
 function RootComponent() {
   const [queryClient] = useState(() => new QueryClient({
