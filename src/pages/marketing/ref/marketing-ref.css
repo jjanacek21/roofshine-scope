@@ -184,7 +184,10 @@
 }
 .mkt-ref .view{display:none}
 .mkt-ref .view.on{display:block}
-.mkt-ref .logo-anim{display:block;width:min(400px,86vw);height:auto;filter:drop-shadow(0 10px 30px rgba(var(--accent-rgb),.28))}
+/* The animated logo ships on a solid black plate; `screen` drops the black so it
+   blends into the dark hero grid instead of sitting inside a visible box. */
+.mkt-ref .logo-anim{display:block;width:min(400px,86vw);height:auto;mix-blend-mode:screen;background:transparent;
+  filter:drop-shadow(0 10px 30px rgba(var(--accent-rgb),.28))}
 .mkt-ref .logo-wrap{position:relative;align-self:flex-start;margin-bottom:-6px}
 .mkt-ref .logo-wrap::after{content:"";position:absolute;inset:-8% -6%;z-index:-1;pointer-events:none;
   background:radial-gradient(ellipse at 22% 50%,rgba(var(--accent-rgb),.30),transparent 62%);filter:blur(22px)}
@@ -193,7 +196,7 @@
 .mkt-ref .foot-plaque{display:inline-block;background:var(--plot);border:1px solid var(--plot-line);
   border-radius:14px;padding:12px 16px;align-self:flex-start;
   box-shadow:var(--sh-card),inset 0 1px 0 rgba(255,255,255,.06)}
-.mkt-ref .foot-logo{width:210px;max-width:100%;height:auto;display:block;
+.mkt-ref .foot-logo{width:210px;max-width:100%;height:auto;display:block;mix-blend-mode:screen;
   filter:drop-shadow(0 6px 18px rgba(var(--accent-rgb),.28))}
 @media (prefers-reduced-motion:reduce){
 .mkt-ref .logo-anim{content:none}

@@ -5,20 +5,23 @@ import { toast } from "sonner";
 import { CbAuthShell } from "@/components/claim-buddy/CbAuthShell";
 import { CbButton } from "@/components/cb/primitives";
 import { CbField, CbProgressRail, focusFirstError } from "@/components/cb/forms";
+import { CbSeatPicker } from "@/components/claim-buddy/CbSeatPicker";
+import { CB_INCLUDED_SEATS, CB_PENDING_SEATS_KEY, CB_TRIAL_DAYS, money, quoteSeats } from "@/lib/cbPricing";
 
 export const Route = createFileRoute("/cb/signup")({
   head: () => ({
     meta: [
-      { title: "Create your account — Claim Buddy" },
+      { title: "Start your free 30-day trial — Claim Buddy" },
       {
         name: "description",
         content:
-          "Start using Claim Buddy: roof inspections, photo documentation, damage reports, and signed contingencies from the field.",
+          "Create your Claim Buddy workspace, pick how many seats your crew needs, and run roof inspections, damage reports, and signed contingencies free for 30 days.",
       },
-      { property: "og:title", content: "Create your account — Claim Buddy" },
+      { property: "og:title", content: "Start your free 30-day trial — Claim Buddy" },
       {
         property: "og:description",
-        content: "Inspect, document, and present storm damage claims in one mobile workflow.",
+        content:
+          "3 seats and a custom price book for $199 your first month, $99/mo after. Extra seats from $19.99/mo. Free for 30 days.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -27,17 +30,22 @@ export const Route = createFileRoute("/cb/signup")({
   component: CbSignupPage,
 });
 
-const STEPS = ["Your details", "Confirm email"];
+const STEPS = ["Seats", "Your details", "Confirm email"];
+
 
 function CbSignupPage() {
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement | null>(null);
+  const [step, setStep] = useState(0);
+  const [seats, setSeats] = useState(CB_INCLUDED_SEATS);
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ companyName?: string; email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+
+  const quote = quoteSeats(seats);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -53,10 +61,18 @@ function CbSignupPage() {
     }
 
     setLoading(true);
+    // Kept for the email-confirmation path: the workspace is bootstrapped later,
+    // after the link is clicked, so the seat choice has to survive the round trip.
+    try {
+      localStorage.setItem(CB_PENDING_SEATS_KEY, String(quote.seats));
+    } catch {
+      /* private mode — seats can still be set in billing settings */
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/cb` },
+      options: { emailRedirectTo: `${window.location.origin}/cb`, data: { seats: quote.seats } },
     });
     if (error) {
       setLoading(false);
@@ -65,16 +81,26 @@ function CbSignupPage() {
     }
 
     if (data.session) {
-      const { error: bootError } = await supabase.rpc("cb_bootstrap_workspace", {
+      const { data: boot, error: bootError } = await supabase.rpc("cb_bootstrap_workspace", {
         _workspace_name: companyName,
         _company: { name: companyName },
       });
-      setLoading(false);
       if (bootError) {
+        setLoading(false);
         toast.error(bootError.message);
         return;
       }
-      toast.success("Workspace created");
+      const wsId = (boot as { workspace_id?: string } | null)?.workspace_id;
+      if (wsId) {
+        await supabase.rpc("cb_set_seats", { _ws: wsId, _seats: quote.seats });
+        try {
+          localStorage.removeItem(CB_PENDING_SEATS_KEY);
+        } catch {
+          /* ignore */
+        }
+      }
+      setLoading(false);
+      toast.success(`Workspace created — ${CB_TRIAL_DAYS} day trial started`);
       navigate({ to: "/cb" });
       return;
     }
@@ -90,8 +116,12 @@ function CbSignupPage() {
         subtitle="We sent a confirmation link. Open it to activate your Claim Buddy account."
       >
         <div className="mb-6">
-          <CbProgressRail steps={STEPS} current={1} />
+          <CbProgressRail steps={STEPS} current={2} />
         </div>
+        <p className="mb-6 text-[14px]" style={{ color: "var(--cb-text-muted)" }}>
+          Your {CB_TRIAL_DAYS}-day free trial starts as soon as you confirm. Nothing is charged until day{" "}
+          {CB_TRIAL_DAYS + 1}.
+        </p>
         <Link to="/cb/login">
           <CbButton variant="secondary" block>
             Back to sign in
@@ -101,10 +131,35 @@ function CbSignupPage() {
     );
   }
 
+  if (step === 0) {
+    return (
+      <CbAuthShell
+        title="Start free for 30 days"
+        subtitle="Pick your seats — you are not charged until day 31."
+      >
+        <div className="mb-6">
+          <CbProgressRail steps={STEPS} current={0} />
+        </div>
+        <CbSeatPicker seats={seats} onChange={setSeats} />
+        <div className="mt-6">
+          <CbButton block onClick={() => setStep(1)}>
+            Continue — {money(quote.firstCharge)} after the trial
+          </CbButton>
+        </div>
+        <p className="mt-7 text-center text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+          Already have an account?{" "}
+          <Link to="/cb/login" className="font-semibold hover:underline" style={{ color: "var(--cb-accent-deep)" }}>
+            Sign in
+          </Link>
+        </p>
+      </CbAuthShell>
+    );
+  }
+
   return (
     <CbAuthShell title="Create your account" subtitle="Set up your Claim Buddy workspace">
       <div className="mb-6">
-        <CbProgressRail steps={STEPS} current={0} />
+        <CbProgressRail steps={STEPS} current={1} />
       </div>
       <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
         <CbField
@@ -130,18 +185,31 @@ function CbSignupPage() {
           hint="At least 8 characters."
           onChange={(e) => setPassword(e.target.value)}
         />
+
+        <div
+          className="rounded-2xl p-4 text-[13px]"
+          style={{ background: "var(--cb-surface-2, #f4f7f5)", border: "1px solid var(--cb-border, #e2e8e5)" }}
+        >
+          <div className="flex items-center justify-between font-semibold">
+            <span>{quote.seats} seats</span>
+            <button type="button" className="underline" onClick={() => setStep(0)}>
+              Change
+            </button>
+          </div>
+          <div className="mt-1" style={{ color: "var(--cb-text-muted)" }}>
+            Free for {CB_TRIAL_DAYS} days, then {money(quote.firstCharge)} on day {CB_TRIAL_DAYS + 1} and{" "}
+            {money(quote.recurring)}/mo after. Cancel before day {CB_TRIAL_DAYS + 1} and you pay nothing.
+          </div>
+        </div>
+
         <CbButton type="submit" block loading={loading} loadingText="Creating…">
-          Create account
+          Start free trial
         </CbButton>
       </form>
 
       <p className="mt-7 text-center text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
         Already have an account?{" "}
-        <Link
-          to="/cb/login"
-          className="font-semibold hover:underline"
-          style={{ color: "var(--cb-accent-deep)" }}
-        >
+        <Link to="/cb/login" className="font-semibold hover:underline" style={{ color: "var(--cb-accent-deep)" }}>
           Sign in
         </Link>
       </p>

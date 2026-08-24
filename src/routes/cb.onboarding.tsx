@@ -1,3 +1,4 @@
+import { CB_PENDING_SEATS_KEY } from "@/lib/cbPricing";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -144,6 +145,20 @@ function CbOnboardingPage() {
       if (error) throw error;
 
       const result = (data ?? {}) as { workspace_id?: string; company_id?: string };
+
+      // Seat count chosen on the signup screen before email confirmation.
+      if (result.workspace_id) {
+        try {
+          const pending = Number(localStorage.getItem(CB_PENDING_SEATS_KEY) ?? "");
+          if (pending > 0) {
+            await supabase.rpc("cb_set_seats", { _ws: result.workspace_id, _seats: pending });
+            localStorage.removeItem(CB_PENDING_SEATS_KEY);
+          }
+        } catch {
+          /* seats can still be changed later in billing settings */
+        }
+      }
+
 
       if (logoFile && result.workspace_id && result.company_id) {
         try {

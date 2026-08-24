@@ -1622,6 +1622,8 @@ export type Database = {
       }
       cb_workspaces: {
         Row: {
+          billing_status: string
+          canceled_at: string | null
           created_at: string
           created_by: string | null
           default_price_book_id: string | null
@@ -1633,9 +1635,13 @@ export type Database = {
           origin: string
           plan: string
           seats_purchased: number
+          trial_ends_at: string
+          trial_started_at: string
           updated_at: string
         }
         Insert: {
+          billing_status?: string
+          canceled_at?: string | null
           created_at?: string
           created_by?: string | null
           default_price_book_id?: string | null
@@ -1647,9 +1653,13 @@ export type Database = {
           origin?: string
           plan?: string
           seats_purchased?: number
+          trial_ends_at?: string
+          trial_started_at?: string
           updated_at?: string
         }
         Update: {
+          billing_status?: string
+          canceled_at?: string | null
           created_at?: string
           created_by?: string | null
           default_price_book_id?: string | null
@@ -1661,6 +1671,8 @@ export type Database = {
           origin?: string
           plan?: string
           seats_purchased?: number
+          trial_ends_at?: string
+          trial_started_at?: string
           updated_at?: string
         }
         Relationships: [
@@ -7589,6 +7601,7 @@ export type Database = {
       }
       cb_can_access_job: { Args: { _job: string }; Returns: boolean }
       cb_can_convert: { Args: { _job: string }; Returns: Json }
+      cb_cancel_trial: { Args: { _ws: string }; Returns: Json }
       cb_claim_invites: { Args: never; Returns: Json }
       cb_consume_measure_credit: { Args: { _ws: string }; Returns: Json }
       cb_convert_to_job: { Args: { _job: string }; Returns: Json }
@@ -7623,6 +7636,7 @@ export type Database = {
         Args: { _active: boolean; _user: string; _ws: string }
         Returns: Json
       }
+      cb_set_seats: { Args: { _seats: number; _ws: string }; Returns: Json }
       cb_workspace_ids: { Args: never; Returns: string[] }
       create_company_as_super_admin: {
         Args: {
