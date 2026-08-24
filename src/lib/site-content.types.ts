@@ -76,8 +76,16 @@ export function obj(block: SiteJson, key: string, fallback: SiteJson): SiteJson 
   return v && typeof v === "object" && !Array.isArray(v) ? (v as SiteJson) : fallback;
 }
 
-/** Filename stem, e.g. "/marketing/screens/m1_pin.jpg" -> "m1_pin". */
+/**
+ * Stable media key: filename stem, minus any upload timestamp prefix, with
+ * separators normalized. "media/1787598389713-m1-pin.jpg" and
+ * "/marketing/steps/m1_pin.jpg" both resolve to "m1pin", so an uploaded
+ * replacement matches the hardcoded frame it stands in for.
+ */
 export function mediaKeyOf(path: string): string {
-  const base = path.split("/").pop() ?? path;
-  return base.replace(/\.[^.]+$/, "").toLowerCase();
+  const base = (path.split("/").pop() ?? path).replace(/\.[^.]+$/, "");
+  return base
+    .replace(/^\d{10,}[-_]?/, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 }

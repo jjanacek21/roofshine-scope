@@ -55,7 +55,11 @@ const STEP_FRAMES: StepFrame[] = [
 /** Frame order is fixed — sequences are looked up by stable media key, never by position. */
 function resolveFrames(content: SiteContent, block: SiteJson): StepFrame[] {
   const base = arr<StepFrame>(block, "frames", STEP_FRAMES);
-  const byKey = new Map(content.media.map((m) => [m.key, m]));
+  const byKey = new Map<string, (typeof content.media)[number]>();
+  for (const m of content.media) {
+    byKey.set(m.key, m);
+    if (m.title) byKey.set(mediaKeyOf(m.title), m);
+  }
   return base.map((f) => {
     const hit = byKey.get(mediaKeyOf(f.src));
     return hit
