@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  EMPTY_SITE_CONTENT,
+  arr,
+  blockOf,
+  obj,
+  str,
+  type SiteContent,
+  type SiteMediaItem,
+} from "@/lib/site-content.types";
 
 /* ---------------- reveal helper ---------------- */
 
@@ -170,20 +179,38 @@ const SHOTS = [
   "rb_cover.jpg",
 ].map((f) => `/marketing/screens/${f}`);
 
-function MarqueeSection({ onOpen }: { onOpen: (src: string) => void }) {
-  const loop = [...SHOTS, ...SHOTS];
+function MarqueeSection({
+  onOpen,
+  media,
+}: {
+  onOpen: (src: string) => void;
+  media: SiteMediaItem[];
+}) {
+  /** Photos come from the CMS ordered by category then sort_order; static shots are the fallback. */
+  const shots = useMemo(() => {
+    if (!media.length) return SHOTS.map((src) => ({ src, title: "", caption: "" }));
+    return [...media]
+      .sort((a, b) =>
+        a.category === b.category
+          ? a.sort_order - b.sort_order
+          : a.category.localeCompare(b.category),
+      )
+      .map((m) => ({ src: m.url, title: m.title, caption: m.caption ?? "" }));
+  }, [media]);
+  const loop = [...shots, ...shots];
   return (
     <section className="mkt-marquee" id="gallery" aria-label="Screenshot gallery">
       <div className="mkt-marquee__track">
-        {loop.map((src, i) => (
+        {loop.map((shot, i) => (
           <button
-            key={`${src}-${i}`}
+            key={`${shot.src}-${i}`}
             type="button"
             className="mkt-marquee__card"
-            onClick={() => onOpen(src)}
-            aria-label="Open screenshot"
+            onClick={() => onOpen(shot.src)}
+            aria-label={shot.title ? `Open ${shot.title}` : "Open screenshot"}
+            title={shot.caption || shot.title || undefined}
           >
-            <img src={src} alt="" loading="lazy" width={172} height={206} />
+            <img src={shot.src} alt={shot.title} loading="lazy" width={172} height={206} />
           </button>
         ))}
       </div>
@@ -217,21 +244,25 @@ const ONSITE = [
   ["05", "Deliver", "Measurement report, photo report, carrier-style estimate and the contract — before you leave."],
 ];
 
-function OnSiteSection({ inView }: { inView: boolean }) {
+function OnSiteSection({ inView, content }: { inView: boolean; content: SiteContent }) {
+  const b = blockOf(content, "steps");
+  const items = arr<{ num: string; title: string; body: string }>(
+    b,
+    "onsite",
+    ONSITE.map(([num, title, body]) => ({ num, title, body })),
+  );
   return (
     <div className="mkt-sec__in">
-      <div className="mkt-eyebrow">The visit</div>
-      <h2 {...rev(inView, 0, "mkt-h2")}>
-        What happens on site
-      </h2>
+      <div className="mkt-eyebrow">{str(b, "onsite_eyebrow", "The visit")}</div>
+      <h2 {...rev(inView, 0, "mkt-h2")}>{str(b, "onsite_heading", "What happens on site")}</h2>
       <div className="mkt-scroller" style={{ marginTop: 22 }}>
         <div className="mkt-onsite__card">
           <div className="mkt-onsite__row">
-            {ONSITE.map(([n, title, body], i) => (
-              <div key={n} {...rev(inView, i + 1, "mkt-onsite__col")}>
-                <div className="mkt-num">{n}</div>
-                <h3>{title}</h3>
-                <p>{body}</p>
+            {items.map((it, i) => (
+              <div key={it.num} {...rev(inView, i + 1, "mkt-onsite__col")}>
+                <div className="mkt-num">{it.num}</div>
+                <h3>{it.title}</h3>
+                <p>{it.body}</p>
               </div>
             ))}
           </div>
@@ -243,64 +274,86 @@ function OnSiteSection({ inView }: { inView: boolean }) {
 
 /* ---------------- 3. three inspections ---------------- */
 
-function TriSection({ inView }: { inView: boolean }) {
+const TRI_CARDS = [
+  {
+    chip: "Roof",
+    title: "Slope by slope",
+    bullets: [
+      "Test squares with hit counts per slope.",
+      "Ridge, hip, valley and flashing condition.",
+      "Photos attach to the facet they came from.",
+    ],
+  },
+  {
+    chip: "Exterior — 4 elevations",
+    title: "All the way around",
+    bullets: [
+      "A wide shot per elevation, prompted in order.",
+      "Gutters, downspouts, screens and soft metals.",
+      "Collateral damage the adjuster tends to miss.",
+    ],
+  },
+  {
+    chip: "Interior",
+    title: "Inside counts too",
+    bullets: [
+      "Room by room: ceilings, walls, windows, attic.",
+      "Stains and leaks tied back to the slope above.",
+      "Skip it and the report prints Not inspected — never a blank.",
+    ],
+  },
+];
+
+function TriSection({ inView, content }: { inView: boolean; content: SiteContent }) {
+  const b = blockOf(content, "inspections");
+  const cards = arr<{ chip: string; title: string; bullets: string[] }>(b, "cards", TRI_CARDS);
   return (
     <div className="mkt-sec__in">
-      <div className="mkt-eyebrow">Three inspections, one job</div>
+      <div className="mkt-eyebrow">{str(b, "eyebrow", "Three inspections, one job")}</div>
       <h2 {...rev(inView, 0, "mkt-h2")}>
-        The roof was never the whole claim.
+        {str(b, "heading", "The roof was never the whole claim.")}
       </h2>
 
       <div className="mkt-tri">
-        <div {...rev(inView, 1, "mkt-card")}>
-          <span className="mkt-chip2">Roof</span>
-          <h3>Slope by slope</h3>
-          <ul className="mkt-bul">
-            <li>Test squares with hit counts per slope.</li>
-            <li>Ridge, hip, valley and flashing condition.</li>
-            <li>Photos attach to the facet they came from.</li>
-          </ul>
-        </div>
-
-        <div {...rev(inView, 2, "mkt-card")}>
-          <span className="mkt-chip2">Exterior — 4 elevations</span>
-          <h3>All the way around</h3>
-          <ul className="mkt-bul">
-            <li>A wide shot per elevation, prompted in order.</li>
-            <li>Gutters, downspouts, screens and soft metals.</li>
-            <li>Collateral damage the adjuster tends to miss.</li>
-          </ul>
-        </div>
-
-        <div {...rev(inView, 3, "mkt-card")}>
-          <span className="mkt-chip2 mkt-chip2--amber">Interior</span>
-          <h3>Inside counts too</h3>
-          <ul className="mkt-bul mkt-bul--amber">
-            <li>Room by room: ceilings, walls, windows, attic.</li>
-            <li>Stains and leaks tied back to the slope above.</li>
-            <li>Skip it and the report prints Not inspected — never a blank.</li>
-          </ul>
-        </div>
+        {cards.map((c, i) => {
+          const amber = i === 2;
+          return (
+            <div key={c.title} {...rev(inView, i + 1, "mkt-card")}>
+              <span className={`mkt-chip2${amber ? " mkt-chip2--amber" : ""}`}>{c.chip}</span>
+              <h3>{c.title}</h3>
+              <ul className={`mkt-bul${amber ? " mkt-bul--amber" : ""}`}>
+                {c.bullets.map((li) => (
+                  <li key={li}>{li}</li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
       </div>
 
       <div className="mkt-split">
         <div {...rev(inView, 4)}>
           <h3 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 12px" }}>
-            One progress list, all three inspections
+            {str(b, "split_heading", "One progress list, all three inspections")}
           </h3>
           <p className="mkt-p" style={{ maxWidth: "56ch" }}>
-            The rep never wonders what is left. Roof, exterior and interior live in the same checklist
-            with the same counter, so a job is either finished or it tells you exactly which item is
-            not. Pick it up on the next visit and it opens on the step you stopped at.
+            {str(
+              b,
+              "split_body_1",
+              "The rep never wonders what is left. Roof, exterior and interior live in the same checklist with the same counter, so a job is either finished or it tells you exactly which item is not. Pick it up on the next visit and it opens on the step you stopped at.",
+            )}
           </p>
           <p className="mkt-p" style={{ maxWidth: "56ch" }}>
-            Nothing is optional by accident — an item you deliberately skip is recorded as skipped and
-            prints that way on the report.
+            {str(
+              b,
+              "split_body_2",
+              "Nothing is optional by accident — an item you deliberately skip is recorded as skipped and prints that way on the report.",
+            )}
           </p>
         </div>
         <div {...rev(inView, 5, "mkt-bezel2")}>
           <img
-            src="/marketing/screens/progress.jpg"
+            src={str(b, "split_image", "/marketing/screens/progress.jpg")}
             alt="Inspection progress checklist covering roof, exterior and interior"
             loading="lazy"
             width={752}
@@ -320,18 +373,22 @@ const STATS: Array<[string, string]> = [
   ["4 docs", "What you leave with: measurements, photos, estimate, contract."],
 ];
 
-function WhySection({ inView }: { inView: boolean }) {
+function WhySection({ inView, content }: { inView: boolean; content: SiteContent }) {
+  const b = blockOf(content, "why_switch");
+  const stats = arr<{ value: string; label: string }>(
+    b,
+    "stats",
+    STATS.map(([value, label]) => ({ value, label })),
+  );
   return (
     <div className="mkt-sec__in">
-      <div className="mkt-eyebrow">The difference</div>
-      <h2 {...rev(inView, 0, "mkt-h2")}>
-        Why reps switch
-      </h2>
+      <div className="mkt-eyebrow">{str(b, "eyebrow", "The difference")}</div>
+      <h2 {...rev(inView, 0, "mkt-h2")}>{str(b, "heading", "Why reps switch")}</h2>
       <div className="mkt-stats">
-        {STATS.map(([n, l], i) => (
-          <div key={n} {...rev(inView, i + 1, "mkt-stat")}>
-            <div className="mkt-stat__n">{n}</div>
-            <div className="mkt-stat__l">{l}</div>
+        {stats.map((st, i) => (
+          <div key={st.value} {...rev(inView, i + 1, "mkt-stat")}>
+            <div className="mkt-stat__n">{st.value}</div>
+            <div className="mkt-stat__l">{st.label}</div>
           </div>
         ))}
       </div>
@@ -348,31 +405,41 @@ const MINI: Array<[string, string]> = [
   ["0", "Desktop software required"],
 ];
 
-function AboutSection({ inView }: { inView: boolean }) {
+function AboutSection({ inView, content }: { inView: boolean; content: SiteContent }) {
+  const b = blockOf(content, "about");
+  const mini = arr<{ value: string; label: string }>(
+    b,
+    "mini",
+    MINI.map(([value, label]) => ({ value, label })),
+  );
   return (
     <div className="mkt-sec__in">
       <div className="mkt-about">
         <div>
-          <div className="mkt-eyebrow">About</div>
+          <div className="mkt-eyebrow">{str(b, "eyebrow", "About")}</div>
           <h2 {...rev(inView, 0, "mkt-h2")}>
-            Built by a roofer, on real claims.
+            {str(b, "heading", "Built by a roofer, on real claims.")}
           </h2>
           <p className="mkt-p" style={{ maxWidth: "58ch" }}>
-            Global Contractor Network is a Florida restoration contractor. Claim Buddy started as the
-            tool we needed on our own storm routes — measurements that hold up, an inspection that
-            covers the whole loss, and paperwork the homeowner can sign at the table.
+            {str(
+              b,
+              "body_1",
+              "Global Contractor Network is a Florida restoration contractor. Claim Buddy started as the tool we needed on our own storm routes — measurements that hold up, an inspection that covers the whole loss, and paperwork the homeowner can sign at the table.",
+            )}
           </p>
           <p className="mkt-p" style={{ maxWidth: "58ch" }}>
-            gcn.claims runs in the phone browser, so there is nothing to install and nothing to sync.
-            The same measurement and estimating engine powers globalcontractor.app, the full production
-            platform our own crews run on every day.
+            {str(
+              b,
+              "body_2",
+              "gcn.claims runs in the phone browser, so there is nothing to install and nothing to sync. The same measurement and estimating engine powers globalcontractor.app, the full production platform our own crews run on every day.",
+            )}
           </p>
         </div>
         <div className="mkt-mini">
-          {MINI.map(([n, l], i) => (
-            <div key={l} {...rev(inView, i + 1, "mkt-mini__c")}>
-              <div className="mkt-mini__n">{n}</div>
-              <div className="mkt-mini__l">{l}</div>
+          {mini.map((m, i) => (
+            <div key={m.label} {...rev(inView, i + 1, "mkt-mini__c")}>
+              <div className="mkt-mini__n">{m.value}</div>
+              <div className="mkt-mini__l">{m.label}</div>
             </div>
           ))}
         </div>
@@ -400,7 +467,15 @@ function Section({
   );
 }
 
-export default function HomeSections() {
+export default function HomeSections({
+  content = EMPTY_SITE_CONTENT,
+}: {
+  content?: SiteContent;
+}) {
+  const quoteBlock = blockOf(content, "quote");
+  const ctaBlock = blockOf(content, "cta");
+  const ctaPrimary = obj(ctaBlock, "primary_cta", { href: "/cb/signup", label: "Book a demo" });
+  const ctaSecondary = obj(ctaBlock, "secondary_cta", { href: "/#pricing", label: "See pricing" });
   const [lb, setLb] = useState<string | null>(null);
   const open = useCallback((src: string) => setLb(src), []);
   const quote = useRevealGroup<HTMLElement>();
@@ -410,57 +485,65 @@ export default function HomeSections() {
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
-      <MarqueeSection onOpen={open} />
+      <MarqueeSection onOpen={open} media={content.media} />
       {lb && <Lightbox src={lb} onClose={() => setLb(null)} />}
 
-      <Section>{(v) => <OnSiteSection inView={v} />}</Section>
+      <Section>{(v) => <OnSiteSection inView={v} content={content} />}</Section>
 
       <Section id="inspections" style={{ background: "var(--cb-surface-2)" }}>
-        {(v) => <TriSection inView={v} />}
+        {(v) => <TriSection inView={v} content={content} />}
       </Section>
 
-      <Section>{(v) => <WhySection inView={v} />}</Section>
+      <Section>{(v) => <WhySection inView={v} content={content} />}</Section>
 
       <section className="mkt-sec" ref={quote.ref as React.Ref<HTMLElement>}>
         <div className="mkt-sec__in">
           <blockquote {...rev(quote.inView, 0, "mkt-quote")}>
             <p>
-              The rep who documents the whole loss on the first visit does not go back for photos, and
-              does not negotiate from a scope the carrier wrote.
+              {str(
+                quoteBlock,
+                "quote",
+                "The rep who documents the whole loss on the first visit does not go back for photos, and does not negotiate from a scope the carrier wrote.",
+              )}
             </p>
           </blockquote>
         </div>
       </section>
 
       <Section id="about" style={{ background: "var(--cb-surface-2)" }}>
-        {(v) => <AboutSection inView={v} />}
+        {(v) => <AboutSection inView={v} content={content} />}
       </Section>
 
       <section className="mkt-close" ref={close.ref as React.Ref<HTMLElement>}>
         <div className="mkt-sec__in">
           <div {...rev(close.inView, 0, "mkt-close__card")}>
             <span className="mkt-close__glow" />
-            <h2 className="mkt-h2">We measure a roof you know on the call.</h2>
+            <h2 className="mkt-h2">
+              {str(ctaBlock, "heading", "We measure a roof you know on the call.")}
+            </h2>
             <p className="mkt-p" style={{ margin: "14px auto 0", maxWidth: "52ch" }}>
-              Bring an address you have already been to. We will trace it live and you can check the
-              squares against your own numbers.
+              {str(
+                ctaBlock,
+                "body",
+                "Bring an address you have already been to. We will trace it live and you can check the squares against your own numbers.",
+              )}
             </p>
             <div className="mkt-close__btns">
               <a
-                href="/cb/signup"
+                href={str(ctaPrimary, "href", "/cb/signup")}
                 className="cb-btn cb-btn-lg cb-btn-primary"
                 style={{ textDecoration: "none" }}
               >
                 <span className="cb-specular" />
-                <span className="cb-btn-label">Book a demo</span>
+                <span className="cb-btn-label">{str(ctaPrimary, "label", "Book a demo")}</span>
               </a>
               <a
-                href="/#pricing"
+                href={str(ctaSecondary, "href", "/#pricing")}
                 className="cb-btn cb-btn-lg cb-btn-secondary"
                 style={{ textDecoration: "none" }}
               >
                 <span className="cb-specular" />
-                <span className="cb-btn-label">See pricing</span>
+                <span className="cb-btn-label">{str(ctaSecondary, "label", "See pricing")}</span>
               </a>
             </div>
           </div>
