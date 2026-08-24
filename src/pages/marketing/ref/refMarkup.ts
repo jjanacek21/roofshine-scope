@@ -284,55 +284,53 @@ export const REF_VIEWS: Record<string, string> = {
       <div class="grid g3">
         <div class="plan rv-3d">
           <span class="micro">Tier 1</span>
-          <h3 style="font-size:1.3rem">Claim Buddy Core</h3>
+          <h3 style="font-size:1.3rem">Basic</h3>
           <div class="price">$99<small> /seat /mo</small></div>
           <ul class="ticks">
-            <li>Instant roof measurement</li>
+            <li>The full inspection workflow, start to finish</li>
+            <li>Polygon draw measurements — trace the roof by hand</li>
             <li>Roof takeoff — every hardware category</li>
             <li>Exterior takeoff, all four elevations</li>
             <li>Interior takeoff, room by room</li>
             <li>Photo documentation by elevation</li>
             <li>Damage report and photo appendix PDF</li>
             <li>Homeowner presentation — nine sections</li>
+            <li>Estimates you build yourself — description, unit, quantity, price</li>
+            <li>Your own retail price-per-square macro</li>
             <li>Contingency or retail agreement, e-signed</li>
-            <li>Florida contingency statute built in</li>
-            <li>Door to Door canvassing</li>
-            <li>Storm Intel hail and wind maps</li>
-            <li>Blue Collar Sales Survival Guide</li>
+            <li>No AI measurement, Survival Guide, Storm Intel or price book</li>
           </ul>
-          <button class="btn btn-s btn-block" data-go="checkout" data-plan="Claim Buddy Core" data-amt="99"><span>Start free trial</span><i class="spec"></i></button>
+          <button class="btn btn-s btn-block" data-go="checkout" data-plan="Basic" data-amt="99"><span>Start free trial</span><i class="spec"></i></button>
         </div>
 
         <div class="plan best rv-3d">
           <span class="chip chip-a" style="align-self:flex-start">Most chosen</span>
           <span class="micro">Tier 2</span>
-          <h3 style="font-size:1.3rem">Claim Buddy Pro</h3>
+          <h3 style="font-size:1.3rem">Pro</h3>
           <div class="price">$149<small> /seat /mo</small></div>
           <ul class="ticks">
-            <li>Everything in Core</li>
-            <li>Your price book, wired in</li>
-            <li>Line-item estimates with real codes</li>
-            <li>Carrier-format estimate export</li>
-            <li>Jurisdiction code items</li>
-            <li>Price-per-square mode</li>
-            <li>Supplement difference list</li>
+            <li>Everything in Basic</li>
+            <li>AI instant roof measurement — one pin, traced for you</li>
+            <li>Facet, edge and pitch detection with editable corners</li>
+            <li>The Blue Collar Sales Survival Guide</li>
+            <li>Scripts, rebuttals and the 7-day new rep ramp</li>
           </ul>
-          <button class="btn btn-p btn-block" data-go="checkout" data-plan="Claim Buddy Pro" data-amt="149"><span>Start free trial</span><i class="spec"></i></button>
+          <button class="btn btn-p btn-block" data-go="checkout" data-plan="Pro" data-amt="149"><span>Start free trial</span><i class="spec"></i></button>
         </div>
 
         <div class="plan rv-3d">
-          <span class="micro">Full platform</span>
-          <h3 style="font-size:1.3rem">GCN Platform</h3>
+          <span class="micro">Tier 3</span>
+          <h3 style="font-size:1.3rem">Elite</h3>
           <div class="price">$249<small> /seat /mo</small></div>
           <ul class="ticks">
             <li>Everything in Pro</li>
-            <li>Job workflow, sales to production</li>
-            <li>Work orders and pre-cap</li>
-            <li>Client and document management</li>
-            <li>Custom reporting</li>
-            <li>Digital business card</li>
+            <li>The price book for your market, assigned to your company</li>
+            <li>Line-item estimates with real codes and waste math</li>
+            <li>Carrier-format estimate export</li>
+            <li>Storm Intel hail and wind maps</li>
+            <li>Canvassing map with storm history on every property</li>
           </ul>
-          <button class="btn btn-s btn-block" data-go="signup"><span>Talk to us</span><i class="spec"></i></button>
+          <button class="btn btn-s btn-block" data-go="checkout" data-plan="Elite" data-amt="249"><span>Start free trial</span><i class="spec"></i></button>
         </div>
       </div>
 
@@ -340,7 +338,7 @@ export const REF_VIEWS: Record<string, string> = {
         <div class="dim rv"><span>Seat pricing</span></div>
         <div class="tw rv">
           <table>
-            <thead><tr><th>Seats</th><th>Core</th><th>Pro</th><th>Platform</th><th>Discount</th></tr></thead>
+            <thead><tr><th>Seats</th><th>Basic</th><th>Pro</th><th>Elite</th><th>Discount</th></tr></thead>
             <tbody class="mono" id="bands"></tbody>
           </table>
         </div>
