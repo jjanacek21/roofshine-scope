@@ -13,7 +13,13 @@ import { useNavigate } from "@tanstack/react-router";
 import { REF_VIEWS, REF_HEADER, REF_FOOTER } from "./refMarkup";
 import { mountMarketingRef } from "./refRuntime";
 import { SHOTS_DEFAULT } from "./refData";
-import { createImageResolver, BRAND_IMAGES, hasRepoScreen } from "@/lib/site-images";
+import {
+  createImageResolver,
+  BRAND_IMAGES,
+  BRAND_LOGO_VIDEO,
+  BRAND_LOGO_VIDEO_WEBM,
+  hasRepoScreen,
+} from "@/lib/site-images";
 import { mediaKeyOf } from "@/lib/site-content.types";
 import { makeTextRewriter } from "./refCms";
 import type { SiteContent } from "@/lib/site-content.types";
@@ -107,6 +113,13 @@ export default function MarketingRefView({
     const resolver = createImageResolver(content);
     return {
       animated: resolver.img("claimbuddy_logo_animated", BRAND_IMAGES.claimbuddy_logo_animated),
+      // A CMS row may override the clip, but only with an actual video file —
+      // an image row can no longer silently revert the hero to a static logo.
+      video: (() => {
+        const row = resolver.img("claimbuddy_logo_video", "");
+        return /\.(mp4|webm|mov)(\?|$)/i.test(row) ? row : BRAND_LOGO_VIDEO;
+      })(),
+      videoWebm: BRAND_LOGO_VIDEO_WEBM,
       still: resolver.img("claimbuddy_logo", BRAND_IMAGES.claimbuddy_logo),
       mark: resolver.img("claimbuddy_mark", BRAND_IMAGES.claimbuddy_mark),
     };

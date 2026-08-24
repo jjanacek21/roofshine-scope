@@ -42,7 +42,15 @@ const REPO_JPG_SCREENS = new Set([
   "wideshots",
 ]);
 
-/** Brand images. Animated logo first — it is an animated WebP with alpha, rendered as-is. */
+/**
+ * The animated brand logo, as an MP4 on a black plate. It is luma-keyed at
+ * runtime (see logoVideo.ts), so the plate never shows.
+ */
+export const BRAND_LOGO_VIDEO = "/__l5e/assets-v1/ef3dbae8-c0a5-4184-9e8a-fc1199bfd251/claimbuddy-logo-anim.mp4";
+/** VP9 copy, tried first — smaller, and it plays where H.264 is unavailable. */
+export const BRAND_LOGO_VIDEO_WEBM = "/__l5e/assets-v1/0409f07a-c27c-4628-ae91-7daddca549ef/claimbuddy-logo-anim.webm";
+
+/** Brand stills. Used for reduced motion and as the fallback if the video fails. */
 export const BRAND_IMAGES: Record<string, string> = {
   claimbuddy_logo_animated: "/marketing/logo/claimbuddy-logo-animated.webp",
   claimbuddy_logo: "/marketing/logo/claimbuddy-logo.png",
