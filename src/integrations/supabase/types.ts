@@ -1394,6 +1394,45 @@ export type Database = {
         }
         Relationships: []
       }
+      cb_site_edits: {
+        Row: {
+          applied_at: string
+          applied_by: string | null
+          id: string
+          instruction: string | null
+          new_value: Json | null
+          old_value: Json | null
+          path: string | null
+          reverted_at: string | null
+          row_key: string
+          table_name: string
+        }
+        Insert: {
+          applied_at?: string
+          applied_by?: string | null
+          id?: string
+          instruction?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          path?: string | null
+          reverted_at?: string | null
+          row_key: string
+          table_name: string
+        }
+        Update: {
+          applied_at?: string
+          applied_by?: string | null
+          id?: string
+          instruction?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          path?: string | null
+          reverted_at?: string | null
+          row_key?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       cb_site_faq: {
         Row: {
           answer: string

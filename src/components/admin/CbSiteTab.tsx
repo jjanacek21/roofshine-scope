@@ -28,6 +28,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { CbSiteAiTab } from "./CbSiteAiTab";
+
 const BUCKET = "marketing";
 
 const MEDIA_CATEGORIES = [
@@ -1252,6 +1254,7 @@ export function CbSiteTab() {
         <TabsTrigger value="photos">Photos</TabsTrigger>
         <TabsTrigger value="faq">FAQ</TabsTrigger>
         <TabsTrigger value="videos">Videos</TabsTrigger>
+        <TabsTrigger value="ai">AI editor</TabsTrigger>
       </TabsList>
       <TabsContent value="content" className="mt-4">
         <ContentTab />
@@ -1264,6 +1267,9 @@ export function CbSiteTab() {
       </TabsContent>
       <TabsContent value="videos" className="mt-4">
         <VideosTab />
+      </TabsContent>
+      <TabsContent value="ai" className="mt-4">
+        <CbSiteAiTab />
       </TabsContent>
     </Tabs>
   );
