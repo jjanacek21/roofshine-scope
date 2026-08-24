@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Shield, Users, Building2, Megaphone, Mail, FileText, Brain, Star, CreditCard, Flag, BarChart3, LifeBuoy, ScrollText, ArrowLeft, Library, Ruler, Menu, FileSignature, Flame, ClipboardList } from "lucide-react";
+import { useCbUnhandledDemoCount } from "@/components/admin/CbCompaniesTab";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/admin")({
@@ -116,6 +117,7 @@ function AdminLayout() {
                   >
                     <Icon className="h-4 w-4" />
                     {item.label}
+                    {item.to === "/admin/claim-buddy" ? <DemoCountBadge /> : null}
                   </Link>
                 );
               })}
@@ -160,6 +162,7 @@ function AdminLayout() {
               >
                 <Icon className="h-4 w-4" />
                 {item.label}
+                {item.to === "/admin/claim-buddy" ? <DemoCountBadge /> : null}
               </Link>
             );
           })}
@@ -179,5 +182,15 @@ function AdminLayout() {
         </div>
       </main>
     </div>
+  );
+}
+
+function DemoCountBadge() {
+  const { data = 0 } = useCbUnhandledDemoCount();
+  if (!data) return null;
+  return (
+    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+      {data}
+    </span>
   );
 }
