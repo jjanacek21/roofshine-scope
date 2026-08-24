@@ -27,6 +27,7 @@ import { renderCbEstimatePdf } from "@/lib/cbEstimatePdf";
 import { CbLineItemPicker } from "@/components/cb/CbLineItemPicker";
 import { CbCarrierReport } from "@/components/cb/CbCarrierReport";
 import { generateEstimatePdf } from "@/lib/estimate-pdf";
+import { useCbFeature, useCbFeatureGuard } from "@/components/claim-buddy/CbFeatureGate";
 
 export const Route = createFileRoute("/cb/job/$id/estimate")({
   head: () => ({
@@ -93,7 +94,7 @@ function CbEstimatePage() {
     const saved = inputs.existing?.estimate.cb_mode as CbEstimateMode | undefined;
     const initial: CbEstimateMode =
       saved ?? (measurementIsComplete(inputs.measurement) ? "line_item" : "per_square");
-    setMode(initial);
+    setMode(initial === "line_item" && !priceBookAllowed ? "per_square" : initial);
     setPct(inputs.percents);
     setPps(
       Number(inputs.existing?.estimate.price_per_square) || inputs.defaultPricePerSquare || 0,
