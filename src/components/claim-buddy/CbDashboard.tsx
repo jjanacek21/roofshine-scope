@@ -125,6 +125,36 @@ export function CbDashboard() {
     });
   }, [jobs, filter, search]);
 
+  /* Canvassed doors that have NOT become inspections yet — kept out of the job list. */
+  const dispositionsQuery = useQuery({
+    queryKey: ["cb-open-dispositions", user?.id],
+    enabled: !!user?.id && view === "dispositions",
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("property_dispositions")
+        .select("id, address, lat, lng, disposition, customer_name, created_at, updated_at")
+        .eq("user_id", user!.id)
+        .is("cb_job_id", null)
+        .order("updated_at", { ascending: false })
+        .limit(300);
+      if (error) throw error;
+      return (data ?? []) as CbDispositionRow[];
+    },
+  });
+
+  const visibleDispositions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const rows = dispositionsQuery.data ?? [];
+    if (!q) return rows;
+    return rows.filter(
+      (d) =>
+        (d.address ?? "").toLowerCase().includes(q) ||
+        (d.customer_name ?? "").toLowerCase().includes(q),
+    );
+  }, [dispositionsQuery.data, search]);
+
+
+
   /* A brand-new workspace gets one demo inspection so the whole flow is walkable. */
   useEffect(() => {
     if (!workspace?.id || jobsQuery.isLoading || jobs.length > 0) return;
