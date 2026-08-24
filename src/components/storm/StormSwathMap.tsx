@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Download, Save, X, Mail } from "lucide-react";
+import { Loader2, Download, Save, X, Mail, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { stormSupabase } from "@/integrations/storm/client";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { HOUSE_CIRCLE_MIN_ZOOM } from "@/lib/storm-config";
 import { RoofMeasureCard, type MeasureSnapshot } from "@/components/storm/RoofMeasureCard";
 import { StormMailerModal } from "@/components/storm/StormMailerModal";
@@ -70,6 +71,8 @@ interface Props {
   center: [number, number];
   zoom?: number;
   searchedPoint?: SearchPoint | null;
+  /** When provided, house/swath clicks are handed to the parent instead of opening the built-in report popup. */
+  onPointSelect?: (p: { lat: number; lng: number; footprint?: [number, number, number, number] | null }) => void;
 }
 
 function escapeHtml(v: unknown) {
@@ -99,7 +102,8 @@ function toCsv(rows: Record<string, any>[]) {
   return [headers.join(","), ...rows.map((r) => headers.map((h) => cell(r[h])).join(","))].join("\r\n");
 }
 
-export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props) {
+export function StormSwathMap({ center, zoom = 4, searchedPoint = null, onPointSelect }: Props) {
+  const isMobile = useIsMobile();
   const { data: token, error: tokenError } = useMapboxToken();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -117,6 +121,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const initMapRef = useRef<(() => void) | null>(null);
   const setPointRef = useRef<((p: SearchPoint) => void) | null>(null);
   const housePinsRef = useRef<(() => void) | null>(null);
+  const onPointSelectRef = useRef<Props["onPointSelect"] | null>(null);
 
   const [styleReady, setStyleReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -126,6 +131,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const [bbox, setBbox] = useState<Bbox | null>(null);
   const [point, setPoint] = useState<SearchPoint | null>(null);
   const [savedOpen, setSavedOpen] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [measure, setMeasure] = useState<MeasureSnapshot | null>(null);
   const [facets, setFacets] = useState<any[]>([]);
@@ -676,7 +682,15 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  setPointRef.current = (p: SearchPoint) => setPoint(p);
+  onPointSelectRef.current = onPointSelect ?? null;
+  setPointRef.current = (p: SearchPoint) => {
+    const handler = onPointSelectRef.current;
+    if (handler) {
+      handler({ lat: p.lat, lng: p.lng, footprint: p.footprint ?? null });
+      return;
+    }
+    setPoint(p);
+  };
 
   // ---- data → layers --------------------------------------------------
   useEffect(() => {
