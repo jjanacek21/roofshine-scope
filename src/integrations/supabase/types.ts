@@ -520,6 +520,60 @@ export type Database = {
           },
         ]
       }
+      cb_blog_posts: {
+        Row: {
+          author: string | null
+          body_md: string | null
+          created_at: string
+          excerpt: string | null
+          generated_by: string | null
+          generation_prompt: string | null
+          hero_path: string | null
+          id: string
+          keywords: string[] | null
+          published_at: string | null
+          scheduled_for: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author?: string | null
+          body_md?: string | null
+          created_at?: string
+          excerpt?: string | null
+          generated_by?: string | null
+          generation_prompt?: string | null
+          hero_path?: string | null
+          id?: string
+          keywords?: string[] | null
+          published_at?: string | null
+          scheduled_for?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author?: string | null
+          body_md?: string | null
+          created_at?: string
+          excerpt?: string | null
+          generated_by?: string | null
+          generation_prompt?: string | null
+          hero_path?: string | null
+          id?: string
+          keywords?: string[] | null
+          published_at?: string | null
+          scheduled_for?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cb_catalog_versions: {
         Row: {
           company_id: string | null
@@ -1306,6 +1360,150 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cb_site_blocks: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          is_published: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cb_site_faq: {
+        Row: {
+          answer: string
+          category: string | null
+          created_at: string
+          id: string
+          is_published: boolean
+          question: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          question: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          question?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cb_site_media: {
+        Row: {
+          caption: string | null
+          category: string
+          created_at: string
+          id: string
+          is_published: boolean
+          sort_order: number
+          storage_path: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          category: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          sort_order?: number
+          storage_path: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          sort_order?: number
+          storage_path?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cb_site_videos: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_seconds: number | null
+          id: string
+          is_published: boolean
+          section: string
+          sort_order: number
+          thumbnail_path: string | null
+          title: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_published?: boolean
+          section?: string
+          sort_order?: number
+          thumbnail_path?: string | null
+          title: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_published?: boolean
+          section?: string
+          sort_order?: number
+          thumbnail_path?: string | null
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
       }
       cb_takeoffs: {
         Row: {
