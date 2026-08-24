@@ -15,6 +15,8 @@ import { CbSessionProvider } from "@/components/auth/CbSessionProvider";
 import { CbCompanyProvider } from "@/components/auth/CbCompanyProvider";
 import { getSurface, isClaimBuddyPath, isMarketingPath } from "@/lib/cbMode";
 import { getRequestHostname, resolveSurfaceFromHost, surfaceMeta } from "@/lib/surfaceHead";
+import { getSiteContent } from "@/lib/site-content.functions";
+import { EMPTY_SITE_CONTENT, type SiteContent } from "@/lib/site-content.types";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
@@ -43,7 +45,19 @@ function NotFoundComponent() {
 }
 
 export const Route = createRootRoute({
-  loader: () => ({ surface: resolveSurfaceFromHost(getRequestHostname()) }),
+  loader: async ({ location }) => {
+    const surface = resolveSurfaceFromHost(getRequestHostname());
+    // Only the marketing landing page needs CMS content; it is cached 60s server-side.
+    let site: SiteContent = EMPTY_SITE_CONTENT;
+    if (location.pathname === "/") {
+      try {
+        site = await getSiteContent();
+      } catch {
+        site = EMPTY_SITE_CONTENT;
+      }
+    }
+    return { surface, site };
+  },
   head: ({ loaderData }) => {
     const surface = loaderData?.surface ?? "platform";
     return {
@@ -123,7 +137,8 @@ function StandaloneGate() {
 function SurfaceOutlet() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, loading } = useAuth();
-  const [standalone, setStandalone] = useState(false);
+  const rootData = Route.useLoaderData();
+  const [standalone, setStandalone] = useState(rootData?.surface === "standalone");
 
   useEffect(() => {
     setStandalone(getSurface() === "standalone");
@@ -131,7 +146,7 @@ function SurfaceOutlet() {
 
   if (standalone && pathname === "/") {
     if (loading) return null;
-    if (!user) return <Landing />;
+    if (!user) return <Landing content={rootData?.site ?? EMPTY_SITE_CONTENT} />;
     return null;
   }
 
