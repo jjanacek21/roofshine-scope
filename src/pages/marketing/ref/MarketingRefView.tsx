@@ -15,6 +15,7 @@ import { mountMarketingRef } from "./refRuntime";
 import { SHOTS_DEFAULT } from "./refData";
 import { createImageResolver, BRAND_IMAGES, hasRepoScreen } from "@/lib/site-images";
 import { mediaKeyOf } from "@/lib/site-content.types";
+import { makeTextRewriter } from "./refCms";
 import type { SiteContent } from "@/lib/site-content.types";
 import "./marketing-ref.css";
 
@@ -57,12 +58,12 @@ const titleCase = (s: string) =>
 const VIEW_ORDER = ["home", "product", "gallery", "pricing", "resources", "blog"];
 
 /** The active view is server-rendered with .on so crawlers and no-JS visitors see it. */
-function shellHtml(active: string): string {
+function shellHtml(active: string, rewrite: (h: string) => string): string {
   const views = VIEW_ORDER.map(
     (k) =>
       `<section class="view${k === active ? " on" : ""}" id="v-${k}">${REF_VIEWS[k] ?? ""}</section>`,
   ).join("");
-  return `${REF_HEADER}<main id="mkt-main">${views}</main>${REF_FOOTER}`;
+  return rewrite(`${REF_HEADER}<main id="mkt-main">${views}</main>${REF_FOOTER}`);
 }
 
 export default function MarketingRefView({
@@ -76,7 +77,8 @@ export default function MarketingRefView({
   // Frozen at first render: React must never re-write this subtree, because the
   // runtime owns its DOM after mount. View switches go through goRef instead.
   const htmlRef = useRef<string | null>(null);
-  if (htmlRef.current === null) htmlRef.current = shellHtml(view);
+  const rewrite = makeTextRewriter(content);
+  if (htmlRef.current === null) htmlRef.current = shellHtml(view, rewrite);
   const goRef = useRef<((v: string, notify?: boolean) => void) | null>(null);
   const navigate = useNavigate();
 
@@ -85,6 +87,8 @@ export default function MarketingRefView({
   navRef.current = navigate;
   const viewRef = useRef(view);
   viewRef.current = view;
+  const textRef = useRef(rewrite);
+  textRef.current = rewrite;
   const catsRef = useRef<string[][]>([]);
   const catByKeyRef = useRef<Record<string, string>>({});
 
@@ -143,6 +147,7 @@ export default function MarketingRefView({
         shots,
         brand,
         initialView: viewRef.current,
+        text: textRef.current,
         cats: catsRef.current,
         catByKey: catByKeyRef.current,
         redirects: REDIRECTS,

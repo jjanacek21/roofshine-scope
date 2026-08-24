@@ -20,6 +20,8 @@ export type MountOptions = {
   redirects?: Record<string, string>;
   /** Navigate out of the prototype shell (router push). */
   onExternal?: (url: string) => void;
+  /** Rewrites CMS-editable copy inside runtime-generated HTML. */
+  text?: (html: string) => string;
   /** Gallery filter chips: [id, label]. Built from the categories present in the CMS. */
   cats?: string[][];
   /** media key -> category, from the CMS; overrides the built-in mapping. */
@@ -100,9 +102,10 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
   });
 
   /* ---------- build ---------- */
+  const rewrite = opts.text ?? ((h: string) => h);
   const setHTML = (sel: string, html: string) => {
     const el = $(sel);
-    if (el) el.innerHTML = html;
+    if (el) el.innerHTML = rewrite(html);
   };
 
   setHTML(
