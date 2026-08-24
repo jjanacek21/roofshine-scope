@@ -228,7 +228,7 @@ function OnSiteSection({ inView }: { inView: boolean }) {
         <div className="mkt-onsite__card">
           <div className="mkt-onsite__row">
             {ONSITE.map(([n, title, body], i) => (
-              <div className="mkt-onsite__col" key={n} {...rev(inView, i + 1)}>
+              <div key={n} {...rev(inView, i + 1, "mkt-onsite__col")}>
                 <div className="mkt-num">{n}</div>
                 <h3>{title}</h3>
                 <p>{body}</p>
@@ -329,7 +329,7 @@ function WhySection({ inView }: { inView: boolean }) {
       </h2>
       <div className="mkt-stats">
         {STATS.map(([n, l], i) => (
-          <div className="mkt-stat" key={n} {...rev(inView, i + 1)}>
+          <div key={n} {...rev(inView, i + 1, "mkt-stat")}>
             <div className="mkt-stat__n">{n}</div>
             <div className="mkt-stat__l">{l}</div>
           </div>
@@ -370,7 +370,7 @@ function AboutSection({ inView }: { inView: boolean }) {
         </div>
         <div className="mkt-mini">
           {MINI.map(([n, l], i) => (
-            <div className="mkt-mini__c" key={l} {...rev(inView, i + 1)}>
+            <div key={l} {...rev(inView, i + 1, "mkt-mini__c")}>
               <div className="mkt-mini__n">{n}</div>
               <div className="mkt-mini__l">{l}</div>
             </div>

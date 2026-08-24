@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import StepPlayer, { type StepFrame } from "@/components/marketing/StepPlayer";
+import HomeSections from "@/components/marketing/HomeSections";
 
 const STEP_FRAMES: StepFrame[] = [
   {
@@ -546,6 +547,7 @@ export default function Landing() {
       <main style={{ flex: 1 }}>
         <Hero />
         <StepsSection />
+        <HomeSections />
       </main>
 
       <footer
