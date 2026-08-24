@@ -248,6 +248,10 @@ function CbJobMeasurePage() {
 
   async function run() {
     if (!job?.workspace_id) return;
+    if (!featureGuard("ai_measure")) {
+      setPhase("manual");
+      return;
+    }
     if (measurePins.length === 0) {
       setPinDropMode(true);
       toast.message("Tap the roof on the satellite map to drop a measurement pin");
