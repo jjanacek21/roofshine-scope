@@ -1,5 +1,6 @@
 import MarketingShell from "./MarketingShell";
-import VideoCard, { type VideoItem } from "@/components/marketing/VideoCard";
+import TrainingVideos from "@/components/marketing/TrainingVideos";
+import { EMPTY_SITE_CONTENT, blockOf, str, type SiteContent } from "@/lib/site-content.types";
 
 const CSS = `
 .rs-wrap{max-width:1200px;margin:0 auto;padding:44px 22px 76px}
@@ -69,46 +70,13 @@ const DAYS = [
   ["Day 7", "Review and reset", "Watch your own numbers, fix the one leak in your funnel, set next week's door count."],
 ];
 
-const VIDEOS: VideoItem[] = [
-  {
-    thumbnail: "/marketing/screens/m1_pin.jpg",
-    title: "Measure a roof in 60 seconds",
-    duration: "1:04",
-    caption: "Pin drop to labeled measurement without leaving the truck.",
-  },
-  {
-    thumbnail: "/marketing/screens/m6_label.jpg",
-    title: "Labeling edges the fast way",
-    duration: "2:11",
-    caption: "Sticky labeling — pick the type once, tap every edge that matches.",
-  },
-  {
-    thumbnail: "/marketing/screens/tk_1.jpg",
-    title: "Roof takeoff walkthrough",
-    duration: "3:26",
-    caption: "What auto-fills, what you adjust, and why the numbers tie out.",
-  },
-  {
-    thumbnail: "/marketing/screens/ex_1.jpg",
-    title: "The four-elevation exterior",
-    duration: "2:48",
-    caption: "Wide shots in order so nothing gets missed on the walk-around.",
-  },
-  {
-    thumbnail: "/marketing/screens/cr_4.jpg",
-    title: "Building a carrier estimate",
-    duration: "4:52",
-    caption: "Pricing modes, the price book, and making your edits stick.",
-  },
-  {
-    thumbnail: "/marketing/screens/pr_1.jpg",
-    title: "Closing at the kitchen table",
-    duration: "5:37",
-    caption: "Presentation mode, the damage report, and asking for the signature.",
-  },
-];
-
-export default function ResourcesPage() {
+export default function ResourcesPage({
+  content = EMPTY_SITE_CONTENT,
+}: {
+  content?: SiteContent;
+}) {
+  const intro = blockOf(content, "resources_intro");
+  const training = content.videos.filter((v) => v.section === "training");
   return (
     <MarketingShell>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -183,15 +151,17 @@ export default function ResourcesPage() {
           ))}
         </div>
 
-        <h2 className="rs-h2">Watch it done</h2>
+        <h2 className="rs-h2">{str(intro, "video_heading", "Watch it done")}</h2>
         <p className="rs-sub">
-          Short clips from real jobs. Nothing staged, nothing sped up.
+          {str(intro, "video_sub", "Short clips from real jobs. Nothing staged, nothing sped up.")}
         </p>
-        <div className="rs-vids">
-          {VIDEOS.map((v) => (
-            <VideoCard key={v.title} {...v} />
-          ))}
-        </div>
+        {training.length ? (
+          <TrainingVideos videos={training} />
+        ) : (
+          <p className="rs-sub" style={{ marginTop: 16 }}>
+            New training clips are being filmed — they will show up here as they land.
+          </p>
+        )}
       </section>
     </MarketingShell>
   );
