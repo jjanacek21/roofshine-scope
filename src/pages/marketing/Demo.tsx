@@ -16,6 +16,27 @@ const CSS = `
   box-shadow:0 0 0 4px rgba(21,128,61,.16)}
 .dm-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:560px){.dm-row{grid-template-columns:1fr}}
+.dm-field textarea{min-height:110px;border-radius:14px;border:1px solid var(--cb-hairline);
+  background:var(--cb-surface-2);color:var(--cb-text);font-size:16px;padding:12px 14px;width:100%;
+  font-family:inherit;line-height:1.5;resize:vertical}
+.dm-field textarea:focus{outline:none;border-color:var(--cb-accent);box-shadow:0 0 0 4px rgba(21,128,61,.16)}
+.dm-group{border:1px solid var(--cb-hairline);border-radius:18px;background:var(--cb-surface-2);
+  padding:18px 16px 4px;margin-bottom:18px}
+.dm-group__t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--cb-accent);margin:0 0 14px}
+.dm-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.dm-chip{border:1px solid var(--cb-hairline);background:var(--cb-surface);color:var(--cb-text-dim);
+  border-radius:999px;padding:9px 14px;font-size:13.5px;font-weight:600;cursor:pointer;
+  transition:all .14s var(--cb-ease)}
+.dm-chip[aria-pressed="true"]{background:var(--cb-accent);border-color:var(--cb-accent);color:#fff;
+  box-shadow:0 8px 18px rgba(21,128,61,.26)}
+.dm-ask{border:1px solid var(--cb-accent);border-radius:18px;padding:18px 16px 6px;margin-bottom:18px;
+  background:rgba(21,128,61,.05)}
+.dm-err{font-size:12.5px;color:#b91c1c;font-weight:600}
+.dm-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+.dm-sum{text-align:left;border:1px solid var(--cb-hairline);border-radius:16px;background:var(--cb-surface-2);
+  padding:16px;margin-top:18px;font-size:14px;line-height:1.6;color:var(--cb-text-dim)}
+.dm-sum b{color:var(--cb-text)}
 .dm-note{font-size:12.5px;color:var(--cb-text-muted);margin-top:12px;line-height:1.5;text-align:center}
 .dm-ok{text-align:center;padding:22px 6px 10px}
 .dm-ok__i{width:66px;height:66px;border-radius:999px;background:var(--cb-accent);color:#fff;display:grid;
