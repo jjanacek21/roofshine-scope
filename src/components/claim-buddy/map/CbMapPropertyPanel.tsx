@@ -151,6 +151,7 @@ export function CbMapPropertyPanel({
       .upsert(
         {
           user_id: user.id,
+          workspace_id: workspace?.id ?? null,
           lat: point.lat,
           lng: point.lng,
           lat_lng_hash: generateLatLngHash(point.lat, point.lng),

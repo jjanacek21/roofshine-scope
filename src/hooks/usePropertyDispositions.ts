@@ -59,7 +59,7 @@ export function generateLatLngHash(lat: number, lng: number): string {
   return `${roundedLat}_${roundedLng}`;
 }
 
-export function usePropertyDispositions(userId?: string) {
+export function usePropertyDispositions(userId?: string, workspaceId?: string | null) {
   const [properties, setProperties] = useState<PropertyData[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -68,10 +68,10 @@ export function usePropertyDispositions(userId?: string) {
     if (!userId) return;
 
     try {
-      const { data, error } = await supabase
-        .from('property_dispositions')
-        .select('*')
-        .eq('user_id', userId)
+      let query = supabase.from('property_dispositions').select('*');
+      // Owners/admins pass a workspace id and see every door their company pinned.
+      query = workspaceId ? query.eq('workspace_id', workspaceId) : query.eq('user_id', userId);
+      const { data, error } = await query
         .gte('lat', bounds.south)
         .lte('lat', bounds.north)
         .gte('lng', bounds.west)
@@ -104,7 +104,7 @@ export function usePropertyDispositions(userId?: string) {
       console.error('Error fetching properties:', error);
       return [];
     }
-  }, [userId]);
+  }, [userId, workspaceId]);
 
   // Set or update property disposition
   const setPropertyDisposition = useCallback(async (

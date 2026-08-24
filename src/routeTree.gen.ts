@@ -65,6 +65,7 @@ import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as CbIndexRouteImport } from './routes/cb.index'
+import { Route as CbAcceptRouteImport } from './routes/cb.accept'
 import { Route as CbAdminRouteImport } from './routes/cb.admin'
 import { Route as CbCompaniesRouteImport } from './routes/cb.companies'
 import { Route as CbLoginRouteImport } from './routes/cb.login'
@@ -420,6 +421,11 @@ const CSlugRoute = CSlugRouteImport.update({
 const CbIndexRoute = CbIndexRouteImport.update({
   id: '/cb/',
   path: '/cb/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbAcceptRoute = CbAcceptRouteImport.update({
+  id: '/cb/accept',
+  path: '/cb/accept',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CbAdminRoute = CbAdminRouteImport.update({
@@ -859,6 +865,7 @@ export interface FileRoutesByFullPath {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/accept': typeof CbAcceptRoute
   '/cb/admin': typeof CbAdminRouteWithChildren
   '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
@@ -985,6 +992,7 @@ export interface FileRoutesByTo {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/accept': typeof CbAcceptRoute
   '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
   '/cb/map': typeof CbMapRoute
@@ -1118,6 +1126,7 @@ export interface FileRoutesById {
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/c/$slug': typeof CSlugRoute
+  '/cb/accept': typeof CbAcceptRoute
   '/cb/admin': typeof CbAdminRouteWithChildren
   '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
@@ -1254,6 +1263,7 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/accept'
     | '/cb/admin'
     | '/cb/companies'
     | '/cb/login'
@@ -1380,6 +1390,7 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/accept'
     | '/cb/companies'
     | '/cb/login'
     | '/cb/map'
@@ -1512,6 +1523,7 @@ export interface FileRouteTypes {
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
     | '/c/$slug'
+    | '/cb/accept'
     | '/cb/admin'
     | '/cb/companies'
     | '/cb/login'
@@ -1618,6 +1630,7 @@ export interface RootRouteChildren {
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
   CSlugRoute: typeof CSlugRoute
+  CbAcceptRoute: typeof CbAcceptRoute
   CbAdminRoute: typeof CbAdminRouteWithChildren
   CbCompaniesRoute: typeof CbCompaniesRoute
   CbLoginRoute: typeof CbLoginRoute
@@ -2040,6 +2053,13 @@ declare module '@tanstack/react-router' {
       path: '/cb'
       fullPath: '/cb/'
       preLoaderRoute: typeof CbIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/accept': {
+      id: '/cb/accept'
+      path: '/cb/accept'
+      fullPath: '/cb/accept'
+      preLoaderRoute: typeof CbAcceptRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cb/admin': {
@@ -2876,6 +2896,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
   CSlugRoute: CSlugRoute,
+  CbAcceptRoute: CbAcceptRoute,
   CbAdminRoute: CbAdminRouteWithChildren,
   CbCompaniesRoute: CbCompaniesRoute,
   CbLoginRoute: CbLoginRoute,

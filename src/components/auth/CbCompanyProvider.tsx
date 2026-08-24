@@ -93,7 +93,7 @@ export function CbCompanyProvider({ children }: { children: ReactNode }) {
         companies,
         company,
         loading: isLoading,
-        isAdmin: workspace?.role === "admin",
+        isAdmin: workspace?.role === "admin" || workspace?.role === "owner",
         setCompanyId,
         refresh: () => void qc.invalidateQueries({ queryKey: ["cb-companies", workspace?.id] }),
       }}

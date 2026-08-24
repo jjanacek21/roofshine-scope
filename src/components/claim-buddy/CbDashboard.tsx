@@ -143,14 +143,17 @@ export function CbDashboard() {
   }, [jobs, filter, search]);
 
   /* Canvassed doors that have NOT become inspections yet — kept out of the job list. */
+  const seesAll = workspace?.role === "owner" || workspace?.role === "admin";
   const dispositionsQuery = useQuery({
-    queryKey: ["cb-open-dispositions", user?.id],
+    queryKey: ["cb-open-dispositions", user?.id, workspace?.id, seesAll],
     enabled: !!user?.id && view === "dispositions",
     queryFn: async () => {
-      const { data, error } = await supabase
+      /* Reps see the doors they pinned; owners and admins see the whole company's. */
+      let q = supabase
         .from("property_dispositions")
-        .select("id, address, lat, lng, disposition, customer_name, created_at, updated_at")
-        .eq("user_id", user!.id)
+        .select("id, address, lat, lng, disposition, customer_name, created_at, updated_at");
+      q = seesAll && workspace?.id ? q.eq("workspace_id", workspace.id) : q.eq("user_id", user!.id);
+      const { data, error } = await q
         .is("cb_job_id", null)
         .order("updated_at", { ascending: false })
         .limit(300);

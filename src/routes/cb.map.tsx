@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { useAuth } from "@/hooks/useAuth";
 import { usePropertyDispositions } from "@/hooks/usePropertyDispositions";
+import { useCbSession } from "@/components/auth/CbSessionProvider";
 import { DoorToDoorMap } from "@/components/door-to-door/DoorToDoorMap";
 import { StormSwathMap } from "@/components/storm/StormSwathMap";
 import { AddressAutocomplete, type AddressResult } from "@/components/maps/AddressAutocomplete";
@@ -42,6 +43,7 @@ function CbMapPage() {
   const navigate = useNavigate();
   const { lat: searchLat, lng: searchLng } = Route.useSearch();
   const { user } = useAuth();
+  const { workspace } = useCbSession();
   const [mode, setMode] = useState<"canvass" | "storm">("canvass");
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
@@ -55,7 +57,10 @@ function CbMapPage() {
   const [stormPoint, setStormPoint] = useState<{ lat: number; lng: number; label: string } | null>(null);
   const boundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
 
-  const { properties, fetchPropertiesInBounds } = usePropertyDispositions(user?.id);
+  const { properties, fetchPropertiesInBounds } = usePropertyDispositions(
+    user?.id,
+    workspace?.role === "owner" || workspace?.role === "admin" ? workspace.id : null,
+  );
 
   const locate = useCallback((announce = true) => {
     if (!navigator.geolocation) {
