@@ -313,27 +313,95 @@ export function CbDashboard() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search address or customer"
-              aria-label="Search inspections"
+              placeholder={view === "dispositions" ? "Search address or resident" : "Search address or customer"}
+              aria-label="Search"
               className="h-full flex-1 bg-transparent text-[14px] outline-none"
             />
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <FilterChip label="All" active={filter === null} onClick={() => setFilter(null)} />
+            <FilterChip
+              label="All"
+              active={view === "jobs" && filter === null}
+              onClick={() => {
+                setView("jobs");
+                setFilter(null);
+              }}
+            />
             {STATUSES.map((s) => (
               <FilterChip
                 key={s.value}
                 label={s.label}
-                active={filter === s.value}
-                onClick={() => setFilter(filter === s.value ? null : s.value)}
+                active={view === "jobs" && filter === s.value}
+                onClick={() => {
+                  setView("jobs");
+                  setFilter(filter === s.value ? null : s.value);
+                }}
               />
             ))}
+            <FilterChip
+              label="Dispositions"
+              active={view === "dispositions"}
+              onClick={() => setView(view === "dispositions" ? "jobs" : "dispositions")}
+            />
           </div>
         </div>
       </CbReveal>
 
-      {/* Job list */}
+      {/* Dispositions list — canvassed doors that aren't inspections yet */}
+      {view === "dispositions" ? (
+        <div className="mt-5 space-y-3">
+          {dispositionsQuery.isLoading ? (
+            <>
+              <CbSkeleton height={78} radius={18} />
+              <CbSkeleton height={78} radius={18} />
+            </>
+          ) : visibleDispositions.length === 0 ? (
+            <CbEmptyState
+              headline="No open dispositions yet — knock some doors."
+              action={
+                <CbButton variant="secondary" onClick={() => navigate({ to: "/cb/map" })}>
+                  Door to Door mode
+                </CbButton>
+              }
+            />
+          ) : (
+            <CbStagger className="space-y-3">
+              {visibleDispositions.map((d) => (
+                <CbCard
+                  key={d.id}
+                  elevation="card"
+                  className="cursor-pointer"
+                  style={{ padding: 16 }}
+                  onClick={() =>
+                    navigate({ to: "/cb/map", search: { lat: d.lat, lng: d.lng } })
+                  }
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[15px] font-semibold">
+                        {d.address || `${d.lat.toFixed(5)}, ${d.lng.toFixed(5)}`}
+                      </p>
+                      <p className="truncate text-[12.5px]" style={{ color: "var(--cb-text-muted)" }}>
+                        {d.customer_name || "No resident details yet"}
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <CbBadge tone="neutral">{dispositionLabel(d.disposition)}</CbBadge>
+                        <span className="text-[11.5px]" style={{ color: "var(--cb-text-muted)" }}>
+                          {new Date(d.updated_at ?? d.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--cb-text-muted)" }} />
+                  </div>
+                </CbCard>
+              ))}
+            </CbStagger>
+          )}
+        </div>
+      ) : (
+      /* Job list */
       <div className="mt-5 space-y-3">
+
         {jobsQuery.isLoading ? (
           <>
             <CbSkeleton height={78} radius={18} />
