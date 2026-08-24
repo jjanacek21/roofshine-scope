@@ -75,7 +75,7 @@ function CbJobMeasurePage() {
   const originalPlanRef = useRef<CbPlan | null>(null);
   const [planDirty, setPlanDirty] = useState(false);
 
-
+  const featureGuard = useCbFeatureGuard();
   const [phase, setPhase] = useState<"idle" | "running" | "result" | "manual">("idle");
   const [stepIdx, setStepIdx] = useState(0);
   const [values, setValues] = useState<CbMeasurement>(CB_BLANK_MEASUREMENT);
