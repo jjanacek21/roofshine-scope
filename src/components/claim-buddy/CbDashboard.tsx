@@ -494,6 +494,8 @@ export function CbDashboard() {
           </CbStagger>
         )}
       </div>
+      )}
+
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
