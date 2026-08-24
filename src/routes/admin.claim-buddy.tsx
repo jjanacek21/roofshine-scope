@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -35,6 +35,13 @@ import {
 } from "@/lib/cbCatalogResolve";
 
 export const Route = createFileRoute("/admin/claim-buddy")({
+  ssr: false,
+  beforeLoad: async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) throw redirect({ to: "/cb/login" });
+    const { data: isSuper } = await supabase.rpc("cb_is_super_admin");
+    if (!isSuper) throw redirect({ to: "/cb" });
+  },
   head: () => ({
     meta: [
       { title: "Claim Buddy estimate catalog — Admin" },
