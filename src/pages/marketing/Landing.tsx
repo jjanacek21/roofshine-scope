@@ -147,6 +147,9 @@ const HERO_CSS = `
 .mkt-hero__inner{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:74px 18px 92px;
   display:grid;grid-template-columns:1.08fr .92fr;gap:32px;align-items:center}
 .mkt-hero__logo{width:min(400px,86vw);height:auto;display:block;background:transparent;
+  /* The MP4 has an opaque black matte baked in; screen-blending drops pure black
+     against the dark hero so the mark floats over the grid. */
+  mix-blend-mode:screen;isolation:auto;
   filter:drop-shadow(0 10px 30px rgba(21,128,61,.28))}
 .mkt-eyebrow{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.12em;
   text-transform:uppercase;color:rgba(238,242,247,.62);margin:22px 0 12px}
@@ -162,11 +165,11 @@ const HERO_CSS = `
 @keyframes mktGlowPulse{0%,100%{box-shadow:0 0 0 0 rgba(21,128,61,.42),0 8px 22px rgba(0,0,0,.35)}
   50%{box-shadow:0 0 28px 6px rgba(21,128,61,.5),0 8px 22px rgba(0,0,0,.35)}}
 .mkt-cta-primary{animation:mktGlowPulse 3.4s ease-in-out infinite}
-.mkt-stats{display:flex;gap:10px;max-width:430px;margin-top:30px}
-.mkt-stat{flex:1;border-radius:14px;padding:12px 12px 11px;background:rgba(255,255,255,.045);
+.mkt-hero-stats{display:flex;gap:10px;max-width:430px;margin-top:30px}
+.mkt-hero-stat{flex:1;border-radius:14px;padding:12px 12px 11px;background:rgba(255,255,255,.045);
   border:1px solid rgba(255,255,255,.10)}
-.mkt-stat b{display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:19px;font-weight:700;color:#eef2f7}
-.mkt-stat span{display:block;margin-top:4px;font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:rgba(238,242,247,.55)}
+.mkt-hero-stat b{display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:19px;font-weight:700;color:#eef2f7}
+.mkt-hero-stat span{display:block;margin-top:4px;font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:rgba(238,242,247,.55)}
 .mkt-note{margin-top:18px;font-size:12.5px;color:rgba(238,242,247,.5)}
 .mkt-fanwrap{position:relative;min-height:430px;perspective:1400px;display:flex;align-items:center;justify-content:center}
 .mkt-fan{position:relative;transform-style:preserve-3d;width:100%;height:430px;display:flex;align-items:center;justify-content:center}
@@ -357,11 +360,11 @@ function Hero({ content }: { content: SiteContent }) {
             </a>
           </div>
 
-          <div className="mkt-stats">
+          <div className="mkt-hero-stats">
             {stats.map((st) => {
               const numeric = /^\d+(\.\d+)?$/.test(String(st.value ?? ""));
               return (
-                <div className="mkt-stat" key={st.label}>
+                <div className="mkt-hero-stat" key={st.label}>
                   <b>
                     {numeric && String(st.value).includes(".") ? (
                       <CountUp to={Number(st.value)} />
@@ -496,34 +499,13 @@ export default function Landing({ content = EMPTY_SITE_CONTENT }: { content?: Si
             gap: 16,
           }}
         >
-          <a
-            href="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              textDecoration: "none",
-              color: "var(--cb-text)",
-            }}
-          >
-            <img
-              src="/marketing/logo/claimbuddy-mark.png"
-              alt="Claim Buddy"
-              width={30}
-              height={30}
-              style={{ width: 30, height: 30, borderRadius: 8, display: "block" }}
-            />
-            <span style={{ fontWeight: 800, letterSpacing: "-0.02em", fontSize: 16 }}>
-              Claim Buddy
-            </span>
-          </a>
-
+          {/* No brand lockup in the header — the nav's "Home" link covers "/". */}
           {!compact && (
             <nav
               style={{
                 display: "flex",
                 gap: 22,
-                margin: "0 auto",
+                marginRight: "auto",
                 alignItems: "center",
               }}
             >

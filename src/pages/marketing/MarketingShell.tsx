@@ -128,30 +128,17 @@ export default function MarketingShell({ children }: { children: React.ReactNode
             gap: 16,
           }}
         >
-          <a
-            href="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              textDecoration: "none",
-              color: "var(--cb-text)",
-            }}
-          >
-            <img
-              src="/marketing/logo/claimbuddy-mark.png"
-              alt="Claim Buddy"
-              width={30}
-              height={30}
-              style={{ width: 30, height: 30, borderRadius: 8, display: "block" }}
-            />
-            <span style={{ fontWeight: 800, letterSpacing: "-0.02em", fontSize: 16 }}>
-              Claim Buddy
-            </span>
-          </a>
-
+          {/* No brand lockup in the header — the nav's "Home" link covers "/". */}
           {!compact && (
-            <nav style={{ display: "flex", gap: 22, margin: "0 auto", alignItems: "center" }}>
+            <nav
+              style={{
+                display: "flex",
+                gap: 22,
+                marginRight: "auto",
+                alignItems: "center",
+              }}
+            >
+
               {NAV.map((n) => (
                 <a
                   key={n.label}
