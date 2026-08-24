@@ -4,9 +4,9 @@ const NAV = [
   { label: "Home", href: "/" },
   { label: "The app", href: "/product" },
   { label: "Gallery", href: "/gallery" },
-  { label: "Pricing", href: "/#pricing" },
-  { label: "Resources", href: "/#resources" },
-  { label: "Blog", href: "/#blog" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Resources", href: "/resources" },
+  { label: "Blog", href: "/blog" },
 ];
 
 function CbButton({
