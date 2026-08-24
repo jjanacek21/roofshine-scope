@@ -54,7 +54,9 @@ export function CbDashboard() {
   const logoUrl = useCbLogoUrl(company?.logo_url);
 
   const [filter, setFilter] = useState<string | null>(null);
+  const [view, setView] = useState<"jobs" | "dispositions">("jobs");
   const [search, setSearch] = useState("");
+
   const [starting, setStarting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<CbJobRow | null>(null);
   const [deleting, setDeleting] = useState(false);
