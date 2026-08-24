@@ -145,8 +145,9 @@ function SurfaceOutlet() {
   }, []);
 
   if (standalone && pathname === "/") {
-    if (loading) return null;
-    if (!user) return <Landing content={rootData?.site ?? EMPTY_SITE_CONTENT} />;
+    // Render the marketing page during the auth check too, so it is fully
+    // server-rendered and crawlable instead of blanking behind a spinner.
+    if (loading || !user) return <Landing content={rootData?.site ?? EMPTY_SITE_CONTENT} />;
     return null;
   }
 
