@@ -14,6 +14,7 @@ import { REF_VIEWS, REF_HEADER, REF_FOOTER } from "./refMarkup";
 import { mountMarketingRef } from "./refRuntime";
 import { SHOTS_DEFAULT } from "./refData";
 import { createImageResolver, BRAND_IMAGES, hasRepoScreen } from "@/lib/site-images";
+import { mediaKeyOf } from "@/lib/site-content.types";
 import type { SiteContent } from "@/lib/site-content.types";
 import "./marketing-ref.css";
 
@@ -36,6 +37,22 @@ export const VIEW_PATHS: Record<string, string> = {
   resources: "/resources",
   blog: "/blog",
 };
+
+/** Friendly labels for the known category slugs; unknown ones get title-cased. */
+const CAT_LABELS: Record<string, string> = {
+  meas: "Measurement",
+  prog: "Review & progress",
+  roof: "Roof takeoff",
+  photos: "Photos",
+  rep: "Report",
+  est: "Estimate",
+  carrier: "Carrier report",
+  pres: "Presentation",
+  auth: "Agreement",
+};
+
+const titleCase = (s: string) =>
+  s.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 const VIEW_ORDER = ["home", "product", "gallery", "pricing", "resources", "blog"];
 
@@ -68,6 +85,8 @@ export default function MarketingRefView({
   navRef.current = navigate;
   const viewRef = useRef(view);
   viewRef.current = view;
+  const catsRef = useRef<string[][]>([]);
+  const catByKeyRef = useRef<Record<string, string>>({});
 
   // Only keys that actually resolve to an image are handed to the runtime; a key
   // with neither a CMS row nor a repo file is dropped rather than rendered broken.
@@ -89,7 +108,28 @@ export default function MarketingRefView({
     };
   })();
 
-  const shotsKey = JSON.stringify(shots) + JSON.stringify(brand);
+  // Gallery filter chips come from the categories actually present in
+  // cb_site_media, so unpublishing the last photo of a category retires its
+  // chip. Falls back to the built-in list when the CMS has no media rows.
+  const { cats, catByKey } = (() => {
+    const catByKey: Record<string, string> = {};
+    const seen: string[] = [];
+    for (const m of content?.media ?? []) {
+      const c = (m.category ?? "").trim();
+      if (!c) continue;
+      catByKey[mediaKeyOf(m.key)] = c;
+      if (!seen.includes(c)) seen.push(c);
+    }
+    const cats = seen.length
+      ? [["all", "All"], ...seen.map((c) => [c, CAT_LABELS[c] ?? titleCase(c)])]
+      : [];
+    return { cats, catByKey };
+  })();
+
+  catsRef.current = cats;
+  catByKeyRef.current = catByKey;
+
+  const shotsKey = JSON.stringify(shots) + JSON.stringify(brand) + JSON.stringify(cats);
 
   useEffect(() => {
     const root = hostRef.current;
@@ -103,6 +143,8 @@ export default function MarketingRefView({
         shots,
         brand,
         initialView: viewRef.current,
+        cats: catsRef.current,
+        catByKey: catByKeyRef.current,
         redirects: REDIRECTS,
         onExternal: (url) => {
           void navRef.current({ to: url });
