@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import PricingPage from "@/pages/marketing/Pricing";
 
-const title = "Claim Buddy pricing — per seat, unlimited inspections";
+const title = "Claim Buddy pricing — Basic, Pro and Elite plans";
 const description =
-  "Claim Buddy Core $99, Pro $149 and GCN Platform $249 per seat per month, with volume discounts up to 25% and 14 days free.";
+  "Basic $99, Pro $149 with AI measurements and the Survival Guide, Elite $249 with Storm Intel and your market price book. Volume discounts to 25%.";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
