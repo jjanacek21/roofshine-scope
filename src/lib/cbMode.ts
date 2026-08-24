@@ -58,6 +58,7 @@ const MARKETING_PATHS = new Set([
   "/resources",
   "/blog",
   "/demo",
+  "/faq",
 ]);
 
 export function isMarketingPath(pathname: string): boolean {
