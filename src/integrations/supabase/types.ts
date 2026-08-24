@@ -4708,6 +4708,9 @@ export type Database = {
       property_dispositions: {
         Row: {
           address: string | null
+          carrier: string | null
+          cb_job_id: string | null
+          claim_number: string | null
           converted_at: string | null
           converted_job_id: string | null
           created_at: string | null
@@ -4717,6 +4720,7 @@ export type Database = {
           customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
+          deductible: number | null
           disposition: Database["public"]["Enums"]["door_disposition"] | null
           id: string
           insurance_claim: boolean | null
@@ -4744,6 +4748,9 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          carrier?: string | null
+          cb_job_id?: string | null
+          claim_number?: string | null
           converted_at?: string | null
           converted_job_id?: string | null
           created_at?: string | null
@@ -4753,6 +4760,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          deductible?: number | null
           disposition?: Database["public"]["Enums"]["door_disposition"] | null
           id?: string
           insurance_claim?: boolean | null
@@ -4780,6 +4788,9 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          carrier?: string | null
+          cb_job_id?: string | null
+          claim_number?: string | null
           converted_at?: string | null
           converted_job_id?: string | null
           created_at?: string | null
@@ -4789,6 +4800,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          deductible?: number | null
           disposition?: Database["public"]["Enums"]["door_disposition"] | null
           id?: string
           insurance_claim?: boolean | null
@@ -7607,6 +7619,9 @@ export type Database = {
         }
         Returns: {
           address: string | null
+          carrier: string | null
+          cb_job_id: string | null
+          claim_number: string | null
           converted_at: string | null
           converted_job_id: string | null
           created_at: string | null
@@ -7616,6 +7631,7 @@ export type Database = {
           customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
+          deductible: number | null
           disposition: Database["public"]["Enums"]["door_disposition"] | null
           id: string
           insurance_claim: boolean | null

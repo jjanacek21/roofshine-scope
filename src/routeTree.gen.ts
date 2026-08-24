@@ -68,6 +68,7 @@ import { Route as CbIndexRouteImport } from './routes/cb.index'
 import { Route as CbAdminRouteImport } from './routes/cb.admin'
 import { Route as CbCompaniesRouteImport } from './routes/cb.companies'
 import { Route as CbLoginRouteImport } from './routes/cb.login'
+import { Route as CbMapRouteImport } from './routes/cb.map'
 import { Route as CbOnboardingRouteImport } from './routes/cb.onboarding'
 import { Route as CbSettingsRouteImport } from './routes/cb.settings'
 import { Route as CbSignupRouteImport } from './routes/cb.signup'
@@ -433,6 +434,11 @@ const CbCompaniesRoute = CbCompaniesRouteImport.update({
 const CbLoginRoute = CbLoginRouteImport.update({
   id: '/cb/login',
   path: '/cb/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbMapRoute = CbMapRouteImport.update({
+  id: '/cb/map',
+  path: '/cb/map',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CbOnboardingRoute = CbOnboardingRouteImport.update({
@@ -850,6 +856,7 @@ export interface FileRoutesByFullPath {
   '/cb/admin': typeof CbAdminRouteWithChildren
   '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
+  '/cb/map': typeof CbMapRoute
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/settings': typeof CbSettingsRoute
   '/cb/signup': typeof CbSignupRoute
@@ -973,6 +980,7 @@ export interface FileRoutesByTo {
   '/c/$slug': typeof CSlugRoute
   '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
+  '/cb/map': typeof CbMapRoute
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/settings': typeof CbSettingsRoute
   '/cb/signup': typeof CbSignupRoute
@@ -1105,6 +1113,7 @@ export interface FileRoutesById {
   '/cb/admin': typeof CbAdminRouteWithChildren
   '/cb/companies': typeof CbCompaniesRoute
   '/cb/login': typeof CbLoginRoute
+  '/cb/map': typeof CbMapRoute
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/settings': typeof CbSettingsRoute
   '/cb/signup': typeof CbSignupRoute
@@ -1239,6 +1248,7 @@ export interface FileRouteTypes {
     | '/cb/admin'
     | '/cb/companies'
     | '/cb/login'
+    | '/cb/map'
     | '/cb/onboarding'
     | '/cb/settings'
     | '/cb/signup'
@@ -1362,6 +1372,7 @@ export interface FileRouteTypes {
     | '/c/$slug'
     | '/cb/companies'
     | '/cb/login'
+    | '/cb/map'
     | '/cb/onboarding'
     | '/cb/settings'
     | '/cb/signup'
@@ -1493,6 +1504,7 @@ export interface FileRouteTypes {
     | '/cb/admin'
     | '/cb/companies'
     | '/cb/login'
+    | '/cb/map'
     | '/cb/onboarding'
     | '/cb/settings'
     | '/cb/signup'
@@ -1597,6 +1609,7 @@ export interface RootRouteChildren {
   CbAdminRoute: typeof CbAdminRouteWithChildren
   CbCompaniesRoute: typeof CbCompaniesRoute
   CbLoginRoute: typeof CbLoginRoute
+  CbMapRoute: typeof CbMapRoute
   CbOnboardingRoute: typeof CbOnboardingRoute
   CbSettingsRoute: typeof CbSettingsRoute
   CbSignupRoute: typeof CbSignupRoute
@@ -2035,6 +2048,13 @@ declare module '@tanstack/react-router' {
       path: '/cb/login'
       fullPath: '/cb/login'
       preLoaderRoute: typeof CbLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/map': {
+      id: '/cb/map'
+      path: '/cb/map'
+      fullPath: '/cb/map'
+      preLoaderRoute: typeof CbMapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cb/onboarding': {
@@ -2839,6 +2859,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbAdminRoute: CbAdminRouteWithChildren,
   CbCompaniesRoute: CbCompaniesRoute,
   CbLoginRoute: CbLoginRoute,
+  CbMapRoute: CbMapRoute,
   CbOnboardingRoute: CbOnboardingRoute,
   CbSettingsRoute: CbSettingsRoute,
   CbSignupRoute: CbSignupRoute,
