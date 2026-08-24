@@ -49,3 +49,8 @@ export function isClaimBuddyPath(pathname: string): boolean {
     pathname.startsWith("/r/")
   );
 }
+
+/** Public marketing pages available on the standalone (gcn.claims) surface. */
+export function isMarketingPath(pathname: string): boolean {
+  return pathname === "/product" || pathname === "/gallery";
+}
