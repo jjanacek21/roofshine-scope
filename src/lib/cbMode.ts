@@ -51,6 +51,15 @@ export function isClaimBuddyPath(pathname: string): boolean {
 }
 
 /** Public marketing pages available on the standalone (gcn.claims) surface. */
+const MARKETING_PATHS = new Set([
+  "/product",
+  "/gallery",
+  "/pricing",
+  "/resources",
+  "/blog",
+  "/demo",
+]);
+
 export function isMarketingPath(pathname: string): boolean {
-  return pathname === "/product" || pathname === "/gallery";
+  return MARKETING_PATHS.has(pathname);
 }

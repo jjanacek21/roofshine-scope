@@ -4,9 +4,9 @@ const NAV = [
   { label: "Home", href: "/" },
   { label: "The app", href: "/product" },
   { label: "Gallery", href: "/gallery" },
-  { label: "Pricing", href: "/#pricing" },
-  { label: "Resources", href: "/#resources" },
-  { label: "Blog", href: "/#blog" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Resources", href: "/resources" },
+  { label: "Blog", href: "/blog" },
 ];
 
 function CbButton({
@@ -196,7 +196,7 @@ export default function MarketingShell({ children }: { children: React.ReactNode
             <CbButton variant="secondary" href="/cb/login">
               Log in
             </CbButton>
-            <CbButton variant="primary" href="/cb/signup">
+            <CbButton variant="primary" href="/demo">
               Book a demo
             </CbButton>
           </div>
@@ -282,17 +282,17 @@ export default function MarketingShell({ children }: { children: React.ReactNode
             links={[
               ["The app", "/product"],
               ["Gallery", "/gallery"],
-              ["Pricing", "/#pricing"],
-              ["Book a demo", "/cb/signup"],
+              ["Pricing", "/pricing"],
+              ["Book a demo", "/demo"],
             ]}
           />
           <FooterCol
             title="Company"
             links={[
               ["About", "/#about"],
-              ["Contact", "/cb/signup"],
-              ["Careers", "/"],
-              ["Blog", "/"],
+              ["Contact", "/demo"],
+              ["Careers", "/blog"],
+              ["Blog", "/blog"],
             ]}
           />
           <FooterCol
