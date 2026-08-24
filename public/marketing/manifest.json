@@ -1,0 +1,39 @@
+{
+  "screens": {
+    "m1_pin": {
+      "src": "/marketing/screens/m1_pin.jpg",
+      "title": "Drop the pin",
+      "caption": "Type the address, confirm the right house on satellite."
+    },
+    "m2_measuring": {
+      "src": "/marketing/screens/m2_measuring.jpg",
+      "title": "Measuring…",
+      "caption": "The roof traces itself from imagery in a few seconds."
+    },
+    "m3_footprint": {
+      "src": "/marketing/screens/m3_footprint.jpg",
+      "title": "One outline per structure",
+      "caption": "House, garage, shed — each gets its own closed outline."
+    },
+    "m4_drawing": {
+      "src": "/marketing/screens/m4_drawing.jpg",
+      "title": "Draw by hand too",
+      "caption": "Tap point to point when the imagery is behind the times."
+    },
+    "m5_lines": {
+      "src": "/marketing/screens/m5_lines.jpg",
+      "title": "Ridges, hips and valleys",
+      "caption": "Draw the interior lines; linear footage updates live."
+    },
+    "m6_label": {
+      "src": "/marketing/screens/m6_label.jpg",
+      "title": "Label each edge",
+      "caption": "Pick a type once, then tap every edge that matches."
+    },
+    "m7_labeled": {
+      "src": "/marketing/screens/m7_labeled.jpg",
+      "title": "Labeled and totaled",
+      "caption": "90.4 squares at 10:12 — ready for the takeoff."
+    }
+  }
+}
