@@ -121,7 +121,7 @@ export default function MarketingRefView({
     for (const m of content?.media ?? []) {
       const c = (m.category ?? "").trim();
       if (!c) continue;
-      catByKey[mediaKeyOf(m.key)] = c;
+      catByKey[mediaKeyOf(m.key)] = c; // normalized key, never array position
       if (!seen.includes(c)) seen.push(c);
     }
     const cats = seen.length

@@ -238,7 +238,8 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
 
   /* ---------- gallery ---------- */
   const GCATS = opts.cats?.length ? opts.cats : CATS;
-  const CATOF = (k: string) => opts.catByKey?.[k] ?? CATMAP[k] ?? "";
+  const norm = (k: string) => k.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const CATOF = (k: string) => opts.catByKey?.[norm(k)] ?? CATMAP[k] ?? "";
   setHTML(
     "#gfilter",
     GCATS.map(
