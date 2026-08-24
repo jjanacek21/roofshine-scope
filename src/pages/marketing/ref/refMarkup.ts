@@ -366,7 +366,7 @@ export const REF_VIEWS: Record<string, string> = {
       <!-- survival guide feature -->
       <div class="grid g2 rv" style="gap:44px;align-items:center;margin-top:10px">
         <div class="stack g20">
-          <div class="row"><span class="chip chip-a">Included in every tier</span></div>
+          <div class="row"><span class="chip chip-a">Included in Pro and Elite</span></div>
           <h2 style="font-size:clamp(1.5rem,2.6vw,2.1rem)">The Blue Collar Sales Survival Guide</h2>
           <p class="lead" style="font-size:1rem">A living workspace, not a course. Reps search it mid-conversation
             — at the door, on the roof, at the kitchen table — and add their own field notes back into it
