@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as ProductRouteImport } from './routes/product'
 import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -157,6 +159,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GalleryRoute = GalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -165,6 +172,11 @@ const LoginRoute = LoginRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductRoute = ProductRouteImport.update({
+  id: '/product',
+  path: '/product',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileSetupRoute = ProfileSetupRouteImport.update({
@@ -815,8 +827,10 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
+  '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/product': typeof ProductRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
@@ -947,8 +961,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
+  '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/product': typeof ProductRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
@@ -1076,8 +1092,10 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
+  '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/product': typeof ProductRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
@@ -1213,8 +1231,10 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/forgot-password'
+    | '/gallery'
     | '/login'
     | '/onboarding'
+    | '/product'
     | '/profile-setup'
     | '/reset-password'
     | '/signup'
@@ -1345,8 +1365,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/forgot-password'
+    | '/gallery'
     | '/login'
     | '/onboarding'
+    | '/product'
     | '/profile-setup'
     | '/reset-password'
     | '/signup'
@@ -1473,8 +1495,10 @@ export interface FileRouteTypes {
     | '/_app'
     | '/admin'
     | '/forgot-password'
+    | '/gallery'
     | '/login'
     | '/onboarding'
+    | '/product'
     | '/profile-setup'
     | '/reset-password'
     | '/signup'
@@ -1609,8 +1633,10 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  GalleryRoute: typeof GalleryRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  ProductRoute: typeof ProductRoute
   ProfileSetupRoute: typeof ProfileSetupRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
@@ -1684,6 +1710,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/gallery': {
+      id: '/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -1696,6 +1729,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product': {
+      id: '/product'
+      path: '/product'
+      fullPath: '/product'
+      preLoaderRoute: typeof ProductRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile-setup': {
@@ -2875,8 +2915,10 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  GalleryRoute: GalleryRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  ProductRoute: ProductRoute,
   ProfileSetupRoute: ProfileSetupRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,

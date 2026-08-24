@@ -13,7 +13,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/marketing/Landing";
 import { CbSessionProvider } from "@/components/auth/CbSessionProvider";
 import { CbCompanyProvider } from "@/components/auth/CbCompanyProvider";
-import { getSurface, isClaimBuddyPath } from "@/lib/cbMode";
+import { getSurface, isClaimBuddyPath, isMarketingPath } from "@/lib/cbMode";
 import { getRequestHostname, resolveSurfaceFromHost, surfaceMeta } from "@/lib/surfaceHead";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -111,7 +111,7 @@ function StandaloneGate() {
 
   useEffect(() => {
     if (getSurface() !== "standalone") return;
-    if (isClaimBuddyPath(pathname)) return;
+    if (isClaimBuddyPath(pathname) || isMarketingPath(pathname)) return;
     if (pathname === "/" && (loading || !user)) return;
     navigate({ to: "/cb", replace: true });
   }, [pathname, navigate, user, loading]);

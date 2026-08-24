@@ -1,39 +1,211 @@
 {
+  "categories": {
+    "measurement": "Measurement",
+    "review": "Review & progress",
+    "takeoff": "Roof takeoff",
+    "photos": "Photos",
+    "report": "Report",
+    "estimate": "Estimate",
+    "presentation": "Presentation",
+    "authorization": "Authorization",
+    "carrier": "Carrier report"
+  },
   "screens": {
     "m1_pin": {
       "src": "/marketing/screens/m1_pin.jpg",
       "title": "Drop the pin",
-      "caption": "Type the address, confirm the right house on satellite."
+      "caption": "Type the address, confirm the right house on satellite.",
+      "category": "measurement",
+      "shape": "phone"
     },
     "m2_measuring": {
       "src": "/marketing/screens/m2_measuring.jpg",
-      "title": "Measuring…",
-      "caption": "The roof traces itself from imagery in a few seconds."
+      "title": "Measuring\u2026",
+      "caption": "The roof traces itself from imagery in a few seconds.",
+      "category": "measurement",
+      "shape": "phone"
     },
     "m3_footprint": {
       "src": "/marketing/screens/m3_footprint.jpg",
       "title": "One outline per structure",
-      "caption": "House, garage, shed — each gets its own closed outline."
+      "caption": "House, garage, shed \u2014 each gets its own closed outline.",
+      "category": "measurement",
+      "shape": "phone"
     },
     "m4_drawing": {
       "src": "/marketing/screens/m4_drawing.jpg",
       "title": "Draw by hand too",
-      "caption": "Tap point to point when the imagery is behind the times."
+      "caption": "Tap point to point when the imagery is behind the times.",
+      "category": "measurement",
+      "shape": "phone"
     },
     "m5_lines": {
       "src": "/marketing/screens/m5_lines.jpg",
       "title": "Ridges, hips and valleys",
-      "caption": "Draw the interior lines; linear footage updates live."
+      "caption": "Draw the interior lines; linear footage updates live.",
+      "category": "measurement",
+      "shape": "phone"
     },
     "m6_label": {
       "src": "/marketing/screens/m6_label.jpg",
       "title": "Label each edge",
-      "caption": "Pick a type once, then tap every edge that matches."
+      "caption": "Pick a type once, then tap every edge that matches.",
+      "category": "measurement",
+      "shape": "phone"
     },
     "m7_labeled": {
       "src": "/marketing/screens/m7_labeled.jpg",
       "title": "Labeled and totaled",
-      "caption": "90.4 squares at 10:12 — ready for the takeoff."
+      "caption": "90.4 squares at 10:12 \u2014 ready for the takeoff.",
+      "category": "measurement",
+      "shape": "phone"
+    },
+    "progress": {
+      "src": "/marketing/screens/progress.jpg",
+      "title": "One progress list",
+      "caption": "Roof, exterior and interior in a single counter.",
+      "category": "review",
+      "shape": "phone"
+    },
+    "wideshots": {
+      "src": "/marketing/screens/wideshots.jpg",
+      "title": "Elevation wide shots",
+      "caption": "One wide shot per elevation, prompted in order.",
+      "category": "photos",
+      "shape": "phone"
+    },
+    "ph_1": {
+      "src": "/marketing/screens/ph_1.jpg",
+      "title": "Photo documentation",
+      "caption": "Every photo tagged to the slope it came from.",
+      "category": "photos",
+      "shape": "phone"
+    },
+    "ex_1": {
+      "src": "/marketing/screens/ex_1.jpg",
+      "title": "Four elevations",
+      "caption": "North, east, south and west, captured in sequence.",
+      "category": "photos",
+      "shape": "phone"
+    },
+    "ex_2": {
+      "src": "/marketing/screens/ex_2.jpg",
+      "title": "Interior room by room",
+      "caption": "Ceilings and walls \u2014 skipped rooms print as not inspected.",
+      "category": "photos",
+      "shape": "phone"
+    },
+    "tk_1": {
+      "src": "/marketing/screens/tk_1.jpg",
+      "title": "Takeoff quantities",
+      "caption": "Drip edge, ridge, hip and valley auto-fill from the measurement.",
+      "category": "takeoff",
+      "shape": "phone"
+    },
+    "tk_2": {
+      "src": "/marketing/screens/tk_2.jpg",
+      "title": "Expanded categories",
+      "caption": "Accessories and flashing without leaving the screen.",
+      "category": "takeoff",
+      "shape": "phone"
+    },
+    "rb_cover": {
+      "src": "/marketing/screens/rb_cover.jpg",
+      "title": "Damage report cover",
+      "caption": "Property, claim and inspection date on page one.",
+      "category": "report",
+      "shape": "paper"
+    },
+    "rb_1": {
+      "src": "/marketing/screens/rb_1.jpg",
+      "title": "Findings and photos",
+      "caption": "The damage written up next to the photos that prove it.",
+      "category": "report",
+      "shape": "paper"
+    },
+    "es_1": {
+      "src": "/marketing/screens/es_1.jpg",
+      "title": "Line item estimate",
+      "caption": "Edit any quantity \u2014 your edits stick through a recalculation.",
+      "category": "estimate",
+      "shape": "phone"
+    },
+    "pr_1": {
+      "src": "/marketing/screens/pr_1.jpg",
+      "title": "Presentation mode",
+      "caption": "Walk the homeowner through the numbers on a tablet.",
+      "category": "presentation",
+      "shape": "phone"
+    },
+    "au_1": {
+      "src": "/marketing/screens/au_1.jpg",
+      "title": "Authorization",
+      "caption": "Scope, price and signature captured at the table.",
+      "category": "authorization",
+      "shape": "phone"
+    },
+    "cr_1": {
+      "src": "/marketing/screens/cr_1.jpg",
+      "title": "Damage report",
+      "caption": "Start from the damage you just documented.",
+      "category": "carrier",
+      "shape": "phone"
+    },
+    "cr_2": {
+      "src": "/marketing/screens/cr_2.jpg",
+      "title": "Tap Estimate",
+      "caption": "One tap from the report to the estimate.",
+      "category": "carrier",
+      "shape": "phone"
+    },
+    "cr_3": {
+      "src": "/marketing/screens/cr_3.jpg",
+      "title": "Choose the pricing mode",
+      "caption": "Price per square, or full line item carrier style.",
+      "category": "carrier",
+      "shape": "phone"
+    },
+    "cr_4": {
+      "src": "/marketing/screens/cr_4.jpg",
+      "title": "Pull from the price book",
+      "caption": "Regional pricing, Xactimate-coded line items.",
+      "category": "carrier",
+      "shape": "phone"
+    },
+    "cr_5": {
+      "src": "/marketing/screens/cr_5.jpg",
+      "title": "Carrier estimate \u2014 page 1",
+      "caption": "Header, claim and property information.",
+      "category": "carrier",
+      "shape": "paper"
+    },
+    "cr_6": {
+      "src": "/marketing/screens/cr_6.jpg",
+      "title": "Carrier estimate \u2014 page 2",
+      "caption": "Line items with quantity, unit price, tax and RCV.",
+      "category": "carrier",
+      "shape": "paper"
+    },
+    "cr_7": {
+      "src": "/marketing/screens/cr_7.jpg",
+      "title": "Carrier estimate \u2014 page 3",
+      "caption": "Continued line items and section subtotals.",
+      "category": "carrier",
+      "shape": "paper"
+    },
+    "cr_8": {
+      "src": "/marketing/screens/cr_8.jpg",
+      "title": "Carrier estimate \u2014 page 4",
+      "caption": "RCV, depreciation, deductible and ACV summary.",
+      "category": "carrier",
+      "shape": "paper"
+    },
+    "cr_9": {
+      "src": "/marketing/screens/cr_9.jpg",
+      "title": "Carrier estimate \u2014 page 5",
+      "caption": "Roof diagram and signature page.",
+      "category": "carrier",
+      "shape": "paper"
     }
   }
 }
