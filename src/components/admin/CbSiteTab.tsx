@@ -421,6 +421,7 @@ function BlockRowCard({
 
 type MediaRow = {
   id: string;
+  media_key: string;
   storage_path: string;
   title: string;
   caption: string | null;
@@ -429,11 +430,108 @@ type MediaRow = {
   is_published: boolean;
 };
 
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const MAX_EDGE = 900;
+
+/** media_key = filename minus extension, lowercased. Stable across re-uploads. */
+function mediaKeyFromFilename(name: string) {
+  return (
+    name
+      .replace(/\.[^.]+$/, "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9._-]/g, "-")
+      .replace(/^-+|-+$/g, "") || "image"
+  );
+}
+
+/** Downscale to 900px on the long edge and encode WebP (JPEG where WebP is unsupported). */
+async function shrinkImage(file: File): Promise<File> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+  const w = Math.max(1, Math.round(bitmap.width * scale));
+  const h = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return file;
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close?.();
+
+  let blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/webp", 0.85));
+  let ext = "webp";
+  let type = "image/webp";
+  if (!blob || blob.type !== "image/webp") {
+    blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.86));
+    ext = "jpg";
+    type = "image/jpeg";
+  }
+  if (!blob) return file;
+  return new File([blob], `${mediaKeyFromFilename(file.name)}.${ext}`, { type });
+}
+
+type ManifestEntry = { title?: string; caption?: string; category?: string };
+type Manifest = Record<string, ManifestEntry>;
+
+/** Accepts { key: {...} } or { items: [{ media_key, ... }] }. */
+function parseManifest(raw: unknown): Manifest {
+  const out: Manifest = {};
+  const take = (key: string, v: Record<string, unknown>) => {
+    out[key.toLowerCase()] = {
+      title: typeof v.title === "string" ? v.title : undefined,
+      caption: typeof v.caption === "string" ? v.caption : undefined,
+      category: typeof v.category === "string" ? v.category : undefined,
+    };
+  };
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      if (item && typeof item === "object") {
+        const v = item as Record<string, unknown>;
+        const k = typeof v.media_key === "string" ? v.media_key : typeof v.file === "string" ? mediaKeyFromFilename(v.file) : null;
+        if (k) take(k, v);
+      }
+    }
+    return out;
+  }
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    if (Array.isArray(obj.items)) return parseManifest(obj.items);
+    for (const [k, v] of Object.entries(obj)) {
+      if (v && typeof v === "object") take(mediaKeyFromFilename(k), v as Record<string, unknown>);
+    }
+  }
+  return out;
+}
+
+type QueueState = "queued" | "resizing" | "uploading" | "replaced" | "added" | "failed" | "skipped";
+type QueueItem = {
+  name: string;
+  media_key: string;
+  state: QueueState;
+  detail?: string;
+  path?: string;
+};
+
+const STATE_LABEL: Record<QueueState, string> = {
+  queued: "Queued",
+  resizing: "Resizing",
+  uploading: "Uploading",
+  replaced: "Replaced",
+  added: "Added",
+  failed: "Failed",
+  skipped: "Skipped",
+};
+
 function PhotosTab() {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [dragOver, setDragOver] = useState(false);
+  const [dragRow, setDragRow] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const [uploadCategory, setUploadCategory] = useState("measurement");
+  const [uploadCategory, setUploadCategory] = useState("other");
 
   const { data: media = [], isLoading } = useQuery({
     queryKey: ["cb-site-media"],
@@ -450,47 +548,160 @@ function PhotosTab() {
 
   const refresh = () => void qc.invalidateQueries({ queryKey: ["cb-site-media"] });
 
-  async function onFiles(files: FileList | null) {
-    if (!files?.length) return;
+  function setItem(i: number, patchItem: Partial<QueueItem>) {
+    setQueue((q) => q.map((it, idx) => (idx === i ? { ...it, ...patchItem } : it)));
+  }
+
+  async function ingest(fileList: File[]) {
+    if (!fileList.length) return;
     setBusy(true);
-    let added = 0;
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith("image/")) {
-        toast.error(`${file.name}: not an image`);
-        continue;
-      }
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error(`${file.name}: over 2 MB`);
-        continue;
-      }
+
+    // Optional manifest.json dropped alongside the images.
+    let manifest: Manifest = {};
+    const manifestFile = fileList.find((f) => f.name.toLowerCase() === "manifest.json");
+    if (manifestFile) {
       try {
-        const small = await downscale(file);
-        const path = `media/${Date.now()}-${slugName(small.name)}`;
-        const up = await supabase.storage.from(BUCKET).upload(path, small, {
-          contentType: small.type,
-          upsert: false,
-        });
-        if (up.error) throw new Error(up.error.message);
-        const maxSort = Math.max(
-          0,
-          ...media.filter((m) => m.category === uploadCategory).map((m) => m.sort_order),
-        );
-        const { error } = await supabase.from("cb_site_media").insert({
-          storage_path: path,
-          title: small.name.replace(/\.[^.]+$/, ""),
-          category: uploadCategory,
-          sort_order: maxSort + 1,
-        } as never);
-        if (error) throw new Error(error.message);
-        added += 1;
+        manifest = parseManifest(JSON.parse(await manifestFile.text()));
+        toast.success(`Manifest read — ${Object.keys(manifest).length} entries`);
       } catch (e) {
-        toast.error(`${file.name}: ${(e as Error).message}`);
+        toast.error(`manifest.json: ${(e as Error).message}`);
       }
     }
+
+    const images = fileList.filter((f) => f !== manifestFile);
+    setQueue(
+      images.map((f) => ({
+        name: f.name,
+        media_key: mediaKeyFromFilename(f.name),
+        state: "queued" as QueueState,
+      })),
+    );
+
+    // Fresh snapshot so replace-in-place is decided against current rows.
+    const { data: existingRows } = await supabase.from("cb_site_media").select("*");
+    const byKey = new Map<string, MediaRow>();
+    for (const r of (existingRows ?? []) as unknown as MediaRow[]) byKey.set(r.media_key, r);
+    const nextSort = new Map<string, number>();
+    for (const r of (existingRows ?? []) as unknown as MediaRow[]) {
+      nextSort.set(r.category, Math.max(nextSort.get(r.category) ?? 0, r.sort_order));
+    }
+
+    let added = 0;
+    let replaced = 0;
+    let failed = 0;
+
+    for (let i = 0; i < images.length; i++) {
+      const file = images[i];
+      const key = mediaKeyFromFilename(file.name);
+
+      if (!file.type.startsWith("image/")) {
+        setItem(i, { state: "skipped", detail: "not an image" });
+        continue;
+      }
+      if (file.size > MAX_UPLOAD_BYTES) {
+        setItem(i, { state: "skipped", detail: "over 5 MB" });
+        continue;
+      }
+
+      try {
+        setItem(i, { state: "resizing" });
+        const small = await shrinkImage(file);
+
+        setItem(i, { state: "uploading" });
+        const path = `media/${key}-${Date.now()}.${small.name.split(".").pop()}`;
+        const up = await supabase.storage
+          .from(BUCKET)
+          .upload(path, small, { contentType: small.type, upsert: false });
+        if (up.error) throw new Error(up.error.message);
+
+        const meta = manifest[key] ?? {};
+        const existing = byKey.get(key);
+
+        if (existing) {
+          // Same key, same row, new file.
+          const { error } = await supabase
+            .from("cb_site_media")
+            .update({
+              storage_path: path,
+              ...(meta.title ? { title: meta.title } : {}),
+              ...(meta.caption !== undefined ? { caption: meta.caption } : {}),
+              ...(meta.category ? { category: meta.category } : {}),
+            } as never)
+            .eq("id", existing.id);
+          if (error) throw new Error(error.message);
+          if (existing.storage_path && existing.storage_path !== path) {
+            await supabase.storage.from(BUCKET).remove([existing.storage_path]);
+          }
+          byKey.set(key, { ...existing, storage_path: path });
+          replaced += 1;
+          setItem(i, { state: "replaced", path });
+        } else {
+          const category = meta.category ?? uploadCategory;
+          const sort = (nextSort.get(category) ?? 0) + 1;
+          nextSort.set(category, sort);
+          const { data: inserted, error } = await supabase
+            .from("cb_site_media")
+            .insert({
+              media_key: key,
+              storage_path: path,
+              title: meta.title ?? file.name.replace(/\.[^.]+$/, ""),
+              caption: meta.caption ?? null,
+              category,
+              sort_order: sort,
+            } as never)
+            .select("*")
+            .single();
+          if (error) throw new Error(error.message);
+          byKey.set(key, inserted as unknown as MediaRow);
+          added += 1;
+          setItem(i, { state: "added", path });
+        }
+      } catch (e) {
+        failed += 1;
+        setItem(i, { state: "failed", detail: (e as Error).message });
+      }
+    }
+
     setBusy(false);
     if (fileRef.current) fileRef.current.value = "";
-    if (added) toast.success(`${added} image${added > 1 ? "s" : ""} uploaded`);
+    toast[failed ? "warning" : "success"](
+      `${added} added · ${replaced} replaced${failed ? ` · ${failed} failed` : ""}`,
+    );
     refresh();
+  }
+
+  async function replaceOne(row: MediaRow, file: File) {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Not an image");
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      toast.error("Over 5 MB");
+      return;
+    }
+    setBusy(true);
+    try {
+      const small = await shrinkImage(file);
+      const path = `media/${row.media_key}-${Date.now()}.${small.name.split(".").pop()}`;
+      const up = await supabase.storage
+        .from(BUCKET)
+        .upload(path, small, { contentType: small.type, upsert: false });
+      if (up.error) throw new Error(up.error.message);
+      const { error } = await supabase
+        .from("cb_site_media")
+        .update({ storage_path: path } as never)
+        .eq("id", row.id);
+      if (error) throw new Error(error.message);
+      if (row.storage_path && row.storage_path !== path) {
+        await supabase.storage.from(BUCKET).remove([row.storage_path]);
+      }
+      toast.success(`Replaced ${row.media_key}`);
+      refresh();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function patch(id: string, values: Record<string, unknown>) {
@@ -514,15 +725,29 @@ function PhotosTab() {
     }
   }
 
-  async function move(row: MediaRow, dir: -1 | 1) {
+  /** Drag one card onto another inside the same category to reorder. */
+  async function dropOn(target: MediaRow) {
+    const sourceId = dragRow;
+    setDragRow(null);
+    if (!sourceId || sourceId === target.id) return;
     const group = media
-      .filter((m) => m.category === row.category)
+      .filter((m) => m.category === target.category)
       .sort((a, b) => a.sort_order - b.sort_order);
-    const i = group.findIndex((m) => m.id === row.id);
-    const j = i + dir;
-    if (j < 0 || j >= group.length) return;
-    await patch(row.id, { sort_order: group[j].sort_order });
-    await patch(group[j].id, { sort_order: row.sort_order });
+    const from = group.findIndex((m) => m.id === sourceId);
+    const to = group.findIndex((m) => m.id === target.id);
+    if (from < 0 || to < 0) return;
+    const reordered = [...group];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+    for (let i = 0; i < reordered.length; i++) {
+      if (reordered[i].sort_order !== i + 1) {
+        await supabase
+          .from("cb_site_media")
+          .update({ sort_order: i + 1 } as never)
+          .eq("id", reordered[i].id);
+      }
+    }
+    refresh();
   }
 
   const grouped = useMemo(() => {
@@ -532,39 +757,88 @@ function PhotosTab() {
       list.push(m);
       map.set(m.category, list);
     }
+    for (const list of map.values()) list.sort((a, b) => a.sort_order - b.sort_order);
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   }, [media]);
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3">
-        <Select value={uploadCategory} onValueChange={setUploadCategory}>
-          <SelectTrigger className="w-[190px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {MEDIA_CATEGORIES.map((c) => (
-              <SelectItem key={c} value={c} className="capitalize">
-                {c}
-              </SelectItem>
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          void ingest(Array.from(e.dataTransfer.files ?? []));
+        }}
+        className={`rounded-xl border-2 border-dashed p-5 transition-colors ${
+          dragOver ? "border-primary bg-primary/5" : "border-border bg-card"
+        }`}
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <Upload className="h-5 w-5 text-muted-foreground" />
+          <div className="min-w-[220px] flex-1">
+            <p className="text-sm font-medium">Drop images here — as many as you like</p>
+            <p className="text-xs text-muted-foreground">
+              Images only, max 5 MB each. Resized to 900px on the long edge and converted to WebP
+              before upload. The filename becomes the media key, so re-uploading the same filename
+              replaces that image in place. Drop a manifest.json alongside to set titles, captions
+              and categories.
+            </p>
+          </div>
+          <Select value={uploadCategory} onValueChange={setUploadCategory}>
+            <SelectTrigger className="w-[170px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MEDIA_CATEGORIES.map((c) => (
+                <SelectItem key={c} value={c} className="capitalize">
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,application/json"
+            multiple
+            className="hidden"
+            onChange={(e) => void ingest(Array.from(e.target.files ?? []))}
+          />
+          <Button onClick={() => fileRef.current?.click()} disabled={busy}>
+            {busy ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
+            Choose files
+          </Button>
+        </div>
+
+        {queue.length ? (
+          <div className="mt-4 max-h-64 space-y-1 overflow-auto rounded-lg border border-border bg-background p-2">
+            {queue.map((q, i) => (
+              <div key={`${q.name}-${i}`} className="flex items-center gap-2 text-xs">
+                <span className="w-24 shrink-0 font-mono text-[11px] text-muted-foreground">
+                  {STATE_LABEL[q.state]}
+                </span>
+                <span className="truncate font-mono">{q.media_key}</span>
+                <span className="ml-auto truncate pl-2 text-muted-foreground">
+                  {q.detail ?? q.path ?? ""}
+                </span>
+              </div>
             ))}
-          </SelectContent>
-        </Select>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => void onFiles(e.target.files)}
-        />
-        <Button onClick={() => fileRef.current?.click()} disabled={busy}>
-          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-          Upload images
-        </Button>
-        <span className="text-xs text-muted-foreground">
-          Max 2 MB each, images only. Downscaled to 900px on the long edge before upload.
-        </span>
+            <div className="flex justify-end pt-1">
+              <Button size="sm" variant="ghost" onClick={() => setQueue([])}>
+                Clear list
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {isLoading ? (
@@ -581,10 +855,25 @@ function PhotosTab() {
             </h3>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {rows.map((row) => (
-                <div key={row.id} className="rounded-xl border border-border bg-card p-3">
+                <div
+                  key={row.id}
+                  draggable
+                  onDragStart={() => setDragRow(row.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    void dropOn(row);
+                  }}
+                  className={`rounded-xl border bg-card p-3 ${
+                    dragRow === row.id ? "border-primary" : "border-border"
+                  }`}
+                >
                   <div className="flex gap-3">
                     <Thumb path={row.storage_path} className="h-20 w-28 rounded-md" />
                     <div className="min-w-0 flex-1 space-y-2">
+                      <Badge variant="secondary" className="font-mono text-[10px]">
+                        {row.media_key}
+                      </Badge>
                       <Input
                         defaultValue={row.title}
                         onBlur={(e) =>
@@ -614,12 +903,7 @@ function PhotosTab() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button size="sm" variant="outline" onClick={() => void move(row, -1)} aria-label="Move up">
-                      <ArrowUp className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => void move(row, 1)} aria-label="Move down">
-                      <ArrowDown className="h-3.5 w-3.5" />
-                    </Button>
+                    <ReplaceButton row={row} onFile={(f) => void replaceOne(row, f)} />
                     <Button
                       size="sm"
                       variant={row.is_published ? "secondary" : "outline"}
@@ -638,6 +922,33 @@ function PhotosTab() {
         ))
       )}
     </div>
+  );
+}
+
+function ReplaceButton({ row, onFile }: { row: MediaRow; onFile: (file: File) => void }) {
+  const ref = useRef<HTMLInputElement | null>(null);
+  return (
+    <>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onFile(f);
+          e.target.value = "";
+        }}
+      />
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => ref.current?.click()}
+        aria-label={`Replace image for ${row.media_key}`}
+      >
+        <RefreshCw className="mr-1 h-3.5 w-3.5" /> Replace
+      </Button>
+    </>
   );
 }
 
