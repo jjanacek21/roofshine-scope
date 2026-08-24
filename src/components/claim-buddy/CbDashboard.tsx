@@ -36,7 +36,24 @@ function statusMeta(value: string | null) {
   return STATUSES.find((s) => s.value === value) ?? { value: value ?? "draft", label: value ?? "Draft", tone: "neutral" as const };
 }
 
+function dispositionLabel(value: string | null) {
+  if (!value) return "Not contacted";
+  return value.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+}
+
+interface CbDispositionRow {
+  id: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+  disposition: string | null;
+  customer_name: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
 interface CbJobRow {
+
   id: string;
   address: string | null;
   customer_name: string | null;
