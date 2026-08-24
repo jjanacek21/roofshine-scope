@@ -11,13 +11,17 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as BlogRouteImport } from './routes/blog'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ProductRouteImport } from './routes/product'
 import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppCardRouteImport } from './routes/_app.card'
@@ -154,6 +158,16 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
@@ -174,6 +188,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductRoute = ProductRouteImport.update({
   id: '/product',
   path: '/product',
@@ -187,6 +206,11 @@ const ProfileSetupRoute = ProfileSetupRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResourcesRoute = ResourcesRouteImport.update({
+  id: '/resources',
+  path: '/resources',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -826,13 +850,17 @@ const CbJobIdTakeoffRoute = CbJobIdTakeoffRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/blog': typeof BlogRoute
+  '/demo': typeof DemoRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
   '/product': typeof ProductRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/resources': typeof ResourcesRoute
   '/signup': typeof SignupRoute
   '/card': typeof AppCardRoute
   '/claim-buddy': typeof AppClaimBuddyRoute
@@ -960,13 +988,17 @@ export interface FileRoutesByFullPath {
   '/jobs/$id/': typeof AppJobsIdIndexRoute
 }
 export interface FileRoutesByTo {
+  '/blog': typeof BlogRoute
+  '/demo': typeof DemoRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
   '/product': typeof ProductRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/resources': typeof ResourcesRoute
   '/signup': typeof SignupRoute
   '/card': typeof AppCardRoute
   '/claim-buddy': typeof AppClaimBuddyRoute
@@ -1091,13 +1123,17 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/blog': typeof BlogRoute
+  '/demo': typeof DemoRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
   '/product': typeof ProductRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/resources': typeof ResourcesRoute
   '/signup': typeof SignupRoute
   '/_app/card': typeof AppCardRoute
   '/_app/claim-buddy': typeof AppClaimBuddyRoute
@@ -1230,13 +1266,17 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/blog'
+    | '/demo'
     | '/forgot-password'
     | '/gallery'
     | '/login'
     | '/onboarding'
+    | '/pricing'
     | '/product'
     | '/profile-setup'
     | '/reset-password'
+    | '/resources'
     | '/signup'
     | '/card'
     | '/claim-buddy'
@@ -1364,13 +1404,17 @@ export interface FileRouteTypes {
     | '/jobs/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/blog'
+    | '/demo'
     | '/forgot-password'
     | '/gallery'
     | '/login'
     | '/onboarding'
+    | '/pricing'
     | '/product'
     | '/profile-setup'
     | '/reset-password'
+    | '/resources'
     | '/signup'
     | '/card'
     | '/claim-buddy'
@@ -1494,13 +1538,17 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/admin'
+    | '/blog'
+    | '/demo'
     | '/forgot-password'
     | '/gallery'
     | '/login'
     | '/onboarding'
+    | '/pricing'
     | '/product'
     | '/profile-setup'
     | '/reset-password'
+    | '/resources'
     | '/signup'
     | '/_app/card'
     | '/_app/claim-buddy'
@@ -1632,13 +1680,17 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
+  BlogRoute: typeof BlogRoute
+  DemoRoute: typeof DemoRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   GalleryRoute: typeof GalleryRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  PricingRoute: typeof PricingRoute
   ProductRoute: typeof ProductRoute
   ProfileSetupRoute: typeof ProfileSetupRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ResourcesRoute: typeof ResourcesRoute
   SignupRoute: typeof SignupRoute
   ApiAnalyzeJobPhotosRoute: typeof ApiAnalyzeJobPhotosRoute
   ApiAnalyzePropertyRoute: typeof ApiAnalyzePropertyRoute
@@ -1703,6 +1755,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/forgot-password': {
       id: '/forgot-password'
       path: '/forgot-password'
@@ -1731,6 +1797,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/product': {
       id: '/product'
       path: '/product'
@@ -1750,6 +1823,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resources': {
+      id: '/resources'
+      path: '/resources'
+      fullPath: '/resources'
+      preLoaderRoute: typeof ResourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -2914,13 +2994,17 @@ const CbAdminRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
+  BlogRoute: BlogRoute,
+  DemoRoute: DemoRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   GalleryRoute: GalleryRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  PricingRoute: PricingRoute,
   ProductRoute: ProductRoute,
   ProfileSetupRoute: ProfileSetupRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ResourcesRoute: ResourcesRoute,
   SignupRoute: SignupRoute,
   ApiAnalyzeJobPhotosRoute: ApiAnalyzeJobPhotosRoute,
   ApiAnalyzePropertyRoute: ApiAnalyzePropertyRoute,
