@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import FaqAccordion, { faqJsonLd } from "@/components/marketing/FaqAccordion";
+import { Link } from "@tanstack/react-router";
 import {
   EMPTY_SITE_CONTENT,
   arr,
@@ -476,6 +478,8 @@ export default function HomeSections({
   const ctaBlock = blockOf(content, "cta");
   const ctaPrimary = obj(ctaBlock, "primary_cta", { href: "/cb/signup", label: "Book a demo" });
   const ctaSecondary = obj(ctaBlock, "secondary_cta", { href: "/#pricing", label: "See pricing" });
+  const faqBlock = blockOf(content, "faq");
+  const faqLd = faqJsonLd(content.faq);
   const [lb, setLb] = useState<string | null>(null);
   const open = useCallback((src: string) => setLb(src), []);
   const quote = useRevealGroup<HTMLElement>();
@@ -513,6 +517,30 @@ export default function HomeSections({
       <Section id="about" style={{ background: "var(--cb-surface-2)" }}>
         {(v) => <AboutSection inView={v} content={content} />}
       </Section>
+
+      {content.faq.length > 0 && (
+        <section className="mkt-sec" id="faq" style={{ background: "var(--cb-surface-2)" }}>
+          <div className="mkt-sec__in">
+            <div className="mkt-eyebrow">{str(faqBlock, "eyebrow", "Questions")}</div>
+            <h2 className="mkt-h2" style={{ marginBottom: 22 }}>
+              {str(faqBlock, "heading", "The things reps ask before they switch")}
+            </h2>
+            <FaqAccordion items={content.faq} />
+            <div style={{ marginTop: 22 }}>
+              <Link
+                to="/faq"
+                style={{ color: "var(--cb-accent)", fontWeight: 700, textDecoration: "none" }}
+              >
+                See every question →
+              </Link>
+            </div>
+          </div>
+          {/* Same rows as the accordion, emitted as FAQPage structured data. */}
+          {faqLd && (
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqLd }} />
+          )}
+        </section>
+      )}
 
       <section className="mkt-close" ref={close.ref as React.Ref<HTMLElement>}>
         <div className="mkt-sec__in">

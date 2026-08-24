@@ -89,3 +89,39 @@ export function mediaKeyOf(path: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
 }
+
+/* ------------------------------------------------------------------ */
+/* Video source handling — a card can be published before the footage  */
+/* exists, so the thumbnail and the source are always separate fields. */
+/* ------------------------------------------------------------------ */
+
+export type VideoSource =
+  | { kind: "none" }
+  | { kind: "file"; src: string }
+  | { kind: "embed"; src: string };
+
+/** Detects YouTube/Vimeo links (rendered in an iframe) vs a direct file URL. */
+export function videoSourceOf(url: string | null | undefined): VideoSource {
+  const raw = (url ?? "").trim();
+  if (!raw) return { kind: "none" };
+
+  const yt =
+    raw.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/i)?.[1];
+  if (yt) return { kind: "embed", src: `https://www.youtube.com/embed/${yt}?autoplay=1&rel=0` };
+
+  const vimeo = raw.match(/vimeo\.com\/(?:video\/)?(\d+)/i)?.[1];
+  if (vimeo) return { kind: "embed", src: `https://player.vimeo.com/video/${vimeo}?autoplay=1` };
+
+  if (/player\.vimeo\.com|youtube\.com\/embed|\/embed\//i.test(raw)) {
+    return { kind: "embed", src: raw };
+  }
+  return { kind: "file", src: raw };
+}
+
+/** 214 -> "3:34". Returns null when the duration is unknown. */
+export function formatDuration(seconds: number | null | undefined): string | null {
+  if (!seconds || seconds <= 0) return null;
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
