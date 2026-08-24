@@ -2,6 +2,13 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getSurface, type CbSurface } from "@/lib/cbMode";
+import {
+  cbResolveFeatures,
+  cbTierDefaults,
+  type CbFeature,
+  type CbFeatureMap,
+  type CbTier,
+} from "@/lib/cbFeatures";
 
 export interface CbWorkspace {
   id: string;
@@ -119,10 +126,25 @@ export function CbSessionProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const tier: CbTier = (workspace?.tier as CbTier) ?? "basic";
+  /* Platform (GlobalContractor) workspaces are internal — never gated. */
+  const features: CbFeatureMap =
+    !workspace || workspace.origin === "platform" || hasGcAccess
+      ? cbTierDefaults("elite")
+      : cbResolveFeatures({
+          tier: workspace.tier ?? workspace.plan,
+          is_comp: workspace.is_comp ?? false,
+          features: workspace.features ?? {},
+        });
+  const can = (feature: CbFeature) => features[feature] === true;
+
   return (
     <CbContext.Provider
       value={{
         surface,
+        features,
+        tier,
+        can,
         loading: authLoading || loading,
         error,
         hasGcAccess,
