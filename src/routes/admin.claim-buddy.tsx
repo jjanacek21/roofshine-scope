@@ -35,6 +35,13 @@ import {
 } from "@/lib/cbCatalogResolve";
 
 export const Route = createFileRoute("/admin/claim-buddy")({
+  ssr: false,
+  beforeLoad: async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) throw redirect({ to: "/cb/login" });
+    const { data: isSuper } = await supabase.rpc("cb_is_super_admin");
+    if (!isSuper) throw redirect({ to: "/cb" });
+  },
   head: () => ({
     meta: [
       { title: "Claim Buddy estimate catalog — Admin" },
