@@ -1,6 +1,14 @@
 /** Shared shapes for CMS-backed marketing content (client-safe, no server imports). */
 
-export type SiteJson = Record<string, unknown>;
+export type SiteJsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | SiteJsonValue[]
+  | { [k: string]: SiteJsonValue };
+
+export type SiteJson = Record<string, SiteJsonValue>;
 
 export type SiteMediaItem = {
   id: string;
@@ -60,7 +68,7 @@ export function str(block: SiteJson, key: string, fallback: string): string {
 
 export function arr<T>(block: SiteJson, key: string, fallback: T[]): T[] {
   const v = block[key];
-  return Array.isArray(v) && v.length ? (v as T[]) : fallback;
+  return Array.isArray(v) && v.length ? (v as unknown as T[]) : fallback;
 }
 
 export function obj(block: SiteJson, key: string, fallback: SiteJson): SiteJson {
