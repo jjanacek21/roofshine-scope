@@ -823,15 +823,38 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null, onPointS
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
 
-      {/* Controls + legend */}
-      <div
-        className="absolute top-4 left-4 z-10 flex w-[230px] flex-col gap-2 rounded-lg border p-3 text-[11px] shadow-lg"
+      {/* Controls toggle */}
+      <button
+        type="button"
+        aria-label={controlsOpen ? "Hide storm controls" : "Show storm controls"}
+        aria-expanded={controlsOpen}
+        onClick={() => setControlsOpen((v) => !v)}
+        className="absolute top-4 left-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border shadow-lg"
         style={{
           borderColor: "var(--border)",
           backgroundColor: "var(--bg-card)",
           color: "var(--text)",
         }}
       >
+        {dataLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Settings className="h-4 w-4" />}
+      </button>
+
+      {/* Controls + legend */}
+      {controlsOpen && (
+      <div
+        className="absolute top-[3.75rem] left-4 z-10 flex w-[230px] max-w-[calc(100vw-2rem)] max-h-[70%] flex-col gap-2 overflow-auto rounded-lg border p-3 text-[11px] shadow-lg"
+        style={{
+          borderColor: "var(--border)",
+          backgroundColor: "var(--bg-card)",
+          color: "var(--text)",
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-foreground">Storm controls</span>
+          <button type="button" aria-label="Close storm controls" onClick={() => setControlsOpen(false)}>
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
         <label className="font-semibold text-foreground" htmlFor="storm-range">
           Time range
         </label>
@@ -905,6 +928,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null, onPointS
           {savedOpen ? "Hide saved properties" : "Saved properties"}
         </button>
       </div>
+      )}
 
       {/* Point report panel */}
       {point && (
