@@ -12,6 +12,10 @@ export interface CbWorkspace {
   measure_credits: number;
   role: "owner" | "admin" | "rep";
   seats_purchased?: number;
+  tier?: CbTier;
+  status?: string;
+  is_comp?: boolean;
+  features?: Partial<Record<CbFeature, boolean>>;
 }
 
 export interface CbContextValue {
@@ -22,6 +26,11 @@ export interface CbContextValue {
   gcCompanyId: string | null;
   workspaces: CbWorkspace[];
   workspace: CbWorkspace | null;
+  /** Tier + per-company overrides for the active workspace. */
+  features: CbFeatureMap;
+  tier: CbTier;
+  /** Platform (GlobalContractor) users are never gated. */
+  can: (feature: CbFeature) => boolean;
   setWorkspaceId: (id: string) => void;
   refresh: () => Promise<void>;
 }
