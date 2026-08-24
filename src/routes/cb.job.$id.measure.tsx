@@ -36,6 +36,7 @@ import {
   type CbMeasurement,
 } from "@/lib/cbMeasure";
 import { saveCbRoofCorrectionFn } from "@/lib/cb-roof-correction.functions";
+import { useCbFeatureGuard } from "@/components/claim-buddy/CbFeatureGate";
 
 
 
