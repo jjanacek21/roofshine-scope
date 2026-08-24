@@ -140,8 +140,8 @@ export function CbMapPropertyPanel({
     },
   });
 
-  const topHail = useMemo(() => (storm?.hail_dates ?? []).slice(0, 3), [storm]);
-  const topWind = useMemo(() => (storm?.wind_dates ?? []).slice(0, 3), [storm]);
+  const topHail = useMemo(() => storm?.hail_dates ?? [], [storm]);
+  const topWind = useMemo(() => storm?.wind_dates ?? [], [storm]);
 
   async function persist(nextDisposition?: PropertyDisposition) {
     if (!user?.id) return null;
@@ -348,22 +348,34 @@ export function CbMapPropertyPanel({
                 <p className="text-[16px] font-semibold">
                   {storm?.max_hail_in != null ? `${storm.max_hail_in.toFixed(2)}"` : "—"}
                 </p>
-                {topHail.map((h) => (
-                  <p key={`${h.date}-${h.size_in}`} style={{ color: "var(--cb-text-muted)" }}>
-                    {fmtDate(h.date)} {h.size_in != null ? `· ${h.size_in}"` : ""}
-                  </p>
-                ))}
+                <div className="mt-1 max-h-40 space-y-[2px] overflow-auto">
+                  {topHail.length === 0 && !stormLoading ? (
+                    <p style={{ color: "var(--cb-text-muted)" }}>No hail reported for this address.</p>
+                  ) : (
+                    topHail.map((h) => (
+                      <p key={`${h.date}-${h.size_in}`} style={{ color: "var(--cb-text-muted)" }}>
+                        {fmtDate(h.date)} {h.size_in != null ? `· ${h.size_in}"` : ""}
+                      </p>
+                    ))
+                  )}
+                </div>
               </div>
               <div>
                 <p style={{ color: "var(--cb-text-muted)" }}>Peak wind</p>
                 <p className="text-[16px] font-semibold">
                   {storm?.max_wind_mph != null ? `${Math.round(storm.max_wind_mph)} mph` : "—"}
                 </p>
-                {topWind.map((w) => (
-                  <p key={`${w.date}-${w.wind_mph}`} style={{ color: "var(--cb-text-muted)" }}>
-                    {fmtDate(w.date)} {w.wind_mph != null ? `· ${Math.round(w.wind_mph)} mph` : ""}
-                  </p>
-                ))}
+                <div className="mt-1 max-h-40 space-y-[2px] overflow-auto">
+                  {topWind.length === 0 && !stormLoading ? (
+                    <p style={{ color: "var(--cb-text-muted)" }}>No 60+ mph winds reported for this address.</p>
+                  ) : (
+                    topWind.map((w) => (
+                      <p key={`${w.date}-${w.wind_mph}`} style={{ color: "var(--cb-text-muted)" }}>
+                        {fmtDate(w.date)} {w.wind_mph != null ? `· ${Math.round(w.wind_mph)} mph` : ""}
+                      </p>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>

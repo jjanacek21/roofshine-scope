@@ -178,11 +178,16 @@ function CbMapPage() {
                 focusLng={focus?.lng}
               />
             ) : (
-              <StormSwathMap center={stormCenter} zoom={stormPoint || position ? 17 : 4} searchedPoint={stormPoint} />
+              <StormSwathMap
+                center={stormCenter}
+                zoom={stormPoint || position ? 17 : 4}
+                searchedPoint={stormPoint}
+                onPointSelect={(p) => setSelected({ lat: p.lat, lng: p.lng })}
+              />
             )}
           </div>
 
-          {mode === "canvass" && selected ? (
+          {selected ? (
             <div className="absolute inset-0 z-20 md:static md:inset-auto md:z-auto md:h-full md:shrink-0">
               <CbMapPropertyPanel
                 key={`${selected.lat}-${selected.lng}`}
