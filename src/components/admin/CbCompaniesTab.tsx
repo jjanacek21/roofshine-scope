@@ -439,6 +439,21 @@ function CompanyCard({
               ))}
             </div>
           ) : null}
+
+          <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+            {company.status === "archived" ? (
+              <Button variant="outline" size="sm" disabled={busy} onClick={() => void setPlan({ status: "active" })}>
+                Restore company
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" disabled={busy} onClick={() => void removeCompany(false)}>
+                Archive company
+              </Button>
+            )}
+            <Button variant="destructive" size="sm" disabled={busy} onClick={() => void removeCompany(true)}>
+              <Trash2 className="mr-2 h-4 w-4" /> Delete permanently
+            </Button>
+          </div>
         </div>
       ) : null}
     </div>
