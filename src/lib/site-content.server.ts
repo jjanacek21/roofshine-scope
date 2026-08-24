@@ -22,10 +22,7 @@ function publicClient() {
 }
 
 /** Already-hosted static assets keep their path; bucket objects get a signed URL. */
-async function resolveUrl(
-  sb: ReturnType<typeof createClient>,
-  path: string,
-): Promise<string> {
+async function resolveUrl(sb: any, path: string): Promise<string> {
   if (/^(https?:)?\/\//.test(path) || path.startsWith("/")) return path;
   const { data } = await sb.storage.from(BUCKET).createSignedUrl(path, 60 * 60);
   return data?.signedUrl ?? `/storage/v1/object/public/${BUCKET}/${path}`;
