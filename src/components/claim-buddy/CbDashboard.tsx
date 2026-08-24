@@ -282,12 +282,18 @@ export function CbDashboard() {
 
       {/* Primary action */}
       <CbReveal delay={80}>
-        <div className="mt-6">
+        <div className="mt-6 space-y-3">
           <CbButton block loading={starting} loadingText="Creating inspection…" onClick={startInspection}>
             Start Inspection
           </CbButton>
+          <CbButton block variant="secondary" onClick={() => navigate({ to: "/cb/map" })}>
+            <span className="inline-flex items-center gap-2">
+              <Map className="h-4 w-4" /> Door to Door mode
+            </span>
+          </CbButton>
         </div>
       </CbReveal>
+
 
       {/* Search + filters */}
       <CbReveal delay={110}>
