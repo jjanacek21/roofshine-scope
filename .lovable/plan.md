@@ -1,22 +1,33 @@
-# Collapse the storm intel controls behind a gear button
+# Door to Door map: one property panel, cleaner storm controls
 
-Right now the Storm intel map always shows a full control panel in the top-left (time range, hail/wind toggles, wind bands, hail bands, saved properties). On a phone it covers most of the map.
+Three changes to the Claim Buddy map, all on the map screen only.
 
-## What changes
+## 1. Storm controls collapse behind a gear
+
+Today the Storm intel controls (time range, hail/wind toggles, wind bands, hail bands, saved properties) are always open in the top-left and cover most of a phone screen.
 
 - Add a small round gear button in the top-left corner of the storm map.
-- The controls panel is collapsed by default: only the gear shows, so the map is fully visible.
-- Tapping the gear slides/fades the panel open; tapping it again (or the small close X in the panel header) collapses it back.
-- On phones the open panel is width-capped so it never spans the whole screen, and it scrolls internally if the band lists are long.
-- On desktop the panel starts open, since space isn't tight there.
-- A tiny loading spinner stays visible on the gear while storm data is fetching, so the collapsed state still signals activity.
+- Collapsed by default on phones, open by default on desktop where there's room.
+- Tapping the gear opens the panel; tapping it again, or the close X in the panel header, collapses it.
+- Open panel is width-capped so it never spans the whole screen and scrolls internally when the band lists are long.
+- The loading spinner stays visible on the gear so the collapsed state still shows when storm data is fetching.
 
-Nothing about the data, layers, time ranges, or saved properties behavior changes — only how the panel is shown and hidden.
+## 2. Clicking a pin in Storm intel opens the canvass property panel
+
+Right now storm mode has its own small point popup, separate from the canvass panel. Clicking a house in Storm intel will open the same full property panel used in Canvass mode — disposition buttons, resident details, insurance and date of loss, storm activity, AI mailer, roof measurement, and Start inspection — so both modes behave the same. The map stays on storm intel behind the panel; closing the panel returns to the storm view.
+
+## 3. Canvass pin shows the full recent storm history
+
+The property panel currently shows max hail and peak wind with only the three most recent dates, and no message when nothing is on record.
+
+- List every recent hail and wind event returned for that house, newest first, each with its date and size/speed, in a scrollable block so long lists don't push the buttons off screen.
+- When there are no events on record, say so plainly: "No hail reported for this address" and "No 60+ mph winds reported for this address", instead of leaving a blank column.
+- Keep the max hail / peak wind headline numbers as they are.
 
 ## Technical notes
 
-- File: `src/components/storm/StormSwathMap.tsx`, the "Controls + legend" block (currently an always-rendered absolutely positioned div at top-left).
-- Add local state `controlsOpen`, initialized from a mobile check (`useIsMobile` from `src/hooks/use-mobile`): closed on mobile, open on desktop.
-- Render a gear toggle button (`Settings` icon from lucide-react) at `absolute top-4 left-4 z-10`, matching existing card tokens (`var(--bg-card)`, `var(--border)`), 40px tap target.
-- When open, render the existing panel content unchanged, offset below the gear, with `max-w-[calc(100vw-2rem)]`, `max-h-[70%]`, `overflow-auto`, and a header row containing the title and a close button.
-- Keep all existing state and handlers as-is; this is a presentation-only wrap.
+- `src/components/storm/StormSwathMap.tsx`
+  - Wrap the top-left "Controls + legend" block in a `controlsOpen` state, initialised from `useIsMobile()` (closed on mobile, open on desktop). Gear toggle uses the `Settings` lucide icon with existing `var(--bg-card)` / `var(--border)` tokens and a 40px tap target. Open panel gets `max-w-[calc(100vw-2rem)]`, `max-h-[70%]`, `overflow-auto`, plus a header row with a close button. Presentation-only; no state or layer logic changes.
+  - Add an optional `onPointSelect?: (p: { lat: number; lng: number; footprint?: [number,number,number,number] | null }) => void` prop. When supplied, `setPointRef.current` calls it instead of setting internal `point`, so the internal report popup and its mailer stay dead code for this surface (standalone Storm Intelligence page keeps current behavior since it won't pass the prop).
+- `src/routes/cb.map.tsx`: pass `onPointSelect={(p) => setSelected(p)}` to `StormSwathMap`, and render the existing `CbMapPropertyPanel` overlay for both modes rather than only `mode === "canvass"`.
+- `src/components/claim-buddy/map/CbMapPropertyPanel.tsx`: drop the `.slice(0, 3)` in `topHail` / `topWind`, render full lists inside a `max-h-40 overflow-auto` container each, and add the empty-state copy when a list is empty and the query is not loading.
