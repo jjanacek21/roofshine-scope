@@ -10,7 +10,8 @@ export interface CbWorkspace {
   gc_company_id: string | null;
   plan: string;
   measure_credits: number;
-  role: "admin" | "manager" | "rep";
+  role: "owner" | "admin" | "rep";
+  seats_purchased?: number;
 }
 
 export interface CbContextValue {

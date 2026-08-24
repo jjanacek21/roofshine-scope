@@ -23,7 +23,7 @@ export function CbAdminShell({
 }) {
   const navigate = useNavigate();
   const { workspace, loading } = useCbSession();
-  const isAdmin = workspace?.role === "admin";
+  const isAdmin = workspace?.role === "admin" || workspace?.role === "owner";
 
   return (
     <CbSurface>

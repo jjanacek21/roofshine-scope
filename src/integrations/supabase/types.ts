@@ -719,15 +719,62 @@ export type Database = {
           },
         ]
       }
+      cb_demo_requests: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          handled_at: string | null
+          id: string
+          kind: string
+          message: string | null
+          name: string
+          phone: string | null
+          seats: number | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          handled_at?: string | null
+          id?: string
+          kind?: string
+          message?: string | null
+          name: string
+          phone?: string | null
+          seats?: number | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          handled_at?: string | null
+          id?: string
+          kind?: string
+          message?: string | null
+          name?: string
+          phone?: string | null
+          seats?: number | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cb_invites: {
         Row: {
           accepted_at: string | null
           created_at: string
           email: string
+          expires_at: string | null
           id: string
           invited_by: string | null
           revoked_at: string | null
           role: string
+          token: string | null
           updated_at: string
           workspace_id: string
         }
@@ -735,10 +782,12 @@ export type Database = {
           accepted_at?: string | null
           created_at?: string
           email: string
+          expires_at?: string | null
           id?: string
           invited_by?: string | null
           revoked_at?: string | null
           role?: string
+          token?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -746,10 +795,12 @@ export type Database = {
           accepted_at?: string | null
           created_at?: string
           email?: string
+          expires_at?: string | null
           id?: string
           invited_by?: string | null
           revoked_at?: string | null
           role?: string
+          token?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -1314,6 +1365,7 @@ export type Database = {
           name: string
           origin: string
           plan: string
+          seats_purchased: number
           updated_at: string
         }
         Insert: {
@@ -1327,6 +1379,7 @@ export type Database = {
           name: string
           origin?: string
           plan?: string
+          seats_purchased?: number
           updated_at?: string
         }
         Update: {
@@ -1340,6 +1393,7 @@ export type Database = {
           name?: string
           origin?: string
           plan?: string
+          seats_purchased?: number
           updated_at?: string
         }
         Relationships: [
@@ -4745,6 +4799,7 @@ export type Database = {
           total_knocks: number | null
           updated_at: string | null
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           address?: string | null
@@ -4785,6 +4840,7 @@ export type Database = {
           total_knocks?: number | null
           updated_at?: string | null
           user_id: string
+          workspace_id?: string | null
         }
         Update: {
           address?: string | null
@@ -4825,6 +4881,7 @@ export type Database = {
           total_knocks?: number | null
           updated_at?: string | null
           user_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -4832,6 +4889,13 @@ export type Database = {
             columns: ["converted_job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_dispositions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -7275,6 +7339,8 @@ export type Database = {
         Returns: Json
       }
       cb_is_admin: { Args: { _ws: string }; Returns: boolean }
+      cb_is_owner: { Args: { _ws: string }; Returns: boolean }
+      cb_is_super_admin: { Args: never; Returns: boolean }
       cb_my_context: { Args: never; Returns: Json }
       cb_report_by_token: { Args: { _token: string }; Returns: Json }
       cb_revoke_invite: { Args: { _id: string }; Returns: Json }
@@ -7656,6 +7722,7 @@ export type Database = {
           total_knocks: number | null
           updated_at: string | null
           user_id: string
+          workspace_id: string | null
         }
         SetofOptions: {
           from: "*"

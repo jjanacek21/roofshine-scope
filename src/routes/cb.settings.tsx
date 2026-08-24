@@ -139,7 +139,7 @@ function CbSettingsPage() {
               </CbCard>
             ) : null}
 
-            {workspace?.role === "admin" ? (
+            {workspace?.role === "admin" || workspace?.role === "owner" ? (
               <CbCard elevation="card" style={{ padding: 18 }}>
                 <p className="cb-microlabel">Admin</p>
                 <div className="mt-3 flex flex-wrap gap-2">

@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CbLineItemSearch } from "@/components/admin/CbLineItemSearch";
+import { CbCompaniesTab, CbDemoRequestsTab } from "@/components/admin/CbCompaniesTab";
 import {
   CB_QTY_MODES,
   CB_ROOF_SYSTEMS,
@@ -139,38 +140,51 @@ function ClaimBuddyAdmin() {
         </p>
       </div>
 
-      {version ? (
-        <Tabs defaultValue="roof">
-          <TabsList className="flex-wrap">
+      <Tabs defaultValue={version ? "roof" : "companies"}>
+        <TabsList className="flex-wrap">
+          {version
+            ? SCOPES.map((s) => (
+                <TabsTrigger key={s.scope} value={s.scope}>
+                  {s.label}
+                </TabsTrigger>
+              ))
+            : null}
+          {version ? <TabsTrigger value="assemblies">Assemblies</TabsTrigger> : null}
+          {version ? <TabsTrigger value="code">Code rules</TabsTrigger> : null}
+          {version ? <TabsTrigger value="accuracy">Measurement accuracy</TabsTrigger> : null}
+          <TabsTrigger value="companies">Companies &amp; users</TabsTrigger>
+          <TabsTrigger value="demos">Demo requests</TabsTrigger>
+        </TabsList>
+
+        {version ? (
+          <>
             {SCOPES.map((s) => (
-              <TabsTrigger key={s.scope} value={s.scope}>
-                {s.label}
-              </TabsTrigger>
+              <TabsContent key={s.scope} value={s.scope} className="mt-4">
+                <MappingsTab versionId={version.id} scope={s.scope} editable={editable} />
+              </TabsContent>
             ))}
-            <TabsTrigger value="assemblies">Assemblies</TabsTrigger>
-            <TabsTrigger value="code">Code rules</TabsTrigger>
-            <TabsTrigger value="accuracy">Measurement accuracy</TabsTrigger>
-          </TabsList>
 
-          {SCOPES.map((s) => (
-            <TabsContent key={s.scope} value={s.scope} className="mt-4">
-              <MappingsTab versionId={version.id} scope={s.scope} editable={editable} />
+            <TabsContent value="assemblies" className="mt-4">
+              <AssembliesTab versionId={version.id} editable={editable} />
             </TabsContent>
-          ))}
+            <TabsContent value="code" className="mt-4">
+              <CodeRulesTab editable />
+            </TabsContent>
+            <TabsContent value="accuracy" className="mt-4">
+              <AccuracyTab />
+            </TabsContent>
+          </>
+        ) : (
+          <p className="mt-4 text-sm text-muted-foreground">No catalog version exists yet.</p>
+        )}
 
-          <TabsContent value="assemblies" className="mt-4">
-            <AssembliesTab versionId={version.id} editable={editable} />
-          </TabsContent>
-          <TabsContent value="code" className="mt-4">
-            <CodeRulesTab editable />
-          </TabsContent>
-          <TabsContent value="accuracy" className="mt-4">
-            <AccuracyTab />
-          </TabsContent>
-        </Tabs>
-      ) : (
-        <p className="text-sm text-muted-foreground">No catalog version exists yet.</p>
-      )}
+        <TabsContent value="companies" className="mt-4">
+          <CbCompaniesTab />
+        </TabsContent>
+        <TabsContent value="demos" className="mt-4">
+          <CbDemoRequestsTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
