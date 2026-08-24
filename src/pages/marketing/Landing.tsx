@@ -1,4 +1,244 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const HERO_CSS = `
+.mkt-hero{position:relative;overflow:hidden;background:#0f1216;color:#eef2f7;isolation:isolate}
+.mkt-hero__grid{position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px);
+  background-size:46px 46px;
+  -webkit-mask-image:radial-gradient(ellipse 90% 70% at 50% 32%, #000 40%, transparent 100%);
+  mask-image:radial-gradient(ellipse 90% 70% at 50% 32%, #000 40%, transparent 100%);}
+.mkt-hero__glow{position:absolute;top:-160px;right:-120px;width:720px;height:620px;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%, rgba(21,128,61,.34), transparent 68%);filter:blur(30px)}
+.mkt-hero__inner{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:74px 18px 92px;
+  display:grid;grid-template-columns:1.08fr .92fr;gap:32px;align-items:center}
+.mkt-hero__logo{width:min(400px,86vw);height:auto;display:block;background:transparent;
+  filter:drop-shadow(0 10px 30px rgba(21,128,61,.28))}
+.mkt-eyebrow{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:rgba(238,242,247,.62);margin:22px 0 12px}
+.mkt-h1{font-family:Archivo,system-ui,sans-serif;font-weight:800;font-size:clamp(2.15rem,4.4vw,3.5rem);
+  line-height:1.06;letter-spacing:-.02em;margin:0}
+.mkt-word{display:inline-block;overflow:hidden;vertical-align:bottom}
+.mkt-word > span{display:inline-block;transform:translateY(105%);transition:transform .62s var(--cb-ease,cubic-bezier(.22,1,.36,1))}
+.mkt-hero.is-in .mkt-word > span{transform:translateY(0)}
+.mkt-accent{color:var(--cb-accent-bright,#22c55e);position:relative}
+.mkt-accent::after{content:"";position:absolute;left:0;right:0;bottom:.04em;height:3px;border-radius:3px;
+  background:linear-gradient(90deg,var(--cb-accent-bright,#22c55e),transparent)}
+.mkt-sub{margin:20px 0 26px;max-width:62ch;font-size:16.5px;line-height:1.6;color:rgba(238,242,247,.74)}
+@keyframes mktGlowPulse{0%,100%{box-shadow:0 0 0 0 rgba(21,128,61,.42),0 8px 22px rgba(0,0,0,.35)}
+  50%{box-shadow:0 0 28px 6px rgba(21,128,61,.5),0 8px 22px rgba(0,0,0,.35)}}
+.mkt-cta-primary{animation:mktGlowPulse 3.4s ease-in-out infinite}
+.mkt-stats{display:flex;gap:10px;max-width:430px;margin-top:30px}
+.mkt-stat{flex:1;border-radius:14px;padding:12px 12px 11px;background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.10)}
+.mkt-stat b{display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:19px;font-weight:700;color:#eef2f7}
+.mkt-stat span{display:block;margin-top:4px;font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:rgba(238,242,247,.55)}
+.mkt-note{margin-top:18px;font-size:12.5px;color:rgba(238,242,247,.5)}
+.mkt-fanwrap{position:relative;min-height:430px;perspective:1400px;display:flex;align-items:center;justify-content:center}
+.mkt-fan{position:relative;transform-style:preserve-3d;width:100%;height:430px;display:flex;align-items:center;justify-content:center}
+.mkt-fan-dot{position:absolute;width:360px;height:360px;border-radius:999px;transform:translateZ(-320px);
+  background:radial-gradient(circle,rgba(21,128,61,.5),transparent 70%);filter:blur(46px)}
+.mkt-phone{position:absolute;width:clamp(150px,17vw,204px);border-radius:26px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.14);box-shadow:0 40px 80px rgba(0,0,0,.6);background:#0f1216}
+.mkt-phone img{display:block;width:100%;height:auto}
+.mkt-phone--l{transform:translate3d(-94%,4%,-200px) rotateY(25deg) rotateZ(-5deg)}
+.mkt-phone--c{transform:translate3d(0,-4%,40px) rotateY(-3deg);z-index:3}
+.mkt-phone--r{transform:translate3d(94%,7%,-200px) rotateY(-25deg) rotateZ(5deg)}
+@media (max-width:959px){
+  .mkt-hero__inner{grid-template-columns:1fr;padding:44px 18px 64px}
+  .mkt-fanwrap{min-height:330px}
+  .mkt-fan{height:330px}
+}
+@media (prefers-reduced-motion:reduce){
+  .mkt-cta-primary{animation:none}
+  .mkt-word > span{transition:none;transform:none}
+}
+`;
+
+const HEADLINE = [
+  "Measure",
+  "the",
+  "roof",
+  "before",
+  "you",
+  "knock",
+  "on",
+  "the",
+  "door.",
+];
+
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setReduced(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return reduced;
+}
+
+function CountUp({ to, duration = 2100 }: { to: number; duration?: number }) {
+  const [v, setV] = useState(0);
+  const reduced = useReducedMotion();
+  useEffect(() => {
+    if (reduced) {
+      setV(to);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      setV(to * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [to, duration, reduced]);
+  return <>{v.toFixed(1)}</>;
+}
+
+function Hero() {
+  const [inView, setInView] = useState(false);
+  const reduced = useReducedMotion();
+  const fanRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setInView(true), 60);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (reduced) return;
+    if (window.matchMedia("(pointer: coarse)").matches) return;
+    const el = fanRef.current;
+    if (!el) return;
+    let tx = 0;
+    let ty = 0;
+    let cx = 0;
+    let cy = 0;
+    let raf = 0;
+    const onMove = (e: MouseEvent) => {
+      tx = (e.clientX / window.innerWidth) * 2 - 1;
+      ty = (e.clientY / window.innerHeight) * 2 - 1;
+    };
+    const loop = () => {
+      cx += (tx - cx) * 0.07;
+      cy += (ty - cy) * 0.07;
+      el.style.transform = `rotateY(${cx * 7}deg) rotateX(${-cy * 5}deg)`;
+      raf = requestAnimationFrame(loop);
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
+    raf = requestAnimationFrame(loop);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      cancelAnimationFrame(raf);
+    };
+  }, [reduced]);
+
+  return (
+    <section className={`mkt-hero ${inView ? "is-in" : ""}`}>
+      <style dangerouslySetInnerHTML={{ __html: HERO_CSS }} />
+      <div className="mkt-hero__grid" />
+      <div className="mkt-hero__glow" />
+
+      <div className="mkt-hero__inner">
+        <div>
+          <img
+            src={
+              reduced
+                ? "/marketing/logo/claimbuddy-logo.png"
+                : "/marketing/logo/claimbuddy-logo-animated.webp"
+            }
+            alt="Claim Buddy"
+            className="mkt-hero__logo"
+          />
+
+          <div className="mkt-eyebrow">
+            Insurance restoration · roof, exterior &amp; interior
+          </div>
+
+          <h1 className="mkt-h1">
+            {HEADLINE.map((w, i) => (
+              <span key={`${w}-${i}`}>
+                <span className="mkt-word">
+                  <span
+                    style={{ transitionDelay: `${i * 48}ms` }}
+                    className={w === "door." ? "mkt-accent" : undefined}
+                  >
+                    {w}
+                  </span>
+                </span>{" "}
+              </span>
+            ))}
+          </h1>
+
+          <p className="mkt-sub">
+            Type an address and the roof traces itself. Then walk it — roof, all four exterior
+            elevations, and the interior — and hand the homeowner a carrier-ready scope before you
+            leave the driveway.
+          </p>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <a
+              href="/cb/signup"
+              className="cb-btn cb-btn-lg cb-btn-primary mkt-cta-primary"
+              style={{ textDecoration: "none", whiteSpace: "nowrap" }}
+            >
+              <span className="cb-specular" />
+              <span className="cb-btn-label">Book a demo</span>
+            </a>
+            <a
+              href="/#gallery"
+              className="cb-btn cb-btn-lg cb-btn-secondary"
+              style={{ textDecoration: "none", whiteSpace: "nowrap" }}
+            >
+              <span className="cb-specular" />
+              <span className="cb-btn-label">See every screen</span>
+            </a>
+          </div>
+
+          <div className="mkt-stats">
+            <div className="mkt-stat">
+              <b>
+                <CountUp to={90.4} />
+              </b>
+              <span>Squares</span>
+            </div>
+            <div className="mkt-stat">
+              <b>10:12</b>
+              <span>Pitch</span>
+            </div>
+            <div className="mkt-stat">
+              <b>31</b>
+              <span>Line items</span>
+            </div>
+          </div>
+
+          <div className="mkt-note">
+            Runs in the phone browser at gcn.claims. No app store, no install.
+          </div>
+        </div>
+
+        <div className="mkt-fanwrap">
+          <div className="mkt-fan" ref={fanRef}>
+            <div className="mkt-fan-dot" />
+            <div className="mkt-phone mkt-phone--l">
+              <img src="/marketing/screens/wideshots.jpg" alt="Exterior wide shots" loading="lazy" />
+            </div>
+            <div className="mkt-phone mkt-phone--c">
+              <img src="/marketing/screens/m3_footprint.jpg" alt="Roof footprint measurement" />
+            </div>
+            <div className="mkt-phone mkt-phone--r">
+              <img src="/marketing/screens/rb_cover.jpg" alt="Damage report cover" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 const NAV = [
   { label: "Home", href: "/" },
