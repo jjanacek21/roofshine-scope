@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Camera, ChevronRight, Building2, Settings, PlayCircle, Trash2, Map as MapIcon } from "lucide-react";
+import { Search, Camera, ChevronRight, Building2, Settings, PlayCircle, Trash2, Map as MapIcon, BookOpenText } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUSES: { value: string; label: string; tone: "neutral" | "success" | "warning" | "danger" | "accent" }[] = [

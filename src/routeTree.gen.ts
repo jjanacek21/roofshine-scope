@@ -72,6 +72,7 @@ import { Route as CbMapRouteImport } from './routes/cb.map'
 import { Route as CbOnboardingRouteImport } from './routes/cb.onboarding'
 import { Route as CbSettingsRouteImport } from './routes/cb.settings'
 import { Route as CbSignupRouteImport } from './routes/cb.signup'
+import { Route as CbSurvivalGuideRouteImport } from './routes/cb.survival-guide'
 import { Route as PayTokenRouteImport } from './routes/pay.$token'
 import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
@@ -454,6 +455,11 @@ const CbSettingsRoute = CbSettingsRouteImport.update({
 const CbSignupRoute = CbSignupRouteImport.update({
   id: '/cb/signup',
   path: '/cb/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbSurvivalGuideRoute = CbSurvivalGuideRouteImport.update({
+  id: '/cb/survival-guide',
+  path: '/cb/survival-guide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PayTokenRoute = PayTokenRouteImport.update({
@@ -860,6 +866,7 @@ export interface FileRoutesByFullPath {
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/settings': typeof CbSettingsRoute
   '/cb/signup': typeof CbSignupRoute
+  '/cb/survival-guide': typeof CbSurvivalGuideRoute
   '/pay/$token': typeof PayTokenRoute
   '/r/$token': typeof RTokenRoute
   '/admin/': typeof AdminIndexRoute
@@ -984,6 +991,7 @@ export interface FileRoutesByTo {
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/settings': typeof CbSettingsRoute
   '/cb/signup': typeof CbSignupRoute
+  '/cb/survival-guide': typeof CbSurvivalGuideRoute
   '/pay/$token': typeof PayTokenRoute
   '/r/$token': typeof RTokenRoute
   '/': typeof AppIndexRoute
@@ -1117,6 +1125,7 @@ export interface FileRoutesById {
   '/cb/onboarding': typeof CbOnboardingRoute
   '/cb/settings': typeof CbSettingsRoute
   '/cb/signup': typeof CbSignupRoute
+  '/cb/survival-guide': typeof CbSurvivalGuideRoute
   '/pay/$token': typeof PayTokenRoute
   '/r/$token': typeof RTokenRoute
   '/_app/': typeof AppIndexRoute
@@ -1252,6 +1261,7 @@ export interface FileRouteTypes {
     | '/cb/onboarding'
     | '/cb/settings'
     | '/cb/signup'
+    | '/cb/survival-guide'
     | '/pay/$token'
     | '/r/$token'
     | '/admin/'
@@ -1376,6 +1386,7 @@ export interface FileRouteTypes {
     | '/cb/onboarding'
     | '/cb/settings'
     | '/cb/signup'
+    | '/cb/survival-guide'
     | '/pay/$token'
     | '/r/$token'
     | '/'
@@ -1508,6 +1519,7 @@ export interface FileRouteTypes {
     | '/cb/onboarding'
     | '/cb/settings'
     | '/cb/signup'
+    | '/cb/survival-guide'
     | '/pay/$token'
     | '/r/$token'
     | '/_app/'
@@ -1613,6 +1625,7 @@ export interface RootRouteChildren {
   CbOnboardingRoute: typeof CbOnboardingRoute
   CbSettingsRoute: typeof CbSettingsRoute
   CbSignupRoute: typeof CbSignupRoute
+  CbSurvivalGuideRoute: typeof CbSurvivalGuideRoute
   PayTokenRoute: typeof PayTokenRoute
   RTokenRoute: typeof RTokenRoute
   CbIndexRoute: typeof CbIndexRoute
@@ -2076,6 +2089,13 @@ declare module '@tanstack/react-router' {
       path: '/cb/signup'
       fullPath: '/cb/signup'
       preLoaderRoute: typeof CbSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/survival-guide': {
+      id: '/cb/survival-guide'
+      path: '/cb/survival-guide'
+      fullPath: '/cb/survival-guide'
+      preLoaderRoute: typeof CbSurvivalGuideRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pay/$token': {
@@ -2863,6 +2883,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbOnboardingRoute: CbOnboardingRoute,
   CbSettingsRoute: CbSettingsRoute,
   CbSignupRoute: CbSignupRoute,
+  CbSurvivalGuideRoute: CbSurvivalGuideRoute,
   PayTokenRoute: PayTokenRoute,
   RTokenRoute: RTokenRoute,
   CbIndexRoute: CbIndexRoute,
