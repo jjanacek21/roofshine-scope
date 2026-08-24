@@ -138,7 +138,10 @@ function CbMapPage() {
             {(["canvass", "storm"] as const).map((m) => (
               <button
                 key={m}
-                onClick={() => setMode(m)}
+                onClick={() => {
+                  if (m === "storm" && !featureGuard("storm_intel")) return;
+                  setMode(m);
+                }}
                 className="rounded-full px-3 py-1 text-[13px] font-semibold"
                 style={
                   mode === m

@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, BookOpenText } from "lucide-react";
 import { CbSurface } from "@/components/cb/CbSurface";
+import { CbFeatureGate } from "@/components/claim-buddy/CbFeatureGate";
 
 export const Route = createFileRoute("/cb/survival-guide")({
   head: () => ({
@@ -49,17 +50,19 @@ function CbSurvivalGuidePage() {
           <BookOpenText className="h-5 w-5 shrink-0" style={{ color: "var(--cb-text-muted)" }} />
         </div>
 
-        <div
-          className="flex-1 overflow-hidden rounded-[14px]"
-          style={{ border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))", background: "#ffffff" }}
-        >
-          <iframe
-            src="/survival-guide/index.html"
-            title="Blue Collar Sales Survival Guide"
-            className="block h-full w-full"
-            style={{ border: 0 }}
-          />
-        </div>
+        <CbFeatureGate feature="survival_guide">
+          <div
+            className="flex-1 overflow-hidden rounded-[14px]"
+            style={{ border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))", background: "#ffffff" }}
+          >
+            <iframe
+              src="/survival-guide/index.html"
+              title="Blue Collar Sales Survival Guide"
+              className="block h-full w-full"
+              style={{ border: 0 }}
+            />
+          </div>
+        </CbFeatureGate>
       </div>
     </CbSurface>
   );
