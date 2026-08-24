@@ -11,6 +11,11 @@ import { AddressAutocomplete, type AddressResult } from "@/components/maps/Addre
 import { CbMapPropertyPanel, type CbMapPoint } from "@/components/claim-buddy/map/CbMapPropertyPanel";
 
 export const Route = createFileRoute("/cb/map")({
+  validateSearch: (search: Record<string, unknown>): { lat?: number; lng?: number } => {
+    const lat = Number(search.lat);
+    const lng = Number(search.lng);
+    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : {};
+  },
   head: () => ({
     meta: [
       { title: "Door to Door mode — Claim Buddy" },
@@ -35,12 +40,17 @@ const DEFAULT_CENTER: [number, number] = [-96.5, 38.5];
 
 function CbMapPage() {
   const navigate = useNavigate();
+  const { lat: searchLat, lng: searchLng } = Route.useSearch();
   const { user } = useAuth();
   const [mode, setMode] = useState<"canvass" | "storm">("canvass");
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
-  const [selected, setSelected] = useState<CbMapPoint | null>(null);
-  const [focus, setFocus] = useState<{ lat: number; lng: number } | null>(null);
+  const [selected, setSelected] = useState<CbMapPoint | null>(
+    searchLat != null && searchLng != null ? { lat: searchLat, lng: searchLng } : null,
+  );
+  const [focus, setFocus] = useState<{ lat: number; lng: number } | null>(
+    searchLat != null && searchLng != null ? { lat: searchLat, lng: searchLng } : null,
+  );
   const [stormCenter, setStormCenter] = useState<[number, number]>(DEFAULT_CENTER);
   const [stormPoint, setStormPoint] = useState<{ lat: number; lng: number; label: string } | null>(null);
   const boundsRef = useRef<{ north: number; south: number; east: number; west: number } | null>(null);
@@ -70,8 +80,9 @@ function CbMapPage() {
   }, []);
 
   useEffect(() => {
+    if (searchLat != null && searchLng != null) return;
     locate(false);
-  }, [locate]);
+  }, [locate, searchLat, searchLng]);
 
   const onBoundsChange = useCallback(
     (b: { north: number; south: number; east: number; west: number }) => {
