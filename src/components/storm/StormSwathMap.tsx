@@ -8,7 +8,6 @@ import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { stormSupabase } from "@/integrations/storm/client";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { HOUSE_CIRCLE_MIN_ZOOM } from "@/lib/storm-config";
 import { RoofMeasureCard, type MeasureSnapshot } from "@/components/storm/RoofMeasureCard";
 import { StormMailerModal } from "@/components/storm/StormMailerModal";
@@ -103,7 +102,6 @@ function toCsv(rows: Record<string, any>[]) {
 }
 
 export function StormSwathMap({ center, zoom = 4, searchedPoint = null, onPointSelect }: Props) {
-  const isMobile = useIsMobile();
   const { data: token, error: tokenError } = useMapboxToken();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -821,8 +819,8 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null, onPointS
   useEffect(() => {
     if (controlsAutoRef.current) return;
     controlsAutoRef.current = true;
-    if (isMobile) setControlsOpen(false);
-  }, [isMobile]);
+    if (typeof window !== "undefined" && window.innerWidth < 768) setControlsOpen(false);
+  }, []);
 
   const dataLoading = hailLoading || windLoading;
   const showOverlay = !token || !styleReady;
