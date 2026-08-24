@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { CbLineItemSearch } from "@/components/admin/CbLineItemSearch";
 import { CbCompaniesTab, CbDemoRequestsTab, useCbUnhandledDemoCount } from "@/components/admin/CbCompaniesTab";
+import { CbUsersTab } from "@/components/admin/CbUsersTab";
 import { CbSiteTab } from "@/components/admin/CbSiteTab";
 import {
   CB_QTY_MODES,
@@ -160,7 +161,8 @@ function ClaimBuddyAdmin() {
           {version ? <TabsTrigger value="assemblies">Assemblies</TabsTrigger> : null}
           {version ? <TabsTrigger value="code">Code rules</TabsTrigger> : null}
           {version ? <TabsTrigger value="accuracy">Measurement accuracy</TabsTrigger> : null}
-          <TabsTrigger value="companies">Companies &amp; users</TabsTrigger>
+          <TabsTrigger value="companies">Companies</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="site">Marketing site</TabsTrigger>
           <TabsTrigger value="demos">
             Demo requests
@@ -193,6 +195,10 @@ function ClaimBuddyAdmin() {
         <TabsContent value="companies" className="mt-4">
           <CbCompaniesTab />
         </TabsContent>
+        <TabsContent value="users" className="mt-4">
+          <CbUsersTab />
+        </TabsContent>
+
         <TabsContent value="site" className="mt-4">
           <CbSiteTab />
         </TabsContent>
