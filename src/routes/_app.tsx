@@ -18,11 +18,16 @@ function AppLayout() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
+    // On the standalone Claim Buddy domain "/" is the marketing landing page,
+    // not the Global Contractor app. The root StandaloneGate owns routing there —
+    // redirecting to /login from here hijacks marketing navigation (e.g. Book a demo).
+    if (getSurface() === "standalone") return;
     if (loading) return;
     if (!user) {
       navigate({ to: "/login" });
       return;
     }
+
     // Check the user has a company; otherwise → onboarding
     (async () => {
       const { data } = await supabase
