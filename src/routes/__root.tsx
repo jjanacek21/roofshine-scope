@@ -9,7 +9,8 @@ import {
 } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import Landing from "@/pages/marketing/Landing";
 import { CbSessionProvider } from "@/components/auth/CbSessionProvider";
 import { CbCompanyProvider } from "@/components/auth/CbCompanyProvider";
 import { getSurface, isClaimBuddyPath } from "@/lib/cbMode";
@@ -100,19 +101,41 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 /**
  * On the standalone Claim Buddy domain (gcn.claims) the rest of the app is
- * unreachable — every other path lands on the Claim Buddy home.
+ * unreachable — every other path lands on the Claim Buddy home. The one
+ * exception is "/" for signed-out visitors: they get the marketing landing page.
  */
 function StandaloneGate() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     if (getSurface() !== "standalone") return;
     if (isClaimBuddyPath(pathname)) return;
+    if (pathname === "/" && (loading || !user)) return;
     navigate({ to: "/cb", replace: true });
-  }, [pathname, navigate]);
+  }, [pathname, navigate, user, loading]);
 
   return null;
+}
+
+/** Renders the marketing landing page on gcn.claims "/" for signed-out visitors. */
+function SurfaceOutlet() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user, loading } = useAuth();
+  const [standalone, setStandalone] = useState(false);
+
+  useEffect(() => {
+    setStandalone(getSurface() === "standalone");
+  }, []);
+
+  if (standalone && pathname === "/") {
+    if (loading) return null;
+    if (!user) return <Landing />;
+    return null;
+  }
+
+  return <Outlet />;
 }
 
 function RootComponent() {
@@ -126,7 +149,7 @@ function RootComponent() {
         <CbSessionProvider>
           <CbCompanyProvider>
             <StandaloneGate />
-            <Outlet />
+            <SurfaceOutlet />
             <Toaster />
           </CbCompanyProvider>
         </CbSessionProvider>
