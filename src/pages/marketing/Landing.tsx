@@ -1,4 +1,98 @@
 import { useEffect, useRef, useState } from "react";
+import StepPlayer, { type StepFrame } from "@/components/marketing/StepPlayer";
+
+const STEP_FRAMES: StepFrame[] = [
+  {
+    src: "/marketing/screens/m1_pin.jpg",
+    title: "Drop the pin",
+    caption: "Type the address, confirm the right house on satellite.",
+  },
+  {
+    src: "/marketing/screens/m2_measuring.jpg",
+    title: "Measuring…",
+    caption: "The roof traces itself from imagery in a few seconds.",
+  },
+  {
+    src: "/marketing/screens/m3_footprint.jpg",
+    title: "One outline per structure",
+    caption: "House, garage, shed — each gets its own closed outline.",
+  },
+  {
+    src: "/marketing/screens/m4_drawing.jpg",
+    title: "Draw by hand too",
+    caption: "Tap point to point when the imagery is behind the times.",
+  },
+  {
+    src: "/marketing/screens/m5_lines.jpg",
+    title: "Ridges, hips and valleys",
+    caption: "Draw the interior lines; linear footage updates live.",
+  },
+  {
+    src: "/marketing/screens/m6_label.jpg",
+    title: "Label each edge",
+    caption: "Pick a type once, then tap every edge that matches.",
+  },
+  {
+    src: "/marketing/screens/m7_labeled.jpg",
+    title: "Labeled and totaled",
+    caption: "90.4 squares at 10:12 — ready for the takeoff.",
+  },
+];
+
+const STEPS_CSS = `
+.mkt-steps{background:var(--cb-bg);padding:78px 18px 86px}
+.mkt-steps__inner{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.02fr .98fr;
+  gap:44px;align-items:center}
+.mkt-steps h2{font-family:Archivo,system-ui,sans-serif;font-weight:800;letter-spacing:-.02em;
+  font-size:clamp(1.7rem,3vw,2.5rem);line-height:1.1;margin:10px 0 0}
+.mkt-steps__eyebrow{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--cb-text-muted)}
+.mkt-steps__p{margin:16px 0 20px;font-size:16px;line-height:1.6;color:var(--cb-text-dim);max-width:56ch}
+.mkt-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.mkt-chip{font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:999px;
+  border:1px solid var(--cb-hairline);background:var(--cb-surface);color:var(--cb-text-dim)}
+.mkt-bezel{padding:9px;border-radius:30px;background:linear-gradient(165deg,#3a424e,#14161a);
+  box-shadow:0 34px 70px rgba(0,0,0,.32);max-width:360px;margin:0 auto;color:#eef2f7;
+  --cb-text-muted:rgba(238,242,247,.6);--cb-hairline:rgba(255,255,255,.16);--cb-surface:rgba(255,255,255,.08);--cb-text:#eef2f7}
+@media (max-width:959px){.mkt-steps__inner{grid-template-columns:1fr;gap:30px}.mkt-steps{padding:52px 18px 60px}}
+`;
+
+function StepsSection() {
+  return (
+    <section className="mkt-steps" id="app">
+      <style dangerouslySetInnerHTML={{ __html: STEPS_CSS }} />
+      <div className="mkt-steps__inner">
+        <div>
+          <div className="mkt-steps__eyebrow">Address to labeled roof</div>
+          <h2>Seven taps, and the roof is measured.</h2>
+          <p className="mkt-steps__p">
+            This is the real thing, frame by frame — pin, trace, drag the corners onto the actual
+            roof, draw the ridges and hips, label each edge. Squares and linear footage update the
+            whole way through.
+          </p>
+          <div className="mkt-chips">
+            <span className="mkt-chip">One outline per structure</span>
+            <span className="mkt-chip">Drag any corner</span>
+            <span className="mkt-chip">Draw by hand too</span>
+            <span className="mkt-chip">Every edge gets a type</span>
+          </div>
+          <a
+            href="/cb/signup"
+            className="cb-btn cb-btn-lg cb-btn-primary"
+            style={{ textDecoration: "none", whiteSpace: "nowrap" }}
+          >
+            <span className="cb-specular" />
+            <span className="cb-btn-label">Measure your address on a call</span>
+          </a>
+        </div>
+
+        <div className="mkt-bezel">
+          <StepPlayer frames={STEP_FRAMES} aspect="phone" />
+        </div>
+      </div>
+    </section>
+  );
+}
 
 const HERO_CSS = `
 .mkt-hero{position:relative;overflow:hidden;background:#0f1216;color:#eef2f7;isolation:isolate}
@@ -451,6 +545,7 @@ export default function Landing() {
 
       <main style={{ flex: 1 }}>
         <Hero />
+        <StepsSection />
       </main>
 
       <footer
