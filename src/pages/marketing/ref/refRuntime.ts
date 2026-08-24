@@ -20,6 +20,10 @@ export type MountOptions = {
   redirects?: Record<string, string>;
   /** Navigate out of the prototype shell (router push). */
   onExternal?: (url: string) => void;
+  /** Gallery filter chips: [id, label]. Built from the categories present in the CMS. */
+  cats?: string[][];
+  /** media key -> category, from the CMS; overrides the built-in mapping. */
+  catByKey?: Record<string, string>;
   /** Receives the view switcher so React can drive it when the route changes. */
   exposeGo?: (go: (view: string, notify?: boolean) => void) => void;
 };
@@ -230,14 +234,16 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
   }
 
   /* ---------- gallery ---------- */
+  const GCATS = opts.cats?.length ? opts.cats : CATS;
+  const CATOF = (k: string) => opts.catByKey?.[k] ?? CATMAP[k] ?? "";
   setHTML(
     "#gfilter",
-    CATS.map(
+    GCATS.map(
       (c, i) => `<button class="tab" data-cat="${c[0]}" aria-selected="${i === 0}">${c[1]}</button>`,
     ).join(""),
   );
   function gal(cat: string) {
-    const keys = marqKeys.filter((k) => cat === "all" || CATMAP[k] === cat);
+    const keys = marqKeys.filter((k) => cat === "all" || CATOF(k) === cat);
     setHTML("#gal", keys.map(shotCard).join(""));
     observe();
   }
