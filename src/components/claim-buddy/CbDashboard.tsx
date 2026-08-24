@@ -254,12 +254,31 @@ export function CbDashboard() {
         <CbTile label="Signed this month" value={stats.signedThisMonth} />
       </CbStagger>
 
+      {/* Primary actions */}
+      <CbReveal delay={80}>
+        <div className="mt-6 space-y-3">
+          <CbButton block variant="secondary" onClick={() => navigate({ to: "/cb/survival-guide" })}>
+            <span className="inline-flex items-center gap-2">
+              <BookOpenText className="h-4 w-4" /> Survival Guide
+            </span>
+          </CbButton>
+          <CbButton block variant="secondary" onClick={() => navigate({ to: "/cb/map" })}>
+            <span className="inline-flex items-center gap-2">
+              <MapIcon className="h-4 w-4" /> Door to Door mode
+            </span>
+          </CbButton>
+          <CbButton block loading={starting} loadingText="Creating inspection…" onClick={startInspection}>
+            Start Inspection
+          </CbButton>
+        </div>
+      </CbReveal>
+
       {/* Resume where I left off */}
       {resumeJob ? (
-        <CbReveal delay={70}>
+        <CbReveal delay={90}>
           <CbCard
             elevation="raised"
-            className="mt-5 cursor-pointer"
+            className="mt-4 cursor-pointer"
             style={{ padding: 16 }}
             onClick={() => navigate({ to: "/cb/job/$id/customer", params: { id: resumeJob.id } })}
           >
@@ -280,19 +299,7 @@ export function CbDashboard() {
         </CbReveal>
       ) : null}
 
-      {/* Primary action */}
-      <CbReveal delay={80}>
-        <div className="mt-6 space-y-3">
-          <CbButton block loading={starting} loadingText="Creating inspection…" onClick={startInspection}>
-            Start Inspection
-          </CbButton>
-          <CbButton block variant="secondary" onClick={() => navigate({ to: "/cb/map" })}>
-            <span className="inline-flex items-center gap-2">
-              <MapIcon className="h-4 w-4" /> Door to Door mode
-            </span>
-          </CbButton>
-        </div>
-      </CbReveal>
+
 
 
       {/* Search + filters */}
