@@ -1,5 +1,7 @@
 import { useState } from "react";
 import MarketingShell from "./MarketingShell";
+import { useServerFn } from "@tanstack/react-start";
+import { cbSubmitDemoRequest } from "@/lib/cb-team.functions";
 
 const CSS = `
 .dm-wrap{max-width:1200px;margin:0 auto;padding:44px 22px 76px}
@@ -16,6 +18,27 @@ const CSS = `
   box-shadow:0 0 0 4px rgba(21,128,61,.16)}
 .dm-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:560px){.dm-row{grid-template-columns:1fr}}
+.dm-field textarea{min-height:110px;border-radius:14px;border:1px solid var(--cb-hairline);
+  background:var(--cb-surface-2);color:var(--cb-text);font-size:16px;padding:12px 14px;width:100%;
+  font-family:inherit;line-height:1.5;resize:vertical}
+.dm-field textarea:focus{outline:none;border-color:var(--cb-accent);box-shadow:0 0 0 4px rgba(21,128,61,.16)}
+.dm-group{border:1px solid var(--cb-hairline);border-radius:18px;background:var(--cb-surface-2);
+  padding:18px 16px 4px;margin-bottom:18px}
+.dm-group__t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--cb-accent);margin:0 0 14px}
+.dm-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.dm-chip{border:1px solid var(--cb-hairline);background:var(--cb-surface);color:var(--cb-text-dim);
+  border-radius:999px;padding:9px 14px;font-size:13.5px;font-weight:600;cursor:pointer;
+  transition:all .14s var(--cb-ease)}
+.dm-chip[aria-pressed="true"]{background:var(--cb-accent);border-color:var(--cb-accent);color:#fff;
+  box-shadow:0 8px 18px rgba(21,128,61,.26)}
+.dm-ask{border:1px solid var(--cb-accent);border-radius:18px;padding:18px 16px 6px;margin-bottom:18px;
+  background:rgba(21,128,61,.05)}
+.dm-err{font-size:12.5px;color:#b91c1c;font-weight:600}
+.dm-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+.dm-sum{text-align:left;border:1px solid var(--cb-hairline);border-radius:16px;background:var(--cb-surface-2);
+  padding:16px;margin-top:18px;font-size:14px;line-height:1.6;color:var(--cb-text-dim)}
+.dm-sum b{color:var(--cb-text)}
 .dm-note{font-size:12.5px;color:var(--cb-text-muted);margin-top:12px;line-height:1.5;text-align:center}
 .dm-ok{text-align:center;padding:22px 6px 10px}
 .dm-ok__i{width:66px;height:66px;border-radius:999px;background:var(--cb-accent);color:#fff;display:grid;
@@ -73,16 +96,92 @@ const SEQUENCE = [
   },
 ];
 
-const REPS = ["1–3", "4–10", "11–25", "26–50", "51+"];
+const TEAM_SIZES = ["1-3", "4-10", "11-25", "26-50", "51+"];
+const INDUSTRIES = [
+  "Roofing",
+  "Roofing + exterior",
+  "General restoration",
+  "Storm/insurance restoration",
+  "Solar",
+  "Public adjusting",
+  "Other",
+];
+const FEATURES = [
+  "Instant measurement",
+  "Roof takeoff",
+  "Exterior takeoff",
+  "Interior takeoff",
+  "Photo documentation",
+  "Damage report",
+  "Line-item estimating",
+  "Supplements",
+  "Contracts & e-sign",
+  "Canvassing",
+  "Storm maps",
+  "Team management",
+];
+
+type Errors = Partial<Record<"name" | "email" | "industry" | "team_size" | "primary_goal" | "form", string>>;
 
 export default function DemoPage() {
+  const submit = useServerFn(cbSubmitDemoRequest);
   const [sent, setSent] = useState(false);
-  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState<Errors>({});
 
-  // No-op submit: intentionally not wired to email or any table yet.
-  const onSubmit = (e: React.FormEvent) => {
+  const [name, setName] = useState("");
+  const [company, setCompany] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [teamSize, setTeamSize] = useState("");
+  const [tools, setTools] = useState("");
+  const [goal, setGoal] = useState("");
+  const [features, setFeatures] = useState<string[]>([]);
+  const [questions, setQuestions] = useState("");
+  const [address, setAddress] = useState("");
+  const [website, setWebsite] = useState(""); // honeypot
+
+  function toggleFeature(f: string) {
+    setFeatures((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f].slice(0, 12)));
+  }
+
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
+    const next: Errors = {};
+    if (!name.trim()) next.name = "Tell us your name.";
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = "Enter a valid work email.";
+    if (!industry) next.industry = "Pick the closest fit.";
+    if (!teamSize) next.team_size = "Pick a team size.";
+    if (!goal.trim()) next.primary_goal = "One line is enough — what are you trying to fix?";
+    setErrors(next);
+    if (Object.keys(next).length) return;
+
+    setBusy(true);
+    try {
+      await submit({
+        data: {
+          name: name.trim(),
+          email: email.trim(),
+          company: company.trim() || undefined,
+          phone: phone.trim() || undefined,
+          kind: "demo" as const,
+          industry,
+          team_size: teamSize,
+          current_tools: tools.trim() || undefined,
+          primary_goal: goal.trim(),
+          features_wanted: features,
+          questions: questions.trim() || undefined,
+          message: address.trim() ? `Address to measure: ${address.trim()}` : undefined,
+          website: website || undefined,
+        },
+      });
+      setSent(true);
+    } catch (err) {
+      setErrors({ form: err instanceof Error ? err.message : "Something went wrong. Try again." });
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -108,13 +207,25 @@ export default function DemoPage() {
                   You're on the list{name ? `, ${name.split(" ")[0]}` : ""}.
                 </h2>
                 <p style={{ fontSize: 15.5, color: "var(--cb-text-dim)", marginTop: 10, lineHeight: 1.6 }}>
-                  We'll reach out to lock in a time and run your address through a live measurement
-                  before we even get on the call.
+                  We'll call within one business day to lock in a time, and we'll have your address
+                  measured before we get on the call.
+                </p>
+                <div className="dm-sum">
+                  <div><b>Name</b> — {name}{company ? ` · ${company}` : ""}</div>
+                  <div><b>Email</b> — {email}{phone ? ` · ${phone}` : ""}</div>
+                  <div><b>Industry</b> — {industry} · <b>Team</b> {teamSize}</div>
+                  {tools ? <div><b>Today they use</b> — {tools}</div> : null}
+                  <div><b>Goal</b> — {goal}</div>
+                  {features.length ? <div><b>Features</b> — {features.join(", ")}</div> : null}
+                  {questions ? <div><b>Your questions</b> — {questions}</div> : null}
+                </div>
+                <p style={{ fontSize: 13.5, color: "var(--cb-text-muted)", marginTop: 14, lineHeight: 1.55 }}>
+                  Need a different time? Reply to the confirmation email and we'll move it.
                 </p>
                 <button
                   type="button"
                   className="cb-btn cb-btn-md cb-btn-secondary"
-                  style={{ marginTop: 20 }}
+                  style={{ marginTop: 18 }}
                   onClick={() => setSent(false)}
                 >
                   <span className="cb-specular" />
@@ -127,59 +238,167 @@ export default function DemoPage() {
                   Book your demo
                 </h2>
 
-                <div className="dm-row">
+                <div className="dm-group">
+                  <p className="dm-group__t">About you</p>
+                  <div className="dm-row">
+                    <div className="dm-field">
+                      <label htmlFor="dm-name">Name</label>
+                      <input
+                        id="dm-name"
+                        autoComplete="name"
+                        placeholder="Jordan Miles"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                      />
+                      {errors.name ? <span className="dm-err">{errors.name}</span> : null}
+                    </div>
+                    <div className="dm-field">
+                      <label htmlFor="dm-company">Company</label>
+                      <input
+                        id="dm-company"
+                        autoComplete="organization"
+                        placeholder="Miles Exteriors"
+                        value={company}
+                        onChange={(e) => setCompany(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="dm-row">
+                    <div className="dm-field">
+                      <label htmlFor="dm-email">Work email</label>
+                      <input
+                        id="dm-email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="you@company.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                      {errors.email ? <span className="dm-err">{errors.email}</span> : null}
+                    </div>
+                    <div className="dm-field">
+                      <label htmlFor="dm-mobile">Mobile</label>
+                      <input
+                        id="dm-mobile"
+                        type="tel"
+                        autoComplete="tel"
+                        placeholder="(555) 123-4567"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="dm-group">
+                  <p className="dm-group__t">About your business</p>
+                  <div className="dm-row">
+                    <div className="dm-field">
+                      <label htmlFor="dm-industry">Industry</label>
+                      <select id="dm-industry" value={industry} onChange={(e) => setIndustry(e.target.value)}>
+                        <option value="">Choose one…</option>
+                        {INDUSTRIES.map((i) => (
+                          <option key={i} value={i}>{i}</option>
+                        ))}
+                      </select>
+                      {errors.industry ? <span className="dm-err">{errors.industry}</span> : null}
+                    </div>
+                    <div className="dm-field">
+                      <label htmlFor="dm-team">Team size</label>
+                      <select id="dm-team" value={teamSize} onChange={(e) => setTeamSize(e.target.value)}>
+                        <option value="">Choose one…</option>
+                        {TEAM_SIZES.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                      {errors.team_size ? <span className="dm-err">{errors.team_size}</span> : null}
+                    </div>
+                  </div>
                   <div className="dm-field">
-                    <label htmlFor="dm-name">Name</label>
+                    <label htmlFor="dm-tools">Current tools</label>
                     <input
-                      id="dm-name"
-                      name="name"
-                      autoComplete="name"
-                      placeholder="Jordan Miles"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      id="dm-tools"
+                      placeholder="AccuLynx, Xactimate, spreadsheets…"
+                      value={tools}
+                      onChange={(e) => setTools(e.target.value)}
                     />
                   </div>
-                  <div className="dm-field">
-                    <label htmlFor="dm-company">Company</label>
-                    <input id="dm-company" name="company" autoComplete="organization" placeholder="Miles Exteriors" />
-                  </div>
                 </div>
 
-                <div className="dm-field">
-                  <label htmlFor="dm-email">Work email</label>
-                  <input id="dm-email" name="email" type="email" autoComplete="email" placeholder="you@company.com" />
-                </div>
-
-                <div className="dm-row">
+                <div className="dm-group">
+                  <p className="dm-group__t">What you're trying to fix</p>
                   <div className="dm-field">
-                    <label htmlFor="dm-mobile">Mobile</label>
-                    <input id="dm-mobile" name="mobile" type="tel" autoComplete="tel" placeholder="(555) 123-4567" />
+                    <label htmlFor="dm-goal">What do you want to run your business on this for?</label>
+                    <textarea
+                      id="dm-goal"
+                      placeholder="Measurements take too long, my reps write scopes three different ways, supplements die in email…"
+                      value={goal}
+                      onChange={(e) => setGoal(e.target.value)}
+                    />
+                    {errors.primary_goal ? <span className="dm-err">{errors.primary_goal}</span> : null}
                   </div>
                   <div className="dm-field">
-                    <label htmlFor="dm-reps">Number of field reps</label>
-                    <select id="dm-reps" name="reps" defaultValue="1–3">
-                      {REPS.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
+                    <label>What do you want it to do? (pick any)</label>
+                    <div className="dm-chips">
+                      {FEATURES.map((f) => (
+                        <button
+                          key={f}
+                          type="button"
+                          className="dm-chip"
+                          aria-pressed={features.includes(f)}
+                          onClick={() => toggleFeature(f)}
+                        >
+                          {f}
+                        </button>
                       ))}
-                    </select>
+                    </div>
+                  </div>
+                  <div className="dm-field">
+                    <label htmlFor="dm-address">Address to measure (optional)</label>
+                    <input
+                      id="dm-address"
+                      autoComplete="street-address"
+                      placeholder="1420 Palm Bay Rd NE, Palm Bay, FL"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                    />
                   </div>
                 </div>
 
-                <div className="dm-field">
-                  <label htmlFor="dm-address">Address to measure</label>
-                  <input
-                    id="dm-address"
-                    name="address"
-                    autoComplete="street-address"
-                    placeholder="1420 Palm Bay Rd NE, Palm Bay, FL"
-                  />
+                <div className="dm-ask">
+                  <div className="dm-field">
+                    <label htmlFor="dm-questions" style={{ fontSize: 15, color: "var(--cb-text)" }}>
+                      Anything you want to ask, or ask us to build?
+                    </label>
+                    <textarea
+                      id="dm-questions"
+                      placeholder="Tell us what's missing from the software you use today. This is the field we read first."
+                      value={questions}
+                      onChange={(e) => setQuestions(e.target.value)}
+                    />
+                  </div>
                 </div>
 
-                <button type="submit" className="cb-btn cb-btn-lg cb-btn-primary" style={{ width: "100%" }}>
+                <input
+                  className="dm-hp"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  placeholder="Website"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                />
+
+                {errors.form ? <p className="dm-err" style={{ marginBottom: 10 }}>{errors.form}</p> : null}
+
+                <button
+                  type="submit"
+                  className="cb-btn cb-btn-lg cb-btn-primary"
+                  style={{ width: "100%" }}
+                  disabled={busy}
+                >
                   <span className="cb-specular" />
-                  <span className="cb-btn-label">Book my demo</span>
+                  <span className="cb-btn-label">{busy ? "Sending…" : "Book my demo"}</span>
                 </button>
                 <div className="dm-note">
                   No card, no contract. We measure your address before the call either way.
@@ -187,6 +406,8 @@ export default function DemoPage() {
               </form>
             )}
           </div>
+
+
 
           <div>
             <h2 style={{ fontSize: "clamp(20px,2.6vw,26px)", letterSpacing: "-0.02em", margin: 0 }}>

@@ -723,43 +723,70 @@ export type Database = {
         Row: {
           company: string | null
           created_at: string
+          current_tools: string | null
           email: string
+          features_wanted: string[] | null
           handled_at: string | null
           id: string
+          industry: string | null
           kind: string
           message: string | null
           name: string
+          notes: string | null
           phone: string | null
+          preferred_time: string | null
+          primary_goal: string | null
+          questions: string | null
           seats: number | null
           source: string
+          status: string
+          team_size: string | null
           updated_at: string
         }
         Insert: {
           company?: string | null
           created_at?: string
+          current_tools?: string | null
           email: string
+          features_wanted?: string[] | null
           handled_at?: string | null
           id?: string
+          industry?: string | null
           kind?: string
           message?: string | null
           name: string
+          notes?: string | null
           phone?: string | null
+          preferred_time?: string | null
+          primary_goal?: string | null
+          questions?: string | null
           seats?: number | null
           source?: string
+          status?: string
+          team_size?: string | null
           updated_at?: string
         }
         Update: {
           company?: string | null
           created_at?: string
+          current_tools?: string | null
           email?: string
+          features_wanted?: string[] | null
           handled_at?: string | null
           id?: string
+          industry?: string | null
           kind?: string
           message?: string | null
           name?: string
+          notes?: string | null
           phone?: string | null
+          preferred_time?: string | null
+          primary_goal?: string | null
+          questions?: string | null
           seats?: number | null
           source?: string
+          status?: string
+          team_size?: string | null
           updated_at?: string
         }
         Relationships: []

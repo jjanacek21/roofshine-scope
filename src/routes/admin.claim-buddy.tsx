@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CbLineItemSearch } from "@/components/admin/CbLineItemSearch";
-import { CbCompaniesTab, CbDemoRequestsTab } from "@/components/admin/CbCompaniesTab";
+import { CbCompaniesTab, CbDemoRequestsTab, useCbUnhandledDemoCount } from "@/components/admin/CbCompaniesTab";
 import {
   CB_QTY_MODES,
   CB_ROOF_SYSTEMS,
@@ -153,7 +153,10 @@ function ClaimBuddyAdmin() {
           {version ? <TabsTrigger value="code">Code rules</TabsTrigger> : null}
           {version ? <TabsTrigger value="accuracy">Measurement accuracy</TabsTrigger> : null}
           <TabsTrigger value="companies">Companies &amp; users</TabsTrigger>
-          <TabsTrigger value="demos">Demo requests</TabsTrigger>
+          <TabsTrigger value="demos">
+            Demo requests
+            <DemoBadge />
+          </TabsTrigger>
         </TabsList>
 
         {version ? (
@@ -936,5 +939,15 @@ function AccuracyTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+function DemoBadge() {
+  const { data = 0 } = useCbUnhandledDemoCount();
+  if (!data) return null;
+  return (
+    <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+      {data}
+    </span>
   );
 }
