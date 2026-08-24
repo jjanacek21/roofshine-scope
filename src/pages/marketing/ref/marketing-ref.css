@@ -196,7 +196,7 @@
 .mkt-ref .foot-plaque{display:inline-block;background:var(--plot);border:1px solid var(--plot-line);
   border-radius:14px;padding:12px 16px;align-self:flex-start;
   box-shadow:var(--sh-card),inset 0 1px 0 rgba(255,255,255,.06)}
-.mkt-ref .foot-logo{width:210px;max-width:100%;height:auto;display:block;
+.mkt-ref .foot-logo{width:210px;max-width:100%;height:auto;display:block;mix-blend-mode:screen;
   filter:drop-shadow(0 6px 18px rgba(var(--accent-rgb),.28))}
 @media (prefers-reduced-motion:reduce){
 .mkt-ref .logo-anim{content:none}
