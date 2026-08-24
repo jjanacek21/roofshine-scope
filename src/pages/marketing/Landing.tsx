@@ -2,6 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import StepPlayer, { type StepFrame } from "@/components/marketing/StepPlayer";
 import HomeSections from "@/components/marketing/HomeSections";
 import logoVideo from "@/assets/claimbuddy-logo.mp4.asset.json";
+import {
+  EMPTY_SITE_CONTENT,
+  arr,
+  blockOf,
+  mediaKeyOf,
+  obj,
+  str,
+  type SiteContent,
+  type SiteJson,
+} from "@/lib/site-content.types";
 
 
 const STEP_FRAMES: StepFrame[] = [
@@ -42,6 +52,22 @@ const STEP_FRAMES: StepFrame[] = [
   },
 ];
 
+/** Frame order is fixed — sequences are looked up by stable media key, never by position. */
+function resolveFrames(content: SiteContent, block: SiteJson): StepFrame[] {
+  const base = arr<StepFrame>(block, "frames", STEP_FRAMES);
+  const byKey = new Map<string, (typeof content.media)[number]>();
+  for (const m of content.media) {
+    byKey.set(m.key, m);
+    if (m.title) byKey.set(mediaKeyOf(m.title), m);
+  }
+  return base.map((f) => {
+    const hit = byKey.get(mediaKeyOf(f.src));
+    return hit
+      ? { src: hit.url, title: hit.title || f.title, caption: hit.caption ?? f.caption }
+      : f;
+  });
+}
+
 const STEPS_CSS = `
 .mkt-steps{background:var(--cb-bg);padding:78px 18px 86px}
 .mkt-steps__inner{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.02fr .98fr;
@@ -60,37 +86,49 @@ const STEPS_CSS = `
 @media (max-width:959px){.mkt-steps__inner{grid-template-columns:1fr;gap:30px}.mkt-steps{padding:52px 18px 60px}}
 `;
 
-function StepsSection() {
+function StepsSection({ content }: { content: SiteContent }) {
+  const b = blockOf(content, "steps");
+  const frames = resolveFrames(content, blockOf(content, "measure_player"));
+  const chips = arr<string>(b, "chips", [
+    "One outline per structure",
+    "Drag any corner",
+    "Draw by hand too",
+    "Every edge gets a type",
+  ]);
+  const cta = obj(b, "cta", { href: "/cb/signup", label: "Measure your address on a call" });
   return (
     <section className="mkt-steps" id="app">
       <style dangerouslySetInnerHTML={{ __html: STEPS_CSS }} />
       <div className="mkt-steps__inner">
         <div>
-          <div className="mkt-steps__eyebrow">Address to labeled roof</div>
-          <h2>Seven taps, and the roof is measured.</h2>
+          <div className="mkt-steps__eyebrow">{str(b, "eyebrow", "Address to labeled roof")}</div>
+          <h2>{str(b, "heading", "Seven taps, and the roof is measured.")}</h2>
           <p className="mkt-steps__p">
-            This is the real thing, frame by frame — pin, trace, drag the corners onto the actual
-            roof, draw the ridges and hips, label each edge. Squares and linear footage update the
-            whole way through.
+            {str(
+              b,
+              "body",
+              "This is the real thing, frame by frame — pin, trace, drag the corners onto the actual roof, draw the ridges and hips, label each edge. Squares and linear footage update the whole way through.",
+            )}
           </p>
           <div className="mkt-chips">
-            <span className="mkt-chip">One outline per structure</span>
-            <span className="mkt-chip">Drag any corner</span>
-            <span className="mkt-chip">Draw by hand too</span>
-            <span className="mkt-chip">Every edge gets a type</span>
+            {chips.map((c) => (
+              <span className="mkt-chip" key={c}>
+                {c}
+              </span>
+            ))}
           </div>
           <a
-            href="/cb/signup"
+            href={str(cta, "href", "/cb/signup")}
             className="cb-btn cb-btn-lg cb-btn-primary"
             style={{ textDecoration: "none", whiteSpace: "nowrap" }}
           >
             <span className="cb-specular" />
-            <span className="cb-btn-label">Measure your address on a call</span>
+            <span className="cb-btn-label">{str(cta, "label", "Measure your address on a call")}</span>
           </a>
         </div>
 
         <div className="mkt-bezel">
-          <StepPlayer frames={STEP_FRAMES} aspect="phone" />
+          <StepPlayer frames={frames} aspect="phone" />
         </div>
       </div>
     </section>
@@ -196,7 +234,18 @@ function CountUp({ to, duration = 2100 }: { to: number; duration?: number }) {
   return <>{v.toFixed(1)}</>;
 }
 
-function Hero() {
+function Hero({ content }: { content: SiteContent }) {
+  const b = blockOf(content, "hero");
+  const headlineText = str(b, "headline", HEADLINE.join(" "));
+  const words = headlineText.split(/\s+/).filter(Boolean);
+  const accentWord = str(b, "accent_word", "door.");
+  const stats = arr<{ value: string; label: string }>(b, "stats", [
+    { value: "90.4", label: "Squares" },
+    { value: "10:12", label: "Pitch" },
+    { value: "31", label: "Line items" },
+  ]);
+  const primary = obj(b, "primary_cta", { href: "/cb/signup", label: "Book a demo" });
+  const secondary = obj(b, "secondary_cta", { href: "/#gallery", label: "See every screen" });
   const [inView, setInView] = useState(false);
   const reduced = useReducedMotion();
   const fanRef = useRef<HTMLDivElement | null>(null);
@@ -263,16 +312,16 @@ function Hero() {
 
 
           <div className="mkt-eyebrow">
-            Insurance restoration · roof, exterior &amp; interior
+            {str(b, "eyebrow", "Insurance restoration · roof, exterior & interior")}
           </div>
 
           <h1 className="mkt-h1">
-            {HEADLINE.map((w, i) => (
+            {words.map((w, i) => (
               <span key={`${w}-${i}`}>
                 <span className="mkt-word">
                   <span
                     style={{ transitionDelay: `${i * 48}ms` }}
-                    className={w === "door." ? "mkt-accent" : undefined}
+                    className={w === accentWord ? "mkt-accent" : undefined}
                   >
                     {w}
                   </span>
@@ -282,49 +331,52 @@ function Hero() {
           </h1>
 
           <p className="mkt-sub">
-            Type an address and the roof traces itself. Then walk it — roof, all four exterior
-            elevations, and the interior — and hand the homeowner a carrier-ready scope before you
-            leave the driveway.
+            {str(
+              b,
+              "sub",
+              "Type an address and the roof traces itself. Then walk it — roof, all four exterior elevations, and the interior — and hand the homeowner a carrier-ready scope before you leave the driveway.",
+            )}
           </p>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <a
-              href="/cb/signup"
+              href={str(primary, "href", "/cb/signup")}
               className="cb-btn cb-btn-lg cb-btn-primary mkt-cta-primary"
               style={{ textDecoration: "none", whiteSpace: "nowrap" }}
             >
               <span className="cb-specular" />
-              <span className="cb-btn-label">Book a demo</span>
+              <span className="cb-btn-label">{str(primary, "label", "Book a demo")}</span>
             </a>
             <a
-              href="/#gallery"
+              href={str(secondary, "href", "/#gallery")}
               className="cb-btn cb-btn-lg cb-btn-secondary"
               style={{ textDecoration: "none", whiteSpace: "nowrap" }}
             >
               <span className="cb-specular" />
-              <span className="cb-btn-label">See every screen</span>
+              <span className="cb-btn-label">{str(secondary, "label", "See every screen")}</span>
             </a>
           </div>
 
           <div className="mkt-stats">
-            <div className="mkt-stat">
-              <b>
-                <CountUp to={90.4} />
-              </b>
-              <span>Squares</span>
-            </div>
-            <div className="mkt-stat">
-              <b>10:12</b>
-              <span>Pitch</span>
-            </div>
-            <div className="mkt-stat">
-              <b>31</b>
-              <span>Line items</span>
-            </div>
+            {stats.map((st) => {
+              const numeric = /^\d+(\.\d+)?$/.test(String(st.value ?? ""));
+              return (
+                <div className="mkt-stat" key={st.label}>
+                  <b>
+                    {numeric && String(st.value).includes(".") ? (
+                      <CountUp to={Number(st.value)} />
+                    ) : (
+                      st.value
+                    )}
+                  </b>
+                  <span>{st.label}</span>
+                </div>
+              );
+            })}
           </div>
 
           <div className="mkt-note">
-            Runs in the phone browser at gcn.claims. No app store, no install.
+            {str(b, "note", "Runs in the phone browser at gcn.claims. No app store, no install.")}
           </div>
         </div>
 
@@ -377,7 +429,7 @@ function CbButton({
   );
 }
 
-export default function Landing() {
+export default function Landing({ content = EMPTY_SITE_CONTENT }: { content?: SiteContent }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [compact, setCompact] = useState(false);
@@ -557,9 +609,9 @@ export default function Landing() {
       </header>
 
       <main style={{ flex: 1 }}>
-        <Hero />
-        <StepsSection />
-        <HomeSections />
+        <Hero content={content} />
+        <StepsSection content={content} />
+        <HomeSections content={content} />
       </main>
 
       <footer
