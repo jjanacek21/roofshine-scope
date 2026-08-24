@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Camera, ChevronRight, Building2, Settings, PlayCircle, Trash2 } from "lucide-react";
+import { Search, Camera, ChevronRight, Building2, Settings, PlayCircle, Trash2, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUSES: { value: string; label: string; tone: "neutral" | "success" | "warning" | "danger" | "accent" }[] = [
@@ -288,7 +288,7 @@ export function CbDashboard() {
           </CbButton>
           <CbButton block variant="secondary" onClick={() => navigate({ to: "/cb/map" })}>
             <span className="inline-flex items-center gap-2">
-              <Map className="h-4 w-4" /> Door to Door mode
+              <MapIcon className="h-4 w-4" /> Door to Door mode
             </span>
           </CbButton>
         </div>
