@@ -190,7 +190,7 @@ function CompanyCard({
   });
   const defaults = cbTierDefaults(tier);
 
-  async function setPlan(patch: Parameters<typeof cbAdminSetPlan>[0]["data"] extends never ? never : {
+  async function setPlan(patch: {
     tier?: CbTier;
     status?: "active" | "suspended" | "archived";
     isComp?: boolean;
