@@ -132,6 +132,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null, onPointS
   const [point, setPoint] = useState<SearchPoint | null>(null);
   const [savedOpen, setSavedOpen] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(true);
+  const controlsAutoRef = useRef(false);
   const [saving, setSaving] = useState(false);
   const [measure, setMeasure] = useState<MeasureSnapshot | null>(null);
   const [facets, setFacets] = useState<any[]>([]);
@@ -815,6 +816,13 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null, onPointS
     URL.revokeObjectURL(url);
     toast.success(`Exported ${rows.length} properties`);
   }, []);
+
+  /* On a phone the panel starts collapsed so it doesn't cover the map. */
+  useEffect(() => {
+    if (controlsAutoRef.current) return;
+    controlsAutoRef.current = true;
+    if (isMobile) setControlsOpen(false);
+  }, [isMobile]);
 
   const dataLoading = hailLoading || windLoading;
   const showOverlay = !token || !styleReady;
