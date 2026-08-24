@@ -6,7 +6,7 @@ import { CbAuthShell } from "@/components/claim-buddy/CbAuthShell";
 import { CbButton } from "@/components/cb/primitives";
 import { CbField, CbProgressRail, focusFirstError } from "@/components/cb/forms";
 import { CbSeatPicker } from "@/components/claim-buddy/CbSeatPicker";
-import { CB_INCLUDED_SEATS, CB_TRIAL_DAYS, money, quoteSeats } from "@/lib/cbPricing";
+import { CB_INCLUDED_SEATS, CB_PENDING_SEATS_KEY, CB_TRIAL_DAYS, money, quoteSeats } from "@/lib/cbPricing";
 
 export const Route = createFileRoute("/cb/signup")({
   head: () => ({
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/cb/signup")({
 });
 
 const STEPS = ["Seats", "Your details", "Confirm email"];
-export const CB_PENDING_SEATS_KEY = "cb.pendingSeats";
+
 
 function CbSignupPage() {
   const navigate = useNavigate();

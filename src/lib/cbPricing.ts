@@ -70,3 +70,5 @@ export function seatRateLabel(seats: number): string {
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
+
+export const CB_PENDING_SEATS_KEY = "cb.pendingSeats";
