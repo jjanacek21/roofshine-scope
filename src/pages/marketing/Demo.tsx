@@ -407,7 +407,7 @@ export default function DemoPage() {
             )}
           </div>
 
-          </div>
+
 
           <div>
             <h2 style={{ fontSize: "clamp(20px,2.6vw,26px)", letterSpacing: "-0.02em", margin: 0 }}>
