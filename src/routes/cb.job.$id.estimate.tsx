@@ -63,6 +63,8 @@ function CbEstimatePage() {
   });
 
   const [mode, setMode] = useState<CbEstimateMode | null>(null);
+  const featureGuard = useCbFeatureGuard();
+  const priceBookAllowed = useCbFeature("price_book").allowed;
   const [lines, setLines] = useState<CbDraftLine[]>([]);
   const [pps, setPps] = useState(0);
   const [pct, setPct] = useState<CbEstimatePercents>({
@@ -145,6 +147,8 @@ function CbEstimatePage() {
    * re-derived, so an edit made in one mode is still there in the other.
    */
   function changeMode(next: CbEstimateMode) {
+    /* Carrier-style line items come from the Xactimate price book — Elite only. */
+    if (next === "line_item" && !featureGuard("price_book")) return;
     cbHaptic();
     setMode(next);
     markDirty();
@@ -490,8 +494,10 @@ function CbEstimatePage() {
                 },
                 {
                   value: "line_item" as const,
-                  title: "Full line item",
-                  body: "Carrier-style build with codes and pricing",
+                  title: priceBookAllowed ? "Full line item" : "Full line item (Elite)",
+                  body: priceBookAllowed
+                    ? "Carrier-style build with codes and pricing"
+                    : "Xactimate price book — upgrade to unlock",
                 },
               ]}
             />
