@@ -10,6 +10,7 @@ import { DoorToDoorMap } from "@/components/door-to-door/DoorToDoorMap";
 import { StormSwathMap } from "@/components/storm/StormSwathMap";
 import { AddressAutocomplete, type AddressResult } from "@/components/maps/AddressAutocomplete";
 import { CbMapPropertyPanel, type CbMapPoint } from "@/components/claim-buddy/map/CbMapPropertyPanel";
+import { CbLockChip, useCbFeature, useCbFeatureGuard } from "@/components/claim-buddy/CbFeatureGate";
 
 export const Route = createFileRoute("/cb/map")({
   validateSearch: (search: Record<string, unknown>): { lat?: number; lng?: number } => {
@@ -45,6 +46,8 @@ function CbMapPage() {
   const { user } = useAuth();
   const { workspace } = useCbSession();
   const [mode, setMode] = useState<"canvass" | "storm">("canvass");
+  const featureGuard = useCbFeatureGuard();
+  const stormAllowed = useCbFeature("storm_intel").allowed;
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [selected, setSelected] = useState<CbMapPoint | null>(
@@ -149,7 +152,14 @@ function CbMapPage() {
                     : { color: "var(--cb-text-muted)" }
                 }
               >
-                {m === "canvass" ? "Canvass" : "Storm intel"}
+                {m === "canvass" ? (
+                  "Canvass"
+                ) : (
+                  <span className="inline-flex items-center gap-1">
+                    Storm intel
+                    {stormAllowed ? null : <CbLockChip feature="storm_intel" />}
+                  </span>
+                )}
               </button>
             ))}
           </div>
