@@ -7,6 +7,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useCbSession } from "@/components/auth/CbSessionProvider";
 import { useCbCompany } from "@/components/auth/CbCompanyProvider";
 import { useCbLogoUrl } from "@/lib/cbLogo";
+import { CbLockChip, useCbFeature, useCbFeatureGuard } from "@/components/claim-buddy/CbFeatureGate";
 import { CbCard, CbTile, CbButton, CbChip, CbBadge, CbLoading, CbEmptyState, CbSkeleton } from "@/components/cb/primitives";
 import { CbReveal, CbStagger } from "@/components/cb/motion";
 import { CbConvertAction } from "@/components/cb/CbConvertAction";
@@ -66,6 +67,8 @@ export function CbDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { workspace, surface, loading: sessionLoading } = useCbSession();
+  const featureGuard = useCbFeatureGuard();
+  const guideAllowed = useCbFeature("survival_guide").allowed;
   const { company, loading: companyLoading } = useCbCompany();
   const { data: profile } = useProfile();
   const logoUrl = useCbLogoUrl(company?.logo_url);
