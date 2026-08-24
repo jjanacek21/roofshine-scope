@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Download, Save, X, Mail } from "lucide-react";
+import { Loader2, Download, Save, X, Mail, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { stormSupabase } from "@/integrations/storm/client";
@@ -70,6 +70,8 @@ interface Props {
   center: [number, number];
   zoom?: number;
   searchedPoint?: SearchPoint | null;
+  /** When provided, house/swath clicks are handed to the parent instead of opening the built-in report popup. */
+  onPointSelect?: (p: { lat: number; lng: number; footprint?: [number, number, number, number] | null }) => void;
 }
 
 function escapeHtml(v: unknown) {
@@ -99,7 +101,7 @@ function toCsv(rows: Record<string, any>[]) {
   return [headers.join(","), ...rows.map((r) => headers.map((h) => cell(r[h])).join(","))].join("\r\n");
 }
 
-export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props) {
+export function StormSwathMap({ center, zoom = 4, searchedPoint = null, onPointSelect }: Props) {
   const { data: token, error: tokenError } = useMapboxToken();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -117,6 +119,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const initMapRef = useRef<(() => void) | null>(null);
   const setPointRef = useRef<((p: SearchPoint) => void) | null>(null);
   const housePinsRef = useRef<(() => void) | null>(null);
+  const onPointSelectRef = useRef<Props["onPointSelect"] | null>(null);
 
   const [styleReady, setStyleReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -126,6 +129,8 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
   const [bbox, setBbox] = useState<Bbox | null>(null);
   const [point, setPoint] = useState<SearchPoint | null>(null);
   const [savedOpen, setSavedOpen] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(true);
+  const controlsAutoRef = useRef(false);
   const [saving, setSaving] = useState(false);
   const [measure, setMeasure] = useState<MeasureSnapshot | null>(null);
   const [facets, setFacets] = useState<any[]>([]);
@@ -676,7 +681,15 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  setPointRef.current = (p: SearchPoint) => setPoint(p);
+  onPointSelectRef.current = onPointSelect ?? null;
+  setPointRef.current = (p: SearchPoint) => {
+    const handler = onPointSelectRef.current;
+    if (handler) {
+      handler({ lat: p.lat, lng: p.lng, footprint: p.footprint ?? null });
+      return;
+    }
+    setPoint(p);
+  };
 
   // ---- data → layers --------------------------------------------------
   useEffect(() => {
@@ -802,6 +815,13 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     toast.success(`Exported ${rows.length} properties`);
   }, []);
 
+  /* On a phone the panel starts collapsed so it doesn't cover the map. */
+  useEffect(() => {
+    if (controlsAutoRef.current) return;
+    controlsAutoRef.current = true;
+    if (typeof window !== "undefined" && window.innerWidth < 768) setControlsOpen(false);
+  }, []);
+
   const dataLoading = hailLoading || windLoading;
   const showOverlay = !token || !styleReady;
 
@@ -809,15 +829,38 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
 
-      {/* Controls + legend */}
-      <div
-        className="absolute top-4 left-4 z-10 flex w-[230px] flex-col gap-2 rounded-lg border p-3 text-[11px] shadow-lg"
+      {/* Controls toggle */}
+      <button
+        type="button"
+        aria-label={controlsOpen ? "Hide storm controls" : "Show storm controls"}
+        aria-expanded={controlsOpen}
+        onClick={() => setControlsOpen((v) => !v)}
+        className="absolute top-4 left-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border shadow-lg"
         style={{
           borderColor: "var(--border)",
           backgroundColor: "var(--bg-card)",
           color: "var(--text)",
         }}
       >
+        {dataLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Settings className="h-4 w-4" />}
+      </button>
+
+      {/* Controls + legend */}
+      {controlsOpen && (
+      <div
+        className="absolute top-[3.75rem] left-4 z-10 flex w-[230px] max-w-[calc(100vw-2rem)] max-h-[70%] flex-col gap-2 overflow-auto rounded-lg border p-3 text-[11px] shadow-lg"
+        style={{
+          borderColor: "var(--border)",
+          backgroundColor: "var(--bg-card)",
+          color: "var(--text)",
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-foreground">Storm controls</span>
+          <button type="button" aria-label="Close storm controls" onClick={() => setControlsOpen(false)}>
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
         <label className="font-semibold text-foreground" htmlFor="storm-range">
           Time range
         </label>
@@ -891,6 +934,7 @@ export function StormSwathMap({ center, zoom = 4, searchedPoint = null }: Props)
           {savedOpen ? "Hide saved properties" : "Saved properties"}
         </button>
       </div>
+      )}
 
       {/* Point report panel */}
       {point && (
