@@ -145,6 +145,20 @@ function CbOnboardingPage() {
 
       const result = (data ?? {}) as { workspace_id?: string; company_id?: string };
 
+      // Seat count chosen on the signup screen before email confirmation.
+      if (result.workspace_id) {
+        try {
+          const pending = Number(localStorage.getItem(CB_PENDING_SEATS_KEY) ?? "");
+          if (pending > 0) {
+            await supabase.rpc("cb_set_seats", { _ws: result.workspace_id, _seats: pending });
+            localStorage.removeItem(CB_PENDING_SEATS_KEY);
+          }
+        } catch {
+          /* seats can still be changed later in billing settings */
+        }
+      }
+
+
       if (logoFile && result.workspace_id && result.company_id) {
         try {
           const path = await cbUploadLogo(result.workspace_id, logoFile);
