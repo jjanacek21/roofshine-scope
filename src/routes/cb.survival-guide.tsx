@@ -51,7 +51,7 @@ function CbSurvivalGuidePage() {
 
         <div
           className="flex-1 overflow-hidden rounded-[14px]"
-          style={{ border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))", background: "#0a0a0f" }}
+          style={{ border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))", background: "#ffffff" }}
         >
           <iframe
             src="/survival-guide/index.html"
