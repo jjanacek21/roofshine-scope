@@ -7,12 +7,13 @@
  */
 
 import { M, TABS, STEPS, CATS, CATMAP, VIDS, RAMP, POSTS, QUEUE, SEQ, BANDS } from "./refData";
+import { mountLumaLogo } from "./logoVideo";
 
 export type MountOptions = {
   /** key -> resolved image URL (CMS first, repo fallback). */
   shots: Record<string, string>;
   /** Brand images, already resolved. */
-  brand: { animated: string; still: string; mark: string };
+  brand: { animated: string; still: string; mark: string; video: string; videoWebm?: string };
   initialView: string;
   /** Called whenever an in-page link changes the view, so the router can sync the URL. */
   onView?: (view: string) => void;
@@ -79,14 +80,15 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
   function playLogo() {
     const el = $<HTMLImageElement>("#logoAnim");
     if (!el) return;
-    if (reduce) {
+    const still = () => {
       el.src = opts.brand.still;
+    };
+    if (reduce || !opts.brand.video) {
+      still();
       return;
     }
-    el.src = "";
-    requestAnimationFrame(() => {
-      el.src = opts.brand.animated;
-    });
+    // Luma-keyed video: the black plate becomes real transparency.
+    stops.push(mountLumaLogo(el, [opts.brand.videoWebm ?? "", opts.brand.video], still));
   }
   playLogo();
 
@@ -389,12 +391,26 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
     on(window, "scroll", () => hdr.classList.toggle("stuck", window.scrollY > 10), {
       passive: true,
     });
+    // The light follows the cursor across the nav row, so dragging over the
+    // links lights each one from wherever the pointer entered it.
+    on(hdr, "pointermove", (e) => {
+      const pe = e as PointerEvent;
+      const btn = (pe.target as HTMLElement | null)?.closest?.("nav.links button");
+      if (!btn) return;
+      const r = btn.getBoundingClientRect();
+      (btn as HTMLElement).style.setProperty("--mx", `${((pe.clientX - r.left) / r.width) * 100}%`);
+      (btn as HTMLElement).style.setProperty("--my", `${((pe.clientY - r.top) / r.height) * 100}%`);
+    });
   }
 
-  const navMark = $<HTMLImageElement>("#navMark");
-  if (navMark) navMark.src = opts.brand.mark;
   const footLogo = $<HTMLImageElement>("#footLogo");
-  if (footLogo) footLogo.src = opts.brand.still;
+  if (footLogo) {
+    const footStill = () => {
+      footLogo.src = opts.brand.still;
+    };
+    if (reduce || !opts.brand.video) footStill();
+    else stops.push(mountLumaLogo(footLogo, [opts.brand.videoWebm ?? "", opts.brand.video], footStill));
+  }
 
 
   on(root, "click", (e) => {
