@@ -35,7 +35,7 @@ function SurvivalGuidePage() {
 
       <div
         className="flex-1 overflow-hidden rounded-xl border"
-        style={{ borderColor: "var(--border)", backgroundColor: "#0a0a0f" }}
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
       >
         <iframe
           src="/survival-guide/index.html"
