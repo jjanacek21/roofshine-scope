@@ -3,6 +3,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Building2, UserPlus, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Switch } from "@/components/ui/switch";
+import {
+  CB_FEATURES,
+  CB_FEATURE_LABEL,
+  CB_TIERS,
+  CB_TIER_LABEL,
+  cbResolveFeatures,
+  cbTierDefaults,
+  type CbFeature,
+  type CbTier,
+} from "@/lib/cbFeatures";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +29,8 @@ import {
   cbAdminListCompanies,
   cbAdminSetMember,
   cbAdminSetSeats,
+  cbAdminSetPlan,
+  cbAdminDeleteCompany,
   cbAdminUpsertUser,
   type CbAdminCompanyRow,
 } from "@/lib/cb-admin.functions";
@@ -169,6 +182,48 @@ function CompanyCard({
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const tier = (company.tier as CbTier) ?? "basic";
+  const effective = cbResolveFeatures({
+    tier,
+    is_comp: company.is_comp,
+    features: company.features,
+  });
+  const defaults = cbTierDefaults(tier);
+
+  async function setPlan(patch: Parameters<typeof cbAdminSetPlan>[0]["data"] extends never ? never : {
+    tier?: CbTier;
+    status?: "active" | "suspended" | "archived";
+    isComp?: boolean;
+    features?: Partial<Record<CbFeature, boolean | null>>;
+  }) {
+    setBusy(true);
+    try {
+      await cbAdminSetPlan({ data: { workspaceId: company.workspace_id, ...patch } });
+      onChanged();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't update the plan");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeCompany(purge: boolean) {
+    const msg = purge
+      ? `Permanently delete ${company.name} and all of its members? This cannot be undone.`
+      : `Archive ${company.name}? Members lose access until you restore it.`;
+    if (!window.confirm(msg)) return;
+    setBusy(true);
+    try {
+      await cbAdminDeleteCompany({ data: { workspaceId: company.workspace_id, purge } });
+      toast.success(purge ? "Company deleted." : "Company archived.");
+      onChanged();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't remove the company");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function saveSeats() {
     setBusy(true);
     try {
@@ -226,7 +281,9 @@ function CompanyCard({
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">{company.name}</p>
           <p className="text-xs text-muted-foreground">
-            {company.origin} · {company.plan} · {company.seats_used}/{company.seats_purchased} seats
+            {company.origin} · {CB_TIER_LABEL[(company.tier as CbTier) ?? "basic"]}
+            {company.is_comp ? " (comp)" : ""} · {company.status} ·{" "}
+            {company.seats_used}/{company.seats_purchased} seats
             {company.seats_pending ? ` · ${company.seats_pending} invited` : ""} · {company.job_count} inspections
           </p>
         </div>
@@ -235,6 +292,71 @@ function CompanyCard({
 
       {open ? (
         <div className="space-y-4 border-t border-border p-4">
+          {/* Plan, status and per-feature access */}
+          <div className="rounded-lg border border-border p-3">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="w-40">
+                <label className="text-xs text-muted-foreground">Plan tier</label>
+                <Select value={tier} onValueChange={(v) => void setPlan({ tier: v as CbTier })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CB_TIERS.map((t) => (
+                      <SelectItem key={t} value={t}>{CB_TIER_LABEL[t]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-40">
+                <label className="text-xs text-muted-foreground">Account status</label>
+                <Select
+                  value={company.status ?? "active"}
+                  onValueChange={(v) =>
+                    void setPlan({ status: v as "active" | "suspended" | "archived" })
+                  }
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <label className="flex items-center gap-2 pb-2 text-sm">
+                <Switch
+                  checked={!!company.is_comp}
+                  onCheckedChange={(v) => void setPlan({ isComp: v })}
+                  disabled={busy}
+                />
+                Free / comp access
+              </label>
+            </div>
+
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {CB_FEATURES.map((f) => (
+                <label key={f} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                  <span>
+                    {CB_FEATURE_LABEL[f]}
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {company.is_comp
+                        ? "comp"
+                        : company.features?.[f] === undefined
+                          ? `${CB_TIER_LABEL[tier]} default`
+                          : "override"}
+                    </span>
+                  </span>
+                  <Switch
+                    checked={effective[f]}
+                    disabled={busy || !!company.is_comp}
+                    onCheckedChange={(v) =>
+                      void setPlan({ features: { [f]: v === defaults[f] ? null : v } })
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-end gap-2">
             <div className="w-28">
               <label className="text-xs text-muted-foreground">Seats purchased</label>
