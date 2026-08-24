@@ -509,10 +509,6 @@ export default function Landing({ content = EMPTY_SITE_CONTENT }: { content?: Si
                 alignItems: "center",
               }}
             >
-
-                alignItems: "center",
-              }}
-            >
               {NAV.map((n) => (
                 <a
                   key={n.label}
