@@ -39,9 +39,9 @@ function useRevealGroup<T extends HTMLElement>() {
   return { ref, inView };
 }
 
-function rev(inView: boolean, i = 0) {
+function rev(inView: boolean, i = 0, base = "") {
   return {
-    className: `cb-reveal${inView ? " is-in" : ""}`,
+    className: `${base ? base + " " : ""}cb-reveal${inView ? " is-in" : ""}`,
     style: { transitionDelay: `${revealDelay(i)}ms` } as React.CSSProperties,
   };
 }
@@ -221,7 +221,7 @@ function OnSiteSection({ inView }: { inView: boolean }) {
   return (
     <div className="mkt-sec__in">
       <div className="mkt-eyebrow">The visit</div>
-      <h2 className="mkt-h2" {...rev(inView, 0)}>
+      <h2 {...rev(inView, 0, "mkt-h2")}>
         What happens on site
       </h2>
       <div className="mkt-scroller" style={{ marginTop: 22 }}>
@@ -247,12 +247,12 @@ function TriSection({ inView }: { inView: boolean }) {
   return (
     <div className="mkt-sec__in">
       <div className="mkt-eyebrow">Three inspections, one job</div>
-      <h2 className="mkt-h2" {...rev(inView, 0)}>
+      <h2 {...rev(inView, 0, "mkt-h2")}>
         The roof was never the whole claim.
       </h2>
 
       <div className="mkt-tri">
-        <div className="mkt-card" {...rev(inView, 1)}>
+        <div {...rev(inView, 1, "mkt-card")}>
           <span className="mkt-chip2">Roof</span>
           <h3>Slope by slope</h3>
           <ul className="mkt-bul">
@@ -262,7 +262,7 @@ function TriSection({ inView }: { inView: boolean }) {
           </ul>
         </div>
 
-        <div className="mkt-card" {...rev(inView, 2)}>
+        <div {...rev(inView, 2, "mkt-card")}>
           <span className="mkt-chip2">Exterior — 4 elevations</span>
           <h3>All the way around</h3>
           <ul className="mkt-bul">
@@ -272,7 +272,7 @@ function TriSection({ inView }: { inView: boolean }) {
           </ul>
         </div>
 
-        <div className="mkt-card" {...rev(inView, 3)}>
+        <div {...rev(inView, 3, "mkt-card")}>
           <span className="mkt-chip2 mkt-chip2--amber">Interior</span>
           <h3>Inside counts too</h3>
           <ul className="mkt-bul mkt-bul--amber">
@@ -298,7 +298,7 @@ function TriSection({ inView }: { inView: boolean }) {
             prints that way on the report.
           </p>
         </div>
-        <div className="mkt-bezel2" {...rev(inView, 5)}>
+        <div {...rev(inView, 5, "mkt-bezel2")}>
           <img
             src="/marketing/screens/progress.jpg"
             alt="Inspection progress checklist covering roof, exterior and interior"
@@ -324,7 +324,7 @@ function WhySection({ inView }: { inView: boolean }) {
   return (
     <div className="mkt-sec__in">
       <div className="mkt-eyebrow">The difference</div>
-      <h2 className="mkt-h2" {...rev(inView, 0)}>
+      <h2 {...rev(inView, 0, "mkt-h2")}>
         Why reps switch
       </h2>
       <div className="mkt-stats">
@@ -354,7 +354,7 @@ function AboutSection({ inView }: { inView: boolean }) {
       <div className="mkt-about">
         <div>
           <div className="mkt-eyebrow">About</div>
-          <h2 className="mkt-h2" {...rev(inView, 0)}>
+          <h2 {...rev(inView, 0, "mkt-h2")}>
             Built by a roofer, on real claims.
           </h2>
           <p className="mkt-p" style={{ maxWidth: "58ch" }}>
@@ -423,7 +423,7 @@ export default function HomeSections() {
 
       <section className="mkt-sec" ref={quote.ref as React.Ref<HTMLElement>}>
         <div className="mkt-sec__in">
-          <blockquote className="mkt-quote" {...rev(quote.inView, 0)}>
+          <blockquote {...rev(quote.inView, 0, "mkt-quote")}>
             <p>
               The rep who documents the whole loss on the first visit does not go back for photos, and
               does not negotiate from a scope the carrier wrote.
@@ -438,7 +438,7 @@ export default function HomeSections() {
 
       <section className="mkt-close" ref={close.ref as React.Ref<HTMLElement>}>
         <div className="mkt-sec__in">
-          <div className="mkt-close__card" {...rev(close.inView, 0)}>
+          <div {...rev(close.inView, 0, "mkt-close__card")}>
             <span className="mkt-close__glow" />
             <h2 className="mkt-h2">We measure a roof you know on the call.</h2>
             <p className="mkt-p" style={{ margin: "14px auto 0", maxWidth: "52ch" }}>
