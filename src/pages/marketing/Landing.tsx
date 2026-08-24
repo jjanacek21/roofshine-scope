@@ -240,15 +240,25 @@ function Hero() {
 
       <div className="mkt-hero__inner">
         <div>
-          <img
-            src={
-              reduced
-                ? "/marketing/logo/claimbuddy-logo.png"
-                : "/marketing/logo/claimbuddy-logo-animated.webp"
-            }
-            alt="Claim Buddy"
-            className="mkt-hero__logo"
-          />
+          {reduced ? (
+            <img
+              src="/marketing/logo/claimbuddy-logo.png"
+              alt="Claim Buddy"
+              className="mkt-hero__logo"
+            />
+          ) : (
+            <video
+              className="mkt-hero__logo"
+              src={logoVideo.url}
+              autoPlay
+              muted
+              loop
+              playsInline
+              poster="/marketing/logo/claimbuddy-logo.png"
+              aria-label="Claim Buddy"
+            />
+          )}
+
 
           <div className="mkt-eyebrow">
             Insurance restoration · roof, exterior &amp; interior
