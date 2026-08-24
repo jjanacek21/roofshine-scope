@@ -2,6 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import StepPlayer, { type StepFrame } from "@/components/marketing/StepPlayer";
 import HomeSections from "@/components/marketing/HomeSections";
 import logoVideo from "@/assets/claimbuddy-logo.mp4.asset.json";
+import {
+  EMPTY_SITE_CONTENT,
+  arr,
+  blockOf,
+  mediaKeyOf,
+  obj,
+  str,
+  type SiteContent,
+  type SiteJson,
+} from "@/lib/site-content.types";
 
 
 const STEP_FRAMES: StepFrame[] = [
@@ -42,6 +52,18 @@ const STEP_FRAMES: StepFrame[] = [
   },
 ];
 
+/** Frame order is fixed — sequences are looked up by stable media key, never by position. */
+function resolveFrames(content: SiteContent, block: SiteJson): StepFrame[] {
+  const base = arr<StepFrame>(block, "frames", STEP_FRAMES);
+  const byKey = new Map(content.media.map((m) => [m.key, m]));
+  return base.map((f) => {
+    const hit = byKey.get(mediaKeyOf(f.src));
+    return hit
+      ? { src: hit.url, title: hit.title || f.title, caption: hit.caption ?? f.caption }
+      : f;
+  });
+}
+
 const STEPS_CSS = `
 .mkt-steps{background:var(--cb-bg);padding:78px 18px 86px}
 .mkt-steps__inner{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.02fr .98fr;
@@ -60,37 +82,49 @@ const STEPS_CSS = `
 @media (max-width:959px){.mkt-steps__inner{grid-template-columns:1fr;gap:30px}.mkt-steps{padding:52px 18px 60px}}
 `;
 
-function StepsSection() {
+function StepsSection({ content }: { content: SiteContent }) {
+  const b = blockOf(content, "steps");
+  const frames = resolveFrames(content, blockOf(content, "measure_player"));
+  const chips = arr<string>(b, "chips", [
+    "One outline per structure",
+    "Drag any corner",
+    "Draw by hand too",
+    "Every edge gets a type",
+  ]);
+  const cta = obj(b, "cta", { href: "/cb/signup", label: "Measure your address on a call" });
   return (
     <section className="mkt-steps" id="app">
       <style dangerouslySetInnerHTML={{ __html: STEPS_CSS }} />
       <div className="mkt-steps__inner">
         <div>
-          <div className="mkt-steps__eyebrow">Address to labeled roof</div>
-          <h2>Seven taps, and the roof is measured.</h2>
+          <div className="mkt-steps__eyebrow">{str(b, "eyebrow", "Address to labeled roof")}</div>
+          <h2>{str(b, "heading", "Seven taps, and the roof is measured.")}</h2>
           <p className="mkt-steps__p">
-            This is the real thing, frame by frame — pin, trace, drag the corners onto the actual
-            roof, draw the ridges and hips, label each edge. Squares and linear footage update the
-            whole way through.
+            {str(
+              b,
+              "body",
+              "This is the real thing, frame by frame — pin, trace, drag the corners onto the actual roof, draw the ridges and hips, label each edge. Squares and linear footage update the whole way through.",
+            )}
           </p>
           <div className="mkt-chips">
-            <span className="mkt-chip">One outline per structure</span>
-            <span className="mkt-chip">Drag any corner</span>
-            <span className="mkt-chip">Draw by hand too</span>
-            <span className="mkt-chip">Every edge gets a type</span>
+            {chips.map((c) => (
+              <span className="mkt-chip" key={c}>
+                {c}
+              </span>
+            ))}
           </div>
           <a
-            href="/cb/signup"
+            href={str(cta, "href", "/cb/signup")}
             className="cb-btn cb-btn-lg cb-btn-primary"
             style={{ textDecoration: "none", whiteSpace: "nowrap" }}
           >
             <span className="cb-specular" />
-            <span className="cb-btn-label">Measure your address on a call</span>
+            <span className="cb-btn-label">{str(cta, "label", "Measure your address on a call")}</span>
           </a>
         </div>
 
         <div className="mkt-bezel">
-          <StepPlayer frames={STEP_FRAMES} aspect="phone" />
+          <StepPlayer frames={frames} aspect="phone" />
         </div>
       </div>
     </section>
