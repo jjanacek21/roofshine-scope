@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import StepPlayer, { type StepFrame } from "@/components/marketing/StepPlayer";
 import HomeSections from "@/components/marketing/HomeSections";
+import logoVideo from "@/assets/claimbuddy-logo.mp4.asset.json";
+
 
 const STEP_FRAMES: StepFrame[] = [
   {
