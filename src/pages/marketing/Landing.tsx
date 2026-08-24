@@ -230,7 +230,18 @@ function CountUp({ to, duration = 2100 }: { to: number; duration?: number }) {
   return <>{v.toFixed(1)}</>;
 }
 
-function Hero() {
+function Hero({ content }: { content: SiteContent }) {
+  const b = blockOf(content, "hero");
+  const headlineText = str(b, "headline", HEADLINE.join(" "));
+  const words = headlineText.split(/\s+/).filter(Boolean);
+  const accentWord = str(b, "accent_word", "door.");
+  const stats = arr<{ value: string; label: string }>(b, "stats", [
+    { value: "90.4", label: "Squares" },
+    { value: "10:12", label: "Pitch" },
+    { value: "31", label: "Line items" },
+  ]);
+  const primary = obj(b, "primary_cta", { href: "/cb/signup", label: "Book a demo" });
+  const secondary = obj(b, "secondary_cta", { href: "/#gallery", label: "See every screen" });
   const [inView, setInView] = useState(false);
   const reduced = useReducedMotion();
   const fanRef = useRef<HTMLDivElement | null>(null);
@@ -297,16 +308,16 @@ function Hero() {
 
 
           <div className="mkt-eyebrow">
-            Insurance restoration · roof, exterior &amp; interior
+            {str(b, "eyebrow", "Insurance restoration · roof, exterior & interior")}
           </div>
 
           <h1 className="mkt-h1">
-            {HEADLINE.map((w, i) => (
+            {words.map((w, i) => (
               <span key={`${w}-${i}`}>
                 <span className="mkt-word">
                   <span
                     style={{ transitionDelay: `${i * 48}ms` }}
-                    className={w === "door." ? "mkt-accent" : undefined}
+                    className={w === accentWord ? "mkt-accent" : undefined}
                   >
                     {w}
                   </span>
@@ -316,49 +327,52 @@ function Hero() {
           </h1>
 
           <p className="mkt-sub">
-            Type an address and the roof traces itself. Then walk it — roof, all four exterior
-            elevations, and the interior — and hand the homeowner a carrier-ready scope before you
-            leave the driveway.
+            {str(
+              b,
+              "sub",
+              "Type an address and the roof traces itself. Then walk it — roof, all four exterior elevations, and the interior — and hand the homeowner a carrier-ready scope before you leave the driveway.",
+            )}
           </p>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <a
-              href="/cb/signup"
+              href={str(primary, "href", "/cb/signup")}
               className="cb-btn cb-btn-lg cb-btn-primary mkt-cta-primary"
               style={{ textDecoration: "none", whiteSpace: "nowrap" }}
             >
               <span className="cb-specular" />
-              <span className="cb-btn-label">Book a demo</span>
+              <span className="cb-btn-label">{str(primary, "label", "Book a demo")}</span>
             </a>
             <a
-              href="/#gallery"
+              href={str(secondary, "href", "/#gallery")}
               className="cb-btn cb-btn-lg cb-btn-secondary"
               style={{ textDecoration: "none", whiteSpace: "nowrap" }}
             >
               <span className="cb-specular" />
-              <span className="cb-btn-label">See every screen</span>
+              <span className="cb-btn-label">{str(secondary, "label", "See every screen")}</span>
             </a>
           </div>
 
           <div className="mkt-stats">
-            <div className="mkt-stat">
-              <b>
-                <CountUp to={90.4} />
-              </b>
-              <span>Squares</span>
-            </div>
-            <div className="mkt-stat">
-              <b>10:12</b>
-              <span>Pitch</span>
-            </div>
-            <div className="mkt-stat">
-              <b>31</b>
-              <span>Line items</span>
-            </div>
+            {stats.map((st) => {
+              const numeric = /^\d+(\.\d+)?$/.test(String(st.value ?? ""));
+              return (
+                <div className="mkt-stat" key={st.label}>
+                  <b>
+                    {numeric && String(st.value).includes(".") ? (
+                      <CountUp to={Number(st.value)} />
+                    ) : (
+                      st.value
+                    )}
+                  </b>
+                  <span>{st.label}</span>
+                </div>
+              );
+            })}
           </div>
 
           <div className="mkt-note">
-            Runs in the phone browser at gcn.claims. No app store, no install.
+            {str(b, "note", "Runs in the phone browser at gcn.claims. No app store, no install.")}
           </div>
         </div>
 
@@ -411,7 +425,7 @@ function CbButton({
   );
 }
 
-export default function Landing() {
+export default function Landing({ content = EMPTY_SITE_CONTENT }: { content?: SiteContent }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [compact, setCompact] = useState(false);
@@ -591,9 +605,9 @@ export default function Landing() {
       </header>
 
       <main style={{ flex: 1 }}>
-        <Hero />
-        <StepsSection />
-        <HomeSections />
+        <Hero content={content} />
+        <StepsSection content={content} />
+        <HomeSections content={content} />
       </main>
 
       <footer
