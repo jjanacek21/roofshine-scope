@@ -1,3 +1,4 @@
+import { CB_PENDING_SEATS_KEY } from "@/routes/cb.signup";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
