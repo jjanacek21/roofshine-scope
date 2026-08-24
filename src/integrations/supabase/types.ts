@@ -1434,6 +1434,7 @@ export type Database = {
           created_at: string
           id: string
           is_published: boolean
+          media_key: string
           sort_order: number
           storage_path: string
           title: string
@@ -1445,6 +1446,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_published?: boolean
+          media_key: string
           sort_order?: number
           storage_path: string
           title: string
@@ -1456,6 +1458,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_published?: boolean
+          media_key?: string
           sort_order?: number
           storage_path?: string
           title?: string
