@@ -338,34 +338,73 @@ interface DemoRow {
   kind: string;
   handled_at: string | null;
   created_at: string;
+  industry: string | null;
+  team_size: string | null;
+  current_tools: string | null;
+  primary_goal: string | null;
+  features_wanted: string[] | null;
+  questions: string | null;
+  preferred_time: string | null;
+  status: string | null;
+  notes: string | null;
+}
+
+const DEMO_STATUSES = ["new", "contacted", "scheduled", "won", "lost"] as const;
+
+export function useCbUnhandledDemoCount() {
+  return useQuery({
+    queryKey: ["cb-demo-unhandled"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("cb_demo_requests")
+        .select("id", { count: "exact", head: true })
+        .is("handled_at", null);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
 }
 
 export function CbDemoRequestsTab() {
   const qc = useQueryClient();
+  const [filter, setFilter] = useState<string>("all");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState<string>("");
+
   const { data = [], isLoading } = useQuery({
     queryKey: ["cb-demo-requests"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cb_demo_requests")
-        .select("id, name, email, company, phone, seats, message, kind, handled_at, created_at")
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) throw error;
-      return (data ?? []) as DemoRow[];
+      return (data ?? []) as unknown as DemoRow[];
     },
   });
 
-  async function markHandled(id: string, handled: boolean) {
-    const { error } = await supabase
-      .from("cb_demo_requests")
-      .update({ handled_at: handled ? new Date().toISOString() : null })
-      .eq("id", id);
+  function refresh() {
+    void qc.invalidateQueries({ queryKey: ["cb-demo-requests"] });
+    void qc.invalidateQueries({ queryKey: ["cb-demo-unhandled"] });
+  }
+
+  async function patch(id: string, values: Record<string, unknown>) {
+    const { error } = await supabase.from("cb_demo_requests").update(values as never).eq("id", id);
     if (error) {
       toast.error(error.message);
       return;
     }
-    void qc.invalidateQueries({ queryKey: ["cb-demo-requests"] });
+    refresh();
   }
+
+  const counts = DEMO_STATUSES.reduce<Record<string, number>>((acc, s) => {
+    acc[s] = data.filter((r) => (r.status ?? "new") === s).length;
+    return acc;
+  }, {});
+
+  const rows = filter === "all" ? data : data.filter((r) => (r.status ?? "new") === filter);
+  const open = data.find((r) => r.id === openId) ?? null;
 
   if (isLoading) {
     return (
@@ -375,34 +414,163 @@ export function CbDemoRequestsTab() {
     );
   }
 
-  if (!data.length) {
-    return <p className="text-sm text-muted-foreground">No demo or signup requests yet.</p>;
-  }
-
   return (
-    <div className="space-y-2">
-      {data.map((r) => (
-        <div key={r.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">
-              {r.company || r.name} <Badge variant="secondary" className="ml-2">{r.kind}</Badge>
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {r.name} · {r.email}
-              {r.phone ? ` · ${r.phone}` : ""}
-              {r.seats ? ` · ${r.seats} seats` : ""} · {new Date(r.created_at).toLocaleDateString()}
-            </p>
-            {r.message ? <p className="mt-1 text-xs">{r.message}</p> : null}
-          </div>
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant={filter === "all" ? "default" : "outline"}
+          onClick={() => setFilter("all")}
+        >
+          All <span className="ml-1 opacity-70">{data.length}</span>
+        </Button>
+        {DEMO_STATUSES.map((s) => (
           <Button
-            variant={r.handled_at ? "ghost" : "outline"}
+            key={s}
             size="sm"
-            onClick={() => void markHandled(r.id, !r.handled_at)}
+            variant={filter === s ? "default" : "outline"}
+            className="capitalize"
+            onClick={() => setFilter(s)}
           >
-            {r.handled_at ? "Handled" : "Mark handled"}
+            {s} <span className="ml-1 opacity-70">{counts[s] ?? 0}</span>
           </Button>
+        ))}
+      </div>
+
+      {!rows.length ? (
+        <p className="text-sm text-muted-foreground">No requests in this view.</p>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full min-w-[720px] text-sm">
+            <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="p-2 text-left">Created</th>
+                <th className="p-2 text-left">Name</th>
+                <th className="p-2 text-left">Company</th>
+                <th className="p-2 text-left">Industry</th>
+                <th className="p-2 text-left">Team size</th>
+                <th className="p-2 text-left">Status</th>
+                <th className="p-2 text-left">Q</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr
+                  key={r.id}
+                  className={`cursor-pointer border-t border-border hover:bg-muted/40 ${openId === r.id ? "bg-muted/60" : ""}`}
+                  onClick={() => {
+                    setOpenId(r.id === openId ? null : r.id);
+                    setNoteDraft(r.notes ?? "");
+                  }}
+                >
+                  <td className="p-2 whitespace-nowrap">{new Date(r.created_at).toLocaleDateString()}</td>
+                  <td className="p-2">{r.name}</td>
+                  <td className="p-2">{r.company ?? "—"}</td>
+                  <td className="p-2">{r.industry ?? "—"}</td>
+                  <td className="p-2">{r.team_size ?? "—"}</td>
+                  <td className="p-2">
+                    <Badge variant={r.handled_at ? "secondary" : "default"} className="capitalize">
+                      {r.status ?? "new"}
+                    </Badge>
+                  </td>
+                  <td className="p-2">
+                    {r.questions ? <span className="inline-block h-2 w-2 rounded-full bg-primary" /> : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      ))}
+      )}
+
+      {open ? (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-base font-semibold">{open.company || open.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {open.name} · {open.email}
+                {open.phone ? ` · ${open.phone}` : ""} · {new Date(open.created_at).toLocaleString()}
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setOpenId(null)}>Close</Button>
+          </div>
+
+          <div className="grid gap-2 text-sm sm:grid-cols-2">
+            <div><span className="text-muted-foreground">Industry:</span> {open.industry ?? "—"}</div>
+            <div><span className="text-muted-foreground">Team size:</span> {open.team_size ?? "—"}</div>
+            <div><span className="text-muted-foreground">Current tools:</span> {open.current_tools ?? "—"}</div>
+            <div><span className="text-muted-foreground">Preferred time:</span> {open.preferred_time ?? "—"}</div>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase text-muted-foreground">Primary goal</p>
+            <p className="whitespace-pre-wrap text-sm">{open.primary_goal ?? "—"}</p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase text-muted-foreground">Features wanted</p>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {(open.features_wanted ?? []).length
+                ? (open.features_wanted ?? []).map((f) => (
+                    <Badge key={f} variant="secondary">{f}</Badge>
+                  ))
+                : <span className="text-sm">—</span>}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase text-muted-foreground">Their questions</p>
+            <p className="whitespace-pre-wrap text-sm">{open.questions ?? "—"}</p>
+          </div>
+
+          {open.message ? (
+            <div>
+              <p className="text-xs uppercase text-muted-foreground">Message</p>
+              <p className="whitespace-pre-wrap text-sm">{open.message}</p>
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <p className="mb-1 text-xs uppercase text-muted-foreground">Status</p>
+              <Select
+                value={open.status ?? "new"}
+                onValueChange={(v) => void patch(open.id, { status: v })}
+              >
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DEMO_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              variant={open.handled_at ? "ghost" : "default"}
+              onClick={() =>
+                void patch(open.id, { handled_at: open.handled_at ? null : new Date().toISOString() })
+              }
+            >
+              <Check className="mr-1 h-4 w-4" />
+              {open.handled_at ? "Handled — undo" : "Mark handled"}
+            </Button>
+          </div>
+
+          <div>
+            <p className="mb-1 text-xs uppercase text-muted-foreground">Internal notes</p>
+            <textarea
+              className="min-h-[90px] w-full rounded-lg border border-border bg-background p-2 text-sm"
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              onBlur={() => {
+                if (noteDraft !== (open.notes ?? "")) void patch(open.id, { notes: noteDraft || null });
+              }}
+              placeholder="Only super admins see this."
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
