@@ -209,7 +209,9 @@ export default function Landing() {
         )}
       </header>
 
-      <main style={{ flex: 1 }} />
+      <main style={{ flex: 1 }}>
+        <Hero />
+      </main>
 
       <footer
         className={`cb-reveal ${revealed ? "is-in" : ""}`}
