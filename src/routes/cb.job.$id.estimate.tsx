@@ -27,6 +27,7 @@ import { renderCbEstimatePdf } from "@/lib/cbEstimatePdf";
 import { CbLineItemPicker } from "@/components/cb/CbLineItemPicker";
 import { CbCarrierReport } from "@/components/cb/CbCarrierReport";
 import { generateEstimatePdf } from "@/lib/estimate-pdf";
+import { useCbFeature, useCbFeatureGuard } from "@/components/claim-buddy/CbFeatureGate";
 
 export const Route = createFileRoute("/cb/job/$id/estimate")({
   head: () => ({
@@ -63,6 +64,8 @@ function CbEstimatePage() {
   });
 
   const [mode, setMode] = useState<CbEstimateMode | null>(null);
+  const featureGuard = useCbFeatureGuard();
+  const priceBookAllowed = useCbFeature("price_book").allowed;
   const [lines, setLines] = useState<CbDraftLine[]>([]);
   const [pps, setPps] = useState(0);
   const [pct, setPct] = useState<CbEstimatePercents>({
@@ -91,7 +94,7 @@ function CbEstimatePage() {
     const saved = inputs.existing?.estimate.cb_mode as CbEstimateMode | undefined;
     const initial: CbEstimateMode =
       saved ?? (measurementIsComplete(inputs.measurement) ? "line_item" : "per_square");
-    setMode(initial);
+    setMode(initial === "line_item" && !priceBookAllowed ? "per_square" : initial);
     setPct(inputs.percents);
     setPps(
       Number(inputs.existing?.estimate.price_per_square) || inputs.defaultPricePerSquare || 0,
@@ -145,6 +148,8 @@ function CbEstimatePage() {
    * re-derived, so an edit made in one mode is still there in the other.
    */
   function changeMode(next: CbEstimateMode) {
+    /* Carrier-style line items come from the Xactimate price book — Elite only. */
+    if (next === "line_item" && !featureGuard("price_book")) return;
     cbHaptic();
     setMode(next);
     markDirty();
@@ -490,8 +495,10 @@ function CbEstimatePage() {
                 },
                 {
                   value: "line_item" as const,
-                  title: "Full line item",
-                  body: "Carrier-style build with codes and pricing",
+                  title: priceBookAllowed ? "Full line item" : "Full line item (Elite)",
+                  body: priceBookAllowed
+                    ? "Carrier-style build with codes and pricing"
+                    : "Xactimate price book — upgrade to unlock",
                 },
               ]}
             />

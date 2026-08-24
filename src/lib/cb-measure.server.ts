@@ -34,6 +34,14 @@ export async function runCbInstantMeasure(
     .maybeSingle();
   if (!ws) return { ok: false as const, reason: "no_workspace" };
 
+  /* Plan gate — AI measurements are Pro and above. Re-checked here so the
+     browser cannot skip the lock in the UI. */
+  const { data: allowed } = await supabase.rpc("cb_has_feature", {
+    _ws: data.workspace_id,
+    _feature: "ai_measure",
+  });
+  if (allowed !== true) return { ok: false as const, reason: "feature_locked" };
+
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { runSolarRoofExtract } = await import("@/lib/solar-extract.server");
   const { saveSolarMeasurement } = await import("@/lib/roof-measurement-save");

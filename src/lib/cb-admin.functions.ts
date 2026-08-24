@@ -21,6 +21,10 @@ export interface CbAdminCompanyRow {
   name: string;
   origin: string;
   plan: string;
+  tier: string;
+  status: string;
+  is_comp: boolean;
+  features: Record<string, boolean>;
   seats_purchased: number;
   seats_used: number;
   seats_pending: number;
@@ -48,7 +52,7 @@ export const cbAdminListCompanies = createServerFn({ method: "POST" })
       await Promise.all([
         supabaseAdmin
           .from("cb_workspaces")
-          .select("id, name, origin, plan, seats_purchased, created_at")
+          .select("id, name, origin, plan, tier, status, is_comp, features, seats_purchased, created_at")
           .order("created_at", { ascending: true }),
         supabaseAdmin
           .from("cb_workspace_members")
@@ -73,6 +77,10 @@ export const cbAdminListCompanies = createServerFn({ method: "POST" })
         name: w.name,
         origin: w.origin,
         plan: w.plan,
+        tier: (w as { tier?: string }).tier ?? "basic",
+        status: (w as { status?: string }).status ?? "active",
+        is_comp: (w as { is_comp?: boolean }).is_comp ?? false,
+        features: ((w as { features?: Record<string, boolean> }).features ?? {}) as Record<string, boolean>,
         seats_purchased: w.seats_purchased ?? 0,
         seats_used: ms.filter((m) => m.is_active).length,
         seats_pending: is.length,
@@ -348,4 +356,138 @@ export const cbAdminSetSeats = createServerFn({ method: "POST" })
       .eq("id", data.workspaceId);
     if (error) throw new Error(error.message);
     return { ok: true as const };
+  });
+
+
+/* --------------------------- plan & access control -------------------------- */
+
+const SetPlanSchema = z.object({
+  workspaceId: z.string().uuid(),
+  tier: z.enum(["basic", "pro", "elite"]).optional(),
+  status: z.enum(["active", "suspended", "archived"]).optional(),
+  isComp: z.boolean().optional(),
+  /** Per-feature overrides. null clears an override back to the tier default. */
+  features: z
+    .record(
+      z.enum(["ai_measure", "survival_guide", "price_book", "storm_intel"]),
+      z.boolean().nullable(),
+    )
+    .optional(),
+});
+
+/** Sets the plan tier, account status, comp flag and per-feature overrides. */
+export const cbAdminSetPlan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => SetPlanSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context.supabase as never, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const patch: Record<string, unknown> = {};
+    if (data.tier) patch.tier = data.tier;
+    if (data.status) patch.status = data.status;
+    if (data.isComp !== undefined) patch.is_comp = data.isComp;
+
+    if (data.features) {
+      const { data: current } = await supabaseAdmin
+        .from("cb_workspaces")
+        .select("features")
+        .eq("id", data.workspaceId)
+        .maybeSingle();
+      const next = { ...(((current?.features ?? {}) as Record<string, boolean>) || {}) };
+      for (const [key, value] of Object.entries(data.features)) {
+        if (value === null) delete next[key];
+        else next[key] = value;
+      }
+      patch.features = next;
+    }
+
+    if (!Object.keys(patch).length) return { ok: true as const };
+    const { error } = await supabaseAdmin
+      .from("cb_workspaces")
+      .update(patch as never)
+      .eq("id", data.workspaceId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+const DeleteCompanySchema = z.object({
+  workspaceId: z.string().uuid(),
+  /** Archive is reversible; purge removes the workspace and its data for good. */
+  purge: z.boolean().default(false),
+});
+
+export const cbAdminDeleteCompany = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => DeleteCompanySchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context.supabase as never, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    if (!data.purge) {
+      const { error } = await supabaseAdmin
+        .from("cb_workspaces")
+        .update({ status: "archived" } as never)
+        .eq("id", data.workspaceId);
+      if (error) throw new Error(error.message);
+      return { ok: true as const, purged: false };
+    }
+
+    await supabaseAdmin.from("cb_invites").delete().eq("workspace_id", data.workspaceId);
+    await supabaseAdmin.from("cb_workspace_members").delete().eq("workspace_id", data.workspaceId);
+    const { error } = await supabaseAdmin.from("cb_workspaces").delete().eq("id", data.workspaceId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const, purged: true };
+  });
+
+export interface CbAdminUserRow {
+  user_id: string;
+  email: string | null;
+  name: string | null;
+  memberships: {
+    workspace_id: string;
+    workspace_name: string;
+    role: string;
+    is_active: boolean;
+    last_active_at: string | null;
+  }[];
+}
+
+/** Every Claim Buddy user across all companies, for the Users tab. */
+export const cbAdminListUsers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<CbAdminUserRow[]> => {
+    await assertSuperAdmin(context.supabase as never, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const [{ data: members }, { data: workspaces }, { data: profiles }] = await Promise.all([
+      supabaseAdmin
+        .from("cb_workspace_members")
+        .select("workspace_id, user_id, role, is_active, last_active_at"),
+      supabaseAdmin.from("cb_workspaces").select("id, name"),
+      supabaseAdmin.from("profiles").select("id, email, first_name, last_name"),
+    ]);
+
+    const wmap = new Map((workspaces ?? []).map((w) => [w.id, w.name]));
+    const pmap = new Map((profiles ?? []).map((p) => [p.id, p]));
+    const byUser = new Map<string, CbAdminUserRow>();
+
+    for (const m of members ?? []) {
+      let row = byUser.get(m.user_id);
+      if (!row) {
+        const p = pmap.get(m.user_id);
+        const name = `${p?.first_name ?? ""} ${p?.last_name ?? ""}`.trim();
+        row = { user_id: m.user_id, email: p?.email ?? null, name: name || null, memberships: [] };
+        byUser.set(m.user_id, row);
+      }
+      row.memberships.push({
+        workspace_id: m.workspace_id,
+        workspace_name: wmap.get(m.workspace_id) ?? "—",
+        role: m.role,
+        is_active: m.is_active,
+        last_active_at: m.last_active_at,
+      });
+    }
+
+    return [...byUser.values()].sort((a, b) => (a.email ?? "").localeCompare(b.email ?? ""));
   });

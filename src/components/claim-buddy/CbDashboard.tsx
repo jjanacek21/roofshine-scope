@@ -7,6 +7,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useCbSession } from "@/components/auth/CbSessionProvider";
 import { useCbCompany } from "@/components/auth/CbCompanyProvider";
 import { useCbLogoUrl } from "@/lib/cbLogo";
+import { CbLockChip, useCbFeature, useCbFeatureGuard } from "@/components/claim-buddy/CbFeatureGate";
 import { CbCard, CbTile, CbButton, CbChip, CbBadge, CbLoading, CbEmptyState, CbSkeleton } from "@/components/cb/primitives";
 import { CbReveal, CbStagger } from "@/components/cb/motion";
 import { CbConvertAction } from "@/components/cb/CbConvertAction";
@@ -66,6 +67,8 @@ export function CbDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { workspace, surface, loading: sessionLoading } = useCbSession();
+  const featureGuard = useCbFeatureGuard();
+  const guideAllowed = useCbFeature("survival_guide").allowed;
   const { company, loading: companyLoading } = useCbCompany();
   const { data: profile } = useProfile();
   const logoUrl = useCbLogoUrl(company?.logo_url);
@@ -309,9 +312,17 @@ export function CbDashboard() {
       {/* Primary actions */}
       <CbReveal delay={80}>
         <div className="mt-6 space-y-3">
-          <CbButton block variant="secondary" onClick={() => navigate({ to: "/cb/survival-guide" })}>
+          <CbButton
+            block
+            variant="secondary"
+            onClick={() => {
+              if (!featureGuard("survival_guide")) return;
+              navigate({ to: "/cb/survival-guide" });
+            }}
+          >
             <span className="inline-flex items-center gap-2">
               <BookOpenText className="h-4 w-4" /> Survival Guide
+              {guideAllowed ? null : <CbLockChip feature="survival_guide" />}
             </span>
           </CbButton>
           <CbButton block variant="secondary" onClick={() => navigate({ to: "/cb/map" })}>

@@ -36,6 +36,7 @@ import {
   type CbMeasurement,
 } from "@/lib/cbMeasure";
 import { saveCbRoofCorrectionFn } from "@/lib/cb-roof-correction.functions";
+import { useCbFeatureGuard } from "@/components/claim-buddy/CbFeatureGate";
 
 
 
@@ -74,7 +75,7 @@ function CbJobMeasurePage() {
   const originalPlanRef = useRef<CbPlan | null>(null);
   const [planDirty, setPlanDirty] = useState(false);
 
-
+  const featureGuard = useCbFeatureGuard();
   const [phase, setPhase] = useState<"idle" | "running" | "result" | "manual">("idle");
   const [stepIdx, setStepIdx] = useState(0);
   const [values, setValues] = useState<CbMeasurement>(CB_BLANK_MEASUREMENT);
@@ -248,6 +249,10 @@ function CbJobMeasurePage() {
 
   async function run() {
     if (!job?.workspace_id) return;
+    if (!featureGuard("ai_measure")) {
+      setPhase("manual");
+      return;
+    }
     if (measurePins.length === 0) {
       setPinDropMode(true);
       toast.message("Tap the roof on the satellite map to drop a measurement pin");
