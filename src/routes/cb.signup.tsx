@@ -6,6 +6,7 @@ import { CbAuthShell } from "@/components/claim-buddy/CbAuthShell";
 import { CbButton } from "@/components/cb/primitives";
 import { CbField, CbProgressRail, focusFirstError } from "@/components/cb/forms";
 import { CbSeatPicker } from "@/components/claim-buddy/CbSeatPicker";
+import { cbAcceptInvite, cbInviteForEmail } from "@/lib/cb-team.functions";
 import {
   CB_DEFAULT_PLAN,
   CB_PENDING_PLAN_KEY,
