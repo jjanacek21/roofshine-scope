@@ -185,16 +185,19 @@
 
 
 }
+.mkt-ref .nav-signin-m,.mkt-ref .nav-signin-item{display:none}
 @media(max-width:960px){
 .mkt-ref .nav-in{gap:10px}
 .mkt-ref .menu-btn{display:flex}
 .mkt-ref .nav-cta .btn-s,.mkt-ref .themer{display:none}
+.mkt-ref .nav-signin-m{display:inline-flex;align-items:center;height:40px;padding:0 12px;border-radius:10px;
+    border:1px solid var(--hairline);background:var(--surface);color:var(--text);font:inherit;font-size:13px;
+    font-weight:700;cursor:pointer;white-space:nowrap}
+.mkt-ref .nav-signin-item{display:block;color:var(--accent);font-weight:700}
 .mkt-ref nav.links{position:absolute;top:100%;left:-22px;right:-22px;display:none;flex-direction:column;gap:8px;margin:0;
     background:var(--surface);border-bottom:1px solid var(--hairline);padding:10px 22px 18px;box-shadow:var(--sh-raised)}
 .mkt-ref nav.links.open{display:flex}
 .mkt-ref nav.links button{text-align:left;padding:14px 12px;font-size:1rem}
-
-
 }
 .mkt-ref .view{display:none}
 .mkt-ref .view.on{display:block}
