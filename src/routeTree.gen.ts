@@ -124,6 +124,7 @@ import { Route as ApiPublicSignRouteImport } from './routes/api/public/sign'
 import { Route as CbAdminIndexRouteImport } from './routes/cb.admin.index'
 import { Route as CbAdminBrandingRouteImport } from './routes/cb.admin.branding'
 import { Route as CbAdminPricingRouteImport } from './routes/cb.admin.pricing'
+import { Route as CbAdminSeatsRouteImport } from './routes/cb.admin.seats'
 import { Route as CbAdminTeamRouteImport } from './routes/cb.admin.team'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
 import { Route as AppJobsIdContractRouteImport } from './routes/_app.jobs.$id.contract'
@@ -726,6 +727,11 @@ const CbAdminPricingRoute = CbAdminPricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => CbAdminRoute,
 } as any)
+const CbAdminSeatsRoute = CbAdminSeatsRouteImport.update({
+  id: '/seats',
+  path: '/seats',
+  getParentRoute: () => CbAdminRoute,
+} as any)
 const CbAdminTeamRoute = CbAdminTeamRouteImport.update({
   id: '/team',
   path: '/team',
@@ -960,6 +966,7 @@ export interface FileRoutesByFullPath {
   '/api/public/sign': typeof ApiPublicSignRoute
   '/cb/admin/branding': typeof CbAdminBrandingRoute
   '/cb/admin/pricing': typeof CbAdminPricingRoute
+  '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
   '/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
@@ -1093,6 +1100,7 @@ export interface FileRoutesByTo {
   '/api/public/sign': typeof ApiPublicSignRoute
   '/cb/admin/branding': typeof CbAdminBrandingRoute
   '/cb/admin/pricing': typeof CbAdminPricingRoute
+  '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
   '/door-to-door': typeof AppDoorToDoorIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
@@ -1236,6 +1244,7 @@ export interface FileRoutesById {
   '/api/public/sign': typeof ApiPublicSignRoute
   '/cb/admin/branding': typeof CbAdminBrandingRoute
   '/cb/admin/pricing': typeof CbAdminPricingRoute
+  '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
   '/_app/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
@@ -1379,6 +1388,7 @@ export interface FileRouteTypes {
     | '/api/public/sign'
     | '/cb/admin/branding'
     | '/cb/admin/pricing'
+    | '/cb/admin/seats'
     | '/cb/admin/team'
     | '/door-to-door/'
     | '/invoices/'
@@ -1512,6 +1522,7 @@ export interface FileRouteTypes {
     | '/api/public/sign'
     | '/cb/admin/branding'
     | '/cb/admin/pricing'
+    | '/cb/admin/seats'
     | '/cb/admin/team'
     | '/door-to-door'
     | '/invoices'
@@ -1654,6 +1665,7 @@ export interface FileRouteTypes {
     | '/api/public/sign'
     | '/cb/admin/branding'
     | '/cb/admin/pricing'
+    | '/cb/admin/seats'
     | '/cb/admin/team'
     | '/_app/door-to-door/'
     | '/_app/invoices/'
@@ -2559,6 +2571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbAdminPricingRouteImport
       parentRoute: typeof CbAdminRoute
     }
+    '/cb/admin/seats': {
+      id: '/cb/admin/seats'
+      path: '/seats'
+      fullPath: '/cb/admin/seats'
+      preLoaderRoute: typeof CbAdminSeatsRouteImport
+      parentRoute: typeof CbAdminRoute
+    }
     '/cb/admin/team': {
       id: '/cb/admin/team'
       path: '/team'
@@ -2997,6 +3016,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 interface CbAdminRouteChildren {
   CbAdminBrandingRoute: typeof CbAdminBrandingRoute
   CbAdminPricingRoute: typeof CbAdminPricingRoute
+  CbAdminSeatsRoute: typeof CbAdminSeatsRoute
   CbAdminTeamRoute: typeof CbAdminTeamRoute
   CbAdminIndexRoute: typeof CbAdminIndexRoute
 }
@@ -3004,6 +3024,7 @@ interface CbAdminRouteChildren {
 const CbAdminRouteChildren: CbAdminRouteChildren = {
   CbAdminBrandingRoute: CbAdminBrandingRoute,
   CbAdminPricingRoute: CbAdminPricingRoute,
+  CbAdminSeatsRoute: CbAdminSeatsRoute,
   CbAdminTeamRoute: CbAdminTeamRoute,
   CbAdminIndexRoute: CbAdminIndexRoute,
 }

@@ -187,7 +187,7 @@ function CbAdminSeatsPage() {
               <p className="cb-microlabel">Plan</p>
               <p className="mt-1 text-[20px] font-bold">{plan.name}</p>
             </div>
-            <CbBadge tone={onTrial ? "info" : "success"}>
+            <CbBadge tone={onTrial ? "accent" : "success"}>
               {onTrial ? `Trial ends ${trialEnds!.toLocaleDateString()}` : wsQuery.data?.billing_status ?? "active"}
             </CbBadge>
           </div>
@@ -301,7 +301,7 @@ function CbAdminSeatsPage() {
                       {new Date(p.created_at).toLocaleDateString()}
                     </span>
                   </span>
-                  <CbBadge tone={p.status === "paid" ? "success" : "info"}>{p.status}</CbBadge>
+                  <CbBadge tone={p.status === "paid" ? "success" : "neutral"}>{p.status}</CbBadge>
                 </li>
               ))}
             </ul>
