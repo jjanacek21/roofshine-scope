@@ -45,7 +45,7 @@ export const CB_BLANK_MEASUREMENT: CbMeasurement = {
   step_flashing_lf: 0,
   gutter_lf: 0,
   source: "manual",
-  raw: null,
+  raw: {},
   gc_roof_measurement_id: null,
 };
 
@@ -253,7 +253,7 @@ export async function saveCbMeasurement(
       source,
       gc_roof_measurement_id: m.gc_roof_measurement_id ?? null,
       rep_adjusted: repAdjusted,
-      raw: (m.raw ?? null) as never,
+      raw: (m.raw ?? {}) as never,
     },
     { onConflict: "job_id" },
   );
