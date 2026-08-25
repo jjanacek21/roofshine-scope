@@ -611,9 +611,11 @@ export const REF_HEADER = `
       <button data-v="pricing">Pricing</button>
       <button data-v="resources">Resources</button>
       <button data-v="blog">Blog</button>
+      <button class="nav-signin-item" data-go="signin">Log in</button>
     </nav>
     <div class="row nav-cta" style="gap:8px;flex-wrap:nowrap">
       <button class="themer" id="themer" aria-label="Toggle theme" title="Toggle theme">◐</button>
+      <button class="nav-signin-m" data-go="signin">Log in</button>
       <button class="btn btn-s" data-go="signin"><span>Log in</span><i class="spec"></i></button>
       <button class="btn btn-p" data-go="signup"><span>Book a demo</span><i class="spec"></i></button>
     </div>
