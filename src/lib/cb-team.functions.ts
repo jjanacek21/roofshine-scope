@@ -170,6 +170,36 @@ export const cbAcceptInvite = createServerFn({ method: "POST" })
 
     let userId = profile?.id ?? null;
 
+    /* Seat gate: an invite can only be accepted while the company has a free seat. */
+    const [{ data: ws }, { count: activeCount }] = await Promise.all([
+      supabaseAdmin
+        .from("cb_workspaces")
+        .select("seats_purchased")
+        .eq("id", invite.workspace_id)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("cb_workspace_members")
+        .select("user_id", { count: "exact", head: true })
+        .eq("workspace_id", invite.workspace_id)
+        .eq("is_active", true),
+    ]);
+
+    let alreadyMember = false;
+    if (userId) {
+      const { data: existingMember } = await supabaseAdmin
+        .from("cb_workspace_members")
+        .select("user_id")
+        .eq("workspace_id", invite.workspace_id)
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .maybeSingle();
+      alreadyMember = !!existingMember;
+    }
+
+    if (!alreadyMember && (activeCount ?? 0) >= (ws?.seats_purchased ?? 0)) {
+      throw new Error("This company has no seats available.");
+    }
+
     if (!userId) {
       if (!data.password) throw new Error("Choose a password to finish setting up your account.");
       const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
