@@ -214,6 +214,18 @@ function CbSignupPage() {
             Continue — {money(quote.firstCharge)} after the trial
           </CbButton>
         </div>
+        <p className="mt-3 text-center text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+          Invited by a company?{" "}
+          <button
+            type="button"
+            className="font-semibold underline"
+            style={{ color: "var(--cb-accent-deep)" }}
+            onClick={() => setStep(1)}
+          >
+            Skip the plan
+          </button>
+        </p>
+
         <p className="mt-7 text-center text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
           Already have an account?{" "}
           <Link to="/cb/login" className="font-semibold hover:underline" style={{ color: "var(--cb-accent-deep)" }}>
