@@ -6,6 +6,7 @@ import { CbAuthShell } from "@/components/claim-buddy/CbAuthShell";
 import { CbButton } from "@/components/cb/primitives";
 import { CbField, CbProgressRail, focusFirstError } from "@/components/cb/forms";
 import { CbSeatPicker } from "@/components/claim-buddy/CbSeatPicker";
+import { cbAcceptInvite, cbInviteForEmail } from "@/lib/cb-team.functions";
 import {
   CB_DEFAULT_PLAN,
   CB_PENDING_PLAN_KEY,
@@ -54,11 +55,68 @@ function CbSignupPage() {
   const [errors, setErrors] = useState<{ companyName?: string; email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  /** Set when the typed email matches a pending invite — plan + company are then skipped. */
+  const [invite, setInvite] = useState<{ token: string; role: string; company: string } | null>(null);
+  const [fullName, setFullName] = useState("");
+
 
   const quote = quoteSeats(seats, plan);
 
+  /** Pending invites skip plan selection and company details entirely. */
+  async function checkInvite(value: string) {
+    const clean = value.trim().toLowerCase();
+    if (!clean.includes("@")) {
+      setInvite(null);
+      return;
+    }
+    try {
+      const found = await cbInviteForEmail({ data: { email: clean } });
+      setInvite(found.ok ? { token: found.token, role: found.role, company: found.company } : null);
+    } catch {
+      setInvite(null);
+    }
+  }
+
+  async function acceptInviteSignup() {
+    if (!invite) return;
+    const name = fullName.trim();
+    const next: typeof errors = {};
+    if (!email.includes("@")) next.email = "That doesn't look like an email address yet.";
+    if (password.length < 8) next.password = "Use at least 8 characters — it protects your claims.";
+    setErrors(next);
+    if (Object.keys(next).length) {
+      requestAnimationFrame(() => focusFirstError(formRef.current));
+      return;
+    }
+    const [firstName, ...rest] = name.split(/\s+/);
+    setLoading(true);
+    try {
+      await cbAcceptInvite({
+        data: {
+          token: invite.token,
+          password,
+          ...(firstName ? { firstName } : {}),
+          ...(rest.length ? { lastName: rest.join(" ") } : {}),
+        },
+      });
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+      if (error) throw error;
+      toast.success(`You're on the ${invite.company} team`);
+      navigate({ to: "/cb" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't accept the invite");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+
+    if (invite) {
+      await acceptInviteSignup();
+      return;
+    }
 
     const next: typeof errors = {};
     if (companyName.trim().length < 2) next.companyName = "Tell us the company name so we can label the workspace.";
@@ -157,6 +215,18 @@ function CbSignupPage() {
             Continue — {money(quote.firstCharge)} after the trial
           </CbButton>
         </div>
+        <p className="mt-3 text-center text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+          Invited by a company?{" "}
+          <button
+            type="button"
+            className="font-semibold underline"
+            style={{ color: "var(--cb-accent-deep)" }}
+            onClick={() => setStep(1)}
+          >
+            Skip the plan
+          </button>
+        </p>
+
         <p className="mt-7 text-center text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
           Already have an account?{" "}
           <Link to="/cb/login" className="font-semibold hover:underline" style={{ color: "var(--cb-accent-deep)" }}>
@@ -168,17 +238,33 @@ function CbSignupPage() {
   }
 
   return (
-    <CbAuthShell title="Create your account" subtitle="Set up your Claim Buddy workspace">
+    <CbAuthShell
+      title={invite ? `Join ${invite.company}` : "Create your account"}
+      subtitle={
+        invite
+          ? "You were invited — no plan or company setup needed."
+          : "Set up your Claim Buddy workspace"
+      }
+    >
       <div className="mb-6">
         <CbProgressRail steps={STEPS} current={1} />
       </div>
       <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
-        <CbField
-          label="Company name"
-          value={companyName}
-          error={errors.companyName}
-          onChange={(e) => setCompanyName(e.target.value)}
-        />
+        {!invite ? (
+          <CbField
+            label="Company name"
+            value={companyName}
+            error={errors.companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+          />
+        ) : (
+          <CbField
+            label="Full name"
+            autoComplete="name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+          />
+        )}
         <CbField
           label="Email"
           type="email"
@@ -186,6 +272,7 @@ function CbSignupPage() {
           value={email}
           error={errors.email}
           onChange={(e) => setEmail(e.target.value)}
+          onBlur={(e) => void checkInvite(e.target.value)}
         />
         <CbField
           label="Password"
@@ -197,26 +284,39 @@ function CbSignupPage() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <div
-          className="rounded-2xl p-4 text-[13px]"
-          style={{ background: "var(--cb-surface-2, #f4f7f5)", border: "1px solid var(--cb-border, #e2e8e5)" }}
-        >
-          <div className="flex items-center justify-between font-semibold">
-            <span>{quote.plan.name} · {quote.seats} seats</span>
-            <button type="button" className="underline" onClick={() => setStep(0)}>
-              Change
-            </button>
+        {invite ? (
+          <div
+            className="rounded-2xl p-4 text-[13px]"
+            style={{ background: "var(--cb-surface-2, #f4f7f5)", border: "1px solid var(--cb-border, #e2e8e5)" }}
+          >
+            <div className="font-semibold">Invitation found · {invite.company}</div>
+            <div className="mt-1" style={{ color: "var(--cb-text-muted)" }}>
+              You'll join as <strong>{invite.role}</strong> on your company's plan — nothing to pay.
+            </div>
           </div>
-          <div className="mt-1" style={{ color: "var(--cb-text-muted)" }}>
-            Free for {CB_TRIAL_DAYS} days, then {money(quote.firstCharge)} on day {CB_TRIAL_DAYS + 1} and{" "}
-            {money(quote.recurring)}/mo after. Cancel before day {CB_TRIAL_DAYS + 1} and you pay nothing.
+        ) : (
+          <div
+            className="rounded-2xl p-4 text-[13px]"
+            style={{ background: "var(--cb-surface-2, #f4f7f5)", border: "1px solid var(--cb-border, #e2e8e5)" }}
+          >
+            <div className="flex items-center justify-between font-semibold">
+              <span>{quote.plan.name} · {quote.seats} seats</span>
+              <button type="button" className="underline" onClick={() => setStep(0)}>
+                Change
+              </button>
+            </div>
+            <div className="mt-1" style={{ color: "var(--cb-text-muted)" }}>
+              Free for {CB_TRIAL_DAYS} days, then {money(quote.firstCharge)} on day {CB_TRIAL_DAYS + 1} and{" "}
+              {money(quote.recurring)}/mo after. Cancel before day {CB_TRIAL_DAYS + 1} and you pay nothing.
+            </div>
           </div>
-        </div>
+        )}
 
-        <CbButton type="submit" block loading={loading} loadingText="Creating…">
-          Start free trial
+        <CbButton type="submit" block loading={loading} loadingText={invite ? "Joining…" : "Creating…"}>
+          {invite ? `Join ${invite.company}` : "Start free trial"}
         </CbButton>
       </form>
+
 
       <p className="mt-7 text-center text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
         Already have an account?{" "}

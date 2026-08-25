@@ -49,7 +49,7 @@ export const cbSendInvite = createServerFn({ method: "POST" })
       return { ok: true as const, seated: true as const };
     }
 
-    const link = `${CB_APP_URL}/cb/accept?token=${payload.token ?? ""}`;
+    const link = `${CB_APP_URL}/accept-invite?token=${payload.token ?? ""}`;
     const mail = await sendMail({
       to: data.email,
       subject: `You're invited to ${company} on Claim Buddy`,
@@ -86,7 +86,7 @@ export const cbResendInvite = createServerFn({ method: "POST" })
       .eq("id", invite.workspace_id)
       .maybeSingle();
 
-    const link = `${CB_APP_URL}/cb/accept?token=${invite.token ?? ""}`;
+    const link = `${CB_APP_URL}/accept-invite?token=${invite.token ?? ""}`;
     const mail = await sendMail({
       to: invite.email,
       subject: `Reminder: join ${ws?.name ?? "your team"} on Claim Buddy`,
@@ -169,6 +169,36 @@ export const cbAcceptInvite = createServerFn({ method: "POST" })
       .maybeSingle();
 
     let userId = profile?.id ?? null;
+
+    /* Seat gate: an invite can only be accepted while the company has a free seat. */
+    const [{ data: ws }, { count: activeCount }] = await Promise.all([
+      supabaseAdmin
+        .from("cb_workspaces")
+        .select("seats_purchased")
+        .eq("id", invite.workspace_id)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("cb_workspace_members")
+        .select("user_id", { count: "exact", head: true })
+        .eq("workspace_id", invite.workspace_id)
+        .eq("is_active", true),
+    ]);
+
+    let alreadyMember = false;
+    if (userId) {
+      const { data: existingMember } = await supabaseAdmin
+        .from("cb_workspace_members")
+        .select("user_id")
+        .eq("workspace_id", invite.workspace_id)
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .maybeSingle();
+      alreadyMember = !!existingMember;
+    }
+
+    if (!alreadyMember && (activeCount ?? 0) >= (ws?.seats_purchased ?? 0)) {
+      throw new Error("This company has no seats available.");
+    }
 
     if (!userId) {
       if (!data.password) throw new Error("Choose a password to finish setting up your account.");
@@ -384,4 +414,44 @@ export const cbSubmitDemoRequest = createServerFn({ method: "POST" })
 
     return { ok: true as const };
 
+  });
+
+/* ------------------------------------------------------------------ */
+/* Invite lookup by email (used by the signup flow)                    */
+/* ------------------------------------------------------------------ */
+
+const EmailInput = z.object({ email: z.string().trim().email().max(255) });
+
+/** Returns the pending, unexpired invite for an email, if any. */
+export const cbInviteForEmail = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => EmailInput.parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const email = data.email.toLowerCase();
+
+    const { data: invite } = await supabaseAdmin
+      .from("cb_invites")
+      .select("token, role, workspace_id, expires_at")
+      .eq("email", email)
+      .is("accepted_at", null)
+      .is("revoked_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!invite?.token) return { ok: false as const };
+    if (invite.expires_at && new Date(invite.expires_at) < new Date()) return { ok: false as const };
+
+    const { data: ws } = await supabaseAdmin
+      .from("cb_workspaces")
+      .select("name")
+      .eq("id", invite.workspace_id)
+      .maybeSingle();
+
+    return {
+      ok: true as const,
+      token: invite.token,
+      role: invite.role as string,
+      company: ws?.name ?? "your team",
+    };
   });

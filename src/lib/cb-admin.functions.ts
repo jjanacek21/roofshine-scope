@@ -185,10 +185,17 @@ export const cbAdminCreateCompany = createServerFn({ method: "POST" })
       } else {
         const { data: inv } = await supabaseAdmin
           .from("cb_invites")
-          .insert({ workspace_id: ws.id, email, role: "owner", invited_by: context.userId } as never)
+          .insert({
+            workspace_id: ws.id,
+            email,
+            role: "owner",
+            invited_by: context.userId,
+            token: crypto.randomUUID(),
+            expires_at: new Date(Date.now() + 14 * 864e5).toISOString(),
+          } as never)
           .select("token")
           .single();
-        inviteLink = `${CB_APP_URL}/cb/accept?token=${inv?.token ?? ""}`;
+        inviteLink = `${CB_APP_URL}/accept-invite?token=${inv?.token ?? ""}`;
         await sendMail({
           to: email,
           subject: `You're invited to run ${data.name} on Claim Buddy`,
@@ -280,14 +287,23 @@ export const cbAdminUpsertUser = createServerFn({ method: "POST" })
     const { data: inv, error: invErr } = await supabaseAdmin
       .from("cb_invites")
       .upsert(
-        { workspace_id: data.workspaceId, email, role: data.role, invited_by: context.userId } as never,
+        {
+          workspace_id: data.workspaceId,
+          email,
+          role: data.role,
+          invited_by: context.userId,
+          token: crypto.randomUUID(),
+          accepted_at: null,
+          revoked_at: null,
+          expires_at: new Date(Date.now() + 14 * 864e5).toISOString(),
+        } as never,
         { onConflict: "workspace_id,email" },
       )
       .select("token")
       .single();
     if (invErr) throw new Error(invErr.message);
 
-    const link = `${CB_APP_URL}/cb/accept?token=${inv?.token ?? ""}`;
+    const link = `${CB_APP_URL}/accept-invite?token=${inv?.token ?? ""}`;
     await sendMail({
       to: email,
       subject: `You're invited to ${ws?.name ?? "Claim Buddy"}`,
