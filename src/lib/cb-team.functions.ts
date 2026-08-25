@@ -415,3 +415,43 @@ export const cbSubmitDemoRequest = createServerFn({ method: "POST" })
     return { ok: true as const };
 
   });
+
+/* ------------------------------------------------------------------ */
+/* Invite lookup by email (used by the signup flow)                    */
+/* ------------------------------------------------------------------ */
+
+const EmailInput = z.object({ email: z.string().trim().email().max(255) });
+
+/** Returns the pending, unexpired invite for an email, if any. */
+export const cbInviteForEmail = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => EmailInput.parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const email = data.email.toLowerCase();
+
+    const { data: invite } = await supabaseAdmin
+      .from("cb_invites")
+      .select("token, role, workspace_id, expires_at")
+      .eq("email", email)
+      .is("accepted_at", null)
+      .is("revoked_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!invite?.token) return { ok: false as const };
+    if (invite.expires_at && new Date(invite.expires_at) < new Date()) return { ok: false as const };
+
+    const { data: ws } = await supabaseAdmin
+      .from("cb_workspaces")
+      .select("name")
+      .eq("id", invite.workspace_id)
+      .maybeSingle();
+
+    return {
+      ok: true as const,
+      token: invite.token,
+      role: invite.role as string,
+      company: ws?.name ?? "your team",
+    };
+  });
