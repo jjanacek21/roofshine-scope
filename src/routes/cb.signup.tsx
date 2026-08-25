@@ -6,7 +6,16 @@ import { CbAuthShell } from "@/components/claim-buddy/CbAuthShell";
 import { CbButton } from "@/components/cb/primitives";
 import { CbField, CbProgressRail, focusFirstError } from "@/components/cb/forms";
 import { CbSeatPicker } from "@/components/claim-buddy/CbSeatPicker";
-import { CB_INCLUDED_SEATS, CB_PENDING_SEATS_KEY, CB_TRIAL_DAYS, money, quoteSeats } from "@/lib/cbPricing";
+import {
+  CB_DEFAULT_PLAN,
+  CB_PENDING_PLAN_KEY,
+  CB_PENDING_SEATS_KEY,
+  CB_PLANS,
+  CB_TRIAL_DAYS,
+  money,
+  quoteSeats,
+  type CbPlanId,
+} from "@/lib/cbPricing";
 
 export const Route = createFileRoute("/cb/signup")({
   head: () => ({
@@ -21,7 +30,7 @@ export const Route = createFileRoute("/cb/signup")({
       {
         property: "og:description",
         content:
-          "3 seats and a custom price book for $199 your first month, $99/mo after. Extra seats from $19.99/mo. Free for 30 days.",
+          "Basic $19.99/user/mo. Pro $120/mo with 3 seats, $30 per extra seat. Elite $200/mo with 3 seats, $40 per extra seat. Free for 30 days.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -37,7 +46,8 @@ function CbSignupPage() {
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement | null>(null);
   const [step, setStep] = useState(0);
-  const [seats, setSeats] = useState(CB_INCLUDED_SEATS);
+  const [plan, setPlan] = useState<CbPlanId>(CB_DEFAULT_PLAN);
+  const [seats, setSeats] = useState(CB_PLANS[CB_DEFAULT_PLAN].minSeats);
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,7 +55,7 @@ function CbSignupPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const quote = quoteSeats(seats);
+  const quote = quoteSeats(seats, plan);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -65,6 +75,7 @@ function CbSignupPage() {
     // after the link is clicked, so the seat choice has to survive the round trip.
     try {
       localStorage.setItem(CB_PENDING_SEATS_KEY, String(quote.seats));
+      localStorage.setItem(CB_PENDING_PLAN_KEY, plan);
     } catch {
       /* private mode — seats can still be set in billing settings */
     }
@@ -72,7 +83,7 @@ function CbSignupPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/cb`, data: { seats: quote.seats } },
+      options: { emailRedirectTo: `${window.location.origin}/cb`, data: { seats: quote.seats, plan } },
     });
     if (error) {
       setLoading(false);
@@ -135,12 +146,12 @@ function CbSignupPage() {
     return (
       <CbAuthShell
         title="Start free for 30 days"
-        subtitle="Pick your seats — you are not charged until day 31."
+        subtitle="Pick your plan and seats — you are not charged until day 31."
       >
         <div className="mb-6">
           <CbProgressRail steps={STEPS} current={0} />
         </div>
-        <CbSeatPicker seats={seats} onChange={setSeats} />
+        <CbSeatPicker seats={seats} onChange={setSeats} plan={plan} onPlanChange={setPlan} />
         <div className="mt-6">
           <CbButton block onClick={() => setStep(1)}>
             Continue — {money(quote.firstCharge)} after the trial
@@ -191,7 +202,7 @@ function CbSignupPage() {
           style={{ background: "var(--cb-surface-2, #f4f7f5)", border: "1px solid var(--cb-border, #e2e8e5)" }}
         >
           <div className="flex items-center justify-between font-semibold">
-            <span>{quote.seats} seats</span>
+            <span>{quote.plan.name} · {quote.seats} seats</span>
             <button type="button" className="underline" onClick={() => setStep(0)}>
               Change
             </button>

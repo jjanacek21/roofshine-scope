@@ -276,7 +276,7 @@ export const REF_VIEWS: Record<string, string> = {
     <div class="wrap stack g40">
       <div class="stack g12 rv">
         <span class="micro">Pricing</span>
-        <h1>Per seat. Cancel any time.</h1>
+        <h1>Three plans. Cancel any time.</h1>
         <p class="lead">Priced against what you already spend. One Xactimate license runs $150–250 a
           month. A supplement service takes 15–25% of everything it recovers.</p>
       </div>
@@ -285,7 +285,7 @@ export const REF_VIEWS: Record<string, string> = {
         <div class="plan rv-3d">
           <span class="micro">Tier 1</span>
           <h3 style="font-size:1.3rem">Basic</h3>
-          <div class="price">$99<small> /seat /mo</small></div>
+          <div class="price">$19.99<small> /user /mo</small></div>
           <ul class="ticks">
             <li>The full inspection workflow, start to finish</li>
             <li>Polygon draw measurements — trace the roof by hand</li>
@@ -298,39 +298,40 @@ export const REF_VIEWS: Record<string, string> = {
             <li>Estimates you build yourself — description, unit, quantity, price</li>
             <li>Your own retail price-per-square macro</li>
             <li>Contingency or retail agreement, e-signed</li>
+            <li>Billed per user — add or remove users any time</li>
             <li>No AI measurement, Survival Guide, Storm Intel or price book</li>
           </ul>
-          <button class="btn btn-s btn-block" data-go="checkout" data-plan="Basic" data-amt="99"><span>Start free trial</span><i class="spec"></i></button>
+          <button class="btn btn-s btn-block" data-go="checkout" data-plan="Basic" data-amt="19.99" data-base="0" data-inc="0" data-rate="19.99"><span>Start free trial</span><i class="spec"></i></button>
         </div>
 
         <div class="plan best rv-3d">
           <span class="chip chip-a" style="align-self:flex-start">Most chosen</span>
           <span class="micro">Tier 2</span>
           <h3 style="font-size:1.3rem">Pro</h3>
-          <div class="price">$149<small> /seat /mo</small></div>
+          <div class="price">$120<small> /mo · 3 seats</small></div>
           <ul class="ticks">
-            <li>Everything in Basic</li>
+            <li>Everything in Basic — 3 seats included, $30/mo per extra seat</li>
             <li>AI instant roof measurement — one pin, traced for you</li>
             <li>Facet, edge and pitch detection with editable corners</li>
             <li>The Blue Collar Sales Survival Guide</li>
             <li>Scripts, rebuttals and the 7-day new rep ramp</li>
           </ul>
-          <button class="btn btn-p btn-block" data-go="checkout" data-plan="Pro" data-amt="149"><span>Start free trial</span><i class="spec"></i></button>
+          <button class="btn btn-p btn-block" data-go="checkout" data-plan="Pro" data-amt="120" data-base="120" data-inc="3" data-rate="30"><span>Start free trial</span><i class="spec"></i></button>
         </div>
 
         <div class="plan rv-3d">
           <span class="micro">Tier 3</span>
           <h3 style="font-size:1.3rem">Elite</h3>
-          <div class="price">$249<small> /seat /mo</small></div>
+          <div class="price">$200<small> /mo · 3 seats</small></div>
           <ul class="ticks">
-            <li>Everything in Pro</li>
+            <li>Everything in Pro — company setup, 3 seats included, $40/mo per extra seat</li>
             <li>The price book for your market, assigned to your company</li>
             <li>Line-item estimates with real codes and waste math</li>
             <li>Carrier-format estimate export</li>
             <li>Storm Intel hail and wind maps</li>
             <li>Canvassing map with storm history on every property</li>
           </ul>
-          <button class="btn btn-s btn-block" data-go="checkout" data-plan="Elite" data-amt="249"><span>Start free trial</span><i class="spec"></i></button>
+          <button class="btn btn-s btn-block" data-go="checkout" data-plan="Elite" data-amt="200" data-base="200" data-inc="3" data-rate="40"><span>Start free trial</span><i class="spec"></i></button>
         </div>
       </div>
 
@@ -338,12 +339,11 @@ export const REF_VIEWS: Record<string, string> = {
         <div class="dim rv"><span>Seat pricing</span></div>
         <div class="tw rv">
           <table>
-            <thead><tr><th>Seats</th><th>Basic</th><th>Pro</th><th>Elite</th><th>Discount</th></tr></thead>
+            <thead><tr><th>Seats</th><th>Basic</th><th>Pro</th><th>Elite</th><th>Notes</th></tr></thead>
             <tbody class="mono" id="bands"></tbody>
           </table>
         </div>
-        <p class="tiny rv">Billed monthly. Add or remove seats any time — changes are prorated.
-          Annual billing takes a further 2 months off.</p>
+        <p class="tiny rv">Billed monthly. Basic is $19.99 per user. Pro and Elite include 3 seats — extra seats are $30 and $40 per month. Add or remove seats any time, prorated.</p>
       </div>
 
       <div class="grid g3">
@@ -547,16 +547,16 @@ export const REF_VIEWS: Record<string, string> = {
             <span class="micro">Order summary</span>
             <div class="row" style="justify-content:space-between;margin-top:14px">
               <b id="ckPlan">Claim Buddy Pro</b>
-              <span class="mono" id="ckUnit" data-amt="149">$149</span>
+              <span class="mono" id="ckUnit" data-amt="120" data-base="120" data-inc="3" data-rate="30">$120</span>
             </div>
             <label class="f" style="margin-top:16px">Seats
               <select class="inp" id="ckSeats"></select></label>
             <div class="row" style="justify-content:space-between;margin-top:14px">
-              <span class="tiny">Volume discount</span><span class="mono acc" id="ckDisc">—</span>
+              <span class="tiny">Additional seats</span><span class="mono acc" id="ckDisc">—</span>
             </div>
             <div class="dim" style="margin:18px 0 14px"><span>Total</span></div>
             <div class="row" style="justify-content:space-between;align-items:flex-end">
-              <span class="price" id="ckTotal">$149</span>
+              <span class="price" id="ckTotal">$120</span>
               <span class="tiny">/ month after trial</span>
             </div>
           </div>
@@ -564,7 +564,7 @@ export const REF_VIEWS: Record<string, string> = {
             <span class="micro">What you can change later</span>
             <ul class="ticks" style="margin-top:14px">
               <li>Add or remove seats any time — prorated</li>
-              <li>Switch tier up or down at the next cycle</li>
+              <li>Switch plan up or down at the next cycle</li>
               <li>Cancel from the admin panel, no phone call</li>
               <li>Export all your data on the way out</li>
             </ul>
