@@ -72,7 +72,8 @@ const CSS = `
   border-top:1px solid var(--rule);padding-top:12px}
 .cbr-missing{background:#fff8e6;border:1px solid var(--gold);padding:12px 14px;margin-top:16px}
 .cbr-missing .h{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:5px}
-.cbr-missing ul{margin:0;padding-left:17px;font-size:11.5px;color:var(--ink-soft)}
+.cbr-missing ul{margin:0;padding-left:17px;font-size:11.5px;color:var(--ink-soft);list-style:disc outside}
+.cbr-missing li{margin:2px 0}
 `;
 
 /** Estimated printed height of one scope row, in template pixels. */
