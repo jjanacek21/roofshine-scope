@@ -287,7 +287,16 @@ export const cbAdminUpsertUser = createServerFn({ method: "POST" })
     const { data: inv, error: invErr } = await supabaseAdmin
       .from("cb_invites")
       .upsert(
-        { workspace_id: data.workspaceId, email, role: data.role, invited_by: context.userId } as never,
+        {
+          workspace_id: data.workspaceId,
+          email,
+          role: data.role,
+          invited_by: context.userId,
+          token: crypto.randomUUID(),
+          accepted_at: null,
+          revoked_at: null,
+          expires_at: new Date(Date.now() + 14 * 864e5).toISOString(),
+        } as never,
         { onConflict: "workspace_id,email" },
       )
       .select("token")
