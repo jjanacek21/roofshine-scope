@@ -157,8 +157,8 @@ export function CbReportTemplate({ vm, ai }: CbTemplateProps) {
     0,
   );
   const summaryBlock = 120 + summaryLines * 22;
-  const roofPages = paginateScope(ai.roof_scope, Math.max(200, 760 - summaryBlock), 720);
-  const exteriorPages = paginateScope(ai.exterior_scope, 560, 720);
+  const roofPages = paginateScope(ai.roof_scope, Math.max(220, 920 - summaryBlock), 860);
+  const exteriorPages = paginateScope(ai.exterior_scope, 560, 860);
   const captions = new Map(ai.photo_captions.map((c) => [c.photo_id, c]));
   const appendix = vm.photos.filter((p) => p.id !== vm.coverPhoto?.id);
   const photoPages = appendix.length ? chunk(appendix, 4) : [];
@@ -320,8 +320,9 @@ export function CbReportTemplate({ vm, ai }: CbTemplateProps) {
         {last ? (
           <>
             <div className="cbr-note">
-              <b>Note on the interior.</b> {ai.interior_note || "Not inspected"} Areas not inspected are printed as{" "}
-              <b>Not inspected</b> rather than omitted.
+              <b>Note on the interior.</b>{" "}
+              {ai.interior_note ||
+                "Not inspected. Areas not inspected are printed as Not inspected rather than omitted."}
             </div>
             <h2>4. Storm Event &amp; Claim Context</h2>
             <p>{ai.storm_context || "Not inspected"}</p>
