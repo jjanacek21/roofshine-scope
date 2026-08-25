@@ -188,7 +188,7 @@ export const cbAdminCreateCompany = createServerFn({ method: "POST" })
           .insert({ workspace_id: ws.id, email, role: "owner", invited_by: context.userId } as never)
           .select("token")
           .single();
-        inviteLink = `${CB_APP_URL}/cb/accept?token=${inv?.token ?? ""}`;
+        inviteLink = `${CB_APP_URL}/accept-invite?token=${inv?.token ?? ""}`;
         await sendMail({
           to: email,
           subject: `You're invited to run ${data.name} on Claim Buddy`,
@@ -287,7 +287,7 @@ export const cbAdminUpsertUser = createServerFn({ method: "POST" })
       .single();
     if (invErr) throw new Error(invErr.message);
 
-    const link = `${CB_APP_URL}/cb/accept?token=${inv?.token ?? ""}`;
+    const link = `${CB_APP_URL}/accept-invite?token=${inv?.token ?? ""}`;
     await sendMail({
       to: email,
       subject: `You're invited to ${ws?.name ?? "Claim Buddy"}`,

@@ -49,7 +49,7 @@ export const cbSendInvite = createServerFn({ method: "POST" })
       return { ok: true as const, seated: true as const };
     }
 
-    const link = `${CB_APP_URL}/cb/accept?token=${payload.token ?? ""}`;
+    const link = `${CB_APP_URL}/accept-invite?token=${payload.token ?? ""}`;
     const mail = await sendMail({
       to: data.email,
       subject: `You're invited to ${company} on Claim Buddy`,
@@ -86,7 +86,7 @@ export const cbResendInvite = createServerFn({ method: "POST" })
       .eq("id", invite.workspace_id)
       .maybeSingle();
 
-    const link = `${CB_APP_URL}/cb/accept?token=${invite.token ?? ""}`;
+    const link = `${CB_APP_URL}/accept-invite?token=${invite.token ?? ""}`;
     const mail = await sendMail({
       to: invite.email,
       subject: `Reminder: join ${ws?.name ?? "your team"} on Claim Buddy`,
