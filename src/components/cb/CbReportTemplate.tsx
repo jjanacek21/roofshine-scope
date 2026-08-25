@@ -75,6 +75,39 @@ const CSS = `
 .cbr-missing ul{margin:0;padding-left:17px;font-size:11.5px;color:var(--ink-soft)}
 `;
 
+/** Estimated printed height of one scope row, in template pixels. */
+function scopeRowHeight(r: CbAiScopeRow): number {
+  const lines = (text: string, chars: number) => Math.max(1, Math.ceil((text || "").length / chars));
+  const rows = Math.max(lines(r.component, 22), lines(r.condition, 46), lines(r.action, 30));
+  return 20 + rows * 16;
+}
+
+/**
+ * Split scope rows across pages by estimated height so a long condition never
+ * runs off the bottom of a page. `first` is the budget on the opening page,
+ * which also carries the summary block.
+ */
+function paginateScope(rows: CbAiScopeRow[], first: number, rest: number): CbAiScopeRow[][] {
+  if (rows.length === 0) return [[]];
+  const out: CbAiScopeRow[][] = [];
+  let page: CbAiScopeRow[] = [];
+  let budget = first;
+  let used = 0;
+  for (const r of rows) {
+    const h = scopeRowHeight(r);
+    if (page.length && used + h > budget) {
+      out.push(page);
+      page = [];
+      used = 0;
+      budget = rest;
+    }
+    page.push(r);
+    used += h;
+  }
+  if (page.length) out.push(page);
+  return out;
+}
+
 function chunk<T>(list: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
@@ -118,8 +151,14 @@ export function CbReportTemplate({ vm, ai }: CbTemplateProps) {
     ["--gold" as string]: brand?.accent_color || "#B08D57",
   };
 
-  const roofPages = chunk(ai.roof_scope, 11);
-  const exteriorPages = chunk(ai.exterior_scope, 12);
+  /* Content box is 1056pt tall less the running head, footer and page padding. */
+  const summaryLines = (ai.summary.length ? ai.summary : ["Not inspected"]).reduce(
+    (n, p) => n + Math.max(1, Math.ceil(p.length / 92)),
+    0,
+  );
+  const summaryBlock = 120 + summaryLines * 22;
+  const roofPages = paginateScope(ai.roof_scope, Math.max(200, 760 - summaryBlock), 720);
+  const exteriorPages = paginateScope(ai.exterior_scope, 560, 720);
   const captions = new Map(ai.photo_captions.map((c) => [c.photo_id, c]));
   const appendix = vm.photos.filter((p) => p.id !== vm.coverPhoto?.id);
   const photoPages = appendix.length ? chunk(appendix, 4) : [];
