@@ -164,6 +164,10 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             case "checkout.session.async_payment_succeeded":
               await handleCheckoutCompleted(event.data.object, env);
               break;
+            case "customer.subscription.deleted":
+              await handleSubscriptionCanceled(event.data.object);
+
+              break;
             default:
               console.log("Unhandled event:", event.type);
           }
