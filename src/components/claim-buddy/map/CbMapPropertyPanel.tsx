@@ -1,6 +1,6 @@
 /**
  * Claim Buddy map mode — the side panel that opens when a rep taps a house.
- * Disposition → resident details → insurance + storm → AI mailer → start inspection.
+ * Disposition → public record → resident details → insurance + storm → AI mailer → start inspection.
  */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -17,6 +17,7 @@ import { CbButton } from "@/components/cb/primitives";
 import { CbField } from "@/components/cb/forms";
 import { DISPOSITIONS } from "@/components/door-to-door/DispositionQuickBar";
 import { StormMailerModal } from "@/components/storm/StormMailerModal";
+import { CbParcelCard } from "@/components/claim-buddy/map/CbParcelCard";
 import { generateLatLngHash, type PropertyData, type PropertyDisposition } from "@/hooks/usePropertyDispositions";
 
 export interface CbMapPoint {
@@ -311,7 +312,10 @@ export function CbMapPropertyPanel({
             })}
           </div>
 
-          {/* 2 — Resident details */}
+          {/* 2 — Public record. Free county data, before the rep types anything. */}
+          <CbParcelCard lat={point.lat} lng={point.lng} onUseOwnerName={(n) => setName(n)} />
+
+          {/* 3 — Resident details */}
           <p className="cb-microlabel mt-6">Resident details</p>
           <div className="mt-2 space-y-3">
             <CbField label="Name" value={name} onChange={(e) => setName(e.target.value)} />
@@ -319,7 +323,7 @@ export function CbMapPropertyPanel({
             <CbField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
 
-          {/* 3 — Insurance + storm */}
+          {/* 4 — Insurance + storm */}
           <p className="cb-microlabel mt-6">Insurance</p>
           <div className="mt-2 space-y-3">
             <CbField label="Carrier" value={carrier} onChange={(e) => setCarrier(e.target.value)} />
@@ -387,7 +391,7 @@ export function CbMapPropertyPanel({
             </CbButton>
           </div>
 
-          {/* 4 — AI mailer */}
+          {/* 5 — AI mailer */}
           <div className="mt-3">
             <CbButton block variant="secondary" onClick={() => void openMailer()}>
               <span className="inline-flex items-center gap-2">
@@ -396,7 +400,7 @@ export function CbMapPropertyPanel({
             </CbButton>
           </div>
 
-          {/* 5 — Start inspection */}
+          {/* 6 — Start inspection */}
           <div className="mt-3 pb-6">
             <CbButton block onClick={() => void startInspection()} loading={starting} loadingText="Opening inspection…">
               <span className="inline-flex items-center gap-2">
