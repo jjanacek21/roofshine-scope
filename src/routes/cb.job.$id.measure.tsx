@@ -139,7 +139,7 @@ function CbJobMeasurePage() {
         step_flashing_lf: Number(e.step_flashing_lf ?? 0),
         gutter_lf: Number(e.gutter_lf ?? 0),
         source: e.source ?? "manual",
-        raw: e.raw ?? null,
+        raw: e.raw ?? {},
       }),
     );
 
