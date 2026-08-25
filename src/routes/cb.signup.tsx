@@ -237,17 +237,33 @@ function CbSignupPage() {
   }
 
   return (
-    <CbAuthShell title="Create your account" subtitle="Set up your Claim Buddy workspace">
+    <CbAuthShell
+      title={invite ? `Join ${invite.company}` : "Create your account"}
+      subtitle={
+        invite
+          ? "You were invited — no plan or company setup needed."
+          : "Set up your Claim Buddy workspace"
+      }
+    >
       <div className="mb-6">
         <CbProgressRail steps={STEPS} current={1} />
       </div>
       <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
-        <CbField
-          label="Company name"
-          value={companyName}
-          error={errors.companyName}
-          onChange={(e) => setCompanyName(e.target.value)}
-        />
+        {!invite ? (
+          <CbField
+            label="Company name"
+            value={companyName}
+            error={errors.companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+          />
+        ) : (
+          <CbField
+            label="Full name"
+            autoComplete="name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+          />
+        )}
         <CbField
           label="Email"
           type="email"
@@ -255,6 +271,7 @@ function CbSignupPage() {
           value={email}
           error={errors.email}
           onChange={(e) => setEmail(e.target.value)}
+          onBlur={(e) => void checkInvite(e.target.value)}
         />
         <CbField
           label="Password"
@@ -266,26 +283,39 @@ function CbSignupPage() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <div
-          className="rounded-2xl p-4 text-[13px]"
-          style={{ background: "var(--cb-surface-2, #f4f7f5)", border: "1px solid var(--cb-border, #e2e8e5)" }}
-        >
-          <div className="flex items-center justify-between font-semibold">
-            <span>{quote.plan.name} · {quote.seats} seats</span>
-            <button type="button" className="underline" onClick={() => setStep(0)}>
-              Change
-            </button>
+        {invite ? (
+          <div
+            className="rounded-2xl p-4 text-[13px]"
+            style={{ background: "var(--cb-surface-2, #f4f7f5)", border: "1px solid var(--cb-border, #e2e8e5)" }}
+          >
+            <div className="font-semibold">Invitation found · {invite.company}</div>
+            <div className="mt-1" style={{ color: "var(--cb-text-muted)" }}>
+              You'll join as <strong>{invite.role}</strong> on your company's plan — nothing to pay.
+            </div>
           </div>
-          <div className="mt-1" style={{ color: "var(--cb-text-muted)" }}>
-            Free for {CB_TRIAL_DAYS} days, then {money(quote.firstCharge)} on day {CB_TRIAL_DAYS + 1} and{" "}
-            {money(quote.recurring)}/mo after. Cancel before day {CB_TRIAL_DAYS + 1} and you pay nothing.
+        ) : (
+          <div
+            className="rounded-2xl p-4 text-[13px]"
+            style={{ background: "var(--cb-surface-2, #f4f7f5)", border: "1px solid var(--cb-border, #e2e8e5)" }}
+          >
+            <div className="flex items-center justify-between font-semibold">
+              <span>{quote.plan.name} · {quote.seats} seats</span>
+              <button type="button" className="underline" onClick={() => setStep(0)}>
+                Change
+              </button>
+            </div>
+            <div className="mt-1" style={{ color: "var(--cb-text-muted)" }}>
+              Free for {CB_TRIAL_DAYS} days, then {money(quote.firstCharge)} on day {CB_TRIAL_DAYS + 1} and{" "}
+              {money(quote.recurring)}/mo after. Cancel before day {CB_TRIAL_DAYS + 1} and you pay nothing.
+            </div>
           </div>
-        </div>
+        )}
 
-        <CbButton type="submit" block loading={loading} loadingText="Creating…">
-          Start free trial
+        <CbButton type="submit" block loading={loading} loadingText={invite ? "Joining…" : "Creating…"}>
+          {invite ? `Join ${invite.company}` : "Start free trial"}
         </CbButton>
       </form>
+
 
       <p className="mt-7 text-center text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
         Already have an account?{" "}
