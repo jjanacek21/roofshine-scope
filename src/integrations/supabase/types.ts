@@ -629,12 +629,14 @@ export type Database = {
           is_locked: boolean
           is_template: boolean
           legal_name: string | null
+          license_line: string | null
           license_numbers: Json
           logo_url: string | null
           name: string
           phone: string | null
           primary_color: string
           service_areas: Json
+          short_name: string | null
           state: string | null
           team_photo_url: string | null
           updated_at: string
@@ -659,12 +661,14 @@ export type Database = {
           is_locked?: boolean
           is_template?: boolean
           legal_name?: string | null
+          license_line?: string | null
           license_numbers?: Json
           logo_url?: string | null
           name: string
           phone?: string | null
           primary_color?: string
           service_areas?: Json
+          short_name?: string | null
           state?: string | null
           team_photo_url?: string | null
           updated_at?: string
@@ -689,12 +693,14 @@ export type Database = {
           is_locked?: boolean
           is_template?: boolean
           legal_name?: string | null
+          license_line?: string | null
           license_numbers?: Json
           logo_url?: string | null
           name?: string
           phone?: string | null
           primary_color?: string
           service_areas?: Json
+          short_name?: string | null
           state?: string | null
           team_photo_url?: string | null
           updated_at?: string

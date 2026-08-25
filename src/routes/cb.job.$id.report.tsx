@@ -8,7 +8,10 @@ import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbChip, CbLoading, CbSheet } from "@/components/cb/primitives";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CbStickyHeader } from "@/components/cb/motion";
-import { CbReportDoc } from "@/components/cb/CbReportDoc";
+import { CbReportTemplate } from "@/components/cb/CbReportTemplate";
+import { CbReportReview } from "@/components/cb/CbReportReview";
+import { XrFit } from "@/components/estimate/XrFit";
+import { CB_EMPTY_AI, type CbAiReport } from "@/lib/cbReportAi";
 import { CbConvertAction, CbConvertedNotice } from "@/components/cb/CbConvertAction";
 import { useCbReport } from "@/lib/cbReportView";
 import { cbDocumentSignedUrl, renderAndStoreReportPdf } from "@/lib/cbPdf";
@@ -42,6 +45,8 @@ function CbReportPage() {
   const { data, isLoading } = useCbReport(id, r);
 
   const [narrative, setNarrative] = useState<CbNarrative | null>(null);
+  const [tab, setTab] = useState<"review" | "document">("review");
+  const docRef = useRef<HTMLDivElement>(null);
   const [lineItems, setLineItems] = useState<CbLineItem[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [pdfStep, setPdfStep] = useState<string | null>(null);
@@ -82,11 +87,18 @@ function CbReportPage() {
 
   async function ensurePdf(): Promise<string | null> {
     if (!data || !vm) return null;
+    setTab("document");
+    await new Promise((r) => setTimeout(r, 400));
+    const element = docRef.current;
+    if (!element) {
+      toast.error("The report document is still loading");
+      return null;
+    }
     const workspaceId = String((data.inputs.job as Record<string, unknown>)?.workspace_id ?? "");
     setBusy("pdf");
     try {
       const path = await renderAndStoreReportPdf({
-        vm,
+        element,
         reportId: data.report.id,
         workspaceId,
         jobId: id,
@@ -163,6 +175,8 @@ function CbReportPage() {
       setBusy(null);
     }
   }
+
+  const ai: CbAiReport = { ...CB_EMPTY_AI, ...(vm?.narrative.ai ?? {}) };
 
   if (isLoading) {
     return (
@@ -287,20 +301,31 @@ function CbReportPage() {
             <CbConvertedNotice jobId={id} />
           </div>
 
-          <div className="mt-3">
-            <CbReportDoc
-              vm={vm}
-              editable
-              onNarrative={(patch) => {
-                const next = { ...(narrative ?? vm.narrative), ...patch };
-                setNarrative(next);
-                persist({ narrative: next });
-              }}
-              onLineItems={(items) => {
-                setLineItems(items);
-                persist({ line_items: items });
+          <div className="mt-3 flex gap-2">
+            <CbButton size="md" variant={tab === "review" ? "primary" : "ghost"} onClick={() => setTab("review")}>
+              Review &amp; edit
+            </CbButton>
+            <CbButton size="md" variant={tab === "document" ? "primary" : "ghost"} onClick={() => setTab("document")}>
+              Document
+            </CbButton>
+          </div>
+
+          <div className="mt-3" style={{ display: tab === "review" ? "block" : "none" }}>
+            <CbReportReview
+              ai={ai}
+              photos={vm.photos}
+              onChange={(next) => {
+                const nextNarrative = { ...(narrative ?? vm.narrative), ai: next };
+                setNarrative(nextNarrative);
+                persist({ narrative: nextNarrative });
               }}
             />
+          </div>
+
+          <div className="mt-3" style={{ display: tab === "document" ? "block" : "none" }}>
+            <XrFit ref={docRef}>
+              <CbReportTemplate vm={vm} ai={ai} />
+            </XrFit>
           </div>
 
           <div className="mt-6 grid gap-2">

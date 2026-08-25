@@ -6,6 +6,7 @@
  * takeoff later never rewrites a report that has already gone to a carrier.
  */
 import { supabase } from "@/integrations/supabase/client";
+import type { CbAiReport } from "@/lib/cbReportAi";
 import { computeVentilation, readSheet, type CbSheet, type CbVentResult } from "@/lib/cbSheet";
 import {
   CB_ELEVATIONS,
@@ -45,6 +46,21 @@ export function resolveReportCover<
   );
 }
 
+/**
+ * The report hero is the front-elevation wide shot only. With no such photo the
+ * hero is omitted entirely rather than falling back to an arbitrary image.
+ */
+export function resolveFrontElevation<
+  T extends { category: string | null; elevation?: string | null; shot_type: string | null; storage_path: string | null },
+>(photos: T[], coverPath?: string | null): T | null {
+  return (
+    photos.find((p) => !!coverPath && p.storage_path === coverPath) ??
+    photos.find((p) => p.elevation === "front" && (p.shot_type === "wide" || p.shot_type === "overview")) ??
+    photos.find((p) => p.category === "cover") ??
+    null
+  );
+}
+
 export interface CbLineItem {
   id: string;
   description: string;
@@ -58,6 +74,8 @@ export interface CbLineItem {
 
 export interface CbNarrative {
   summary: string;
+  /** AI-written, rep-edited report body used by the print template. */
+  ai?: CbAiReport;
   profile_note?: string;
   roof_note?: string;
   exterior_note?: string;
