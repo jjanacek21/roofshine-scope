@@ -185,7 +185,14 @@ export const cbAdminCreateCompany = createServerFn({ method: "POST" })
       } else {
         const { data: inv } = await supabaseAdmin
           .from("cb_invites")
-          .insert({ workspace_id: ws.id, email, role: "owner", invited_by: context.userId } as never)
+          .insert({
+            workspace_id: ws.id,
+            email,
+            role: "owner",
+            invited_by: context.userId,
+            token: crypto.randomUUID(),
+            expires_at: new Date(Date.now() + 14 * 864e5).toISOString(),
+          } as never)
           .select("token")
           .single();
         inviteLink = `${CB_APP_URL}/accept-invite?token=${inv?.token ?? ""}`;
