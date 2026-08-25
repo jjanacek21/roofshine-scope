@@ -61,8 +61,61 @@ function CbSignupPage() {
 
   const quote = quoteSeats(seats, plan);
 
+  /** Pending invites skip plan selection and company details entirely. */
+  async function checkInvite(value: string) {
+    const clean = value.trim().toLowerCase();
+    if (!clean.includes("@")) {
+      setInvite(null);
+      return;
+    }
+    try {
+      const found = await cbInviteForEmail({ data: { email: clean } });
+      setInvite(found.ok ? { token: found.token, role: found.role, company: found.company } : null);
+    } catch {
+      setInvite(null);
+    }
+  }
+
+  async function acceptInviteSignup() {
+    if (!invite) return;
+    const name = fullName.trim();
+    const next: typeof errors = {};
+    if (!email.includes("@")) next.email = "That doesn't look like an email address yet.";
+    if (password.length < 8) next.password = "Use at least 8 characters — it protects your claims.";
+    setErrors(next);
+    if (Object.keys(next).length) {
+      requestAnimationFrame(() => focusFirstError(formRef.current));
+      return;
+    }
+    const [firstName, ...rest] = name.split(/\s+/);
+    setLoading(true);
+    try {
+      await cbAcceptInvite({
+        data: {
+          token: invite.token,
+          password,
+          ...(firstName ? { firstName } : {}),
+          ...(rest.length ? { lastName: rest.join(" ") } : {}),
+        },
+      });
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+      if (error) throw error;
+      toast.success(`You're on the ${invite.company} team`);
+      navigate({ to: "/cb" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't accept the invite");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+
+    if (invite) {
+      await acceptInviteSignup();
+      return;
+    }
 
     const next: typeof errors = {};
     if (companyName.trim().length < 2) next.companyName = "Tell us the company name so we can label the workspace.";
