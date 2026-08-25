@@ -436,6 +436,9 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
         if (unit) {
           unit.textContent = "$" + gv.dataset.amt;
           unit.dataset.amt = gv.dataset.amt ?? "0";
+          unit.dataset.base = gv.dataset.base ?? "0";
+          unit.dataset.inc = gv.dataset.inc ?? "0";
+          unit.dataset.rate = gv.dataset.rate ?? gv.dataset.amt ?? "0";
         }
         price();
       }
@@ -590,12 +593,21 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
     const unitEl = $("#ckUnit");
     if (!seats || !unitEl) return;
     const n = +seats.value;
-    const unit = +(unitEl.dataset.amt ?? 0);
-    const d = n >= 51 ? 0.3 : n >= 11 ? 0.25 : n >= 4 ? 0.15 : 0;
+    const base = +(unitEl.dataset.base ?? 0);
+    const inc = +(unitEl.dataset.inc ?? 0);
+    const rate = +(unitEl.dataset.rate ?? unitEl.dataset.amt ?? 0);
+    const extra = Math.max(0, n - inc);
+    const extraCost = extra * rate;
+    const sum = base + extraCost;
     const disc = $("#ckDisc");
     const total = $("#ckTotal");
-    if (disc) disc.textContent = d ? "−" + d * 100 + "%" : "—";
-    if (total) total.textContent = "$" + Math.round(unit * n * (1 - d)).toLocaleString();
+    if (disc)
+      disc.textContent = extra
+        ? extra + " × $" + rate + " = $" + extraCost.toFixed(2).replace(/\.00$/, "")
+        : "—";
+    if (total)
+      total.textContent =
+        "$" + sum.toFixed(2).replace(/\.00$/, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
   if (seats) {
     seats.innerHTML = Array.from({ length: 60 }, (_, i) => i + 1)

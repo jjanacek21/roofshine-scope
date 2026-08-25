@@ -110,7 +110,7 @@ const SEQ: string[][] = [
   ["Day 10","One clean exit","“Want me to stop?” One reply ends it. Nobody gets a seventh email."]
 ];
 
-const BANDS: string[][] = [["1–3","$99","$149","$249","—"],["4–10","$84","$127","$212","15%"],["11–50","$74","$112","$187","25%"],["51+","Talk to us","Talk to us","Talk to us","Custom"]];
+const BANDS: string[][] = [["3","$59.97","$120","$200","Included seats"],["5","$99.95","$180","$280","+2 seats"],["10","$199.90","$330","$480","+7 seats"],["25","$499.75","$780","$1,080","+22 seats"]];
 
 
 export { META, M, STEPS, TABS, CATS, CATMAP, VIDS, RAMP, POSTS, QUEUE, SEQ, BANDS };
