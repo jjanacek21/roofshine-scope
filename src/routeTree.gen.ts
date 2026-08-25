@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as DemoRouteImport } from './routes/demo'
@@ -153,6 +154,11 @@ import { Route as CbJobIdTakeoffRouteImport } from './routes/cb.job.$id.takeoff'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcceptInviteRoute = AcceptInviteRouteImport.update({
+  id: '/accept-invite',
+  path: '/accept-invite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -861,6 +867,7 @@ const CbJobIdTakeoffRoute = CbJobIdTakeoffRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/accept-invite': typeof AcceptInviteRoute
   '/admin': typeof AdminRouteWithChildren
   '/blog': typeof BlogRoute
   '/demo': typeof DemoRoute
@@ -1002,6 +1009,7 @@ export interface FileRoutesByFullPath {
   '/jobs/$id/': typeof AppJobsIdIndexRoute
 }
 export interface FileRoutesByTo {
+  '/accept-invite': typeof AcceptInviteRoute
   '/blog': typeof BlogRoute
   '/demo': typeof DemoRoute
   '/faq': typeof FaqRoute
@@ -1138,6 +1146,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/accept-invite': typeof AcceptInviteRoute
   '/admin': typeof AdminRouteWithChildren
   '/blog': typeof BlogRoute
   '/demo': typeof DemoRoute
@@ -1283,6 +1292,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/accept-invite'
     | '/admin'
     | '/blog'
     | '/demo'
@@ -1424,6 +1434,7 @@ export interface FileRouteTypes {
     | '/jobs/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/accept-invite'
     | '/blog'
     | '/demo'
     | '/faq'
@@ -1559,6 +1570,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/accept-invite'
     | '/admin'
     | '/blog'
     | '/demo'
@@ -1703,6 +1715,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  AcceptInviteRoute: typeof AcceptInviteRoute
   AdminRoute: typeof AdminRouteWithChildren
   BlogRoute: typeof BlogRoute
   DemoRoute: typeof DemoRoute
@@ -1771,6 +1784,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/accept-invite': {
+      id: '/accept-invite'
+      path: '/accept-invite'
+      fullPath: '/accept-invite'
+      preLoaderRoute: typeof AcceptInviteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -3034,6 +3054,7 @@ const CbAdminRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  AcceptInviteRoute: AcceptInviteRoute,
   AdminRoute: AdminRouteWithChildren,
   BlogRoute: BlogRoute,
   DemoRoute: DemoRoute,

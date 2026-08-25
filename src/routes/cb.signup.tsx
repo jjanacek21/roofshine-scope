@@ -54,6 +54,10 @@ function CbSignupPage() {
   const [errors, setErrors] = useState<{ companyName?: string; email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  /** Set when the typed email matches a pending invite — plan + company are then skipped. */
+  const [invite, setInvite] = useState<{ token: string; role: string; company: string } | null>(null);
+  const [fullName, setFullName] = useState("");
+
 
   const quote = quoteSeats(seats, plan);
 
