@@ -3,7 +3,7 @@ import PricingPage from "@/pages/marketing/Pricing";
 
 const title = "Claim Buddy pricing — Basic, Pro and Elite plans";
 const description =
-  "Basic $99, Pro $149 with AI measurements and the Survival Guide, Elite $249 with Storm Intel and your market price book. Volume discounts to 25%.";
+  "Basic $19.99 per user per month. Pro $120/mo with 3 seats and AI measurements, $30 per extra seat. Elite $200/mo with 3 seats, Storm Intel and your market price book, $40 per extra seat.";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
