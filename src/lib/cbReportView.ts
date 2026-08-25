@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { computeVentilation, readSheet } from "@/lib/cbSheet";
 import { cbLogoSignedUrl } from "@/lib/cbLogo";
 import { CB_PHOTO_BUCKET } from "@/lib/cbPhotos";
-import { loadReportInputs, resolveReportCover, type CbLineItem, type CbNarrative, CB_STATEMENT } from "@/lib/cbReport";
+import { loadReportInputs, resolveFrontElevation, type CbLineItem, type CbNarrative, CB_STATEMENT } from "@/lib/cbReport";
 import type { CbElevation, CbElevationState, CbRoom } from "@/lib/cbTakeoff";
 import type { CbReportViewModel } from "@/components/cb/CbReportDoc";
 
@@ -88,7 +88,7 @@ export function assembleVm(args: {
       : computeVentilation(sheet.ventilation, squares, sheet.roof_system.pitch ?? String(measurement?.pitch ?? "6/12"));
 
   const coverPath = (inputs.job?.cover_photo_path as string) ?? null;
-  const coverPhoto = resolveReportCover(inputs.photos, coverPath);
+  const coverPhoto = resolveFrontElevation(inputs.photos, coverPath);
 
   const source = measurement?.rep_adjusted
     ? "Rep-adjusted"
@@ -114,6 +114,7 @@ export function assembleVm(args: {
     vent,
     narrative: {
       summary: report.narrative?.summary ?? "",
+      ai: report.narrative?.ai,
       statement: report.narrative?.statement ?? CB_STATEMENT,
       profile_note: report.narrative?.profile_note,
       roof_note: report.narrative?.roof_note,

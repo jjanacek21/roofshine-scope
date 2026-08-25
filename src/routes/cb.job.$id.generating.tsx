@@ -5,6 +5,9 @@ import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton } from "@/components/cb/primitives";
 import { CbHeadline } from "@/components/cb/motion";
 import { composeReport, insertReportVersion, loadReportInputs } from "@/lib/cbReport";
+import { buildAiInput, guardReport, scopeFromLineItems, CB_EMPTY_AI, type CbAiReport } from "@/lib/cbReportAi";
+import { cbWriteReportNarrative } from "@/lib/cb-report-ai.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/cb/job/$id/generating")({
   head: () => ({
@@ -32,7 +35,7 @@ function CbGeneratingPage() {
     "Reading takeoff…",
     "Assembling roof scope…",
     "Matching photos to line items…",
-    "Building narrative…",
+    "Writing the narrative…",
     `Applying ${company} branding…`,
   ];
 
@@ -54,14 +57,53 @@ function CbGeneratingPage() {
         await wait(650);
 
         setStep(2);
-        await wait(650);
+        await wait(400);
 
         setStep(3);
-        await wait(500);
+        const { data: auth } = await supabase.auth.getUser();
+        const repName =
+          (auth.user?.user_metadata?.full_name as string) ?? (auth.user?.email as string) ?? null;
+        const aiInput = buildAiInput({
+          company: inputs.company,
+          job: inputs.job,
+          sheet: composed.sheet,
+          squares: composed.squares,
+          measurement: inputs.measurement,
+          vent: composed.vent,
+          lineItems: composed.line_items,
+          photos: inputs.photos,
+          repName,
+          hasPricedEstimate: false,
+        });
+
+        let ai: CbAiReport;
+        try {
+          const res = await cbWriteReportNarrative({ data: { input: aiInput } });
+          if (!res.ok) throw new Error(res.error);
+          ai = res.report;
+        } catch (err) {
+          /* The takeoff still produces a complete report without the writer. */
+          const scope = scopeFromLineItems(composed.line_items);
+          ai = guardReport(
+            {
+              ...CB_EMPTY_AI,
+              summary: [composed.narrative.summary],
+              roof_scope: scope.roof,
+              exterior_scope: scope.exterior,
+              interior_note: "Not inspected",
+              storm_context: "Not inspected",
+              missing: [
+                "Narrative could not be written automatically — review and edit the report before sending.",
+                err instanceof Error ? err.message : "AI writer unavailable",
+              ],
+            },
+            false,
+          );
+        }
 
         setStep(4);
         const report = await insertReportVersion(id, {
-          narrative: composed.narrative,
+          narrative: { ...composed.narrative, ai },
           line_items: composed.line_items,
           ventilation: composed.vent,
         });

@@ -3,9 +3,12 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbLoading } from "@/components/cb/primitives";
-import { CbReportDoc, type CbReportViewModel } from "@/components/cb/CbReportDoc";
+import type { CbReportViewModel } from "@/components/cb/CbReportDoc";
+import { CbReportTemplate } from "@/components/cb/CbReportTemplate";
+import { XrFit } from "@/components/estimate/XrFit";
+import { CB_EMPTY_AI } from "@/lib/cbReportAi";
 import { computeVentilation, readSheet } from "@/lib/cbSheet";
-import { CB_STATEMENT, type CbLineItem, type CbNarrative, type CbReportPhoto } from "@/lib/cbReport";
+import { CB_STATEMENT, resolveFrontElevation, type CbLineItem, type CbNarrative, type CbReportPhoto } from "@/lib/cbReport";
 import type { CbElevation, CbElevationState, CbRoom } from "@/lib/cbTakeoff";
 
 /** Public, no-login view of a shared report. Expires with the token. */
@@ -109,12 +112,7 @@ function CbSharedReportPage() {
     logoUrl: null,
     job: data.job,
     repName: null,
-    coverPhoto:
-      reportPhotos.find((p) => !!coverPath && p.storage_path === coverPath) ??
-      reportPhotos.find((p) => p.category === "cover") ??
-      reportPhotos.find((p) => p.shot_type === "overview" || p.shot_type === "wide") ??
-      reportPhotos[0] ??
-      null,
+    coverPhoto: resolveFrontElevation(reportPhotos, coverPath),
     photos: data.photos ?? [],
     urls,
     sheet,
@@ -150,7 +148,9 @@ function CbSharedReportPage() {
               </a>
             </div>
           ) : null}
-          <CbReportDoc vm={vm} />
+          <XrFit>
+            <CbReportTemplate vm={vm} ai={{ ...CB_EMPTY_AI, ...(vm.narrative.ai ?? {}) }} />
+          </XrFit>
         </div>
       </div>
     </CbSurface>
