@@ -1361,6 +1361,59 @@ export type Database = {
           },
         ]
       }
+      cb_seat_purchases: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          environment: string
+          id: string
+          plan: string
+          seats: number
+          status: string
+          stripe_session_id: string | null
+          stripe_subscription_id: string | null
+          unit_amount: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          id?: string
+          plan?: string
+          seats: number
+          status?: string
+          stripe_session_id?: string | null
+          stripe_subscription_id?: string | null
+          unit_amount?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          id?: string
+          plan?: string
+          seats?: number
+          status?: string
+          stripe_session_id?: string | null
+          stripe_subscription_id?: string | null
+          unit_amount?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_seat_purchases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cb_site_blocks: {
         Row: {
           content: Json
@@ -1642,6 +1695,8 @@ export type Database = {
           plan: string
           seats_purchased: number
           status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           tier: string
           trial_ends_at: string
           trial_started_at: string
@@ -1665,6 +1720,8 @@ export type Database = {
           plan?: string
           seats_purchased?: number
           status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           tier?: string
           trial_ends_at?: string
           trial_started_at?: string
@@ -1688,6 +1745,8 @@ export type Database = {
           plan?: string
           seats_purchased?: number
           status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           tier?: string
           trial_ends_at?: string
           trial_started_at?: string

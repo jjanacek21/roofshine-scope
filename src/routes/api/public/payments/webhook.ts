@@ -13,8 +13,91 @@ function getSupabase() {
   return _supabase;
 }
 
-async function handleCheckoutCompleted(session: any, env: StripeEnv) {
+/** Seat subscriptions bought from the Claim Buddy admin portal. */
+async function handleSeatCheckout(session: any, env: StripeEnv): Promise<boolean> {
+  const workspaceId = session.metadata?.workspace_id;
+  if (!workspaceId) return false;
+
   const supabase = getSupabase() as any;
+  const seats = Number(session.metadata?.seats ?? 0);
+  if (!Number.isFinite(seats) || seats < 1) return true;
+
+  const { data: purchase } = await supabase
+    .from("cb_seat_purchases")
+    .select("id, status")
+    .eq("stripe_session_id", session.id)
+    .maybeSingle();
+
+  if (purchase?.status === "paid") return true;
+
+  const { data: ws } = await supabase
+    .from("cb_workspaces")
+    .select("seats_purchased")
+    .eq("id", workspaceId)
+    .maybeSingle();
+
+  await supabase
+    .from("cb_workspaces")
+    .update({
+      seats_purchased: (ws?.seats_purchased ?? 0) + seats,
+      stripe_customer_id: session.customer ?? null,
+      stripe_subscription_id: session.subscription ?? null,
+      billing_status: "active",
+    })
+    .eq("id", workspaceId);
+
+  if (purchase) {
+    await supabase
+      .from("cb_seat_purchases")
+      .update({
+        status: "paid",
+        stripe_subscription_id: session.subscription ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", purchase.id);
+  } else {
+    await supabase.from("cb_seat_purchases").insert({
+      workspace_id: workspaceId,
+      seats,
+      plan: session.metadata?.plan ?? "pro",
+      environment: env,
+      status: "paid",
+      stripe_session_id: session.id,
+      stripe_subscription_id: session.subscription ?? null,
+    });
+  }
+
+  await supabase.from("cb_audit_log").insert({
+    workspace_id: workspaceId,
+    action: "seats.purchased",
+    meta: { seats, session_id: session.id, environment: env },
+  });
+
+  return true;
+}
+
+async function handleSubscriptionCanceled(subscription: any) {
+  const workspaceId = subscription.metadata?.workspace_id;
+  if (!workspaceId) return false;
+  const supabase = getSupabase() as any;
+
+  await supabase
+    .from("cb_workspaces")
+    .update({ billing_status: "canceled" })
+    .eq("id", workspaceId);
+
+  await supabase.from("cb_audit_log").insert({
+    workspace_id: workspaceId,
+    action: "seats.subscription_canceled",
+    meta: { subscription_id: subscription.id },
+  });
+  return true;
+}
+
+async function handleCheckoutCompleted(session: any, env: StripeEnv) {
+  if (await handleSeatCheckout(session, env)) return;
+  const supabase = getSupabase() as any;
+
 
   const { data: intent } = await supabase
     .from("invoice_payment_intents")
@@ -80,6 +163,10 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               break;
             case "checkout.session.async_payment_succeeded":
               await handleCheckoutCompleted(event.data.object, env);
+              break;
+            case "customer.subscription.deleted":
+              await handleSubscriptionCanceled(event.data.object);
+
               break;
             default:
               console.log("Unhandled event:", event.type);

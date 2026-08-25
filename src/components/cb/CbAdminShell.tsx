@@ -9,8 +9,10 @@ import { useCbSession } from "@/components/auth/CbSessionProvider";
 const TABS = [
   { to: "/cb/admin/branding", label: "Branding" },
   { to: "/cb/admin/team", label: "Team" },
+  { to: "/cb/admin/seats", label: "Seats & billing" },
   { to: "/cb/admin/pricing", label: "Pricing" },
 ] as const;
+
 
 export function CbAdminShell({
   title,
