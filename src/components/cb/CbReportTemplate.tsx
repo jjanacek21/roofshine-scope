@@ -347,12 +347,18 @@ export function CbReportTemplate({ vm, ai }: CbTemplateProps) {
     );
   });
 
+  /* Section numbers close up when the appendix is empty. */
+  const PHOTO_SEC = 5;
+  const SUPPORT_SEC = photoPages.length ? 6 : 5;
+  const TERMS_SEC = SUPPORT_SEC + 1;
+  const ACK_SEC = TERMS_SEC + 1;
+
   /* ---- photographic documentation ---- */
   photoPages.forEach((group, i) => {
     page(
       `photos-${i}`,
       <>
-        <h2 className="first">5. Photographic Documentation{i > 0 ? " (continued)" : ""}</h2>
+        <h2 className="first">{PHOTO_SEC}. Photographic Documentation{i > 0 ? " (continued)" : ""}</h2>
         {i === 0 ? (
           <p>
             Impacts below were located, circled in chalk and photographed during the inspection. Chalk is applied to
@@ -380,7 +386,7 @@ export function CbReportTemplate({ vm, ai }: CbTemplateProps) {
   page(
     "close",
     <>
-      <h2 className="first">6. How {shortName} Supports the Claim</h2>
+      <h2 className="first">{SUPPORT_SEC}. How {shortName} Supports the Claim</h2>
       <p>
         We document, price, meet the adjuster on site and present our documentation, submit supplements and request
         reinspection when items are omitted, then build. Large carriers often write repair-only estimates or deny on
@@ -396,7 +402,7 @@ export function CbReportTemplate({ vm, ai }: CbTemplateProps) {
         award of the contract on approval; not approved = nothing owed. The deductible is the owner&rsquo;s
         responsibility.
       </p>
-      <h2>7. Terms &amp; Next Steps</h2>
+      <h2>{TERMS_SEC}. Terms &amp; Next Steps</h2>
       <p>
         1. Report the loss to the carrier and request an adjuster inspection.
         <br />
@@ -408,6 +414,13 @@ export function CbReportTemplate({ vm, ai }: CbTemplateProps) {
         <br />
         5. On approval, work is scheduled and the contract is executed.
       </p>
+    </>,
+  );
+
+  /* ---- acknowledgement ---- */
+  page(
+    "ack",
+    <>
       {ai.missing.length ? (
         <div className="cbr-missing">
           <div className="h">Information still needed</div>
@@ -418,7 +431,7 @@ export function CbReportTemplate({ vm, ai }: CbTemplateProps) {
           </ul>
         </div>
       ) : null}
-      <h2>8. Acknowledgement</h2>
+      <h2 className={ai.missing.length ? undefined : "first"}>{ACK_SEC}. Acknowledgement</h2>
       <div className="cbr-sig">
         <div>
           <div className="line" />
