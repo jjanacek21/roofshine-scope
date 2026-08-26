@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Camera, ChevronRight, Building2, Settings, PlayCircle, Trash2, Map as MapIcon, BookOpenText } from "lucide-react";
+import { Search, Camera, ChevronRight, Building2, Settings, PlayCircle, Trash2, Map as MapIcon, BookOpenText, ListFilter } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUSES: { value: string; label: string; tone: "neutral" | "success" | "warning" | "danger" | "accent" }[] = [
@@ -328,6 +328,12 @@ export function CbDashboard() {
           <CbButton block variant="secondary" onClick={() => navigate({ to: "/cb/map" })}>
             <span className="inline-flex items-center gap-2">
               <MapIcon className="h-4 w-4" /> Door to Door mode
+            </span>
+          </CbButton>
+          {/* The lead tracker: same jobs, filterable by stage, one file each. */}
+          <CbButton block variant="secondary" onClick={() => navigate({ to: "/cb/leads" })}>
+            <span className="inline-flex items-center gap-2">
+              <ListFilter className="h-4 w-4" /> Leads
             </span>
           </CbButton>
           <CbButton block loading={starting} loadingText="Creating inspection…" onClick={startInspection}>
