@@ -28,7 +28,11 @@ export const NAV_HIDE_WHEN: Record<string, string> = {
 export function navVisible(can: (key: string) => boolean, to: string): boolean {
   const feature = NAV_FEATURE[to];
   const hideWhen = NAV_HIDE_WHEN[to];
-  if (hideWhen && can(hideWhen)) return false;
+  if (hideWhen) {
+    // Owned by the module once the module is granted; otherwise it stays at
+    // top level for everyone (this is today's behavior).
+    return !can(hideWhen);
+  }
   if (!feature) return true;
   return can(feature);
 }
