@@ -32,8 +32,20 @@ import {
   adminPurgeCompany,
   adminSetCompanyStatus,
 } from "@/lib/company-admin.functions";
-import { cbAdminListCompanies, cbAdminSetPlan, cbAdminSetSeats } from "@/lib/cb-admin.functions";
-import { CB_TIERS, CB_TIER_LABEL, type CbTier } from "@/lib/cbFeatures";
+import {
+  cbAdminListCompanies,
+  cbAdminSetMember,
+  cbAdminSetPlan,
+  cbAdminSetSeats,
+  cbAdminUpsertUser,
+} from "@/lib/cb-admin.functions";
+import {
+  CB_FEATURE_LABEL,
+  CB_TIERS,
+  CB_TIER_LABEL,
+  cbTierDefaults,
+  type CbTier,
+} from "@/lib/cbFeatures";
 
 export const Route = createFileRoute("/admin/companies/$id")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -664,6 +676,7 @@ function ClaimBuddyTab({ company }: { company: Company }) {
   const setPlan = useServerFn(cbAdminSetPlan);
   const setSeats = useServerFn(cbAdminSetSeats);
   const listCb = useServerFn(cbAdminListCompanies);
+  const setMember = useServerFn(cbAdminSetMember);
 
   const wsQuery = useQuery({ queryKey: ["admin-cb-workspaces"], queryFn: () => listWs() });
   const cbQuery = useQuery({ queryKey: ["cb-admin-companies"], queryFn: () => listCb() });
