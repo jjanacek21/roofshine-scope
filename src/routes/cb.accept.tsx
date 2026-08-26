@@ -62,7 +62,10 @@ function CbAcceptPage() {
       if (password) {
         const { error } = await supabase.auth.signInWithPassword({ email: invite.email, password });
         if (error) throw error;
-        navigate({ to: "/cb" });
+        /* An owner's next job is the logo and colours that go on every report.
+           A rep's is the dashboard. Sending both to the dashboard left owners
+           hunting through settings for the one thing they came to do. */
+        navigate({ to: invite.role === "owner" ? "/cb/admin/branding" : "/cb" });
       } else {
         toast.success("You're on the team — sign in to get started.");
         navigate({ to: "/cb/login" });
@@ -109,8 +112,21 @@ function CbAcceptPage() {
               Join {invite.company}
             </h1>
             <p className="mt-1 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
-              {invite.email} · {invite.role}
+              {invite.email} · {invite.role} · no plan or payment needed
             </p>
+
+            {invite.isComp ? (
+              <div
+                className="mt-4 rounded-[12px] px-3.5 py-3 text-[13px]"
+                style={{
+                  background: "var(--cb-surface-sunken, rgba(21,128,61,.08))",
+                  border: "1px solid var(--cb-hairline, rgba(21,128,61,.25))",
+                }}
+              >
+                <strong>Your access is free.</strong> {invite.company} has been set up with full
+                Claim Buddy access at no charge — you will not be asked for a card.
+              </div>
+            ) : null}
 
             <div className="mt-5 space-y-3">
               {!invite.hasAccount ? (
