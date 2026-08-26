@@ -2023,7 +2023,9 @@ export type Database = {
       }
       companies: {
         Row: {
+          accent_color: string | null
           address: string | null
+          archived_at: string | null
           auto_add_photo_suggestions: boolean
           bank_instructions: Json | null
           city: string | null
@@ -2045,18 +2047,23 @@ export type Database = {
           is_roof_king: boolean
           license_numbers: string[]
           logo_url: string | null
+          module_label: string | null
           name: string
           phone: string | null
           postal_code: string | null
+          primary_color: string | null
           report_profile: Json
           state: string | null
+          status: string
           trades: Database["public"]["Enums"]["trade_type"][]
           updated_at: string
           warranty_blurb: string | null
           website: string | null
         }
         Insert: {
+          accent_color?: string | null
           address?: string | null
+          archived_at?: string | null
           auto_add_photo_suggestions?: boolean
           bank_instructions?: Json | null
           city?: string | null
@@ -2078,18 +2085,23 @@ export type Database = {
           is_roof_king?: boolean
           license_numbers?: string[]
           logo_url?: string | null
+          module_label?: string | null
           name: string
           phone?: string | null
           postal_code?: string | null
+          primary_color?: string | null
           report_profile?: Json
           state?: string | null
+          status?: string
           trades?: Database["public"]["Enums"]["trade_type"][]
           updated_at?: string
           warranty_blurb?: string | null
           website?: string | null
         }
         Update: {
+          accent_color?: string | null
           address?: string | null
+          archived_at?: string | null
           auto_add_photo_suggestions?: boolean
           bank_instructions?: Json | null
           city?: string | null
@@ -2111,11 +2123,14 @@ export type Database = {
           is_roof_king?: boolean
           license_numbers?: string[]
           logo_url?: string | null
+          module_label?: string | null
           name?: string
           phone?: string | null
           postal_code?: string | null
+          primary_color?: string | null
           report_profile?: Json
           state?: string | null
+          status?: string
           trades?: Database["public"]["Enums"]["trade_type"][]
           updated_at?: string
           warranty_blurb?: string | null
@@ -7926,11 +7941,63 @@ export type Database = {
       cb_set_seats: { Args: { _seats: number; _ws: string }; Returns: Json }
       cb_tier_defaults: { Args: { _tier: string }; Returns: Json }
       cb_workspace_ids: { Args: never; Returns: string[] }
+      company_delete_counts: { Args: { _company_id: string }; Returns: Json }
       company_has_feature: {
         Args: { p_company_id: string; p_key: string }
         Returns: boolean
       }
       company_my_context: { Args: never; Returns: Json }
+      company_purge: {
+        Args: { _company_id: string; _confirm_name: string }
+        Returns: Json
+      }
+      company_set_status: {
+        Args: { _company_id: string; _status: string }
+        Returns: {
+          accent_color: string | null
+          address: string | null
+          archived_at: string | null
+          auto_add_photo_suggestions: boolean
+          bank_instructions: Json | null
+          city: string | null
+          contract_profile: Json
+          created_at: string
+          default_market_id: string | null
+          default_markup: number
+          default_markup_pct: number
+          default_overhead_pct: number
+          default_profit_pct: number
+          default_tax_rate: number
+          email: string | null
+          feature_door_to_door: boolean
+          feature_roof_king: boolean
+          feature_storm_intel: boolean
+          financing_blurb: string | null
+          id: string
+          include_fl_code_package: boolean
+          is_roof_king: boolean
+          license_numbers: string[]
+          logo_url: string | null
+          module_label: string | null
+          name: string
+          phone: string | null
+          postal_code: string | null
+          primary_color: string | null
+          report_profile: Json
+          state: string | null
+          status: string
+          trades: Database["public"]["Enums"]["trade_type"][]
+          updated_at: string
+          warranty_blurb: string | null
+          website: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "companies"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_company_as_super_admin: {
         Args: {
           _address?: string

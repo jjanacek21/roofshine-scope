@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import { getSurface } from "@/lib/cbMode";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -43,6 +44,20 @@ function AppLayout() {
         navigate({ to: "/onboarding", search: { invite } });
         return;
       }
+      // Archived companies are shut off — their members cannot sign in.
+      if (data.role !== "super_admin") {
+        const { data: co } = await supabase
+          .from("companies")
+          .select("status")
+          .eq("id", data.company_id)
+          .maybeSingle();
+        if ((co as { status?: string } | null)?.status === "archived") {
+          await supabase.auth.signOut();
+          toast.error("This account has been deactivated. Contact your administrator.");
+          navigate({ to: "/login" });
+          return;
+        }
+      }
       if (!data.onboarding_completed_at && data.role !== "super_admin") {
         navigate({ to: "/profile-setup" });
         return;
@@ -50,6 +65,7 @@ function AppLayout() {
       setChecking(false);
     })();
   }, [user, loading, navigate]);
+
 
   if (loading || checking) {
     return (
