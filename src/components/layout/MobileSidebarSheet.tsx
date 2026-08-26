@@ -171,15 +171,6 @@ export function MobileSidebarSheet() {
                 </Link>
               );
             })}
-              >
-                <Crown
-                  className="h-4 w-4 shrink-0"
-                  strokeWidth={2}
-                  style={{ color: isActive("/roofking") ? undefined : "#f0a73a" }}
-                />
-                <span>Roof King</span>
-              </Link>
-            )}
           </nav>
         </div>
 
