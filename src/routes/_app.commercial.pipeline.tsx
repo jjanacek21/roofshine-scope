@@ -5,13 +5,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
-import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/roofking/useRKData";
-import { TicketDrawer } from "@/components/roofking/TicketDrawer";
-import { RK_STATUSES, RK_STATUS_COLORS, RK_STATUS_LABELS } from "@/lib/roofking/types";
-import type { RKStatus, RKTicket } from "@/lib/roofking/types";
-import { useRKSearch } from "@/components/roofking/RKSearchContext";
+import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/commercial/useRKData";
+import { TicketDrawer } from "@/components/commercial/TicketDrawer";
+import { RK_STATUSES, RK_STATUS_COLORS, RK_STATUS_LABELS } from "@/lib/commercial/types";
+import type { RKStatus, RKTicket } from "@/lib/commercial/types";
+import { useRKSearch } from "@/components/commercial/RKSearchContext";
 
-export const Route = createFileRoute("/_app/roofking/pipeline")({
+export const Route = createFileRoute("/_app/commercial/pipeline")({
   component: PipelinePage,
 });
 

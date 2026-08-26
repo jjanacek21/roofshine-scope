@@ -3,9 +3,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Download, FileText, Sparkles, Plus, Trash2, Save } from "lucide-react";
-import type { RKAccount, RKInvoice, RKInvoiceLine, RKProperty, RKTicket } from "@/lib/roofking/types";
+import type { RKAccount, RKInvoice, RKInvoiceLine, RKProperty, RKTicket } from "@/lib/commercial/types";
 import { useCompany } from "@/hooks/useCompany";
-import { downloadRKInvoicePdf } from "@/lib/roofking/invoice-pdf";
+import { downloadRKInvoicePdf } from "@/lib/commercial/invoice-pdf";
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);

@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { X, Sparkles, Loader2, Phone, MapPin, Calendar, Tag } from "lucide-react";
 import { RKStatusBadge } from "./StatusBadge";
 import { TicketInvoicePanel } from "./TicketInvoicePanel";
-import { RK_STATUSES, RK_STATUS_COLORS, RK_STATUS_LABELS } from "@/lib/roofking/types";
-import type { RKTicket, RKMaterial, RKLabor, RKStatus, RKAccount, RKProperty } from "@/lib/roofking/types";
+import { RK_STATUSES, RK_STATUS_COLORS, RK_STATUS_LABELS } from "@/lib/commercial/types";
+import type { RKTicket, RKMaterial, RKLabor, RKStatus, RKAccount, RKProperty } from "@/lib/commercial/types";
 
 export function TicketDrawer({
   ticketId,

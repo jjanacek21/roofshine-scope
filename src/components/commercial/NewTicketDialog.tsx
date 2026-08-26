@@ -3,8 +3,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { X } from "lucide-react";
-import type { RKAccount, RKProperty, RKTicket } from "@/lib/roofking/types";
-import { RK_PURPOSES } from "@/lib/roofking/types";
+import type { RKAccount, RKProperty, RKTicket } from "@/lib/commercial/types";
+import { RK_PURPOSES } from "@/lib/commercial/types";
 
 export function NewTicketDialog({
   companyId,

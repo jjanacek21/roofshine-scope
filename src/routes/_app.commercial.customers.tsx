@@ -2,13 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Plus, Building2, Ticket } from "lucide-react";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
-import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/roofking/useRKData";
-import { AddBuildingDialog } from "@/components/roofking/CustomerDialogs";
-import { NewTicketDialog } from "@/components/roofking/NewTicketDialog";
-import { TicketDrawer } from "@/components/roofking/TicketDrawer";
-import { useRKSearch } from "@/components/roofking/RKSearchContext";
+import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/commercial/useRKData";
+import { AddBuildingDialog } from "@/components/commercial/CustomerDialogs";
+import { NewTicketDialog } from "@/components/commercial/NewTicketDialog";
+import { TicketDrawer } from "@/components/commercial/TicketDrawer";
+import { useRKSearch } from "@/components/commercial/RKSearchContext";
 
-export const Route = createFileRoute("/_app/roofking/customers")({
+export const Route = createFileRoute("/_app/commercial/customers")({
   component: CustomersPage,
 });
 

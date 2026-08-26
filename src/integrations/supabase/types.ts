@@ -9089,6 +9089,9 @@ export type Database = {
         | "lost"
         | "dnc"
         | "report_sent"
+        | "prospect"
+        | "proposal_sent"
+        | "nurture"
       order_snapshot_status:
         | "draft"
         | "pending_approval"
@@ -9351,6 +9354,9 @@ export const Constants = {
         "lost",
         "dnc",
         "report_sent",
+        "prospect",
+        "proposal_sent",
+        "nurture",
       ],
       order_snapshot_status: [
         "draft",
