@@ -185,7 +185,7 @@ export function hydrateCatalog(next: {
   stacks?: Record<string, StackTemplate>;
   fieldDefaults?: Partial<SpfFields>;
 }) {
-  if (next.products && next.products.length) {
+  if (next.products) {
     PRODUCTS.splice(0, PRODUCTS.length, ...next.products);
   }
   if (next.details) {

@@ -30,7 +30,7 @@ export function newLayer(pi: number, scope?: ScopeKey, amt?: number, method?: Me
 }
 
 export function stackFromPreset(key: keyof typeof STACKS): Layer[] {
-  return STACKS[key].map((r) => {
+  return (STACKS[key] ?? []).map((r) => {
     const l = newLayer(r[1], r[3], r[4], r[5], r[6]);
     l[0] = r[0];
     return l;
