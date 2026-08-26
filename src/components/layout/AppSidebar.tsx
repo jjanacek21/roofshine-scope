@@ -24,8 +24,8 @@ import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
-import { useIsRoofKing } from "@/hooks/useRoofKing";
-import { useCompanyFeatures } from "@/hooks/useCompanyFeatures";
+import { useFeatures } from "@/hooks/useFeatures";
+import { navVisible } from "@/lib/nav-features";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -40,6 +40,7 @@ const WORKSPACE_NAV = [
   { to: "/storm-intelligence", label: "Storm Intel", icon: CloudLightning, badgeKey: null },
   { to: "/claim-buddy", label: "Claim Buddy", icon: ShieldCheck, badgeKey: "cb" as const },
   { to: "/card", label: "My Card", icon: IdCard, badgeKey: null },
+  { to: "/roofking", label: "Roof King", icon: Crown, badgeKey: null },
 ] as const;
 
 const RESOURCES_NAV = [
@@ -50,8 +51,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
-  const { isRoofKing } = useIsRoofKing();
-  const features = useCompanyFeatures();
+  const { can } = useFeatures();
   const [collapsed, setCollapsed] = useSidebarCollapsed();
   const isSuperAdmin = profile?.role === "super_admin";
   const isCompanyAdmin =
@@ -132,12 +132,7 @@ export function AppSidebar() {
             </p>
           )}
           <nav className="space-y-1">
-            {WORKSPACE_NAV.filter((i) => {
-              if (isRoofKing && i.to === "/leads") return false;
-              if (i.to === "/door-to-door" && !features.doorToDoor) return false;
-              if (i.to === "/storm-intelligence" && !features.stormIntel) return false;
-              return true;
-            }).map((item) => {
+            {WORKSPACE_NAV.filter((i) => navVisible(can, i.to)).map((item) => {
               const active = isActive(item.to);
               const Icon = item.icon;
               const link = (
@@ -152,7 +147,13 @@ export function AppSidebar() {
                       : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
                   )}
                 >
-                  <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+                  <Icon
+                    className="h-4 w-4 shrink-0"
+                    strokeWidth={2}
+                    style={
+                      item.to === "/roofking" && !active ? { color: "#f0a73a" } : undefined
+                    }
+                  />
                   {!collapsed && <span>{item.label}</span>}
                   {!collapsed &&
                     ((item.badgeKey === "jobs" && jobsCount > 0) ||
@@ -175,32 +176,6 @@ export function AppSidebar() {
                 link
               );
             })}
-            {isRoofKing && (() => {
-              const active = isActive("/roofking");
-              const link = (
-                <Link
-                  to="/roofking"
-                  className={cn(
-                    "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors",
-                    collapsed && "justify-center",
-                    active
-                      ? "nav-active"
-                      : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
-                  )}
-                >
-                  <Crown className="h-4 w-4 shrink-0" strokeWidth={2} style={{ color: active ? undefined : "#f0a73a" }} />
-                  {!collapsed && <span>Roof King</span>}
-                </Link>
-              );
-              return collapsed ? (
-                <Tooltip key="roofking">
-                  <TooltipTrigger asChild>{link}</TooltipTrigger>
-                  <TooltipContent side="right">Roof King</TooltipContent>
-                </Tooltip>
-              ) : (
-                <div key="roofking">{link}</div>
-              );
-            })()}
           </nav>
         </div>
 
@@ -215,7 +190,7 @@ export function AppSidebar() {
             </p>
           )}
           <nav className="space-y-1">
-            {RESOURCES_NAV.map((item) => {
+            {RESOURCES_NAV.filter((i) => navVisible(can, i.to)).map((item) => {
               const active = isActive(item.to);
               const Icon = item.icon;
               const link = (
