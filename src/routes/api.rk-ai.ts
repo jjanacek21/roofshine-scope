@@ -85,12 +85,12 @@ export const Route = createFileRoute("/api/rk-ai")({
           .maybeSingle();
         if (!prof) return new Response("Forbidden", { status: 403 });
         if (prof.role !== "super_admin") {
-          const { data: co } = await supabase
-            .from("companies")
-            .select("is_roof_king")
-            .eq("id", prof.company_id ?? "")
-            .maybeSingle();
-          if (!co?.is_roof_king) return new Response("Forbidden", { status: 403 });
+          if (!prof.company_id) return new Response("Forbidden", { status: 403 });
+          const { data: allowed } = await supabase.rpc("company_has_feature", {
+            p_company_id: prof.company_id,
+            p_key: "commercial",
+          });
+          if (!allowed) return new Response("Forbidden", { status: 403 });
         }
 
         let body: Body;
