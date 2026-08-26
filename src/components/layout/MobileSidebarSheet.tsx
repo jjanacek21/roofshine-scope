@@ -29,8 +29,8 @@ import {
 import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { useIsRoofKing } from "@/hooks/useRoofKing";
-import { useCompanyFeatures } from "@/hooks/useCompanyFeatures";
+import { useFeatures } from "@/hooks/useFeatures";
+import { navVisible } from "@/lib/nav-features";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +43,7 @@ const WORKSPACE_NAV = [
   { to: "/storm-intelligence", label: "Storm Intel", icon: CloudLightning, badgeKey: null },
   { to: "/claim-buddy", label: "Claim Buddy", icon: ShieldCheck, badgeKey: "cb" as const },
   { to: "/card", label: "My Card", icon: IdCard, badgeKey: null },
+  { to: "/roofking", label: "Roof King", icon: Crown, badgeKey: null },
 ] as const;
 
 const RESOURCES_NAV = [
@@ -59,8 +60,7 @@ export function MobileSidebarSheet() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
-  const { isRoofKing } = useIsRoofKing();
-  const features = useCompanyFeatures();
+  const { can } = useFeatures();
   const isSuperAdmin = profile?.role === "super_admin";
   const isCompanyAdmin =
     profile?.role === "owner" || profile?.role === "admin" || isSuperAdmin;
@@ -138,12 +138,7 @@ export function MobileSidebarSheet() {
             Workspace
           </p>
           <nav className="space-y-1">
-            {WORKSPACE_NAV.filter((i) => {
-              if (isRoofKing && i.to === "/leads") return false;
-              if (i.to === "/door-to-door" && !features.doorToDoor) return false;
-              if (i.to === "/storm-intelligence" && !features.stormIntel) return false;
-              return true;
-            }).map((item) => {
+            {WORKSPACE_NAV.filter((i) => navVisible(can, i.to)).map((item) => {
               const active = isActive(item.to);
               const Icon = item.icon;
               return (
@@ -158,7 +153,11 @@ export function MobileSidebarSheet() {
                       : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
                   )}
                 >
-                  <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+                  <Icon
+                    className="h-4 w-4 shrink-0"
+                    strokeWidth={2}
+                    style={item.to === "/roofking" && !active ? { color: "#f0a73a" } : undefined}
+                  />
                   <span>{item.label}</span>
                   {((item.badgeKey === "jobs" && jobsCount > 0) ||
                     (item.badgeKey === "cb" && cbOpenCount > 0)) && (
@@ -172,25 +171,6 @@ export function MobileSidebarSheet() {
                 </Link>
               );
             })}
-            {isRoofKing && (
-              <Link
-                to="/roofking"
-                onClick={close}
-                className={cn(
-                  "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors",
-                  isActive("/roofking")
-                    ? "nav-active"
-                    : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-foreground",
-                )}
-              >
-                <Crown
-                  className="h-4 w-4 shrink-0"
-                  strokeWidth={2}
-                  style={{ color: isActive("/roofking") ? undefined : "#f0a73a" }}
-                />
-                <span>Roof King</span>
-              </Link>
-            )}
           </nav>
         </div>
 
@@ -202,7 +182,7 @@ export function MobileSidebarSheet() {
             Resources
           </p>
           <nav className="space-y-1">
-            {RESOURCES_NAV.map((item) => {
+            {RESOURCES_NAV.filter((i) => navVisible(can, i.to)).map((item) => {
               const Icon = item.icon;
               return (
                 <Link

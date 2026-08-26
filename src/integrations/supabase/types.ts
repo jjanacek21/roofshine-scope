@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -2214,6 +2214,48 @@ export type Database = {
           },
         ]
       }
+      company_features: {
+        Row: {
+          company_id: string
+          config: Json
+          enabled: boolean
+          feature_key: string
+          granted_at: string
+          granted_by: string | null
+        }
+        Insert: {
+          company_id: string
+          config?: Json
+          enabled?: boolean
+          feature_key: string
+          granted_at?: string
+          granted_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          config?: Json
+          enabled?: boolean
+          feature_key?: string
+          granted_at?: string
+          granted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_features_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_features_feature_key_fkey"
+            columns: ["feature_key"]
+            isOneToOne: false
+            referencedRelation: "platform_features"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       company_invites: {
         Row: {
           accepted_at: string | null
@@ -2904,6 +2946,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feature_preset_items: {
+        Row: {
+          feature_key: string
+          preset_id: string
+        }
+        Insert: {
+          feature_key: string
+          preset_id: string
+        }
+        Update: {
+          feature_key?: string
+          preset_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_preset_items_feature_key_fkey"
+            columns: ["feature_key"]
+            isOneToOne: false
+            referencedRelation: "platform_features"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "feature_preset_items_preset_id_fkey"
+            columns: ["preset_id"]
+            isOneToOne: false
+            referencedRelation: "feature_presets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_presets: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       feed_post_comments: {
         Row: {
@@ -4901,6 +4994,44 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "job_photos"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_features: {
+        Row: {
+          description: string | null
+          is_active: boolean
+          key: string
+          label: string
+          parent_key: string | null
+          released_at: string
+          sort_order: number
+        }
+        Insert: {
+          description?: string | null
+          is_active?: boolean
+          key: string
+          label: string
+          parent_key?: string | null
+          released_at?: string
+          sort_order?: number
+        }
+        Update: {
+          description?: string | null
+          is_active?: boolean
+          key?: string
+          label?: string
+          parent_key?: string | null
+          released_at?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_features_parent_key_fkey"
+            columns: ["parent_key"]
+            isOneToOne: false
+            referencedRelation: "platform_features"
+            referencedColumns: ["key"]
           },
         ]
       }
@@ -7730,6 +7861,11 @@ export type Database = {
       cb_set_seats: { Args: { _seats: number; _ws: string }; Returns: Json }
       cb_tier_defaults: { Args: { _tier: string }; Returns: Json }
       cb_workspace_ids: { Args: never; Returns: string[] }
+      company_has_feature: {
+        Args: { p_company_id: string; p_key: string }
+        Returns: boolean
+      }
+      company_my_context: { Args: never; Returns: Json }
       create_company_as_super_admin: {
         Args: {
           _address?: string
