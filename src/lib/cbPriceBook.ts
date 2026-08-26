@@ -10,10 +10,19 @@
  * Counts come back separately from items: a rep needs to see "Flashings 86"
  * before deciding to open it, and loading 86 rows to render one number is
  * waste on a phone.
+ *
+ * EVERY read here pages or counts server-side. The Data API caps a response at
+ * 1,000 rows and the master catalog holds ~10,000, so a plain select silently
+ * returns the first tenth: the picker showed 1,000 items spread across the
+ * trades that happened to come back first, and Plumbing and Concrete/Asphalt
+ * — 1,432 real lines between them — did not appear at all. A rep has no way to
+ * tell a missing trade from a trade that was never stocked, so nothing in this
+ * file may read rows without paging.
  */
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import type { CbCatalogLineItem } from "@/lib/cbCatalogResolve";
+import { fetchAllPages } from "@/lib/fetch-all";
 
 export type CbTrade = Database["public"]["Enums"]["trade_type"];
 
@@ -138,49 +147,68 @@ function toItem(r: Row): CbPriceBookItem {
 }
 
 /**
- * How many active lines sit under each trade.
- *
- * Postgrest has no GROUP BY, so this pulls the trade column only — one small
- * string per row — and counts client side. It is cached for the session.
+ * The company scope every read shares: the shared book plus this company's own.
+ * `head` asks the server for the count and no rows at all.
  */
-export async function loadTradeCounts(companyId?: string | null): Promise<CbTradeCount[]> {
-  let q = supabase.from("line_item_master").select("trade").eq("status", "active");
-  if (companyId) q = q.or(`company_id.is.null,company_id.eq.${companyId}`);
-  const { data, error } = await q;
-  if (error) throw error;
-
-  const tally = new Map<string, number>();
-  (data ?? []).forEach((r) => {
-    const t = (r as { trade: string | null }).trade;
-    if (!t) return;
-    tally.set(t, (tally.get(t) ?? 0) + 1);
-  });
-
-  return CB_TRADE_ORDER.filter((t) => (tally.get(t) ?? 0) > 0).map((t) => ({
-    trade: t,
-    label: CB_TRADE_LABEL[t],
-    color: CB_TRADE_COLOR[t],
-    count: tally.get(t) ?? 0,
-  }));
+function scoped(select: string, companyId?: string | null, head?: boolean) {
+  const q = supabase
+    .from("line_item_master")
+    .select(select, head ? { count: "exact", head: true } : undefined)
+    .eq("status", "active");
+  return companyId ? q.or(`company_id.is.null,company_id.eq.${companyId}`) : q;
 }
 
-/** Sub-groups under one trade, alphabetical, with counts. */
+/**
+ * How many active lines sit under each trade.
+ *
+ * Counted by the server, one HEAD request per trade, rather than by pulling
+ * 10,000 trade strings to the phone and tallying them. Sixteen empty responses
+ * beat one truncated page.
+ */
+export async function loadTradeCounts(companyId?: string | null): Promise<CbTradeCount[]> {
+  const counted = await Promise.all(
+    CB_TRADE_ORDER.map(async (trade) => {
+      const { count, error } = await scoped("id", companyId, true).eq("trade", trade);
+      if (error) throw error;
+      return { trade, count: count ?? 0 };
+    }),
+  );
+
+  return counted
+    .filter((c) => c.count > 0)
+    .map((c) => ({
+      trade: c.trade,
+      label: CB_TRADE_LABEL[c.trade],
+      color: CB_TRADE_COLOR[c.trade],
+      count: c.count,
+    }));
+}
+
+/**
+ * Sub-groups under one trade, alphabetical, with counts.
+ *
+ * The sub-group names are not knowable without reading the rows, so this pages
+ * through one short column. Windows & Doors alone is 2,393 lines — three pages,
+ * not one silent truncation.
+ */
 export async function loadSubgroupCounts(
   trade: CbTrade,
   companyId?: string | null,
 ): Promise<CbSubgroupCount[]> {
-  let q = supabase
-    .from("line_item_master")
-    .select("subgroup")
-    .eq("status", "active")
-    .eq("trade", trade);
-  if (companyId) q = q.or(`company_id.is.null,company_id.eq.${companyId}`);
-  const { data, error } = await q;
-  if (error) throw error;
+  const rows = await fetchAllPages<{ subgroup: string | null }>(
+    (from, to) =>
+      scoped("subgroup", companyId)
+        .eq("trade", trade)
+        .order("subgroup", { ascending: true })
+        .range(from, to) as unknown as PromiseLike<{
+        data: { subgroup: string | null }[] | null;
+        error: { message: string } | null;
+      }>,
+  );
 
   const tally = new Map<string, number>();
-  (data ?? []).forEach((r) => {
-    const s = ((r as { subgroup: string | null }).subgroup ?? "").trim() || CB_UNGROUPED;
+  rows.forEach((r) => {
+    const s = (r.subgroup ?? "").trim() || CB_UNGROUPED;
     tally.set(s, (tally.get(s) ?? 0) + 1);
   });
 
@@ -200,37 +228,41 @@ export async function loadSubgroupItems(
   subgroup: string,
   companyId?: string | null,
 ): Promise<CbPriceBookItem[]> {
-  let q = supabase
-    .from("line_item_master")
-    .select(SELECT)
-    .eq("status", "active")
-    .eq("trade", trade);
-  if (companyId) q = q.or(`company_id.is.null,company_id.eq.${companyId}`);
-
-  /* The catch-all bucket is "null or empty", which needs an OR rather than eq. */
-  q =
-    subgroup === CB_UNGROUPED ? q.or("subgroup.is.null,subgroup.eq.") : q.eq("subgroup", subgroup);
-
-  const { data, error } = await q.order("code", { ascending: true }).limit(500);
-  if (error) throw error;
-  return ((data ?? []) as Row[]).map(toItem);
+  const rows = await fetchAllPages<Row>((from, to) => {
+    const base = scoped(SELECT, companyId).eq("trade", trade);
+    /* The catch-all bucket is "null or empty", which needs an OR rather than eq. */
+    const q =
+      subgroup === CB_UNGROUPED
+        ? base.or("subgroup.is.null,subgroup.eq.")
+        : base.eq("subgroup", subgroup);
+    return q.order("code", { ascending: true }).range(from, to) as unknown as PromiseLike<{
+      data: Row[] | null;
+      error: { message: string } | null;
+    }>;
+  });
+  return rows.map(toItem);
 }
 
-/** Flat search across the whole book, for when the rep already knows the code. */
+/**
+ * Flat search across the whole book, for when the rep already knows the code.
+ *
+ * This limit is a deliberate one, unlike the cap that used to truncate the
+ * browse lists: a search that returns 400 rows has not helped anyone type a
+ * better word. 300 is far past where a rep stops scrolling and still leaves
+ * room for a broad term like "shingle" to show its whole range.
+ */
 export async function searchPriceBook(
   term: string,
   companyId?: string | null,
-  limit = 60,
+  limit = 300,
 ): Promise<CbPriceBookItem[]> {
   const t = term.trim();
   if (!t) return [];
-  let q = supabase.from("line_item_master").select(SELECT).eq("status", "active");
-  if (companyId) q = q.or(`company_id.is.null,company_id.eq.${companyId}`);
   const safe = t.replace(/[%,()]/g, " ");
-  const { data, error } = await q
+  const { data, error } = await scoped(SELECT, companyId)
     .or(`code.ilike.%${safe}%,name.ilike.%${safe}%,subgroup.ilike.%${safe}%`)
     .order("code", { ascending: true })
     .limit(limit);
   if (error) throw error;
-  return ((data ?? []) as Row[]).map(toItem);
+  return ((data ?? []) as unknown as Row[]).map(toItem);
 }
