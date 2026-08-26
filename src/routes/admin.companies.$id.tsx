@@ -821,7 +821,60 @@ function ClaimBuddyTab({ company }: { company: Company }) {
               </button>
             </div>
           </Field>
+          <Field label="Account status">
+            <select
+              className="field-input"
+              value={detail?.status ?? linked.status ?? "active"}
+              onChange={(e) =>
+                run(
+                  () =>
+                    setPlan({
+                      data: {
+                        workspaceId: linked.id,
+                        status: e.target.value as "active" | "suspended" | "archived",
+                      },
+                    }),
+                  "Status updated",
+                )
+              }
+            >
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </Field>
+          <Field label="Free / comp account">
+            <label className="flex h-10 items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={!!detail?.is_comp}
+                onChange={(e) =>
+                  run(
+                    () =>
+                      setPlan({ data: { workspaceId: linked.id, isComp: e.target.checked } }),
+                    "Comp flag updated",
+                  )
+                }
+              />
+              Not billed — all tier features stay on
+            </label>
+          </Field>
         </div>
+
+        <div className="mt-4 rounded-lg border border-border bg-muted/20 p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {CB_TIER_LABEL[(detail?.tier ?? linked.tier ?? "basic") as CbTier]} tier includes
+          </p>
+          <ul className="grid gap-1 text-xs sm:grid-cols-2">
+            {Object.entries(cbTierDefaults(detail?.tier ?? linked.tier ?? "basic")).map(
+              ([k, on]) => (
+                <li key={k} className={on ? "" : "text-muted-foreground line-through"}>
+                  {CB_FEATURE_LABEL[k as keyof typeof CB_FEATURE_LABEL]}
+                </li>
+              ),
+            )}
+          </ul>
+        </div>
+
         {detail && (
           <p className="mt-3 text-xs text-muted-foreground">
             {detail.seats_used} seat{detail.seats_used === 1 ? "" : "s"} in use ·{" "}
@@ -831,14 +884,16 @@ function ClaimBuddyTab({ company }: { company: Company }) {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <CbAddUserForm workspaceId={linked.id} onDone={refresh} />
+
+      <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
               <th className="px-4 py-3 text-left">Claim Buddy user</th>
               <th className="px-4 py-3 text-left">Role</th>
-              <th className="px-4 py-3 text-left">Status</th>
               <th className="px-4 py-3 text-left">Jobs</th>
+              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
@@ -855,9 +910,73 @@ function ClaimBuddyTab({ company }: { company: Company }) {
                     <div className="font-medium">{m.name ?? m.email ?? "—"}</div>
                     <div className="text-xs text-muted-foreground">{m.email ?? "—"}</div>
                   </td>
-                  <td className="px-4 py-3 capitalize">{m.role}</td>
-                  <td className="px-4 py-3">{m.is_active ? "Active" : "Inactive"}</td>
+                  <td className="px-4 py-3">
+                    <select
+                      className="field-input h-9 w-32"
+                      value={m.role}
+                      onChange={(e) =>
+                        run(
+                          () =>
+                            setMember({
+                              data: {
+                                workspaceId: linked.id,
+                                userId: m.user_id,
+                                role: e.target.value as "owner" | "admin" | "rep",
+                              },
+                            }),
+                          "Role updated",
+                        )
+                      }
+                    >
+                      <option value="owner">Owner</option>
+                      <option value="admin">Admin</option>
+                      <option value="rep">Rep</option>
+                    </select>
+                  </td>
                   <td className="px-4 py-3 font-mono-num">{m.job_count}</td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          run(
+                            () =>
+                              setMember({
+                                data: {
+                                  workspaceId: linked.id,
+                                  userId: m.user_id,
+                                  isActive: !m.is_active,
+                                },
+                              }),
+                            m.is_active ? "User deactivated" : "User reactivated",
+                          )
+                        }
+                        className="h-8 rounded-md border border-border px-2 text-xs font-semibold"
+                      >
+                        {m.is_active ? "Deactivate" : "Reactivate"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!confirm(`Remove ${m.email ?? "this user"} from the workspace?`)) return;
+                          run(
+                            () =>
+                              setMember({
+                                data: {
+                                  workspaceId: linked.id,
+                                  userId: m.user_id,
+                                  remove: true,
+                                },
+                              }),
+                            "User removed",
+                          );
+                        }}
+                        className="h-8 rounded-md border border-red-500/40 px-2 text-xs font-semibold text-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             )}
@@ -867,6 +986,71 @@ function ClaimBuddyTab({ company }: { company: Company }) {
     </div>
   );
 }
+
+function CbAddUserForm({
+  workspaceId,
+  onDone,
+}: {
+  workspaceId: string;
+  onDone: () => void;
+}) {
+  const upsert = useServerFn(cbAdminUpsertUser);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"owner" | "admin" | "rep">("rep");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await upsert({ data: { workspaceId, email: email.trim(), role } });
+      toast.success("Invite sent");
+      setEmail("");
+      onDone();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4"
+    >
+      <Field label="Add Claim Buddy user">
+        <input
+          required
+          type="email"
+          className="field-input min-w-56"
+          placeholder="user@company.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </Field>
+      <Field label="Role">
+        <select
+          className="field-input"
+          value={role}
+          onChange={(e) => setRole(e.target.value as "owner" | "admin" | "rep")}
+        >
+          <option value="owner">Owner</option>
+          <option value="admin">Admin</option>
+          <option value="rep">Rep</option>
+        </select>
+      </Field>
+      <button
+        type="submit"
+        disabled={busy || !email}
+        className="btn-brand h-10 rounded-md px-4 text-sm font-semibold disabled:opacity-60"
+      >
+        {busy ? "Sending…" : "Send invite"}
+      </button>
+    </form>
+  );
+}
+
 
 
 /* -------------------------------- Pricing ------------------------------- */
