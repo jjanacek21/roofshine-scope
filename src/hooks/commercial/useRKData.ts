@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { RKAccount, RKProperty, RKTicket, RKFormTemplate } from "@/lib/roofking/types";
+import type { RKAccount, RKProperty, RKTicket, RKFormTemplate } from "@/lib/commercial/types";
 
 export function useRKAccounts(companyId: string | null | undefined) {
   return useQuery({

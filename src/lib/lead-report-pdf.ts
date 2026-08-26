@@ -2,7 +2,7 @@
 // the lead detail sheet's "Generate report" action so the layout stays identical.
 import jsPDF from "jspdf";
 import { fmtMoney, fmtNum, type LeadRow } from "@/lib/leads";
-import { RK_BRAND } from "@/lib/roofking/brand";
+import { RK_BRAND } from "@/lib/commercial/brand";
 
 export interface ReportInputs {
   sqft: number;

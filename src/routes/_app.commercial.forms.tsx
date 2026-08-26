@@ -5,10 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sparkles, Loader2, Trash2, FileCog, X } from "lucide-react";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
-import { useRKFormTemplates } from "@/hooks/roofking/useRKData";
-import type { RKFormField, RKFormTemplate } from "@/lib/roofking/types";
+import { useRKFormTemplates } from "@/hooks/commercial/useRKData";
+import type { RKFormField, RKFormTemplate } from "@/lib/commercial/types";
 
-export const Route = createFileRoute("/_app/roofking/forms")({
+export const Route = createFileRoute("/_app/commercial/forms")({
   component: FormBuilderPage,
 });
 

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SPFCalculator } from "@/components/roofking/spf/SPFCalculator";
+import { SPFCalculator } from "@/components/commercial/spf/SPFCalculator";
 
-export const Route = createFileRoute("/_app/roofking/spf")({
+export const Route = createFileRoute("/_app/commercial/spf")({
   component: SPFCalculatorPage,
 });
 

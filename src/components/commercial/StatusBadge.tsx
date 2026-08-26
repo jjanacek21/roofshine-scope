@@ -1,5 +1,5 @@
-import type { RKStatus } from "@/lib/roofking/types";
-import { RK_STATUS_COLORS, RK_STATUS_LABELS } from "@/lib/roofking/types";
+import type { RKStatus } from "@/lib/commercial/types";
+import { RK_STATUS_COLORS, RK_STATUS_LABELS } from "@/lib/commercial/types";
 
 export function RKStatusBadge({ status }: { status: RKStatus }) {
   const c = RK_STATUS_COLORS[status];

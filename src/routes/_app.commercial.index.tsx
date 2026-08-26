@@ -2,13 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Users, Building2, Ticket, AlertCircle, FlameKindling } from "lucide-react";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
-import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/roofking/useRKData";
-import { KpiCard } from "@/components/roofking/KpiCard";
-import { RKStatusBadge } from "@/components/roofking/StatusBadge";
-import { TicketDrawer } from "@/components/roofking/TicketDrawer";
-import { RK_STATUSES, RK_STATUS_COLORS, RK_STATUS_LABELS } from "@/lib/roofking/types";
+import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/commercial/useRKData";
+import { KpiCard } from "@/components/commercial/KpiCard";
+import { RKStatusBadge } from "@/components/commercial/StatusBadge";
+import { TicketDrawer } from "@/components/commercial/TicketDrawer";
+import { RK_STATUSES, RK_STATUS_COLORS, RK_STATUS_LABELS } from "@/lib/commercial/types";
 
-export const Route = createFileRoute("/_app/roofking/")({
+export const Route = createFileRoute("/_app/commercial/")({
   component: Dashboard,
 });
 

@@ -29,10 +29,10 @@ import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppCardRouteImport } from './routes/_app.card'
 import { Route as AppClaimBuddyRouteImport } from './routes/_app.claim-buddy'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
+import { Route as AppCommercialRouteImport } from './routes/_app.commercial'
 import { Route as AppDoorToDoorRouteImport } from './routes/_app.door-to-door'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
-import { Route as AppRoofkingRouteImport } from './routes/_app.roofking'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppStormIntelligenceRouteImport } from './routes/_app.storm-intelligence'
 import { Route as AppSurvivalGuideRouteImport } from './routes/_app.survival-guide'
@@ -86,6 +86,14 @@ import { Route as CbSurvivalGuideRouteImport } from './routes/cb.survival-guide'
 import { Route as PayTokenRouteImport } from './routes/pay.$token'
 import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
+import { Route as AppCommercialIndexRouteImport } from './routes/_app.commercial.index'
+import { Route as AppCommercialCustomersRouteImport } from './routes/_app.commercial.customers'
+import { Route as AppCommercialExportRouteImport } from './routes/_app.commercial.export'
+import { Route as AppCommercialFormsRouteImport } from './routes/_app.commercial.forms'
+import { Route as AppCommercialMapRouteImport } from './routes/_app.commercial.map'
+import { Route as AppCommercialPipelineRouteImport } from './routes/_app.commercial.pipeline'
+import { Route as AppCommercialSpfRouteImport } from './routes/_app.commercial.spf'
+import { Route as AppCommercialTicketsRouteImport } from './routes/_app.commercial.tickets'
 import { Route as AppDoorToDoorIndexRouteImport } from './routes/_app.door-to-door.index'
 import { Route as AppDoorToDoorDispositionsRouteImport } from './routes/_app.door-to-door.dispositions'
 import { Route as AppDoorToDoorProfileRouteImport } from './routes/_app.door-to-door.profile'
@@ -106,14 +114,6 @@ import { Route as AppLeadsSavingsRouteImport } from './routes/_app.leads.savings
 import { Route as AppLeadsTrainingRouteImport } from './routes/_app.leads.training'
 import { Route as AppLeadsWizardRouteImport } from './routes/_app.leads.wizard'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
-import { Route as AppRoofkingIndexRouteImport } from './routes/_app.roofking.index'
-import { Route as AppRoofkingCustomersRouteImport } from './routes/_app.roofking.customers'
-import { Route as AppRoofkingExportRouteImport } from './routes/_app.roofking.export'
-import { Route as AppRoofkingFormsRouteImport } from './routes/_app.roofking.forms'
-import { Route as AppRoofkingMapRouteImport } from './routes/_app.roofking.map'
-import { Route as AppRoofkingPipelineRouteImport } from './routes/_app.roofking.pipeline'
-import { Route as AppRoofkingSpfRouteImport } from './routes/_app.roofking.spf'
-import { Route as AppRoofkingTicketsRouteImport } from './routes/_app.roofking.tickets'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppTeamRequestsRouteImport } from './routes/_app.team.requests'
@@ -253,6 +253,11 @@ const AppClientsRoute = AppClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCommercialRoute = AppCommercialRouteImport.update({
+  id: '/commercial',
+  path: '/commercial',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDoorToDoorRoute = AppDoorToDoorRouteImport.update({
   id: '/door-to-door',
   path: '/door-to-door',
@@ -266,11 +271,6 @@ const AppLeadsRoute = AppLeadsRouteImport.update({
 const AppPriceBooksRoute = AppPriceBooksRouteImport.update({
   id: '/price-books',
   path: '/price-books',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppRoofkingRoute = AppRoofkingRouteImport.update({
-  id: '/roofking',
-  path: '/roofking',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -539,6 +539,46 @@ const AppClientsIdRoute = AppClientsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppClientsRoute,
 } as any)
+const AppCommercialIndexRoute = AppCommercialIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppCommercialRoute,
+} as any)
+const AppCommercialCustomersRoute = AppCommercialCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => AppCommercialRoute,
+} as any)
+const AppCommercialExportRoute = AppCommercialExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => AppCommercialRoute,
+} as any)
+const AppCommercialFormsRoute = AppCommercialFormsRouteImport.update({
+  id: '/forms',
+  path: '/forms',
+  getParentRoute: () => AppCommercialRoute,
+} as any)
+const AppCommercialMapRoute = AppCommercialMapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => AppCommercialRoute,
+} as any)
+const AppCommercialPipelineRoute = AppCommercialPipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => AppCommercialRoute,
+} as any)
+const AppCommercialSpfRoute = AppCommercialSpfRouteImport.update({
+  id: '/spf',
+  path: '/spf',
+  getParentRoute: () => AppCommercialRoute,
+} as any)
+const AppCommercialTicketsRoute = AppCommercialTicketsRouteImport.update({
+  id: '/tickets',
+  path: '/tickets',
+  getParentRoute: () => AppCommercialRoute,
+} as any)
 const AppDoorToDoorIndexRoute = AppDoorToDoorIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -639,46 +679,6 @@ const AppPriceBooksNewRoute = AppPriceBooksNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => AppPriceBooksRoute,
-} as any)
-const AppRoofkingIndexRoute = AppRoofkingIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppRoofkingCustomersRoute = AppRoofkingCustomersRouteImport.update({
-  id: '/customers',
-  path: '/customers',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppRoofkingExportRoute = AppRoofkingExportRouteImport.update({
-  id: '/export',
-  path: '/export',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppRoofkingFormsRoute = AppRoofkingFormsRouteImport.update({
-  id: '/forms',
-  path: '/forms',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppRoofkingMapRoute = AppRoofkingMapRouteImport.update({
-  id: '/map',
-  path: '/map',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppRoofkingPipelineRoute = AppRoofkingPipelineRouteImport.update({
-  id: '/pipeline',
-  path: '/pipeline',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppRoofkingSpfRoute = AppRoofkingSpfRouteImport.update({
-  id: '/spf',
-  path: '/spf',
-  getParentRoute: () => AppRoofkingRoute,
-} as any)
-const AppRoofkingTicketsRoute = AppRoofkingTicketsRouteImport.update({
-  id: '/tickets',
-  path: '/tickets',
-  getParentRoute: () => AppRoofkingRoute,
 } as any)
 const AppTeamIndexRoute = AppTeamIndexRouteImport.update({
   id: '/',
@@ -897,10 +897,10 @@ export interface FileRoutesByFullPath {
   '/card': typeof AppCardRoute
   '/claim-buddy': typeof AppClaimBuddyRoute
   '/clients': typeof AppClientsRouteWithChildren
+  '/commercial': typeof AppCommercialRouteWithChildren
   '/door-to-door': typeof AppDoorToDoorRouteWithChildren
   '/leads': typeof AppLeadsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
-  '/roofking': typeof AppRoofkingRouteWithChildren
   '/settings': typeof AppSettingsRoute
   '/storm-intelligence': typeof AppStormIntelligenceRoute
   '/survival-guide': typeof AppSurvivalGuideRoute
@@ -954,6 +954,13 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/cb/': typeof CbIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
+  '/commercial/customers': typeof AppCommercialCustomersRoute
+  '/commercial/export': typeof AppCommercialExportRoute
+  '/commercial/forms': typeof AppCommercialFormsRoute
+  '/commercial/map': typeof AppCommercialMapRoute
+  '/commercial/pipeline': typeof AppCommercialPipelineRoute
+  '/commercial/spf': typeof AppCommercialSpfRoute
+  '/commercial/tickets': typeof AppCommercialTicketsRoute
   '/door-to-door/dispositions': typeof AppDoorToDoorDispositionsRoute
   '/door-to-door/profile': typeof AppDoorToDoorProfileRoute
   '/door-to-door/world': typeof AppDoorToDoorWorldRoute
@@ -970,13 +977,6 @@ export interface FileRoutesByFullPath {
   '/leads/training': typeof AppLeadsTrainingRoute
   '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
-  '/roofking/customers': typeof AppRoofkingCustomersRoute
-  '/roofking/export': typeof AppRoofkingExportRoute
-  '/roofking/forms': typeof AppRoofkingFormsRoute
-  '/roofking/map': typeof AppRoofkingMapRoute
-  '/roofking/pipeline': typeof AppRoofkingPipelineRoute
-  '/roofking/spf': typeof AppRoofkingSpfRoute
-  '/roofking/tickets': typeof AppRoofkingTicketsRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -989,11 +989,11 @@ export interface FileRoutesByFullPath {
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
+  '/commercial/': typeof AppCommercialIndexRoute
   '/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
   '/jobs/': typeof AppJobsIndexRoute
   '/leads/': typeof AppLeadsIndexRoute
-  '/roofking/': typeof AppRoofkingIndexRoute
   '/team/': typeof AppTeamIndexRoute
   '/admin/companies/': typeof AdminCompaniesIndexRoute
   '/cb/admin/': typeof CbAdminIndexRoute
@@ -1092,6 +1092,13 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/cb': typeof CbIndexRoute
   '/clients/$id': typeof AppClientsIdRoute
+  '/commercial/customers': typeof AppCommercialCustomersRoute
+  '/commercial/export': typeof AppCommercialExportRoute
+  '/commercial/forms': typeof AppCommercialFormsRoute
+  '/commercial/map': typeof AppCommercialMapRoute
+  '/commercial/pipeline': typeof AppCommercialPipelineRoute
+  '/commercial/spf': typeof AppCommercialSpfRoute
+  '/commercial/tickets': typeof AppCommercialTicketsRoute
   '/door-to-door/dispositions': typeof AppDoorToDoorDispositionsRoute
   '/door-to-door/profile': typeof AppDoorToDoorProfileRoute
   '/door-to-door/world': typeof AppDoorToDoorWorldRoute
@@ -1107,13 +1114,6 @@ export interface FileRoutesByTo {
   '/leads/training': typeof AppLeadsTrainingRoute
   '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
-  '/roofking/customers': typeof AppRoofkingCustomersRoute
-  '/roofking/export': typeof AppRoofkingExportRoute
-  '/roofking/forms': typeof AppRoofkingFormsRoute
-  '/roofking/map': typeof AppRoofkingMapRoute
-  '/roofking/pipeline': typeof AppRoofkingPipelineRoute
-  '/roofking/spf': typeof AppRoofkingSpfRoute
-  '/roofking/tickets': typeof AppRoofkingTicketsRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -1126,11 +1126,11 @@ export interface FileRoutesByTo {
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
+  '/commercial': typeof AppCommercialIndexRoute
   '/door-to-door': typeof AppDoorToDoorIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
   '/jobs': typeof AppJobsIndexRoute
   '/leads': typeof AppLeadsIndexRoute
-  '/roofking': typeof AppRoofkingIndexRoute
   '/team': typeof AppTeamIndexRoute
   '/admin/companies': typeof AdminCompaniesIndexRoute
   '/cb/admin': typeof CbAdminIndexRoute
@@ -1180,10 +1180,10 @@ export interface FileRoutesById {
   '/_app/card': typeof AppCardRoute
   '/_app/claim-buddy': typeof AppClaimBuddyRoute
   '/_app/clients': typeof AppClientsRouteWithChildren
+  '/_app/commercial': typeof AppCommercialRouteWithChildren
   '/_app/door-to-door': typeof AppDoorToDoorRouteWithChildren
   '/_app/leads': typeof AppLeadsRouteWithChildren
   '/_app/price-books': typeof AppPriceBooksRouteWithChildren
-  '/_app/roofking': typeof AppRoofkingRouteWithChildren
   '/_app/settings': typeof AppSettingsRoute
   '/_app/storm-intelligence': typeof AppStormIntelligenceRoute
   '/_app/survival-guide': typeof AppSurvivalGuideRoute
@@ -1238,6 +1238,13 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/cb/': typeof CbIndexRoute
   '/_app/clients/$id': typeof AppClientsIdRoute
+  '/_app/commercial/customers': typeof AppCommercialCustomersRoute
+  '/_app/commercial/export': typeof AppCommercialExportRoute
+  '/_app/commercial/forms': typeof AppCommercialFormsRoute
+  '/_app/commercial/map': typeof AppCommercialMapRoute
+  '/_app/commercial/pipeline': typeof AppCommercialPipelineRoute
+  '/_app/commercial/spf': typeof AppCommercialSpfRoute
+  '/_app/commercial/tickets': typeof AppCommercialTicketsRoute
   '/_app/door-to-door/dispositions': typeof AppDoorToDoorDispositionsRoute
   '/_app/door-to-door/profile': typeof AppDoorToDoorProfileRoute
   '/_app/door-to-door/world': typeof AppDoorToDoorWorldRoute
@@ -1254,13 +1261,6 @@ export interface FileRoutesById {
   '/_app/leads/training': typeof AppLeadsTrainingRoute
   '/_app/leads/wizard': typeof AppLeadsWizardRoute
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
-  '/_app/roofking/customers': typeof AppRoofkingCustomersRoute
-  '/_app/roofking/export': typeof AppRoofkingExportRoute
-  '/_app/roofking/forms': typeof AppRoofkingFormsRoute
-  '/_app/roofking/map': typeof AppRoofkingMapRoute
-  '/_app/roofking/pipeline': typeof AppRoofkingPipelineRoute
-  '/_app/roofking/spf': typeof AppRoofkingSpfRoute
-  '/_app/roofking/tickets': typeof AppRoofkingTicketsRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
   '/_app/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -1273,11 +1273,11 @@ export interface FileRoutesById {
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
+  '/_app/commercial/': typeof AppCommercialIndexRoute
   '/_app/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
   '/_app/leads/': typeof AppLeadsIndexRoute
-  '/_app/roofking/': typeof AppRoofkingIndexRoute
   '/_app/team/': typeof AppTeamIndexRoute
   '/admin/companies/': typeof AdminCompaniesIndexRoute
   '/cb/admin/': typeof CbAdminIndexRoute
@@ -1328,10 +1328,10 @@ export interface FileRouteTypes {
     | '/card'
     | '/claim-buddy'
     | '/clients'
+    | '/commercial'
     | '/door-to-door'
     | '/leads'
     | '/price-books'
-    | '/roofking'
     | '/settings'
     | '/storm-intelligence'
     | '/survival-guide'
@@ -1385,6 +1385,13 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/cb/'
     | '/clients/$id'
+    | '/commercial/customers'
+    | '/commercial/export'
+    | '/commercial/forms'
+    | '/commercial/map'
+    | '/commercial/pipeline'
+    | '/commercial/spf'
+    | '/commercial/tickets'
     | '/door-to-door/dispositions'
     | '/door-to-door/profile'
     | '/door-to-door/world'
@@ -1401,13 +1408,6 @@ export interface FileRouteTypes {
     | '/leads/training'
     | '/leads/wizard'
     | '/price-books/new'
-    | '/roofking/customers'
-    | '/roofking/export'
-    | '/roofking/forms'
-    | '/roofking/map'
-    | '/roofking/pipeline'
-    | '/roofking/spf'
-    | '/roofking/tickets'
     | '/team/invites'
     | '/team/requests'
     | '/admin/assemblies/import'
@@ -1420,11 +1420,11 @@ export interface FileRouteTypes {
     | '/cb/admin/seats'
     | '/cb/admin/team'
     | '/cb/lead/$id'
+    | '/commercial/'
     | '/door-to-door/'
     | '/invoices/'
     | '/jobs/'
     | '/leads/'
-    | '/roofking/'
     | '/team/'
     | '/admin/companies/'
     | '/cb/admin/'
@@ -1523,6 +1523,13 @@ export interface FileRouteTypes {
     | '/admin'
     | '/cb'
     | '/clients/$id'
+    | '/commercial/customers'
+    | '/commercial/export'
+    | '/commercial/forms'
+    | '/commercial/map'
+    | '/commercial/pipeline'
+    | '/commercial/spf'
+    | '/commercial/tickets'
     | '/door-to-door/dispositions'
     | '/door-to-door/profile'
     | '/door-to-door/world'
@@ -1538,13 +1545,6 @@ export interface FileRouteTypes {
     | '/leads/training'
     | '/leads/wizard'
     | '/price-books/new'
-    | '/roofking/customers'
-    | '/roofking/export'
-    | '/roofking/forms'
-    | '/roofking/map'
-    | '/roofking/pipeline'
-    | '/roofking/spf'
-    | '/roofking/tickets'
     | '/team/invites'
     | '/team/requests'
     | '/admin/assemblies/import'
@@ -1557,11 +1557,11 @@ export interface FileRouteTypes {
     | '/cb/admin/seats'
     | '/cb/admin/team'
     | '/cb/lead/$id'
+    | '/commercial'
     | '/door-to-door'
     | '/invoices'
     | '/jobs'
     | '/leads'
-    | '/roofking'
     | '/team'
     | '/admin/companies'
     | '/cb/admin'
@@ -1610,10 +1610,10 @@ export interface FileRouteTypes {
     | '/_app/card'
     | '/_app/claim-buddy'
     | '/_app/clients'
+    | '/_app/commercial'
     | '/_app/door-to-door'
     | '/_app/leads'
     | '/_app/price-books'
-    | '/_app/roofking'
     | '/_app/settings'
     | '/_app/storm-intelligence'
     | '/_app/survival-guide'
@@ -1668,6 +1668,13 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/cb/'
     | '/_app/clients/$id'
+    | '/_app/commercial/customers'
+    | '/_app/commercial/export'
+    | '/_app/commercial/forms'
+    | '/_app/commercial/map'
+    | '/_app/commercial/pipeline'
+    | '/_app/commercial/spf'
+    | '/_app/commercial/tickets'
     | '/_app/door-to-door/dispositions'
     | '/_app/door-to-door/profile'
     | '/_app/door-to-door/world'
@@ -1684,13 +1691,6 @@ export interface FileRouteTypes {
     | '/_app/leads/training'
     | '/_app/leads/wizard'
     | '/_app/price-books/new'
-    | '/_app/roofking/customers'
-    | '/_app/roofking/export'
-    | '/_app/roofking/forms'
-    | '/_app/roofking/map'
-    | '/_app/roofking/pipeline'
-    | '/_app/roofking/spf'
-    | '/_app/roofking/tickets'
     | '/_app/team/invites'
     | '/_app/team/requests'
     | '/admin/assemblies/import'
@@ -1703,11 +1703,11 @@ export interface FileRouteTypes {
     | '/cb/admin/seats'
     | '/cb/admin/team'
     | '/cb/lead/$id'
+    | '/_app/commercial/'
     | '/_app/door-to-door/'
     | '/_app/invoices/'
     | '/_app/jobs/'
     | '/_app/leads/'
-    | '/_app/roofking/'
     | '/_app/team/'
     | '/admin/companies/'
     | '/cb/admin/'
@@ -1945,6 +1945,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/commercial': {
+      id: '/_app/commercial'
+      path: '/commercial'
+      fullPath: '/commercial'
+      preLoaderRoute: typeof AppCommercialRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/door-to-door': {
       id: '/_app/door-to-door'
       path: '/door-to-door'
@@ -1964,13 +1971,6 @@ declare module '@tanstack/react-router' {
       path: '/price-books'
       fullPath: '/price-books'
       preLoaderRoute: typeof AppPriceBooksRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/roofking': {
-      id: '/_app/roofking'
-      path: '/roofking'
-      fullPath: '/roofking'
-      preLoaderRoute: typeof AppRoofkingRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings': {
@@ -2344,6 +2344,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsIdRouteImport
       parentRoute: typeof AppClientsRoute
     }
+    '/_app/commercial/': {
+      id: '/_app/commercial/'
+      path: '/'
+      fullPath: '/commercial/'
+      preLoaderRoute: typeof AppCommercialIndexRouteImport
+      parentRoute: typeof AppCommercialRoute
+    }
+    '/_app/commercial/customers': {
+      id: '/_app/commercial/customers'
+      path: '/customers'
+      fullPath: '/commercial/customers'
+      preLoaderRoute: typeof AppCommercialCustomersRouteImport
+      parentRoute: typeof AppCommercialRoute
+    }
+    '/_app/commercial/export': {
+      id: '/_app/commercial/export'
+      path: '/export'
+      fullPath: '/commercial/export'
+      preLoaderRoute: typeof AppCommercialExportRouteImport
+      parentRoute: typeof AppCommercialRoute
+    }
+    '/_app/commercial/forms': {
+      id: '/_app/commercial/forms'
+      path: '/forms'
+      fullPath: '/commercial/forms'
+      preLoaderRoute: typeof AppCommercialFormsRouteImport
+      parentRoute: typeof AppCommercialRoute
+    }
+    '/_app/commercial/map': {
+      id: '/_app/commercial/map'
+      path: '/map'
+      fullPath: '/commercial/map'
+      preLoaderRoute: typeof AppCommercialMapRouteImport
+      parentRoute: typeof AppCommercialRoute
+    }
+    '/_app/commercial/pipeline': {
+      id: '/_app/commercial/pipeline'
+      path: '/pipeline'
+      fullPath: '/commercial/pipeline'
+      preLoaderRoute: typeof AppCommercialPipelineRouteImport
+      parentRoute: typeof AppCommercialRoute
+    }
+    '/_app/commercial/spf': {
+      id: '/_app/commercial/spf'
+      path: '/spf'
+      fullPath: '/commercial/spf'
+      preLoaderRoute: typeof AppCommercialSpfRouteImport
+      parentRoute: typeof AppCommercialRoute
+    }
+    '/_app/commercial/tickets': {
+      id: '/_app/commercial/tickets'
+      path: '/tickets'
+      fullPath: '/commercial/tickets'
+      preLoaderRoute: typeof AppCommercialTicketsRouteImport
+      parentRoute: typeof AppCommercialRoute
+    }
     '/_app/door-to-door/': {
       id: '/_app/door-to-door/'
       path: '/'
@@ -2483,62 +2539,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/price-books/new'
       preLoaderRoute: typeof AppPriceBooksNewRouteImport
       parentRoute: typeof AppPriceBooksRoute
-    }
-    '/_app/roofking/': {
-      id: '/_app/roofking/'
-      path: '/'
-      fullPath: '/roofking/'
-      preLoaderRoute: typeof AppRoofkingIndexRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/roofking/customers': {
-      id: '/_app/roofking/customers'
-      path: '/customers'
-      fullPath: '/roofking/customers'
-      preLoaderRoute: typeof AppRoofkingCustomersRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/roofking/export': {
-      id: '/_app/roofking/export'
-      path: '/export'
-      fullPath: '/roofking/export'
-      preLoaderRoute: typeof AppRoofkingExportRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/roofking/forms': {
-      id: '/_app/roofking/forms'
-      path: '/forms'
-      fullPath: '/roofking/forms'
-      preLoaderRoute: typeof AppRoofkingFormsRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/roofking/map': {
-      id: '/_app/roofking/map'
-      path: '/map'
-      fullPath: '/roofking/map'
-      preLoaderRoute: typeof AppRoofkingMapRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/roofking/pipeline': {
-      id: '/_app/roofking/pipeline'
-      path: '/pipeline'
-      fullPath: '/roofking/pipeline'
-      preLoaderRoute: typeof AppRoofkingPipelineRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/roofking/spf': {
-      id: '/_app/roofking/spf'
-      path: '/spf'
-      fullPath: '/roofking/spf'
-      preLoaderRoute: typeof AppRoofkingSpfRouteImport
-      parentRoute: typeof AppRoofkingRoute
-    }
-    '/_app/roofking/tickets': {
-      id: '/_app/roofking/tickets'
-      path: '/tickets'
-      fullPath: '/roofking/tickets'
-      preLoaderRoute: typeof AppRoofkingTicketsRouteImport
-      parentRoute: typeof AppRoofkingRoute
     }
     '/_app/team/': {
       id: '/_app/team/'
@@ -2828,6 +2828,32 @@ const AppClientsRouteWithChildren = AppClientsRoute._addFileChildren(
   AppClientsRouteChildren,
 )
 
+interface AppCommercialRouteChildren {
+  AppCommercialCustomersRoute: typeof AppCommercialCustomersRoute
+  AppCommercialExportRoute: typeof AppCommercialExportRoute
+  AppCommercialFormsRoute: typeof AppCommercialFormsRoute
+  AppCommercialMapRoute: typeof AppCommercialMapRoute
+  AppCommercialPipelineRoute: typeof AppCommercialPipelineRoute
+  AppCommercialSpfRoute: typeof AppCommercialSpfRoute
+  AppCommercialTicketsRoute: typeof AppCommercialTicketsRoute
+  AppCommercialIndexRoute: typeof AppCommercialIndexRoute
+}
+
+const AppCommercialRouteChildren: AppCommercialRouteChildren = {
+  AppCommercialCustomersRoute: AppCommercialCustomersRoute,
+  AppCommercialExportRoute: AppCommercialExportRoute,
+  AppCommercialFormsRoute: AppCommercialFormsRoute,
+  AppCommercialMapRoute: AppCommercialMapRoute,
+  AppCommercialPipelineRoute: AppCommercialPipelineRoute,
+  AppCommercialSpfRoute: AppCommercialSpfRoute,
+  AppCommercialTicketsRoute: AppCommercialTicketsRoute,
+  AppCommercialIndexRoute: AppCommercialIndexRoute,
+}
+
+const AppCommercialRouteWithChildren = AppCommercialRoute._addFileChildren(
+  AppCommercialRouteChildren,
+)
+
 interface AppDoorToDoorRouteChildren {
   AppDoorToDoorDispositionsRoute: typeof AppDoorToDoorDispositionsRoute
   AppDoorToDoorProfileRoute: typeof AppDoorToDoorProfileRoute
@@ -2886,32 +2912,6 @@ const AppPriceBooksRouteWithChildren = AppPriceBooksRoute._addFileChildren(
   AppPriceBooksRouteChildren,
 )
 
-interface AppRoofkingRouteChildren {
-  AppRoofkingCustomersRoute: typeof AppRoofkingCustomersRoute
-  AppRoofkingExportRoute: typeof AppRoofkingExportRoute
-  AppRoofkingFormsRoute: typeof AppRoofkingFormsRoute
-  AppRoofkingMapRoute: typeof AppRoofkingMapRoute
-  AppRoofkingPipelineRoute: typeof AppRoofkingPipelineRoute
-  AppRoofkingSpfRoute: typeof AppRoofkingSpfRoute
-  AppRoofkingTicketsRoute: typeof AppRoofkingTicketsRoute
-  AppRoofkingIndexRoute: typeof AppRoofkingIndexRoute
-}
-
-const AppRoofkingRouteChildren: AppRoofkingRouteChildren = {
-  AppRoofkingCustomersRoute: AppRoofkingCustomersRoute,
-  AppRoofkingExportRoute: AppRoofkingExportRoute,
-  AppRoofkingFormsRoute: AppRoofkingFormsRoute,
-  AppRoofkingMapRoute: AppRoofkingMapRoute,
-  AppRoofkingPipelineRoute: AppRoofkingPipelineRoute,
-  AppRoofkingSpfRoute: AppRoofkingSpfRoute,
-  AppRoofkingTicketsRoute: AppRoofkingTicketsRoute,
-  AppRoofkingIndexRoute: AppRoofkingIndexRoute,
-}
-
-const AppRoofkingRouteWithChildren = AppRoofkingRoute._addFileChildren(
-  AppRoofkingRouteChildren,
-)
-
 interface AppTeamRouteChildren {
   AppTeamInvitesRoute: typeof AppTeamInvitesRoute
   AppTeamRequestsRoute: typeof AppTeamRequestsRoute
@@ -2959,10 +2959,10 @@ interface AppRouteChildren {
   AppCardRoute: typeof AppCardRoute
   AppClaimBuddyRoute: typeof AppClaimBuddyRoute
   AppClientsRoute: typeof AppClientsRouteWithChildren
+  AppCommercialRoute: typeof AppCommercialRouteWithChildren
   AppDoorToDoorRoute: typeof AppDoorToDoorRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
   AppPriceBooksRoute: typeof AppPriceBooksRouteWithChildren
-  AppRoofkingRoute: typeof AppRoofkingRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRoute
   AppStormIntelligenceRoute: typeof AppStormIntelligenceRoute
   AppSurvivalGuideRoute: typeof AppSurvivalGuideRoute
@@ -2980,10 +2980,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppCardRoute: AppCardRoute,
   AppClaimBuddyRoute: AppClaimBuddyRoute,
   AppClientsRoute: AppClientsRouteWithChildren,
+  AppCommercialRoute: AppCommercialRouteWithChildren,
   AppDoorToDoorRoute: AppDoorToDoorRouteWithChildren,
   AppLeadsRoute: AppLeadsRouteWithChildren,
   AppPriceBooksRoute: AppPriceBooksRouteWithChildren,
-  AppRoofkingRoute: AppRoofkingRouteWithChildren,
   AppSettingsRoute: AppSettingsRoute,
   AppStormIntelligenceRoute: AppStormIntelligenceRoute,
   AppSurvivalGuideRoute: AppSurvivalGuideRoute,

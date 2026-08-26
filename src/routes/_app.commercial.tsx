@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 import { LayoutDashboard, Users, KanbanSquare, ListChecks, Map as MapIcon, FileCog, Download, Plus, Search, Target, MapPin, Phone, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
-import { AddCustomerDialog } from "@/components/roofking/CustomerDialogs";
-import { NewTicketDialog } from "@/components/roofking/NewTicketDialog";
-import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/roofking/useRKData";
-import { RKSearchContext } from "@/components/roofking/RKSearchContext";
-import { RK_BRAND } from "@/lib/roofking/brand";
+import { AddCustomerDialog } from "@/components/commercial/CustomerDialogs";
+import { NewTicketDialog } from "@/components/commercial/NewTicketDialog";
+import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/commercial/useRKData";
+import { RKSearchContext } from "@/components/commercial/RKSearchContext";
+import { RK_BRAND } from "@/lib/commercial/brand";
 
-export const Route = createFileRoute("/_app/roofking")({
+export const Route = createFileRoute("/_app/commercial")({
   component: RoofKingLayout,
 });
 

@@ -7,12 +7,12 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
-import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/roofking/useRKData";
+import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/commercial/useRKData";
 import { supabase } from "@/integrations/supabase/client";
-import { RK_STATUS_COLORS, RK_STATUS_LABELS, RK_STATUSES, type RKStatus, type RKProperty, type RKTicket } from "@/lib/roofking/types";
-import { TicketDrawer } from "@/components/roofking/TicketDrawer";
+import { RK_STATUS_COLORS, RK_STATUS_LABELS, RK_STATUSES, type RKStatus, type RKProperty, type RKTicket } from "@/lib/commercial/types";
+import { TicketDrawer } from "@/components/commercial/TicketDrawer";
 
-export const Route = createFileRoute("/_app/roofking/map")({
+export const Route = createFileRoute("/_app/commercial/map")({
   component: RoofKingMap,
 });
 

@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { analyzeRoofWithAI } from "@/lib/lead-ai.functions";
 import { useCompany } from "@/hooks/useCompany";
 import { useIsRoofKing } from "@/hooks/useRoofKing";
-import { RK_BRAND } from "@/lib/roofking/brand";
+import { RK_BRAND } from "@/lib/commercial/brand";
 
 export const Route = createFileRoute("/_app/leads/savings")({
   validateSearch: (search: Record<string, unknown>) => ({
