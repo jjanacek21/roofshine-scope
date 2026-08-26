@@ -60,7 +60,8 @@ function SPFCalculatorInner({ catalog }: { catalog: NonNullable<ReturnType<typeo
 
 
   const [fields, setFields] = useState<SpfFields>({ ...FIELD_DEFAULTS });
-  const [layers, setLayers] = useState<Layer[]>(() => stackFromPreset("sil2"));
+  const defaultStackKey = catalog.stacks.find((st) => st.active)?.key ?? "sil2";
+  const [layers, setLayers] = useState<Layer[]>(() => stackFromPreset(defaultStackKey));
   const [details, setDetails] = useState<Detail[]>(() => DETAILS_SEED.map((d) => [...d] as Detail));
   const importRef = useRef<HTMLInputElement>(null);
 
