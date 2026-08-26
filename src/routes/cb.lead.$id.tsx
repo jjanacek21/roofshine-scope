@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Download, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, FileText, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCbSession } from "@/components/auth/CbSessionProvider";
@@ -15,6 +15,16 @@ import {
 import { cbPhotoSignedUrl } from "@/lib/cbPhotos";
 import { cbTradeColor, cbTradeLabel } from "@/lib/cbPriceBook";
 import { CB_LEAD_STAGES, cbNextStage, cbStageOf, type CbLeadStage } from "@/lib/cbLeads";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/cb/lead/$id")({
   head: () => ({
@@ -52,6 +62,7 @@ function CbLeadPage() {
   const qc = useQueryClient();
   const { workspace } = useCbSession();
   const [tab, setTab] = useState<TabKey>("overview");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   /* ── the job row ── */
   const { data: job, isLoading } = useQuery({
@@ -185,6 +196,23 @@ function CbLeadPage() {
       toast.success("Saved");
     },
     onError: (e: Error) => toast.error(e.message || "Could not save"),
+  });
+
+  /* Deleting used to live on the dashboard list. That list is gone, so the
+     capability lives here — on the lead it actually belongs to. */
+  const remove = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("cb_jobs").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      setConfirmDelete(false);
+      toast.success("Lead deleted");
+      await qc.invalidateQueries({ queryKey: ["cb-leads", workspace?.id] });
+      await qc.invalidateQueries({ queryKey: ["cb-jobs", workspace?.id] });
+      navigate({ to: "/cb/leads" });
+    },
+    onError: (e: Error) => toast.error(e.message || "Could not delete the lead"),
   });
 
   const stage = cbStageOf(job?.status as string | undefined);
@@ -330,7 +358,13 @@ function CbLeadPage() {
 
         <div className="mx-auto w-full max-w-[900px] px-4 pb-28 pt-4 sm:px-5">
           {tab === "overview" ? (
-            <OverviewTab j={j} onSave={(p) => save.mutate(p)} saving={save.isPending} jobId={id} />
+            <OverviewTab
+              j={j}
+              onSave={(p) => save.mutate(p)}
+              saving={save.isPending}
+              jobId={id}
+              onDelete={() => setConfirmDelete(true)}
+            />
           ) : null}
 
           {tab === "measure" ? (
@@ -506,6 +540,30 @@ function CbLeadPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this lead?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {(j.address as string) || "This lead"} and all of its photos, measurements, reports
+              and contracts will be permanently removed. This can&rsquo;t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={remove.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={remove.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                remove.mutate();
+              }}
+            >
+              {remove.isPending ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </CbSurface>
   );
 }
@@ -647,11 +705,13 @@ function OverviewTab({
   onSave,
   saving,
   jobId,
+  onDelete,
 }: {
   j: Record<string, string | number | null>;
   onSave: (patch: Record<string, unknown>) => void;
   saving: boolean;
   jobId: string;
+  onDelete: () => void;
 }) {
   const num = (v: string) => (v === "" ? null : Number(v));
   return (
@@ -764,6 +824,17 @@ function OverviewTab({
           <span className="font-mono">{jobId.slice(0, 8)}</span>.
         </p>
       </CbCard>
+
+      <div className="mt-3">
+        <CbButton variant="ghost" size="md" onClick={onDelete}>
+          <span
+            className="inline-flex items-center gap-2"
+            style={{ color: "var(--danger, #dc2626)" }}
+          >
+            <Trash2 className="h-4 w-4" /> Delete this lead
+          </span>
+        </CbButton>
+      </div>
     </CbReveal>
   );
 }
