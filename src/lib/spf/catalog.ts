@@ -75,14 +75,32 @@ export type SpfCatalog = {
   settings: SpfCalcSettingsRow;
 };
 
-export async function fetchSpfCatalog(): Promise<SpfCatalog> {
+/** Company id of the signed-in user — the SPF catalog is per company. */
+export async function currentCompanyId(): Promise<string | null> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return null;
+  const { data } = await supabase
+    .from("profiles")
+    .select("company_id")
+    .eq("id", auth.user.id)
+    .maybeSingle();
+  return (data?.company_id as string | null) ?? null;
+}
+
+export async function fetchSpfCatalog(companyIdArg?: string | null): Promise<SpfCatalog> {
+  const companyId = companyIdArg ?? (await currentCompanyId());
+  const empty: SpfCatalog = {
+    products: [], details: [], stacks: [], stackLayers: [], fieldDefaults: [],
+    settings: { default_mode: "detailed" },
+  };
+  if (!companyId) return empty;
   const [products, details, stacks, stackLayers, fieldDefaults, settings] = await Promise.all([
-    supabase.from("spf_products").select("*").order("sort_order"),
-    supabase.from("spf_details").select("*").order("sort_order"),
-    supabase.from("spf_stacks").select("*").order("sort_order"),
-    supabase.from("spf_stack_layers").select("*").order("sort_order"),
-    supabase.from("spf_field_defaults").select("*").order("sort_order"),
-    supabase.from("spf_calc_settings").select("default_mode").maybeSingle(),
+    supabase.from("spf_products").select("*").eq("company_id", companyId).order("sort_order"),
+    supabase.from("spf_details").select("*").eq("company_id", companyId).order("sort_order"),
+    supabase.from("spf_stacks").select("*").eq("company_id", companyId).order("sort_order"),
+    supabase.from("spf_stack_layers").select("*").eq("company_id", companyId).order("sort_order"),
+    supabase.from("spf_field_defaults").select("*").eq("company_id", companyId).order("sort_order"),
+    supabase.from("spf_calc_settings").select("default_mode").eq("company_id", companyId).maybeSingle(),
   ]);
   if (products.error) throw products.error;
   return {
@@ -156,7 +174,7 @@ function buildStackTemplate() {
 export function useSpfCatalog() {
   return useQuery({
     queryKey: ["spf-catalog"],
-    queryFn: fetchSpfCatalog,
+    queryFn: () => fetchSpfCatalog(),
     staleTime: 5 * 60_000,
   });
 }
