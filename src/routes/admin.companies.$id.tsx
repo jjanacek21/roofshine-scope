@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { listMarkets } from "@/lib/markets.functions";
@@ -22,10 +22,38 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CompanyLogoUploader } from "@/components/settings/CompanyLogoUploader";
+import { FeatureTree } from "@/components/admin/FeatureTree";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  adminCompanyDeleteCounts,
+  adminCreateCbWorkspace,
+  adminLinkCbWorkspace,
+  adminListCbWorkspaces,
+  adminPurgeCompany,
+  adminSetCompanyStatus,
+} from "@/lib/company-admin.functions";
+import {
+  cbAdminListCompanies,
+  cbAdminSetMember,
+  cbAdminSetPlan,
+  cbAdminSetSeats,
+  cbAdminUpsertUser,
+} from "@/lib/cb-admin.functions";
+import {
+  CB_FEATURE_LABEL,
+  CB_TIERS,
+  CB_TIER_LABEL,
+  cbTierDefaults,
+  type CbTier,
+} from "@/lib/cbFeatures";
 
 export const Route = createFileRoute("/admin/companies/$id")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+  }),
   component: AdminCompanyDetail,
 });
+
 
 type Company = {
   id: string;
@@ -45,7 +73,12 @@ type Company = {
   feature_storm_intel: boolean;
   feature_roof_king: boolean;
   license_numbers: string[] | null;
+  status: string;
+  primary_color: string | null;
+  accent_color: string | null;
+  module_label: string | null;
 };
+
 
 type Rep = {
   id: string;
@@ -77,13 +110,26 @@ type Doc = {
 };
 
 const ROLES = ["owner", "admin", "estimator", "member"] as const;
-const TABS = ["Business info", "Features", "Pricing", "Contracts", "Documents", "Team"] as const;
+const TABS = [
+  "Details",
+  "Features",
+  "Claim Buddy",
+  "Members",
+  "Pricing",
+  "Contracts",
+  "Documents",
+] as const;
 type Tab = (typeof TABS)[number];
 
 function AdminCompanyDetail() {
   const { id } = Route.useParams();
+  const { tab: tabParam } = Route.useSearch();
   const { user } = useAuth();
-  const [tab, setTab] = useState<Tab>("Business info");
+  const [tab, setTab] = useState<Tab>(
+    (TABS as readonly string[]).includes(tabParam ?? "") ? (tabParam as Tab) : "Details",
+  );
+
+
   const [company, setCompany] = useState<Company | null>(null);
   const [reps, setReps] = useState<Rep[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -204,20 +250,30 @@ function AdminCompanyDetail() {
         >
           <ArrowLeft className="h-3 w-3" /> All companies
         </Link>
-        <div className="mt-2 flex items-center gap-3">
-          {company.logo_url && (
-            <img
-              src={company.logo_url}
-              alt={`${company.name} logo`}
-              className="h-10 w-10 rounded-md object-contain"
-            />
-          )}
-          <div>
-            <h1 className="text-2xl font-semibold">{company.name}</h1>
-            <p className="text-sm text-muted-foreground">
-              {company.email ?? "—"} {company.phone ? ` · ${company.phone}` : ""}
-            </p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {company.logo_url && (
+              <img
+                src={company.logo_url}
+                alt={`${company.name} logo`}
+                className="h-10 w-10 rounded-md object-contain"
+              />
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-semibold">{company.name}</h1>
+                {company.status === "archived" && (
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Archived
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {company.email ?? "—"} {company.phone ? ` · ${company.phone}` : ""}
+              </p>
+            </div>
           </div>
+          <CompanyLifecycleActions company={company} reload={load} />
         </div>
       </div>
 
@@ -237,10 +293,11 @@ function AdminCompanyDetail() {
         ))}
       </div>
 
-      {tab === "Business info" && (
+      {tab === "Details" && (
         <BusinessInfoTab company={company} userId={user?.id ?? null} onSave={patch} />
       )}
-      {tab === "Features" && <FeaturesTab company={company} onSave={patch} />}
+      {tab === "Features" && <FeatureTree companyId={company.id} />}
+      {tab === "Claim Buddy" && <ClaimBuddyTab company={company} />}
       {tab === "Pricing" && (
         <PricingTab
           company={company}
@@ -253,7 +310,7 @@ function AdminCompanyDetail() {
       {tab === "Documents" && (
         <DocumentsTab companyId={company.id} docs={docs} reload={load} />
       )}
-      {tab === "Team" && (
+      {tab === "Members" && (
         <TeamTab
           reps={reps}
           invites={invites}
@@ -270,6 +327,145 @@ function AdminCompanyDetail() {
     </div>
   );
 }
+
+/* --------------------- Archive / restore / hard delete -------------------- */
+
+function CompanyLifecycleActions({
+  company,
+  reload,
+}: {
+  company: Company;
+  reload: () => Promise<void> | void;
+}) {
+  const navigate = useNavigate();
+  const setStatus = useServerFn(adminSetCompanyStatus);
+  const getCounts = useServerFn(adminCompanyDeleteCounts);
+  const purge = useServerFn(adminPurgeCompany);
+
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [counts, setCounts] = useState<Record<string, number> | null>(null);
+  const [confirmName, setConfirmName] = useState("");
+
+  async function toggleArchive() {
+    setBusy(true);
+    try {
+      await setStatus({
+        data: {
+          companyId: company.id,
+          status: company.status === "archived" ? "active" : "archived",
+        },
+      });
+      toast.success(company.status === "archived" ? "Company restored" : "Company archived");
+      await reload();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function openDelete() {
+    setOpen(true);
+    setCounts(null);
+    setConfirmName("");
+    try {
+      setCounts(await getCounts({ data: { companyId: company.id } }));
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function doPurge() {
+    setBusy(true);
+    try {
+      await purge({ data: { companyId: company.id, confirmName } });
+      toast.success("Company permanently deleted");
+      setOpen(false);
+      navigate({ to: "/admin/companies" });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={toggleArchive}
+        className="h-9 rounded-md border border-border px-3 text-xs font-semibold disabled:opacity-60"
+      >
+        {company.status === "archived" ? "Restore" : "Archive"}
+      </button>
+      {company.status === "archived" && (
+        <button
+          type="button"
+          onClick={openDelete}
+          className="h-9 rounded-md border border-red-500/40 px-3 text-xs font-semibold text-red-600"
+        >
+          Permanently delete
+        </button>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Permanently delete {company.name}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This erases the company and everything below. It cannot be undone.
+          </p>
+          <div className="max-h-52 overflow-auto rounded-lg border border-border bg-muted/20 p-3 text-xs">
+            {counts === null ? (
+              <p className="text-muted-foreground">Counting records…</p>
+            ) : Object.keys(counts).length === 0 ? (
+              <p className="text-muted-foreground">Nothing to delete.</p>
+            ) : (
+              Object.entries(counts).map(([t, n]) => (
+                <div key={t} className="flex justify-between py-0.5">
+                  <span>{t}</span>
+                  <span className="font-mono-num">{n}</span>
+                </div>
+              ))
+            )}
+          </div>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-muted-foreground">
+              Type the company name to confirm
+            </span>
+            <input
+              className="field-input"
+              value={confirmName}
+              onChange={(e) => setConfirmName(e.target.value)}
+              placeholder={company.name}
+            />
+          </label>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="h-10 rounded-md border border-border px-4 text-sm font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={busy || confirmName !== company.name}
+              onClick={doPurge}
+              className="h-10 rounded-md bg-red-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {busy ? "Deleting…" : "Delete forever"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 
 /* ------------------------------- Business ------------------------------- */
 
@@ -293,6 +489,9 @@ function BusinessInfoTab({
     postal_code: company.postal_code ?? "",
     logo_url: company.logo_url ?? "",
     license_numbers: (company.license_numbers ?? []).join(", "),
+    primary_color: company.primary_color ?? "",
+    accent_color: company.accent_color ?? "",
+    module_label: company.module_label ?? "",
   });
   const [saving, setSaving] = useState(false);
   
@@ -310,11 +509,15 @@ function BusinessInfoTab({
       state: form.state.trim() || null,
       postal_code: form.postal_code.trim() || null,
       logo_url: form.logo_url.trim() || null,
+      primary_color: form.primary_color.trim() || null,
+      accent_color: form.accent_color.trim() || null,
+      module_label: form.module_label.trim() || null,
       license_numbers: form.license_numbers
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
     });
+
     setSaving(false);
     if (ok) toast.success("Company info saved");
   }
@@ -397,7 +600,48 @@ function BusinessInfoTab({
             onChange={(e) => setForm({ ...form, license_numbers: e.target.value })}
           />
         </Field>
+        <Field label="Module label (sidebar section name)">
+          <input
+            className="field-input"
+            placeholder="e.g. Commercial"
+            value={form.module_label}
+            onChange={(e) => setForm({ ...form, module_label: e.target.value })}
+          />
+        </Field>
+        <Field label="Primary color">
+          <div className="flex gap-2">
+            <input
+              type="color"
+              className="h-10 w-12 shrink-0 rounded-md border border-border bg-card"
+              value={form.primary_color || "#15803d"}
+              onChange={(e) => setForm({ ...form, primary_color: e.target.value })}
+            />
+            <input
+              className="field-input font-mono-num"
+              placeholder="#15803d"
+              value={form.primary_color}
+              onChange={(e) => setForm({ ...form, primary_color: e.target.value })}
+            />
+          </div>
+        </Field>
+        <Field label="Accent color">
+          <div className="flex gap-2">
+            <input
+              type="color"
+              className="h-10 w-12 shrink-0 rounded-md border border-border bg-card"
+              value={form.accent_color || "#0ea5e9"}
+              onChange={(e) => setForm({ ...form, accent_color: e.target.value })}
+            />
+            <input
+              className="field-input font-mono-num"
+              placeholder="#0ea5e9"
+              value={form.accent_color}
+              onChange={(e) => setForm({ ...form, accent_color: e.target.value })}
+            />
+          </div>
+        </Field>
       </div>
+
 
       <CompanyLogoUploader
         companyId={company.id}
@@ -422,84 +666,405 @@ function BusinessInfoTab({
   );
 }
 
-/* ------------------------------- Features ------------------------------- */
+/* ------------------------ Claim Buddy workspace ------------------------- */
 
-const FEATURES = [
-  {
-    key: "feature_door_to_door" as const,
-    label: "Door to Door World",
-    desc: "Canvassing map, dispositions, gamification and the D2D feed.",
-  },
-  {
-    key: "feature_storm_intel" as const,
-    label: "Storm Intelligence",
-    desc: "Nationwide hail/wind swaths, point intelligence and storm mailers.",
-  },
-  {
-    key: "feature_roof_king" as const,
-    label: "Roof King",
-    desc: "Service-ticket CRM, SPF calculator and Roof King branded workspace.",
-  },
-];
+function ClaimBuddyTab({ company }: { company: Company }) {
+  const qc = useQueryClient();
+  const listWs = useServerFn(adminListCbWorkspaces);
+  const link = useServerFn(adminLinkCbWorkspace);
+  const createWs = useServerFn(adminCreateCbWorkspace);
+  const setPlan = useServerFn(cbAdminSetPlan);
+  const setSeats = useServerFn(cbAdminSetSeats);
+  const listCb = useServerFn(cbAdminListCompanies);
+  const setMember = useServerFn(cbAdminSetMember);
 
-function FeaturesTab({
-  company,
-  onSave,
-}: {
-  company: Company;
-  onSave: (v: Partial<Company>) => Promise<boolean | undefined>;
-}) {
-  const [busy, setBusy] = useState<string | null>(null);
+  const wsQuery = useQuery({ queryKey: ["admin-cb-workspaces"], queryFn: () => listWs() });
+  const cbQuery = useQuery({ queryKey: ["cb-admin-companies"], queryFn: () => listCb() });
 
-  async function toggle(key: (typeof FEATURES)[number]["key"], value: boolean) {
-    setBusy(key);
-    const patch: Partial<Company> = { [key]: value } as Partial<Company>;
-    // Keep the legacy Roof King flag in sync so branding stays consistent.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (key === "feature_roof_king") (patch as any).is_roof_king = value;
-    const ok = await onSave(patch);
-    setBusy(null);
-    if (ok) toast.success(`${value ? "Enabled" : "Disabled"} for ${company.name}`);
+  const linked = (wsQuery.data ?? []).find((w) => w.gc_company_id === company.id) ?? null;
+  const detail = (cbQuery.data ?? []).find((c) => c.workspace_id === linked?.id) ?? null;
+  const [pick, setPick] = useState("");
+  const [seats, setSeatsInput] = useState<number | null>(null);
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["admin-cb-workspaces"] });
+    qc.invalidateQueries({ queryKey: ["cb-admin-companies"] });
+    qc.invalidateQueries({ queryKey: ["admin-companies"] });
+  };
+
+  const run = async (fn: () => Promise<unknown>, msg: string) => {
+    try {
+      await fn();
+      toast.success(msg);
+      refresh();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  if (wsQuery.isLoading) {
+    return <p className="text-sm text-muted-foreground">Loading…</p>;
+  }
+
+  if (!linked) {
+    const unlinked = (wsQuery.data ?? []).filter((w) => !w.gc_company_id);
+    return (
+      <div className="space-y-4 rounded-xl border border-border bg-card p-5">
+        <div>
+          <h3 className="text-sm font-semibold">No Claim Buddy workspace</h3>
+          <p className="text-xs text-muted-foreground">
+            Link an existing workspace or create one for {company.name}.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <Field label="Existing workspace">
+            <select
+              className="field-input min-w-56"
+              value={pick}
+              onChange={(e) => setPick(e.target.value)}
+            >
+              <option value="">— Select —</option>
+              {unlinked.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <button
+            type="button"
+            disabled={!pick}
+            onClick={() =>
+              run(
+                () => link({ data: { companyId: company.id, workspaceId: pick } }),
+                "Workspace linked",
+              )
+            }
+            className="btn-brand h-10 rounded-md px-4 text-sm font-semibold disabled:opacity-60"
+          >
+            Link workspace
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              run(
+                () =>
+                  createWs({
+                    data: { companyId: company.id, name: company.name, tier: "basic", seats: 3 },
+                  }),
+                "Workspace created",
+              )
+            }
+            className="h-10 rounded-md border border-border px-4 text-sm font-semibold"
+          >
+            Create new workspace
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Features are off by default for every company. Turn on only what this company has
-        purchased — their reps won't see the section in the sidebar until you do.
-      </p>
-      {FEATURES.map((f) => {
-        const on = !!company[f.key];
-        return (
-          <div
-            key={f.key}
-            className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-4"
-          >
-            <div>
-              <div className="text-sm font-semibold">{f.label}</div>
-              <div className="text-xs text-muted-foreground">{f.desc}</div>
-            </div>
-            <button
-              type="button"
-              disabled={busy === f.key}
-              onClick={() => toggle(f.key, !on)}
-              aria-pressed={on}
-              className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60 ${
-                on ? "bg-primary" : "bg-muted"
-              }`}
-            >
-              <span
-                className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${
-                  on ? "left-6" : "left-1"
-                }`}
-              />
-            </button>
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold">{linked.name}</h3>
+            <p className="font-mono-num text-[11px] text-muted-foreground">{linked.id}</p>
           </div>
-        );
-      })}
+          <button
+            type="button"
+            onClick={() =>
+              run(
+                () => link({ data: { companyId: company.id, workspaceId: null } }),
+                "Workspace unlinked",
+              )
+            }
+            className="h-9 rounded-md border border-border px-3 text-xs font-semibold"
+          >
+            Unlink
+          </button>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Field label="Tier">
+            <select
+              className="field-input"
+              value={detail?.tier ?? linked.tier ?? "basic"}
+              onChange={(e) =>
+                run(
+                  () =>
+                    setPlan({
+                      data: { workspaceId: linked.id, tier: e.target.value as CbTier },
+                    }),
+                  "Tier updated",
+                )
+              }
+            >
+              {CB_TIERS.map((t) => (
+                <option key={t} value={t}>
+                  {CB_TIER_LABEL[t]}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Seats purchased">
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min={1}
+                className="field-input"
+                value={seats ?? detail?.seats_purchased ?? 0}
+                onChange={(e) => setSeatsInput(Number(e.target.value))}
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  run(
+                    () =>
+                      setSeats({
+                        data: { workspaceId: linked.id, seats: seats ?? detail?.seats_purchased ?? 1 },
+                      }),
+                    "Seats updated",
+                  )
+                }
+                className="h-10 shrink-0 rounded-md border border-border px-3 text-xs font-semibold"
+              >
+                Save
+              </button>
+            </div>
+          </Field>
+          <Field label="Account status">
+            <select
+              className="field-input"
+              value={detail?.status ?? linked.status ?? "active"}
+              onChange={(e) =>
+                run(
+                  () =>
+                    setPlan({
+                      data: {
+                        workspaceId: linked.id,
+                        status: e.target.value as "active" | "suspended" | "archived",
+                      },
+                    }),
+                  "Status updated",
+                )
+              }
+            >
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </Field>
+          <Field label="Free / comp account">
+            <label className="flex h-10 items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={!!detail?.is_comp}
+                onChange={(e) =>
+                  run(
+                    () =>
+                      setPlan({ data: { workspaceId: linked.id, isComp: e.target.checked } }),
+                    "Comp flag updated",
+                  )
+                }
+              />
+              Not billed — all tier features stay on
+            </label>
+          </Field>
+        </div>
+
+        <div className="mt-4 rounded-lg border border-border bg-muted/20 p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {CB_TIER_LABEL[(detail?.tier ?? linked.tier ?? "basic") as CbTier]} tier includes
+          </p>
+          <ul className="grid gap-1 text-xs sm:grid-cols-2">
+            {Object.entries(cbTierDefaults(detail?.tier ?? linked.tier ?? "basic")).map(
+              ([k, on]) => (
+                <li key={k} className={on ? "" : "text-muted-foreground line-through"}>
+                  {CB_FEATURE_LABEL[k as keyof typeof CB_FEATURE_LABEL]}
+                </li>
+              ),
+            )}
+          </ul>
+        </div>
+
+        {detail && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            {detail.seats_used} seat{detail.seats_used === 1 ? "" : "s"} in use ·{" "}
+            {detail.seats_pending} pending invite{detail.seats_pending === 1 ? "" : "s"} ·{" "}
+            {detail.job_count} job{detail.job_count === 1 ? "" : "s"}
+          </p>
+        )}
+      </div>
+
+      <CbAddUserForm workspaceId={linked.id} onDone={refresh} />
+
+      <div className="overflow-x-auto rounded-xl border border-border bg-card">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="px-4 py-3 text-left">Claim Buddy user</th>
+              <th className="px-4 py-3 text-left">Role</th>
+              <th className="px-4 py-3 text-left">Jobs</th>
+              <th className="px-4 py-3" />
+            </tr>
+          </thead>
+          <tbody>
+            {(detail?.members ?? []).length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+                  No Claim Buddy users yet.
+                </td>
+              </tr>
+            ) : (
+              detail!.members.map((m) => (
+                <tr key={m.user_id} className="border-t border-border">
+                  <td className="px-4 py-3">
+                    <div className="font-medium">{m.name ?? m.email ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground">{m.email ?? "—"}</div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <select
+                      className="field-input h-9 w-32"
+                      value={m.role}
+                      onChange={(e) =>
+                        run(
+                          () =>
+                            setMember({
+                              data: {
+                                workspaceId: linked.id,
+                                userId: m.user_id,
+                                role: e.target.value as "owner" | "admin" | "rep",
+                              },
+                            }),
+                          "Role updated",
+                        )
+                      }
+                    >
+                      <option value="owner">Owner</option>
+                      <option value="admin">Admin</option>
+                      <option value="rep">Rep</option>
+                    </select>
+                  </td>
+                  <td className="px-4 py-3 font-mono-num">{m.job_count}</td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          run(
+                            () =>
+                              setMember({
+                                data: {
+                                  workspaceId: linked.id,
+                                  userId: m.user_id,
+                                  isActive: !m.is_active,
+                                },
+                              }),
+                            m.is_active ? "User deactivated" : "User reactivated",
+                          )
+                        }
+                        className="h-8 rounded-md border border-border px-2 text-xs font-semibold"
+                      >
+                        {m.is_active ? "Deactivate" : "Reactivate"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!confirm(`Remove ${m.email ?? "this user"} from the workspace?`)) return;
+                          run(
+                            () =>
+                              setMember({
+                                data: {
+                                  workspaceId: linked.id,
+                                  userId: m.user_id,
+                                  remove: true,
+                                },
+                              }),
+                            "User removed",
+                          );
+                        }}
+                        className="h-8 rounded-md border border-red-500/40 px-2 text-xs font-semibold text-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
+
+function CbAddUserForm({
+  workspaceId,
+  onDone,
+}: {
+  workspaceId: string;
+  onDone: () => void;
+}) {
+  const upsert = useServerFn(cbAdminUpsertUser);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"owner" | "admin" | "rep">("rep");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await upsert({ data: { workspaceId, email: email.trim(), role } });
+      toast.success("Invite sent");
+      setEmail("");
+      onDone();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4"
+    >
+      <Field label="Add Claim Buddy user">
+        <input
+          required
+          type="email"
+          className="field-input min-w-56"
+          placeholder="user@company.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </Field>
+      <Field label="Role">
+        <select
+          className="field-input"
+          value={role}
+          onChange={(e) => setRole(e.target.value as "owner" | "admin" | "rep")}
+        >
+          <option value="owner">Owner</option>
+          <option value="admin">Admin</option>
+          <option value="rep">Rep</option>
+        </select>
+      </Field>
+      <button
+        type="submit"
+        disabled={busy || !email}
+        className="btn-brand h-10 rounded-md px-4 text-sm font-semibold disabled:opacity-60"
+      >
+        {busy ? "Sending…" : "Send invite"}
+      </button>
+    </form>
+  );
+}
+
+
 
 /* -------------------------------- Pricing ------------------------------- */
 
