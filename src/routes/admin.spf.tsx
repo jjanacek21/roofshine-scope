@@ -20,7 +20,7 @@ const UNITS = ["ea", "lf", "ls"] as const;
 const SCOPES = ["field", "pct", "seams", "details", "custom"] as const;
 
 function useSpfAdminCatalog() {
-  return useQuery({ queryKey: ["spf-catalog"], queryFn: fetchSpfCatalog });
+  return useQuery({ queryKey: ["spf-catalog"], queryFn: () => fetchSpfCatalog() });
 }
 
 function AdminSpfPage() {

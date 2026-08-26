@@ -1,32 +1,14 @@
-// Verbatim data tables from SPF Scope & Cost Engine HTML source.
-// PRODUCTS / DETAILS_SEED / STACKS / FIELD_DEFAULTS are seeded from the admin
-// backend at runtime via hydrateCatalog(). The arrays below are the fallback
-// used before the DB fetch resolves and match the DB seed exactly.
+// Shared SPF types, method/scope tables and display labels.
+// PRODUCTS / DETAILS_SEED / STACKS / FIELD_DEFAULTS hold NO hardcoded catalog
+// data — they start empty and are filled per company via hydrateCatalog() from
+// the company-scoped spf_* tables. No cross-company pricing fallback exists.
 
 // [name, solids%, $/gal, default mils, default method, role]
 export type Product = [string, number, number, number, MethodKey, ProductRole];
 export type ProductRole = "primer" | "detail" | "base" | "top";
 export type MethodKey = "spray" | "roll" | "brush";
 
-export const PRODUCTS: Product[] = [
-  ["Rust-inhibitive primer (metal)", 45, 38, 3, "roll", "primer"],
-  ["Epoxy primer", 65, 62, 4, "spray", "primer"],
-  ["Bleed-block / stain primer", 40, 42, 3, "spray", "primer"],
-  ["SPF tie coat / adhesion primer", 50, 40, 3, "spray", "primer"],
-  ["Butyl rubber seam sealant", 60, 48, 20, "brush", "detail"],
-  ["Mastic / detail cement", 80, 34, 60, "brush", "detail"],
-  ["Acrylic base coat", 52, 19, 15, "spray", "base"],
-  ["Acrylic top coat — high solids", 62, 26, 15, "spray", "top"],
-  ["Silicone base coat", 92, 44, 12, "spray", "base"],
-  ["Silicone top coat — high solids", 98, 52, 12, "spray", "top"],
-  ["Silicone — single coat", 98, 52, 24, "spray", "base"],
-  ["Polyurethane base — aromatic", 70, 58, 12, "spray", "base"],
-  ["Polyurethane top — aliphatic", 65, 72, 8, "spray", "top"],
-  ["Polyurea", 100, 78, 40, "spray", "base"],
-  ["Rubber / butyl coating", 60, 46, 25, "spray", "base"],
-  ["Aluminum reflective coating", 45, 32, 10, "roll", "top"],
-  ["Custom product", 100, 50, 20, "spray", "base"],
-];
+export const PRODUCTS: Product[] = [];
 
 // [label, sqft/day, extraWaste%]
 export const METHODS: Record<MethodKey, [string, number, number]> = {
@@ -60,61 +42,11 @@ export type Layer = [
 
 // [on, productIdx, name, scope, amount, method, mils, solids, cost, waste]
 type StackTemplate = [number, number, null, ScopeKey, number, MethodKey, number, null, null, null][];
-export const STACKS: Record<string, StackTemplate> = {
-  sil2: [
-    [1, 9, null, "field", 100, "spray", 12, null, null, null],
-    [1, 10, null, "field", 100, "spray", 12, null, null, null],
-  ],
-  sil1: [[1, 10, null, "field", 100, "spray", 24, null, null, null]],
-  acr2: [
-    [1, 6, null, "field", 100, "spray", 15, null, null, null],
-    [1, 7, null, "field", 100, "spray", 15, null, null, null],
-  ],
-  rust: [
-    [1, 0, null, "field", 100, "roll", 3, null, null, null],
-    [1, 4, null, "seams", 0, "brush", 20, null, null, null],
-    [1, 6, null, "field", 100, "spray", 15, null, null, null],
-    [1, 7, null, "field", 100, "spray", 15, null, null, null],
-  ],
-  pu: [
-    [1, 11, null, "field", 100, "spray", 12, null, null, null],
-    [1, 12, null, "field", 100, "spray", 8, null, null, null],
-  ],
-};
+export const STACKS: Record<string, StackTemplate> = {};
 
 // [label, unit, qty, unit-cost]
 export type Detail = [string, "ea" | "lf" | "ls", number, number];
-export const DETAILS_SEED: Detail[] = [
-  ["Small penetration (<4\" pipe)", "ea", 0, 95],
-  ["Large penetration / cluster", "ea", 0, 240],
-  ["Pitch pan — new, filled", "ea", 0, 185],
-  ["Roof drain — reset & flash", "ea", 0, 420],
-  ["Drain replacement", "ea", 0, 1150],
-  ["Scupper / thru-wall", "ea", 0, 275],
-  ["HVAC curb — flash around", "ea", 0, 310],
-  ["HVAC unit — lift, foam under, re-set", "ea", 0, 1450],
-  ["Exhaust fan / vent curb", "ea", 0, 225],
-  ["Skylight — flash perimeter", "ea", 0, 340],
-  ["Skylight replacement", "ea", 0, 1600],
-  ["Roof hatch — flash", "ea", 0, 290],
-  ["Equipment / pipe support — raise & block", "ea", 0, 165],
-  ["Satellite / antenna base", "ea", 0, 275],
-  ["Lightning protection — detach & reset", "ea", 0, 0],
-  ["Solar array — detach & reset (per panel)", "ea", 0, 0],
-  ["Rusted fastener — treat / replace", "ea", 0, 4.5],
-  ["Parapet / curb wall — foam & coat", "lf", 0, 11],
-  ["Wall termination bar + sealant", "lf", 0, 7.5],
-  ["Counterflashing — new metal", "lf", 0, 14],
-  ["Edge metal / drip edge — new", "lf", 0, 12],
-  ["Coping cap — new", "lf", 0, 26],
-  ["Gutter / downspout", "lf", 0, 18],
-  ["Expansion joint — new cover", "lf", 0, 42],
-  ["Ridge / hip seam detail (metal)", "lf", 0, 4.5],
-  ["Walkway pad / granule path", "lf", 0, 9],
-  ["Crickets — sheet metal", "ea", 0, 285],
-  ["Tie-in to adjacent roof", "lf", 0, 22],
-  ["Fall protection anchor / warning line", "ls", 0, 0],
-];
+export const DETAILS_SEED: Detail[] = [];
 
 // All field defaults, mirroring the HTML input/select defaults verbatim.
 export type SpfFields = {
@@ -158,36 +90,38 @@ export type SpfFields = {
   m_oh: number; m_comm: number; m_margin: number; m_fin: number;
 };
 
+// Structural zero-state only — every value below is a neutral placeholder, not
+// a price. Real values come from the company's own spf_field_defaults rows.
 export const FIELD_DEFAULTS: SpfFields = {
-  p_name: "Untitled Commercial SPF", p_addr: "", p_sqft: 20000, p_areawaste: 3,
-  p_geo: "1.10", p_slope: "1.00",
-  e_deck: "steel", e_surf: "burs", e_layers: 1, e_tear: "0",
-  e_tearcost: 115, e_disp: 45, e_deckrep: 0, e_deckrepc: 14,
-  e_prep: "0.22", e_rustpct: 0, e_rustm: "0.35",
+  p_name: "", p_addr: "", p_sqft: 0, p_areawaste: 0,
+  p_geo: "1.00", p_slope: "1.00",
+  e_deck: "steel", e_surf: "burs", e_layers: 0, e_tear: "0",
+  e_tearcost: 0, e_disp: 0, e_deckrep: 0, e_deckrepc: 0,
+  e_prep: "0.06", e_rustpct: 0, e_rustm: "0.35",
   e_mildew: 0, e_fast: 0, e_dry: 0,
-  a_ht: 24, a_hose: 200, a_method: "1",
+  a_ht: 0, a_hose: 0, a_method: "1",
   a_liftrate: 0, a_liftdays: 0, a_liftdel: 0,
-  a_cranerate: 285, a_cranehrs: 0, a_hoist: 0,
-  a_occ: "1.00", a_overspray: 1200, a_screens: 0, a_shift: "1.00",
-  f_on: "1", f_dens: "3.0", f_thick: 1.5, f_taper: 0,
-  f_yield: 4000, f_waste: 12, f_cost: 2150, f_freight: 85,
-  f_amb: "1.00", f_tex: "18",
-  r_lf: 0, r_w: 6, r_type: "0.42", r_c: 0,
-  r_rate: 600, r_fieldpct: 0, r_fieldc: 0.42,
-  l_foamrate: 5000, l_preprate: 12000, l_rustrate: 2500, l_tearrate: 18,
-  l_crew: 4, l_wage: 34, l_hrs: 9, l_burden: 34,
-  l_mobs: 1, l_mobc: 1400, l_diem: 0, l_lodge: 0,
-  l_wx: 1, l_super: 380,
-  q_rig: 450, q_fuel: 140, q_pump: 95, q_wash: 65,
-  q_cons: 185, q_hand: 0, q_dump: 0, q_dumpc: 695,
-  q_trailer: 0, q_veh: 90,
-  s_eng: "2500", s_engov: 0, s_pbasis: "pct",
-  s_ppct: 2.2, s_pflat: 425, s_plan: 350,
-  s_insp: 3, s_inspc: 0, s_noa: 0, s_ir: 0,
-  s_core: 450, s_mock: 0, s_3rd: 0,
-  s_war: "0.12", s_warfee: 0,
-  m_tax: 7, m_cont: 4, m_gl: 1.6, m_bond: 0,
-  m_oh: 11, m_comm: 6, m_margin: 28, m_fin: 0,
+  a_cranerate: 0, a_cranehrs: 0, a_hoist: 0,
+  a_occ: "1.00", a_overspray: 0, a_screens: 0, a_shift: "1.00",
+  f_on: "0", f_dens: "3.0", f_thick: 0, f_taper: 0,
+  f_yield: 0, f_waste: 0, f_cost: 0, f_freight: 0,
+  f_amb: "1.00", f_tex: "0",
+  r_lf: 0, r_w: 0, r_type: "0.42", r_c: 0,
+  r_rate: 0, r_fieldpct: 0, r_fieldc: 0,
+  l_foamrate: 0, l_preprate: 0, l_rustrate: 0, l_tearrate: 0,
+  l_crew: 0, l_wage: 0, l_hrs: 0, l_burden: 0,
+  l_mobs: 0, l_mobc: 0, l_diem: 0, l_lodge: 0,
+  l_wx: 0, l_super: 0,
+  q_rig: 0, q_fuel: 0, q_pump: 0, q_wash: 0,
+  q_cons: 0, q_hand: 0, q_dump: 0, q_dumpc: 0,
+  q_trailer: 0, q_veh: 0,
+  s_eng: "0", s_engov: 0, s_pbasis: "pct",
+  s_ppct: 0, s_pflat: 0, s_plan: 0,
+  s_insp: 0, s_inspc: 0, s_noa: 0, s_ir: 0,
+  s_core: 0, s_mock: 0, s_3rd: 0,
+  s_war: "0", s_warfee: 0,
+  m_tax: 0, m_cont: 0, m_gl: 0, m_bond: 0,
+  m_oh: 0, m_comm: 0, m_margin: 0, m_fin: 0,
 };
 
 // Labels for select options (used in scope-builder text output)
@@ -251,7 +185,7 @@ export function hydrateCatalog(next: {
   stacks?: Record<string, StackTemplate>;
   fieldDefaults?: Partial<SpfFields>;
 }) {
-  if (next.products && next.products.length) {
+  if (next.products) {
     PRODUCTS.splice(0, PRODUCTS.length, ...next.products);
   }
   if (next.details) {

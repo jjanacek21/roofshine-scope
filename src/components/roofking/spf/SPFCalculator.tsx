@@ -29,6 +29,18 @@ export function SPFCalculator() {
       </div>
     );
   }
+  if (catalog.products.filter((p) => p.active).length === 0) {
+    return (
+      <div className="rk-card p-8 text-center">
+        <div className="text-base font-semibold" style={{ color: "var(--rk-ink)" }}>
+          No roof systems configured yet
+        </div>
+        <p className="mx-auto mt-2 max-w-md text-sm" style={{ color: "var(--rk-ink-faint)" }}>
+          Add the systems your company offers to start estimating.
+        </p>
+      </div>
+    );
+  }
   return <SPFCalculatorInner catalog={catalog} />;
 }
 
@@ -48,7 +60,8 @@ function SPFCalculatorInner({ catalog }: { catalog: NonNullable<ReturnType<typeo
 
 
   const [fields, setFields] = useState<SpfFields>({ ...FIELD_DEFAULTS });
-  const [layers, setLayers] = useState<Layer[]>(() => stackFromPreset("sil2"));
+  const defaultStackKey = catalog.stacks.find((st) => st.active)?.key ?? "sil2";
+  const [layers, setLayers] = useState<Layer[]>(() => stackFromPreset(defaultStackKey));
   const [details, setDetails] = useState<Detail[]>(() => DETAILS_SEED.map((d) => [...d] as Detail));
   const importRef = useRef<HTMLInputElement>(null);
 
