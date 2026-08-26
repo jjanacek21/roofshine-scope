@@ -69,10 +69,24 @@ const TRACE_TTL_MS = 1000 * 60 * 30;
 /** ~1 m of latitude — same house, same key. */
 const pinKey = (lat: number, lng: number) => `${lat.toFixed(5)},${lng.toFixed(5)}`;
 
+/** Deadlines this tracer owns. See `budgetMs` below for why they live here. */
+const DEFAULT_GATEWAY_MS = 34_000;
+const IMAGE_MS = 10_000;
+
 export async function traceRoofFromPin(params: {
   lat: number;
   lng: number;
   candidateRing?: number[][] | null;
+  /**
+   * How long to give the vision gateway.
+   *
+   * A stalled gateway used to hang until the CALLER's race gave up, which
+   * handed back null with nothing to report — and a reasonless null reached
+   * the rep as "No satellite roof data for this address". That sent them off
+   * to hand-draw a roof the tracer finds on the next try. Owning the deadline
+   * here means every failure arrives with a reason attached.
+   */
+  budgetMs?: number;
   /** Called when the tracer itself failed (not "this roof has no coverage"). */
   onError?: (reason: string) => void;
 }): Promise<VisionRoofTrace | null> {
@@ -92,14 +106,24 @@ export async function traceRoofFromPin(params: {
   const imageUrl =
     `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/` +
     `${params.lng},${params.lat},${ZOOM},0/${IMAGE_SIZE}x${IMAGE_SIZE}?access_token=${mapboxKey}`;
-  const imageResponse = await fetch(imageUrl);
-  if (!imageResponse.ok) {
-    params.onError?.(`tracer_image_${imageResponse.status}`);
+  let imageData: string;
+  try {
+    const imageResponse = await fetch(imageUrl, { signal: AbortSignal.timeout(IMAGE_MS) });
+    if (!imageResponse.ok) {
+      params.onError?.(`tracer_image_${imageResponse.status}`);
+      return null;
+    }
+    const imageType = imageResponse.headers.get("content-type") || "image/jpeg";
+    const imageBytes = Buffer.from(await imageResponse.arrayBuffer()).toString("base64");
+    imageData = `data:${imageType};base64,${imageBytes}`;
+  } catch (error) {
+    console.warn(
+      "[roof-vision] satellite image unreachable",
+      error instanceof Error ? error.message : String(error),
+    );
+    params.onError?.("tracer_image_unreachable");
     return null;
   }
-  const imageType = imageResponse.headers.get("content-type") || "image/jpeg";
-  const imageBytes = Buffer.from(await imageResponse.arrayBuffer()).toString("base64");
-  const imageData = `data:${imageType};base64,${imageBytes}`;
   // Generic solar/building boxes are useful for location but poison the vision
   // trace by encouraging the exact rectangle the outline invariant forbids.
   const candidate = params.candidateRing?.length && checkOutline(params.candidateRing).ok
@@ -111,66 +135,95 @@ The dropped pin is exactly at normalized image coordinate x=0.5, y=0.5. Sample t
 An existing vector/solar candidate is provided as normalized points and is guidance, not ground truth: ${JSON.stringify(candidate)}.
 The result must follow the visible roof edge corner by corner. Never return the roof's bounding box, a generic square, or a 4-point axis-aligned rectangle. Include visible offsets, bump-outs, and direction changes; use at least 5 meaningful corners and at most 24. Every x and y must be between 0 and 1. Include one confidence value per polygon edge in the same order.`;
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Lovable-API-Key": lovableKey,
-      "X-Lovable-AIG-SDK": "fetch",
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-5.6-sol",
-      stream: true,
-      /*
-       * Low effort was fast but repeatedly approximated real roofs as boxes.
-       * Streaming keeps the request alive while medium effort follows edges.
-       */
-      reasoning: { effort: "medium" },
-      input: [
-        {
-          role: "user",
-          content: [
-            { type: "input_text", text: prompt },
-            { type: "input_image", image_url: imageData, detail: "high" },
-          ],
-        },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "roof_trace",
-          strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              points: {
-                type: "array",
-                minItems: 5,
-                maxItems: 24,
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: { x: { type: "number" }, y: { type: "number" } },
-                  required: ["x", "y"],
+  let response: Response;
+  try {
+    response = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
+      signal: AbortSignal.timeout(params.budgetMs ?? DEFAULT_GATEWAY_MS),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": lovableKey,
+        "X-Lovable-AIG-SDK": "fetch",
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-5.6-sol",
+        stream: true,
+        /*
+         * Low effort was fast but repeatedly approximated real roofs as boxes.
+         * Streaming keeps the request alive while medium effort follows edges.
+         */
+        reasoning: { effort: "medium" },
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: prompt },
+              { type: "input_image", image_url: imageData, detail: "high" },
+            ],
+          },
+        ],
+        text: {
+          format: {
+            type: "json_schema",
+            name: "roof_trace",
+            strict: true,
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                points: {
+                  type: "array",
+                  minItems: 5,
+                  maxItems: 24,
+                  items: {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: { x: { type: "number" }, y: { type: "number" } },
+                    required: ["x", "y"],
+                  },
                 },
+                confidence: { type: "number" },
+                edge_confidence: { type: "array", items: { type: "number" } },
               },
-              confidence: { type: "number" },
-              edge_confidence: { type: "array", items: { type: "number" } },
+              required: ["points", "confidence", "edge_confidence"],
             },
-            required: ["points", "confidence", "edge_confidence"],
           },
         },
-      },
-    }),
-  });
+      }),
+    });
+  } catch (error) {
+    /* AbortSignal.timeout rejects with TimeoutError; a dropped connection
+       rejects with something else. The rep needs to know which, because one
+       is worth retrying on the spot and the other is not. */
+    const timedOut = error instanceof Error && error.name === "TimeoutError";
+    console.warn(
+      "[roof-vision] gateway unreachable",
+      error instanceof Error ? error.message : String(error),
+    );
+    params.onError?.(timedOut ? "tracer_timed_out" : "tracer_unreachable");
+    return null;
+  }
   if (!response.ok) {
     console.warn("[roof-vision] gateway failed", response.status, (await response.text()).slice(0, 300));
     params.onError?.(`tracer_unavailable_${response.status}`);
     return null;
   }
 
-  const output = parseResponsesApiText(await response.text());
+  let body: string;
+  try {
+    body = await response.text();
+  } catch (error) {
+    /* The response streams. A stream that dies halfway is a broken read, not
+       a roof with no coverage. */
+    console.warn(
+      "[roof-vision] stream broke",
+      error instanceof Error ? error.message : String(error),
+    );
+    params.onError?.("tracer_stream_broken");
+    return null;
+  }
+
+  const output = parseResponsesApiText(body);
   if (!output) {
     console.warn("[roof-vision] empty model output");
     params.onError?.("tracer_empty_output");

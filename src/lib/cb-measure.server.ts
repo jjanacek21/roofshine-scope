@@ -135,14 +135,34 @@ export async function runCbInstantMeasure(
     }
   };
 
+  /**
+   * Worth a second swing?
+   *
+   * A tracer that answered "the pin is off the roof" or "that outline is a
+   * rectangle" is telling the truth and will say the same thing again. A
+   * tracer that never answered usually answers fine on the next call — the
+   * rep hitting Measure a second time is what used to fix this, so do it for
+   * them instead of sending them off to hand-draw the roof.
+   */
+  const worthRetrying = (reason: string | null) =>
+    reason === null ||
+    reason === "tracer_timed_out" ||
+    reason === "tracer_unreachable" ||
+    reason === "tracer_stream_broken" ||
+    reason === "tracer_image_unreachable" ||
+    reason.startsWith("tracer_unavailable_5");
+
   for (const pin of pins) {
+    /** Why the tracer came back empty for THIS pin. */
+    let pinFailure: string | null = null;
+
     /*
      * The vision trace only needs the pin — it does not depend on Google
      * Solar. Running them back to back meant a slow tracer blew the whole
      * budget and the crude box rectangle won. Start both at once so the total
      * is the slowest stage, not the sum.
      */
-    const [extract, vision] = await Promise.all([
+    const [extract, firstVision] = await Promise.all([
       withTimeout(
         runSolarRoofExtract({
           supabase,
@@ -159,14 +179,42 @@ export async function runCbInstantMeasure(
         traceRoofFromPin({
           lat: pin.lat,
           lng: pin.lng,
+          budgetMs: 34_000,
           onError: (reason) => {
-            tracerFailure ??= reason;
+            pinFailure ??= reason;
           },
         }),
-        40_000,
+        38_000,
         "vision",
       ),
     ]);
+
+    /*
+     * One retry, inside the client's 90s budget: 38s for the first pass, 22s
+     * for the second, and the extract already ran alongside the first. That
+     * leaves the save room to finish before the browser gives up.
+     */
+    let vision = firstVision;
+    if (!vision && worthRetrying(pinFailure)) {
+      console.warn("[cb-measure] retrying vision trace after", pinFailure ?? "silent_failure");
+      pinFailure = null;
+      vision = await withTimeout(
+        traceRoofFromPin({
+          lat: pin.lat,
+          lng: pin.lng,
+          budgetMs: 20_000,
+          onError: (reason) => {
+            pinFailure ??= reason;
+          },
+        }),
+        22_000,
+        "vision_retry",
+      );
+      /* Still nothing and still no reason means the outer race cut the retry
+         off. Say that, rather than blaming the address for it. */
+      if (!vision) pinFailure ??= "tracer_timed_out";
+    }
+    if (pinFailure) tracerFailure ??= pinFailure;
 
     /*
      * ONE outline per structure — docs/MEASUREMENT_INVARIANTS.md. The vision
