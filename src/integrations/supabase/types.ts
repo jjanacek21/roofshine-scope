@@ -6600,25 +6600,37 @@ export type Database = {
       }
       spf_calc_settings: {
         Row: {
+          company_id: string
           default_mode: string
           id: boolean
           updated_at: string
         }
         Insert: {
+          company_id?: string
           default_mode?: string
           id?: boolean
           updated_at?: string
         }
         Update: {
+          company_id?: string
           default_mode?: string
           id?: boolean
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "spf_calc_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       spf_details: {
         Row: {
           active: boolean
+          company_id: string
           created_at: string
           default_qty: number
           id: string
@@ -6630,6 +6642,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          company_id?: string
           created_at?: string
           default_qty?: number
           id?: string
@@ -6641,6 +6654,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          company_id?: string
           created_at?: string
           default_qty?: number
           id?: string
@@ -6650,10 +6664,19 @@ export type Database = {
           unit_cost?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "spf_details_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       spf_field_defaults: {
         Row: {
+          company_id: string
           field_key: string
           group_key: string
           label: string
@@ -6663,6 +6686,7 @@ export type Database = {
           value_text: string
         }
         Insert: {
+          company_id?: string
           field_key: string
           group_key: string
           label: string
@@ -6672,6 +6696,7 @@ export type Database = {
           value_text: string
         }
         Update: {
+          company_id?: string
           field_key?: string
           group_key?: string
           label?: string
@@ -6680,11 +6705,20 @@ export type Database = {
           updated_at?: string
           value_text?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "spf_field_defaults_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       spf_products: {
         Row: {
           active: boolean
+          company_id: string
           cost_per_gal: number
           created_at: string
           default_method: string
@@ -6698,6 +6732,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          company_id?: string
           cost_per_gal: number
           created_at?: string
           default_method: string
@@ -6711,6 +6746,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          company_id?: string
           cost_per_gal?: number
           created_at?: string
           default_method?: string
@@ -6722,11 +6758,20 @@ export type Database = {
           sort_order?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "spf_products_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       spf_stack_layers: {
         Row: {
           amount: number
+          company_id: string
           created_at: string
           id: string
           method: string
@@ -6740,6 +6785,7 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          company_id?: string
           created_at?: string
           id?: string
           method: string
@@ -6753,6 +6799,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          company_id?: string
           created_at?: string
           id?: string
           method?: string
@@ -6765,6 +6812,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "spf_stack_layers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "spf_stack_layers_product_id_fkey"
             columns: ["product_id"]
@@ -6784,6 +6838,7 @@ export type Database = {
       spf_stacks: {
         Row: {
           active: boolean
+          company_id: string
           created_at: string
           id: string
           key: string
@@ -6793,6 +6848,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          company_id?: string
           created_at?: string
           id?: string
           key: string
@@ -6802,6 +6858,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          company_id?: string
           created_at?: string
           id?: string
           key?: string
@@ -6809,7 +6866,15 @@ export type Database = {
           sort_order?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "spf_stacks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       storm_events: {
         Row: {
@@ -8052,6 +8117,7 @@ export type Database = {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
       }
+      has_commercial_module: { Args: never; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -8061,7 +8127,6 @@ export type Database = {
       }
       is_card_slug_available: { Args: { _slug: string }; Returns: boolean }
       is_company_admin: { Args: never; Returns: boolean }
-      is_roof_king_member: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       list_companies_for_signup: {
         Args: never
