@@ -85,6 +85,12 @@ function CbEstimatePage() {
   const [estimateId, setEstimateId] = useState<string | null>(null);
   /** Derived lines the rep deleted. A rebuild is not allowed to bring them back. */
   const [removedKeys, setRemovedKeys] = useState<string[]>([]);
+
+  /** Codes already on the estimate, so the browse sheet can tick them. */
+  const addedCodes = useMemo(
+    () => new Set(lines.map((l) => l.code).filter((c): c is string => !!c)),
+    [lines],
+  );
   const [askRebuild, setAskRebuild] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
@@ -644,7 +650,7 @@ function CbEstimatePage() {
 
               <div className="flex flex-wrap gap-2 px-5 py-4">
                 <CbButton variant="ghost" size="md" onClick={() => setPicking("new")}>
-                  <Search className="mr-1 h-4 w-4" /> Add from price book
+                  <Search className="mr-1 h-4 w-4" /> Add line items
                 </CbButton>
                 <CbButton variant="ghost" size="md" onClick={addLine}>
                   <Plus className="mr-1 h-4 w-4" /> Blank line
@@ -759,9 +765,22 @@ function CbEstimatePage() {
         </div>
       ) : null}
 
+      {/*
+        Adding fresh lines browses the book by trade and sub-group and stays open,
+        so a rep can take a whole sub-group in one pass. Swapping the code on an
+        existing line is a single decision, so that keeps the search list that
+        closes on pick.
+      */}
       <CbLineItemPicker
         open={picking !== null}
-        trade={picking && picking !== "new" ? (lines.find((l) => l.id === picking)?.trade ?? null) : null}
+        mode={picking === "new" ? "browse" : "search"}
+        companyId={inputs?.companyId ?? null}
+        addedCodes={addedCodes}
+        trade={
+          picking && picking !== "new"
+            ? (lines.find((l) => l.id === picking)?.trade ?? null)
+            : (lines.find((l) => l.trade)?.trade ?? "roofing")
+        }
         onPick={applyPick}
         onClose={() => setPicking(null)}
       />
