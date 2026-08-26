@@ -5,6 +5,19 @@
 
 export const CB_APP_URL = "https://gcn.claims";
 
+/**
+ * The one invite URL every email must use.
+ *
+ * It has to live under /cb. gcn.claims redirects any path outside /cb to the
+ * app home and drops the query string with it, so an invite sent to a top-level
+ * path arrives at /cb with no token — and a signed-out recipient is then handed
+ * the paid signup funnel. Four senders each built this string by hand and all
+ * four had it wrong; they call this now.
+ */
+export function cbInviteUrl(token: string | null | undefined): string {
+  return `${CB_APP_URL}/cb/accept?token=${token ?? ""}`;
+}
+
 function fromAddress() {
   return process.env["RESEND_FROM"] ?? "Claim Buddy <noreply@globalcontractor.app>";
 }

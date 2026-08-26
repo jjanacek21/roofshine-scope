@@ -18,7 +18,7 @@ export const cbSendInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => InviteInput.parse(data))
   .handler(async ({ data, context }) => {
-    const { sendMail, shell, CB_APP_URL } = await import("@/lib/cb-mail.server");
+    const { sendMail, shell, CB_APP_URL, cbInviteUrl } = await import("@/lib/cb-mail.server");
 
     const { data: result, error } = await context.supabase.rpc("cb_invite_member", {
       _ws: data.workspaceId,
@@ -49,7 +49,7 @@ export const cbSendInvite = createServerFn({ method: "POST" })
       return { ok: true as const, seated: true as const };
     }
 
-    const link = `${CB_APP_URL}/accept-invite?token=${payload.token ?? ""}`;
+    const link = cbInviteUrl(payload.token);
     const mail = await sendMail({
       to: data.email,
       subject: `You're invited to ${company} on Claim Buddy`,
@@ -69,7 +69,7 @@ export const cbResendInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => ResendInput.parse(data))
   .handler(async ({ data, context }) => {
-    const { sendMail, shell, CB_APP_URL } = await import("@/lib/cb-mail.server");
+    const { sendMail, shell, CB_APP_URL, cbInviteUrl } = await import("@/lib/cb-mail.server");
 
     /* RLS: only workspace admins can read invites. */
     const { data: invite, error } = await context.supabase
@@ -86,7 +86,7 @@ export const cbResendInvite = createServerFn({ method: "POST" })
       .eq("id", invite.workspace_id)
       .maybeSingle();
 
-    const link = `${CB_APP_URL}/accept-invite?token=${invite.token ?? ""}`;
+    const link = cbInviteUrl(invite.token);
     const mail = await sendMail({
       to: invite.email,
       subject: `Reminder: join ${ws?.name ?? "your team"} on Claim Buddy`,
@@ -120,7 +120,7 @@ export const cbLookupInvite = createServerFn({ method: "POST" })
 
     const { data: ws } = await supabaseAdmin
       .from("cb_workspaces")
-      .select("name")
+      .select("name, is_comp")
       .eq("id", invite.workspace_id)
       .maybeSingle();
 
@@ -135,6 +135,9 @@ export const cbLookupInvite = createServerFn({ method: "POST" })
       email: invite.email,
       role: invite.role,
       company: ws?.name ?? "Claim Buddy",
+      /* Comped companies never see a price. The accept page says so out loud,
+         because the last thing these customers were shown was a plan picker. */
+      isComp: !!(ws as { is_comp?: boolean } | null)?.is_comp,
       hasAccount: !!existing,
     };
   });

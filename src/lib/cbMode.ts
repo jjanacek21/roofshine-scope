@@ -41,12 +41,23 @@ export function isStandalone(): boolean {
   return getSurface() === "standalone";
 }
 
-/** Routes that stay reachable on the standalone surface. */
+/**
+ * Routes that stay reachable on the standalone surface.
+ *
+ * Anything NOT listed here is redirected to /cb with its query string thrown
+ * away — which is how invite links died: `/accept-invite?token=…` fell outside
+ * this list, so gcn.claims dropped the token, sent the invitee to /cb, and /cb
+ * sent a signed-out visitor into the paid signup funnel. A comped customer was
+ * shown a $120/mo plan picker instead of a password field.
+ *
+ * Any new path that an outside link can point at MUST be added here.
+ */
 export function isClaimBuddyPath(pathname: string): boolean {
   return (
     pathname === "/cb" ||
     pathname.startsWith("/cb/") ||
-    pathname.startsWith("/r/")
+    pathname.startsWith("/r/") ||
+    pathname === "/accept-invite"
   );
 }
 

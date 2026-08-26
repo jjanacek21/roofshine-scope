@@ -130,7 +130,7 @@ export const cbAdminCreateCompany = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context.supabase as never, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { sendMail, shell, CB_APP_URL } = await import("@/lib/cb-mail.server");
+    const { sendMail, shell, CB_APP_URL, cbInviteUrl } = await import("@/lib/cb-mail.server");
 
     const { data: ws, error } = await supabaseAdmin
       .from("cb_workspaces")
@@ -195,13 +195,16 @@ export const cbAdminCreateCompany = createServerFn({ method: "POST" })
           } as never)
           .select("token")
           .single();
-        inviteLink = `${CB_APP_URL}/accept-invite?token=${inv?.token ?? ""}`;
+        inviteLink = cbInviteUrl(inv?.token);
         await sendMail({
           to: email,
           subject: `You're invited to run ${data.name} on Claim Buddy`,
           html: shell(
             `Set up ${data.name} on Claim Buddy`,
-            `<p>You've been set up as the <strong>owner</strong>. Accept the invite to choose a password and invite your reps.</p>`,
+            /* Say the money part first. These owners were landing on a plan
+               picker and assuming the free access had not been applied. */
+            `<p>You've been set up as the <strong>owner</strong> of ${data.name}. Your account is already active — there is no plan to choose and no card to enter.</p>
+             <p>Accept the invite to pick a password, then add your logo and colours so every report goes out branded.</p>`,
             { label: "Accept invite", href: inviteLink },
           ),
         });
@@ -227,7 +230,7 @@ export const cbAdminUpsertUser = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context.supabase as never, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { sendMail, shell, CB_APP_URL } = await import("@/lib/cb-mail.server");
+    const { sendMail, shell, CB_APP_URL, cbInviteUrl } = await import("@/lib/cb-mail.server");
 
     const email = data.email.toLowerCase();
     const { data: ws } = await supabaseAdmin
@@ -303,13 +306,13 @@ export const cbAdminUpsertUser = createServerFn({ method: "POST" })
       .single();
     if (invErr) throw new Error(invErr.message);
 
-    const link = `${CB_APP_URL}/accept-invite?token=${inv?.token ?? ""}`;
+    const link = cbInviteUrl(inv?.token);
     await sendMail({
       to: email,
       subject: `You're invited to ${ws?.name ?? "Claim Buddy"}`,
       html: shell(
         `Join ${ws?.name ?? "Claim Buddy"}`,
-        `<p>You've been invited as <strong>${data.role}</strong>. Accept the invite to set your password.</p>`,
+        `<p>You've been invited as <strong>${data.role}</strong>. Your seat is already paid for — accept the invite to set your password and you're in.</p>`,
         { label: "Accept invite", href: link },
       ),
     });
