@@ -90,7 +90,39 @@ export type SpfFields = {
   m_oh: number; m_comm: number; m_margin: number; m_fin: number;
 };
 
-export const FIELD_DEFAULTS: SpfFields = { ...NEUTRAL_FIELDS };
+// Structural zero-state only — every value below is a neutral placeholder, not
+// a price. Real values come from the company's own spf_field_defaults rows.
+export const FIELD_DEFAULTS: SpfFields = {
+  p_name: "", p_addr: "", p_sqft: 0, p_areawaste: 0,
+  p_geo: "1.00", p_slope: "1.00",
+  e_deck: "steel", e_surf: "burs", e_layers: 0, e_tear: "0",
+  e_tearcost: 0, e_disp: 0, e_deckrep: 0, e_deckrepc: 0,
+  e_prep: "0.06", e_rustpct: 0, e_rustm: "0.35",
+  e_mildew: 0, e_fast: 0, e_dry: 0,
+  a_ht: 0, a_hose: 0, a_method: "1",
+  a_liftrate: 0, a_liftdays: 0, a_liftdel: 0,
+  a_cranerate: 0, a_cranehrs: 0, a_hoist: 0,
+  a_occ: "1.00", a_overspray: 0, a_screens: 0, a_shift: "1.00",
+  f_on: "0", f_dens: "3.0", f_thick: 0, f_taper: 0,
+  f_yield: 0, f_waste: 0, f_cost: 0, f_freight: 0,
+  f_amb: "1.00", f_tex: "0",
+  r_lf: 0, r_w: 0, r_type: "0.42", r_c: 0,
+  r_rate: 0, r_fieldpct: 0, r_fieldc: 0,
+  l_foamrate: 0, l_preprate: 0, l_rustrate: 0, l_tearrate: 0,
+  l_crew: 0, l_wage: 0, l_hrs: 0, l_burden: 0,
+  l_mobs: 0, l_mobc: 0, l_diem: 0, l_lodge: 0,
+  l_wx: 0, l_super: 0,
+  q_rig: 0, q_fuel: 0, q_pump: 0, q_wash: 0,
+  q_cons: 0, q_hand: 0, q_dump: 0, q_dumpc: 0,
+  q_trailer: 0, q_veh: 0,
+  s_eng: "0", s_engov: 0, s_pbasis: "pct",
+  s_ppct: 0, s_pflat: 0, s_plan: 0,
+  s_insp: 0, s_inspc: 0, s_noa: 0, s_ir: 0,
+  s_core: 0, s_mock: 0, s_3rd: 0,
+  s_war: "0", s_warfee: 0,
+  m_tax: 0, m_cont: 0, m_gl: 0, m_bond: 0,
+  m_oh: 0, m_comm: 0, m_margin: 0, m_fin: 0,
+};
 
 // Labels for select options (used in scope-builder text output)
 export const DECK_LABELS: Record<string, string> = {
