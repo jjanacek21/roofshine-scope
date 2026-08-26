@@ -1,60 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useCbSession } from "@/components/auth/CbSessionProvider";
 import { useCbCompany } from "@/components/auth/CbCompanyProvider";
 import { useCbLogoUrl } from "@/lib/cbLogo";
-import { CbLockChip, useCbFeature, useCbFeatureGuard } from "@/components/claim-buddy/CbFeatureGate";
-import { CbCard, CbTile, CbButton, CbChip, CbBadge, CbLoading, CbEmptyState, CbSkeleton } from "@/components/cb/primitives";
-import { CbReveal, CbStagger } from "@/components/cb/motion";
-import { CbConvertAction } from "@/components/cb/CbConvertAction";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Search, Camera, ChevronRight, Building2, Settings, PlayCircle, Trash2, Map as MapIcon, BookOpenText, ListFilter } from "lucide-react";
+  CbLockChip,
+  useCbFeature,
+  useCbFeatureGuard,
+} from "@/components/claim-buddy/CbFeatureGate";
+import { CbCard, CbTile, CbButton, CbChip, CbLoading } from "@/components/cb/primitives";
+import { CbReveal, CbStagger } from "@/components/cb/motion";
+import {
+  ChevronRight,
+  Building2,
+  Settings,
+  PlayCircle,
+  Map as MapIcon,
+  BookOpenText,
+  ListFilter,
+} from "lucide-react";
 import { toast } from "sonner";
 
-const STATUSES: { value: string; label: string; tone: "neutral" | "success" | "warning" | "danger" | "accent" }[] = [
-  { value: "draft", label: "Draft", tone: "neutral" },
-  { value: "inspecting", label: "Inspecting", tone: "warning" },
-  { value: "report_ready", label: "Report ready", tone: "accent" },
-  { value: "presented", label: "Presented", tone: "accent" },
-  { value: "signed", label: "Signed", tone: "success" },
-  { value: "converted", label: "Converted", tone: "success" },
-];
-
-function statusMeta(value: string | null) {
-  return STATUSES.find((s) => s.value === value) ?? { value: value ?? "draft", label: value ?? "Draft", tone: "neutral" as const };
-}
-
-function dispositionLabel(value: string | null) {
-  if (!value) return "Not contacted";
-  return value.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
-}
-
-interface CbDispositionRow {
-  id: string;
-  address: string | null;
-  lat: number;
-  lng: number;
-  disposition: string | null;
-  customer_name: string | null;
-  created_at: string;
-  updated_at: string | null;
-}
-
 interface CbJobRow {
-
   id: string;
   address: string | null;
   customer_name: string | null;
@@ -73,14 +44,7 @@ export function CbDashboard() {
   const { data: profile } = useProfile();
   const logoUrl = useCbLogoUrl(company?.logo_url);
 
-  const [filter, setFilter] = useState<string | null>(null);
-  const [view, setView] = useState<"jobs" | "dispositions">("jobs");
-  const [search, setSearch] = useState("");
-
   const [starting, setStarting] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<CbJobRow | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const queryClient = useQueryClient();
 
   const jobsQuery = useQuery({
     queryKey: ["cb-jobs", workspace?.id],
@@ -98,25 +62,6 @@ export function CbDashboard() {
 
   const jobs = useMemo(() => jobsQuery.data ?? [], [jobsQuery.data]);
 
-  const photosQuery = useQuery({
-    queryKey: ["cb-photo-counts", workspace?.id, jobs.length],
-    enabled: !!workspace?.id && jobs.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cb_photos")
-        .select("job_id")
-        .in(
-          "job_id",
-          jobs.map((j) => j.id),
-        );
-      if (error) throw error;
-      const counts: Record<string, number> = {};
-      for (const row of data ?? []) counts[row.job_id] = (counts[row.job_id] ?? 0) + 1;
-      return counts;
-    },
-  });
-  const photoCounts = photosQuery.data ?? {};
-
   const stats = useMemo(() => {
     const now = Date.now();
     const week = now - 7 * 864e5;
@@ -133,50 +78,6 @@ export function CbDashboard() {
       ).length,
     };
   }, [jobs]);
-
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return jobs.filter((j) => {
-      if (filter && j.status !== filter) return false;
-      if (!q) return true;
-      return (
-        (j.address ?? "").toLowerCase().includes(q) || (j.customer_name ?? "").toLowerCase().includes(q)
-      );
-    });
-  }, [jobs, filter, search]);
-
-  /* Canvassed doors that have NOT become inspections yet — kept out of the job list. */
-  const seesAll = workspace?.role === "owner" || workspace?.role === "admin";
-  const dispositionsQuery = useQuery({
-    queryKey: ["cb-open-dispositions", user?.id, workspace?.id, seesAll],
-    enabled: !!user?.id && view === "dispositions",
-    queryFn: async () => {
-      /* Reps see the doors they pinned; owners and admins see the whole company's. */
-      let q = supabase
-        .from("property_dispositions")
-        .select("id, address, lat, lng, disposition, customer_name, created_at, updated_at");
-      q = seesAll && workspace?.id ? q.eq("workspace_id", workspace.id) : q.eq("user_id", user!.id);
-      const { data, error } = await q
-        .is("cb_job_id", null)
-        .order("updated_at", { ascending: false })
-        .limit(300);
-      if (error) throw error;
-      return (data ?? []) as CbDispositionRow[];
-    },
-  });
-
-  const visibleDispositions = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const rows = dispositionsQuery.data ?? [];
-    if (!q) return rows;
-    return rows.filter(
-      (d) =>
-        (d.address ?? "").toLowerCase().includes(q) ||
-        (d.customer_name ?? "").toLowerCase().includes(q),
-    );
-  }, [dispositionsQuery.data, search]);
-
-
 
   /* A brand-new workspace gets one demo inspection so the whole flow is walkable. */
   useEffect(() => {
@@ -198,7 +99,6 @@ export function CbDashboard() {
     [jobs],
   );
 
-
   async function startInspection() {
     if (!workspace || !company || !user) return;
     setStarting(true);
@@ -219,22 +119,6 @@ export function CbDashboard() {
     }
     navigate({ to: "/cb/job/$id/customer", params: { id: data.id } });
   }
-
-  async function confirmDelete() {
-    if (!pendingDelete) return;
-    setDeleting(true);
-    const { error } = await supabase.from("cb_jobs").delete().eq("id", pendingDelete.id);
-    setDeleting(false);
-    if (error) {
-      toast.error(error.message || "Could not delete the inspection");
-      return;
-    }
-    setPendingDelete(null);
-    toast.success("Inspection deleted");
-    await queryClient.invalidateQueries({ queryKey: ["cb-jobs", workspace?.id] });
-  }
-
-
 
   if (sessionLoading || companyLoading) {
     return (
@@ -260,7 +144,11 @@ export function CbDashboard() {
             }}
           >
             {logoUrl ? (
-              <img src={logoUrl} alt={`${company?.name ?? "Company"} logo`} className="h-full w-full object-contain" />
+              <img
+                src={logoUrl}
+                alt={`${company?.name ?? "Company"} logo`}
+                className="h-full w-full object-contain"
+              />
             ) : (
               <Building2 className="h-5 w-5" />
             )}
@@ -273,7 +161,13 @@ export function CbDashboard() {
               {repName}
             </p>
           </div>
-          {surface === "platform" ? <CbChip>Inside GlobalContractor</CbChip> : null}
+          {/* On a phone this chip squeezed the company name down to "G.." — the
+              banner right below already says the same thing. */}
+          {surface === "platform" ? (
+            <span className="hidden sm:inline-flex">
+              <CbChip>Inside GlobalContractor</CbChip>
+            </span>
+          ) : null}
           <button
             type="button"
             aria-label="Settings"
@@ -283,7 +177,6 @@ export function CbDashboard() {
           >
             <Settings className="h-4.5 w-4.5" />
           </button>
-
         </div>
       </CbReveal>
 
@@ -336,7 +229,12 @@ export function CbDashboard() {
               <ListFilter className="h-4 w-4" /> Leads
             </span>
           </CbButton>
-          <CbButton block loading={starting} loadingText="Creating inspection…" onClick={startInspection}>
+          <CbButton
+            block
+            loading={starting}
+            loadingText="Creating inspection…"
+            onClick={startInspection}
+          >
             Start Inspection
           </CbButton>
         </div>
@@ -362,260 +260,14 @@ export function CbDashboard() {
                   {resumeJob.customer_name || "No customer yet"}
                 </p>
               </div>
-              <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--cb-text-muted)" }} />
+              <ChevronRight
+                className="h-4 w-4 shrink-0"
+                style={{ color: "var(--cb-text-muted)" }}
+              />
             </div>
           </CbCard>
         </CbReveal>
       ) : null}
-
-
-
-
-      {/* Search + filters */}
-      <CbReveal delay={110}>
-        <div className="mt-7">
-          <div
-            className="flex h-[52px] items-center gap-2 rounded-[14px] px-4"
-            style={{ border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))" }}
-          >
-            <Search className="h-4 w-4" style={{ color: "var(--cb-text-muted)" }} />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={view === "dispositions" ? "Search address or resident" : "Search address or customer"}
-              aria-label="Search"
-              className="h-full flex-1 bg-transparent text-[14px] outline-none"
-            />
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <FilterChip
-              label="All"
-              active={view === "jobs" && filter === null}
-              onClick={() => {
-                setView("jobs");
-                setFilter(null);
-              }}
-            />
-            {STATUSES.map((s) => (
-              <FilterChip
-                key={s.value}
-                label={s.label}
-                active={view === "jobs" && filter === s.value}
-                onClick={() => {
-                  setView("jobs");
-                  setFilter(filter === s.value ? null : s.value);
-                }}
-              />
-            ))}
-            <FilterChip
-              label="Dispositions"
-              active={view === "dispositions"}
-              onClick={() => setView(view === "dispositions" ? "jobs" : "dispositions")}
-            />
-          </div>
-        </div>
-      </CbReveal>
-
-      {/* Dispositions list — canvassed doors that aren't inspections yet */}
-      {view === "dispositions" ? (
-        <div className="mt-5 space-y-3">
-          {dispositionsQuery.isLoading ? (
-            <>
-              <CbSkeleton height={78} radius={18} />
-              <CbSkeleton height={78} radius={18} />
-            </>
-          ) : visibleDispositions.length === 0 ? (
-            <CbEmptyState
-              headline="No open dispositions yet — knock some doors."
-              action={
-                <CbButton variant="secondary" onClick={() => navigate({ to: "/cb/map" })}>
-                  Door to Door mode
-                </CbButton>
-              }
-            />
-          ) : (
-            <CbStagger className="space-y-3">
-              {visibleDispositions.map((d) => (
-                <CbCard
-                  key={d.id}
-                  elevation="card"
-                  className="cursor-pointer"
-                  style={{ padding: 16 }}
-                  onClick={() =>
-                    navigate({ to: "/cb/map", search: { lat: d.lat, lng: d.lng } })
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[15px] font-semibold">
-                        {d.address || `${d.lat.toFixed(5)}, ${d.lng.toFixed(5)}`}
-                      </p>
-                      <p className="truncate text-[12.5px]" style={{ color: "var(--cb-text-muted)" }}>
-                        {d.customer_name || "No resident details yet"}
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <CbBadge tone="neutral">{dispositionLabel(d.disposition)}</CbBadge>
-                        <span className="text-[11.5px]" style={{ color: "var(--cb-text-muted)" }}>
-                          {new Date(d.updated_at ?? d.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--cb-text-muted)" }} />
-                  </div>
-                </CbCard>
-              ))}
-            </CbStagger>
-          )}
-        </div>
-      ) : (
-      /* Job list */
-      <div className="mt-5 space-y-3">
-
-        {jobsQuery.isLoading ? (
-          <>
-            <CbSkeleton height={78} radius={18} />
-            <CbSkeleton height={78} radius={18} />
-          </>
-        ) : visible.length === 0 ? (
-          <CbEmptyState
-            headline={jobs.length === 0 ? "No inspections yet — let's go get one." : "Nothing matches that filter."}
-            action={
-              jobs.length === 0 ? (
-                <CbButton onClick={startInspection} loading={starting} loadingText="Creating inspection…">
-                  Start Inspection
-                </CbButton>
-              ) : undefined
-            }
-          />
-        ) : (
-          <CbStagger className="space-y-3">
-            {visible.map((job) => {
-              const meta = statusMeta(job.status);
-              return (
-                <CbCard
-                  key={job.id}
-                  elevation="card"
-                  className="cursor-pointer"
-                  style={{ padding: 16 }}
-                  onClick={() => navigate({ to: "/cb/job/$id/customer", params: { id: job.id } })}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[15px] font-semibold">{job.address || "New inspection"}</p>
-                      <p className="truncate text-[12.5px]" style={{ color: "var(--cb-text-muted)" }}>
-                        {job.customer_name || "No customer yet"}
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <CbBadge tone={meta.tone}>{meta.label}</CbBadge>
-                        <span
-                          className="inline-flex items-center gap-1 text-[11.5px]"
-                          style={{ color: "var(--cb-text-muted)" }}
-                        >
-                          <Camera className="h-3.5 w-3.5" />
-                          <span className="cb-num">{photoCounts[job.id] ?? 0}</span>
-                        </span>
-                        <span className="text-[11.5px]" style={{ color: "var(--cb-text-muted)" }}>
-                          {new Date(job.updated_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end gap-2">
-                      {job.status === "report_ready" ||
-                      job.status === "presented" ||
-                      job.status === "signed" ||
-                      job.status === "converted" ? (
-                        <CbConvertAction jobId={job.id} size="compact" />
-                      ) : null}
-                      {job.status === "report_ready" || job.status === "presented" ? (
-                        <CbButton
-                          size="md"
-                          variant="secondary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate({ to: "/cb/job/$id/present", params: { id: job.id } });
-                          }}
-                        >
-                          Present
-                        </CbButton>
-                      ) : null}
-                      <button
-                        type="button"
-                        aria-label={`Delete inspection ${job.address || ""}`.trim()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPendingDelete(job);
-                        }}
-                        className="flex h-11 w-11 items-center justify-center rounded-[12px]"
-                        style={{
-                          border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))",
-                          color: "var(--cb-danger, #b42318)",
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--cb-text-muted)" }} />
-
-                  </div>
-                </CbCard>
-              );
-            })}
-          </CbStagger>
-        )}
-      </div>
-      )}
-
-
-      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this inspection?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingDelete?.address || "This inspection"} and all of its photos, measurements,
-              reports and contracts will be permanently removed. This can't be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={deleting}
-              onClick={(e) => {
-                e.preventDefault();
-                void confirmDelete();
-              }}
-            >
-              {deleting ? "Deleting…" : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
-
-  );
-}
-
-function FilterChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`cb-chip ${active ? "is-active" : ""}`}
-      style={
-        active
-          ? { background: "var(--cb-accent)", color: "#fff", borderColor: "transparent" }
-          : undefined
-      }
-    >
-      {label}
-    </button>
   );
 }
