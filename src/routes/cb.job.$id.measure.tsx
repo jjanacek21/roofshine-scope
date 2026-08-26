@@ -68,6 +68,31 @@ const STEPS = [
   "Finishing up…",
 ];
 
+/**
+ * What to tell a rep standing on a roof when the measurement came back empty.
+ *
+ * Each line has to point at the next action, and the action has to be the one
+ * that actually works. "No satellite roof data for this address" used to cover
+ * a tracer that had merely run out of time, which sent reps off to hand-draw a
+ * roof the second attempt traces fine.
+ */
+function measureFailureMessage(reason: string, tracerStalled: boolean): string {
+  if (reason === "no_credits") return "Out of measurement credits — enter it by hand";
+  if (tracerStalled) return "The roof tracer is busy — tap Measure roof again, or draw it by hand";
+  if (reason.startsWith("tracer_")) {
+    const detail = reason.replace("tracer_", "").replaceAll("_", " ");
+    return `The roof tracer could not finish (${detail}) — move the pin and try again`;
+  }
+  if (reason.startsWith("save_")) return "The roof was traced but could not be saved — try again";
+  if (reason.startsWith("engine_error:")) {
+    return `Measurement failed: ${reason.slice("engine_error:".length)}`;
+  }
+  if (reason === "no_coverage" || reason === "no_footprint") {
+    return "No satellite roof data for this address — trace it or type it in";
+  }
+  return "Couldn't measure from satellite — enter it by hand";
+}
+
 function CbJobMeasurePage() {
   const { id } = useParams({ from: "/cb/job/$id/measure" });
   const navigate = useNavigate();
@@ -286,8 +311,10 @@ function CbJobMeasurePage() {
           jobId: id,
           pins: [newPin],
         }),
+        /* 38s first trace + 22s retry + the save has to fit under this, or the
+           client kills a measurement the server was about to hand back. */
         new Promise<MeasureResult>((_, reject) =>
-          setTimeout(() => reject(new Error("measure_timeout")), 75_000),
+          setTimeout(() => reject(new Error("measure_timeout")), 90_000),
         ),
       ]);
     } catch (error) {
@@ -372,19 +399,18 @@ function CbJobMeasurePage() {
     setUpgrade(res.reason === "no_credits");
     setValues((v) => ({ ...v, source: "manual" }));
     setPhase("manual");
-    toast.message(
-      res.reason === "no_credits"
-        ? "Out of measurement credits — enter it by hand"
-        : res.reason.startsWith("tracer_")
-          ? `The roof tracer could not finish (${res.reason.replace("tracer_", "").replaceAll("_", " ")}) — move the pin and try again`
-          : res.reason.startsWith("save_")
-            ? "The roof was traced but could not be saved — try again"
-            : res.reason.startsWith("engine_error:")
-              ? `Measurement failed: ${res.reason.slice("engine_error:".length)}`
-          : res.reason === "no_coverage" || res.reason === "no_footprint"
-            ? "No satellite roof data for this address — trace it or type it in"
-            : "Couldn't measure from satellite — enter it by hand",
-    );
+    /* A tracer that ran out of time says nothing about the address, so it must
+       not read like one. Moving the pin does not help here — hitting Measure
+       again does, and it already worked on the second pass more often than
+       not. */
+    const tracerStalled =
+      res.reason === "tracer_timed_out" ||
+      res.reason === "tracer_unreachable" ||
+      res.reason === "tracer_stream_broken" ||
+      res.reason === "tracer_image_unreachable" ||
+      res.reason.startsWith("tracer_unavailable_");
+
+    toast.message(measureFailureMessage(res.reason, tracerStalled));
 
   }
 
