@@ -161,6 +161,7 @@ function AdminCompanies() {
                     <Link
                       to="/admin/companies/$id"
                       params={{ id: c.id }}
+                      search={{ tab: undefined }}
                       className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                     >
                       Manage <ArrowRight className="h-3 w-3" />

@@ -95,14 +95,14 @@ export const adminSaveCompany = createServerFn({ method: "POST" })
     if (id) {
       const { error } = await supabaseAdmin
         .from("companies")
-        .update({ ...values, updated_at: new Date().toISOString() })
+        .update({ ...values, updated_at: new Date().toISOString() } as never)
         .eq("id", id);
       if (error) throw new Error(error.message);
       return { id };
     }
     const { data: row, error } = await supabaseAdmin
       .from("companies")
-      .insert(values)
+      .insert(values as never)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
