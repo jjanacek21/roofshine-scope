@@ -76,6 +76,7 @@ import { Route as CbIndexRouteImport } from './routes/cb.index'
 import { Route as CbAcceptRouteImport } from './routes/cb.accept'
 import { Route as CbAdminRouteImport } from './routes/cb.admin'
 import { Route as CbCompaniesRouteImport } from './routes/cb.companies'
+import { Route as CbLeadsRouteImport } from './routes/cb.leads'
 import { Route as CbLoginRouteImport } from './routes/cb.login'
 import { Route as CbMapRouteImport } from './routes/cb.map'
 import { Route as CbOnboardingRouteImport } from './routes/cb.onboarding'
@@ -127,6 +128,7 @@ import { Route as CbAdminBrandingRouteImport } from './routes/cb.admin.branding'
 import { Route as CbAdminPricingRouteImport } from './routes/cb.admin.pricing'
 import { Route as CbAdminSeatsRouteImport } from './routes/cb.admin.seats'
 import { Route as CbAdminTeamRouteImport } from './routes/cb.admin.team'
+import { Route as CbLeadIdRouteImport } from './routes/cb.lead.$id'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
 import { Route as AppJobsIdContractRouteImport } from './routes/_app.jobs.$id.contract'
 import { Route as AppJobsIdDocumentsRouteImport } from './routes/_app.jobs.$id.documents'
@@ -487,6 +489,11 @@ const CbCompaniesRoute = CbCompaniesRouteImport.update({
   path: '/cb/companies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbLeadsRoute = CbLeadsRouteImport.update({
+  id: '/cb/leads',
+  path: '/cb/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CbLoginRoute = CbLoginRouteImport.update({
   id: '/cb/login',
   path: '/cb/login',
@@ -743,6 +750,11 @@ const CbAdminTeamRoute = CbAdminTeamRouteImport.update({
   path: '/team',
   getParentRoute: () => CbAdminRoute,
 } as any)
+const CbLeadIdRoute = CbLeadIdRouteImport.update({
+  id: '/cb/lead/$id',
+  path: '/cb/lead/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppJobsIdIndexRoute = AppJobsIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -930,6 +942,7 @@ export interface FileRoutesByFullPath {
   '/cb/accept': typeof CbAcceptRoute
   '/cb/admin': typeof CbAdminRouteWithChildren
   '/cb/companies': typeof CbCompaniesRoute
+  '/cb/leads': typeof CbLeadsRoute
   '/cb/login': typeof CbLoginRoute
   '/cb/map': typeof CbMapRoute
   '/cb/onboarding': typeof CbOnboardingRoute
@@ -975,6 +988,7 @@ export interface FileRoutesByFullPath {
   '/cb/admin/pricing': typeof CbAdminPricingRoute
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
+  '/cb/lead/$id': typeof CbLeadIdRoute
   '/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
   '/jobs/': typeof AppJobsIndexRoute
@@ -1065,6 +1079,7 @@ export interface FileRoutesByTo {
   '/c/$slug': typeof CSlugRoute
   '/cb/accept': typeof CbAcceptRoute
   '/cb/companies': typeof CbCompaniesRoute
+  '/cb/leads': typeof CbLeadsRoute
   '/cb/login': typeof CbLoginRoute
   '/cb/map': typeof CbMapRoute
   '/cb/onboarding': typeof CbOnboardingRoute
@@ -1110,6 +1125,7 @@ export interface FileRoutesByTo {
   '/cb/admin/pricing': typeof CbAdminPricingRoute
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
+  '/cb/lead/$id': typeof CbLeadIdRoute
   '/door-to-door': typeof AppDoorToDoorIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
   '/jobs': typeof AppJobsIndexRoute
@@ -1209,6 +1225,7 @@ export interface FileRoutesById {
   '/cb/accept': typeof CbAcceptRoute
   '/cb/admin': typeof CbAdminRouteWithChildren
   '/cb/companies': typeof CbCompaniesRoute
+  '/cb/leads': typeof CbLeadsRoute
   '/cb/login': typeof CbLoginRoute
   '/cb/map': typeof CbMapRoute
   '/cb/onboarding': typeof CbOnboardingRoute
@@ -1255,6 +1272,7 @@ export interface FileRoutesById {
   '/cb/admin/pricing': typeof CbAdminPricingRoute
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
+  '/cb/lead/$id': typeof CbLeadIdRoute
   '/_app/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
@@ -1355,6 +1373,7 @@ export interface FileRouteTypes {
     | '/cb/accept'
     | '/cb/admin'
     | '/cb/companies'
+    | '/cb/leads'
     | '/cb/login'
     | '/cb/map'
     | '/cb/onboarding'
@@ -1400,6 +1419,7 @@ export interface FileRouteTypes {
     | '/cb/admin/pricing'
     | '/cb/admin/seats'
     | '/cb/admin/team'
+    | '/cb/lead/$id'
     | '/door-to-door/'
     | '/invoices/'
     | '/jobs/'
@@ -1490,6 +1510,7 @@ export interface FileRouteTypes {
     | '/c/$slug'
     | '/cb/accept'
     | '/cb/companies'
+    | '/cb/leads'
     | '/cb/login'
     | '/cb/map'
     | '/cb/onboarding'
@@ -1535,6 +1556,7 @@ export interface FileRouteTypes {
     | '/cb/admin/pricing'
     | '/cb/admin/seats'
     | '/cb/admin/team'
+    | '/cb/lead/$id'
     | '/door-to-door'
     | '/invoices'
     | '/jobs'
@@ -1633,6 +1655,7 @@ export interface FileRouteTypes {
     | '/cb/accept'
     | '/cb/admin'
     | '/cb/companies'
+    | '/cb/leads'
     | '/cb/login'
     | '/cb/map'
     | '/cb/onboarding'
@@ -1679,6 +1702,7 @@ export interface FileRouteTypes {
     | '/cb/admin/pricing'
     | '/cb/admin/seats'
     | '/cb/admin/team'
+    | '/cb/lead/$id'
     | '/_app/door-to-door/'
     | '/_app/invoices/'
     | '/_app/jobs/'
@@ -1749,6 +1773,7 @@ export interface RootRouteChildren {
   CbAcceptRoute: typeof CbAcceptRoute
   CbAdminRoute: typeof CbAdminRouteWithChildren
   CbCompaniesRoute: typeof CbCompaniesRoute
+  CbLeadsRoute: typeof CbLeadsRoute
   CbLoginRoute: typeof CbLoginRoute
   CbMapRoute: typeof CbMapRoute
   CbOnboardingRoute: typeof CbOnboardingRoute
@@ -1760,6 +1785,7 @@ export interface RootRouteChildren {
   CbIndexRoute: typeof CbIndexRoute
   ApiPublicCbShareRoute: typeof ApiPublicCbShareRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
+  CbLeadIdRoute: typeof CbLeadIdRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   CbJobIdContractRoute: typeof CbJobIdContractRoute
   CbJobIdCoverRoute: typeof CbJobIdCoverRoute
@@ -2248,6 +2274,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbCompaniesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/leads': {
+      id: '/cb/leads'
+      path: '/cb/leads'
+      fullPath: '/cb/leads'
+      preLoaderRoute: typeof CbLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cb/login': {
       id: '/cb/login'
       path: '/cb/login'
@@ -2604,6 +2637,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/cb/admin/team'
       preLoaderRoute: typeof CbAdminTeamRouteImport
       parentRoute: typeof CbAdminRoute
+    }
+    '/cb/lead/$id': {
+      id: '/cb/lead/$id'
+      path: '/cb/lead/$id'
+      fullPath: '/cb/lead/$id'
+      preLoaderRoute: typeof CbLeadIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/jobs/$id/': {
       id: '/_app/jobs/$id/'
@@ -3088,6 +3128,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbAcceptRoute: CbAcceptRoute,
   CbAdminRoute: CbAdminRouteWithChildren,
   CbCompaniesRoute: CbCompaniesRoute,
+  CbLeadsRoute: CbLeadsRoute,
   CbLoginRoute: CbLoginRoute,
   CbMapRoute: CbMapRoute,
   CbOnboardingRoute: CbOnboardingRoute,
@@ -3099,6 +3140,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbIndexRoute: CbIndexRoute,
   ApiPublicCbShareRoute: ApiPublicCbShareRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
+  CbLeadIdRoute: CbLeadIdRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   CbJobIdContractRoute: CbJobIdContractRoute,
   CbJobIdCoverRoute: CbJobIdCoverRoute,
