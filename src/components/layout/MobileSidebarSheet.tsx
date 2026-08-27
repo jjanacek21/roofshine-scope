@@ -62,6 +62,9 @@ export function MobileSidebarSheet() {
   const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
   const { can } = useFeatures();
+  const brand = useCompanyBrand();
+  const navLabel = (to: string, label: string) =>
+    to === "/commercial" ? brand.moduleLabel : label;
   const isSuperAdmin = profile?.role === "super_admin";
   const isCompanyAdmin =
     profile?.role === "owner" || profile?.role === "admin" || isSuperAdmin;
