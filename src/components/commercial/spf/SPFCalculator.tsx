@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Trash2, Plus, Printer, Copy, Download, Upload, Loader2 } from "lucide-react";
+import { Trash2, Plus, Printer, Copy, Download, Upload, Loader2, Sliders } from "lucide-react";
 import {
   PRODUCTS, METHODS, SCOPES, DETAILS_SEED, FIELD_DEFAULTS,
   type Layer, type Detail, type SpfFields, type MethodKey, type ScopeKey,
@@ -36,8 +37,12 @@ export function SPFCalculator() {
           No roof systems configured yet
         </div>
         <p className="mx-auto mt-2 max-w-md text-sm" style={{ color: "var(--rk-ink-faint)" }}>
-          Add the systems your company offers to start estimating.
+          Add the coating products and roof systems your company offers, with your own pricing,
+          and the calculator is ready to estimate.
         </p>
+        <Link to="/commercial/setup" className="rk-btn rk-btn-primary mt-5 inline-flex">
+          <Sliders className="h-3.5 w-3.5" /> Set up the calculator
+        </Link>
       </div>
     );
   }
