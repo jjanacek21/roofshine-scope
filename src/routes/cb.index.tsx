@@ -32,7 +32,7 @@ export const Route = createFileRoute("/cb/")({
 function CbHomePage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { workspaces, loading } = useCbSession();
+  const { workspaces, loading, error, refresh } = useCbSession();
 
   useEffect(() => {
     /* gcn.claims is an acquisition domain: strangers get sign-up, not sign-in. */
@@ -43,8 +43,12 @@ function CbHomePage() {
 
 
   useEffect(() => {
-    if (!loading && user && workspaces.length === 0) navigate({ to: "/cb/onboarding", replace: true });
-  }, [loading, user, workspaces.length, navigate]);
+    /* Only send someone to onboarding when the context loaded cleanly and there
+       really are no workspaces — an errored RPC must never look like "no company". */
+    if (!loading && !error && user && workspaces.length === 0) {
+      navigate({ to: "/cb/onboarding", replace: true });
+    }
+  }, [loading, error, user, workspaces.length, navigate]);
 
   return (
     <CbSurface>
@@ -52,6 +56,21 @@ function CbHomePage() {
         {authLoading || loading || !user ? (
           <div className="mx-auto w-full max-w-[840px] px-5 py-10">
             <CbLoading label="Loading Claim Buddy…" />
+          </div>
+        ) : error ? (
+          <div className="mx-auto w-full max-w-[520px] px-5 py-16 text-center">
+            <p className="text-[16px] font-semibold">Couldn't load your account</p>
+            <p className="mt-1 text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
+              {error}
+            </p>
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              className="mt-5 inline-flex h-10 items-center rounded-lg px-5 text-[13px] font-semibold"
+              style={{ background: "var(--cb-accent)", color: "#fff" }}
+            >
+              Retry
+            </button>
           </div>
         ) : (
           <CbDashboard />
