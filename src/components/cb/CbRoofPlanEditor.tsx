@@ -161,7 +161,13 @@ export function CbRoofPlanEditor({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fillAlpha, setFillAlpha] = useState(() => {
     if (typeof window === "undefined") return 0.45;
-    const raw = Number(window.localStorage.getItem("cb-fill-alpha"));
+    const stored = window.localStorage.getItem("cb-fill-alpha");
+    /* Number(null) is 0, not NaN — so a browser that had never opened the
+       settings sheet passed the isFinite/range guard with 0 and rendered the
+       roof fill fully transparent. The 0.45 default never applied to anyone
+       on their first visit. Check for the key before converting it. */
+    if (stored === null) return 0.45;
+    const raw = Number(stored);
     return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 0.45;
   });
   const [pitchSheet, setPitchSheet] = useState<string | null>(null);
@@ -1785,7 +1791,26 @@ export function CbRoofPlanEditor({
                 Save this footprint
               </CbButton>
             ) : measurePins.length > plan.sections.length && onMeasure ? (
-              <CbButton block onClick={onMeasure} loading={measuring} loadingText="Measuring…">Measure roof</CbButton>
+              /* Hand-drawing has to stay on screen in THIS state. A pin is
+                 down, and this is exactly where a failed trace leaves you —
+                 the error tells the rep to "draw the roof by hand" while the
+                 only button on offer was Measure roof, so they had to undo
+                 their own pin to reach the tool the message named. */
+              <div className="space-y-2">
+                <CbButton block onClick={onMeasure} loading={measuring} loadingText="Measuring…">
+                  Measure roof
+                </CbButton>
+                <CbButton
+                  block
+                  variant="secondary"
+                  onClick={() => {
+                    setTool("outline");
+                    setDraft([]);
+                  }}
+                >
+                  Draw roof by hand
+                </CbButton>
+              </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 <CbButton block variant="secondary" onClick={onTogglePinDrop}>{pinDropMode ? "Tap roof to place pin" : "Add another roof"}</CbButton>
