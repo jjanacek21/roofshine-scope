@@ -95,7 +95,7 @@ function AdminUsers() {
     );
   });
 
-  const inviteLink = (token: string) => `${window.location.origin}/onboarding?invite=${token}`;
+  const inviteLink = (token: string) => `${window.location.origin}/accept-invite?token=${token}`;
 
   async function copyInvite(token: string) {
     await navigator.clipboard.writeText(inviteLink(token));
@@ -343,7 +343,7 @@ function AddRepDialog({
       return;
     }
     const { token } = data as { token: string };
-    const url = `${window.location.origin}/onboarding?invite=${token}`;
+    const url = `${window.location.origin}/accept-invite?token=${token}`;
     try {
       await supabase.functions.invoke("send-invite-email", {
         body: { email: email.trim().toLowerCase(), inviteUrl: url },
