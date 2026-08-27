@@ -6,14 +6,14 @@ import { Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
-import { useIsRoofKing } from "@/hooks/useRoofKing";
+import { useFeatures } from "@/hooks/useFeatures";
 import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/commercial/useRKData";
 import { supabase } from "@/integrations/supabase/client";
 import { RK_STATUS_COLORS, RK_STATUS_LABELS, RK_STATUSES, type RKStatus, type RKProperty, type RKTicket } from "@/lib/commercial/types";
 import { TicketDrawer } from "@/components/commercial/TicketDrawer";
 
 export const Route = createFileRoute("/_app/commercial/map")({
-  component: RoofKingMap,
+  component: CommercialMap,
 });
 
 type TicketFeatureProperties = {
@@ -98,8 +98,8 @@ function escapeHtml(value: string | null | undefined): string {
     .replace(/'/g, "&#039;");
 }
 
-function RoofKingMap() {
-  const { companyId } = useIsRoofKing();
+function CommercialMap() {
+  const { company_id: companyId } = useFeatures();
   const { data: token } = useMapboxToken();
   const { data: accounts = [] } = useRKAccounts(companyId);
   const { data: properties = [] } = useRKProperties(companyId);

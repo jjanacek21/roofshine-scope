@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Users, Building2, Ticket, AlertCircle, FlameKindling } from "lucide-react";
-import { useIsRoofKing } from "@/hooks/useRoofKing";
+import { useFeatures } from "@/hooks/useFeatures";
 import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/commercial/useRKData";
 import { KpiCard } from "@/components/commercial/KpiCard";
 import { RKStatusBadge } from "@/components/commercial/StatusBadge";
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_app/commercial/")({
 });
 
 function Dashboard() {
-  const { companyId } = useIsRoofKing();
+  const { company_id: companyId } = useFeatures();
   const { data: accounts = [] } = useRKAccounts(companyId);
   const { data: properties = [] } = useRKProperties(companyId);
   const { data: tickets = [] } = useRKTickets(companyId);

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useIsRoofKing } from "@/hooks/useRoofKing";
+import { useFeatures } from "@/hooks/useFeatures";
 import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/commercial/useRKData";
 import { RKStatusBadge } from "@/components/commercial/StatusBadge";
 import { TicketDrawer } from "@/components/commercial/TicketDrawer";
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_app/commercial/tickets")({
 const PAGE_SIZE = 50;
 
 function TicketsPage() {
-  const { companyId } = useIsRoofKing();
+  const { company_id: companyId } = useFeatures();
   const { data: accounts = [] } = useRKAccounts(companyId);
   const { data: properties = [] } = useRKProperties(companyId);
   const { data: tickets = [] } = useRKTickets(companyId);
