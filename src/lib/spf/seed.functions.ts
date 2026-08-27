@@ -24,17 +24,22 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * per day, and the engine divides by them. Zeroing those would not clear a
  * price, it would blow up the schedule. Counts (`q_dump`, `s_insp`,
  * `l_crew`, `l_mobs`) are left alone for the same reason: the money sits in
- * their paired `*c` field.
+ * their paired `*c` field. `s_eng`, `s_ppct`, `e_prep`, `e_rustm`, `r_type`
+ * and `s_war` are dropdown values the app itself defines, not per-company
+ * pricing, so they come across as-is too.
  */
 const MONEY_FIELD_KEYS = new Set([
   // Existing roof
   "e_tearcost",
+  "e_disp",
   "e_deckrepc",
   // Access
   "a_liftrate",
   "a_liftdel",
   "a_cranerate",
   "a_hoist",
+  "a_overspray",
+  "a_screens",
   // Foam
   "f_cost",
   "f_freight",
@@ -43,6 +48,7 @@ const MONEY_FIELD_KEYS = new Set([
   "r_fieldc",
   // Labor
   "l_wage",
+  "l_burden",
   "l_mobc",
   "l_diem",
   "l_lodge",
@@ -108,6 +114,26 @@ async function templateCompanyId(
   return data?.company_id ?? null;
 }
 
+/**
+ * Undo a partial seed.
+ *
+ * The copy runs as five separate inserts, and PostgREST gives no transaction
+ * across them. A failure halfway through used to leave the company holding
+ * products but no stacks — enough to trip the "already has products" guard, so
+ * the button then refused to finish the job it had started. Clearing back to
+ * empty on failure keeps the operation all-or-nothing from the user's side.
+ */
+async function wipe(
+  admin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  target: string,
+) {
+  await admin.from("spf_stack_layers").delete().eq("company_id", target);
+  await admin.from("spf_field_defaults").delete().eq("company_id", target);
+  await admin.from("spf_stacks").delete().eq("company_id", target);
+  await admin.from("spf_details").delete().eq("company_id", target);
+  await admin.from("spf_products").delete().eq("company_id", target);
+}
+
 /** What the template holds, so the caller can say what will be copied. */
 export const spfTemplateInfo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -160,7 +186,7 @@ export const seedSpfFromTemplate = createServerFn({ method: "POST" })
       throw new Error("Only an owner or admin can set up the calculator.");
     }
 
-    const target = me.company_id;
+    const target: string = me.company_id;
     const tpl = await templateCompanyId(supabaseAdmin);
     if (!tpl) throw new Error("No template catalog is available yet.");
     if (tpl === target) throw new Error("This company is the template — there is nothing to copy.");
@@ -175,155 +201,171 @@ export const seedSpfFromTemplate = createServerFn({ method: "POST" })
       throw new Error("This company already has calculator products — clear them first.");
     }
 
-    /* ---- Products: same catalog, no prices ---- */
-    const { data: tplProducts } = await supabaseAdmin
-      .from("spf_products")
-      .select("id, name, solids_pct, default_mils, default_method, role, sort_order, active")
-      .eq("company_id", tpl)
-      .order("sort_order");
-
-    const productIdMap = new Map<string, string>();
-    if (tplProducts?.length) {
-      const { data: made, error } = await supabaseAdmin
+    const run = async (): Promise<SeedResult> => {
+      /* ---- Products: same catalog, no prices ---- */
+      const { data: tplProducts } = await supabaseAdmin
         .from("spf_products")
-        .insert(
-          tplProducts.map((p) => ({
-            company_id: target,
-            name: p.name,
-            solids_pct: p.solids_pct,
-            cost_per_gal: 0,
-            default_mils: p.default_mils,
-            default_method: p.default_method,
-            role: p.role,
-            sort_order: p.sort_order,
-            active: p.active,
-          })) as never,
-        )
-        .select("id, name, sort_order");
-      if (error) throw new Error(error.message);
-      // Match on name + position; both are copied verbatim so the pairing holds.
-      for (const src of tplProducts) {
-        const hit = (made ?? []).find(
-          (m) => m.name === src.name && m.sort_order === src.sort_order,
-        );
-        if (hit) productIdMap.set(src.id, hit.id);
-      }
-    }
-
-    /* ---- Detail line items: same list, unit costs zeroed ---- */
-    const { data: tplDetails } = await supabaseAdmin
-      .from("spf_details")
-      .select("label, unit, default_qty, sort_order, active")
-      .eq("company_id", tpl)
-      .order("sort_order");
-
-    if (tplDetails?.length) {
-      const { error } = await supabaseAdmin.from("spf_details").insert(
-        tplDetails.map((d) => ({
-          company_id: target,
-          label: d.label,
-          unit: d.unit,
-          default_qty: d.default_qty,
-          unit_cost: 0,
-          sort_order: d.sort_order,
-          active: d.active,
-        })) as never,
-      );
-      if (error) throw new Error(error.message);
-    }
-
-    /* ---- Stacks and their layers: pure recipe, copied intact ---- */
-    const { data: tplStacks } = await supabaseAdmin
-      .from("spf_stacks")
-      .select("id, key, label, sort_order, active")
-      .eq("company_id", tpl)
-      .order("sort_order");
-
-    let layerCount = 0;
-    if (tplStacks?.length) {
-      const { data: madeStacks, error } = await supabaseAdmin
-        .from("spf_stacks")
-        .insert(
-          tplStacks.map((s) => ({
-            company_id: target,
-            key: s.key,
-            label: s.label,
-            sort_order: s.sort_order,
-            active: s.active,
-          })) as never,
-        )
-        .select("id, key");
-      if (error) throw new Error(error.message);
-
-      const stackIdMap = new Map<string, string>();
-      for (const src of tplStacks) {
-        const hit = (madeStacks ?? []).find((m) => m.key === src.key);
-        if (hit) stackIdMap.set(src.id, hit.id);
-      }
-
-      const { data: tplLayers } = await supabaseAdmin
-        .from("spf_stack_layers")
-        .select("stack_id, product_id, scope, amount, method, mils, sort_order, on_by_default")
+        .select("id, name, solids_pct, default_mils, default_method, role, sort_order, active")
         .eq("company_id", tpl)
         .order("sort_order");
 
-      const layers = (tplLayers ?? [])
-        .map((l) => {
-          const stack_id = stackIdMap.get(l.stack_id);
-          const product_id = productIdMap.get(l.product_id);
-          // A layer whose product or stack did not come across would be a
-          // dangling row, so it is dropped rather than inserted broken.
-          if (!stack_id || !product_id) return null;
-          return {
-            company_id: target,
-            stack_id,
-            product_id,
-            scope: l.scope,
-            amount: l.amount,
-            method: l.method,
-            mils: l.mils,
-            sort_order: l.sort_order,
-            on_by_default: l.on_by_default,
-          };
-        })
-        .filter(Boolean);
-
-      if (layers.length) {
-        const { error: layerErr } = await supabaseAdmin
-          .from("spf_stack_layers")
-          .insert(layers as never);
-        if (layerErr) throw new Error(layerErr.message);
-        layerCount = layers.length;
+      const productIdMap = new Map<string, string>();
+      if (tplProducts?.length) {
+        const { data: made, error } = await supabaseAdmin
+          .from("spf_products")
+          .insert(
+            tplProducts.map((p) => ({
+              company_id: target,
+              name: p.name,
+              solids_pct: p.solids_pct,
+              cost_per_gal: 0,
+              default_mils: p.default_mils,
+              default_method: p.default_method,
+              role: p.role,
+              sort_order: p.sort_order,
+              active: p.active,
+            })) as never,
+          )
+          .select("id, name, sort_order");
+        if (error) throw new Error(error.message);
+        // Match on name + position; both are copied verbatim so the pairing holds.
+        for (const src of tplProducts) {
+          const hit = (made ?? []).find(
+            (m) => m.name === src.name && m.sort_order === src.sort_order,
+          );
+          if (hit) productIdMap.set(src.id, hit.id);
+        }
       }
-    }
 
-    /* ---- Field defaults: structure kept, money zeroed ---- */
-    const { data: tplFields } = await supabaseAdmin
-      .from("spf_field_defaults")
-      .select("field_key, label, group_key, value_text, simple_mode, sort_order")
-      .eq("company_id", tpl)
-      .order("sort_order");
+      /* ---- Detail line items: same list, unit costs zeroed ---- */
+      const { data: tplDetails } = await supabaseAdmin
+        .from("spf_details")
+        .select("label, unit, default_qty, sort_order, active")
+        .eq("company_id", tpl)
+        .order("sort_order");
 
-    if (tplFields?.length) {
-      const { error } = await supabaseAdmin.from("spf_field_defaults").insert(
-        tplFields.map((f) => ({
-          company_id: target,
-          field_key: f.field_key,
-          label: f.label,
-          group_key: f.group_key,
-          value_text: MONEY_FIELD_KEYS.has(f.field_key) ? "0" : f.value_text,
-          simple_mode: f.simple_mode,
-          sort_order: f.sort_order,
-        })) as never,
-      );
-      if (error) throw new Error(error.message);
-    }
+      if (tplDetails?.length) {
+        const { error } = await supabaseAdmin.from("spf_details").insert(
+          tplDetails.map((d) => ({
+            company_id: target,
+            label: d.label,
+            unit: d.unit,
+            default_qty: d.default_qty,
+            unit_cost: 0,
+            sort_order: d.sort_order,
+            active: d.active,
+          })) as never,
+        );
+        if (error) throw new Error(error.message);
+      }
 
-    return {
-      products: tplProducts?.length ?? 0,
-      details: tplDetails?.length ?? 0,
-      stacks: tplStacks?.length ?? 0,
-      layers: layerCount,
-      fields: tplFields?.length ?? 0,
+      /* ---- Stacks and their layers: pure recipe, copied intact ---- */
+      const { data: tplStacks } = await supabaseAdmin
+        .from("spf_stacks")
+        .select("id, key, label, sort_order, active")
+        .eq("company_id", tpl)
+        .order("sort_order");
+
+      let layerCount = 0;
+      if (tplStacks?.length) {
+        const { data: madeStacks, error } = await supabaseAdmin
+          .from("spf_stacks")
+          .insert(
+            tplStacks.map((s) => ({
+              company_id: target,
+              key: s.key,
+              label: s.label,
+              sort_order: s.sort_order,
+              active: s.active,
+            })) as never,
+          )
+          .select("id, key");
+        if (error) throw new Error(error.message);
+
+        const stackIdMap = new Map<string, string>();
+        for (const src of tplStacks) {
+          const hit = (madeStacks ?? []).find((m) => m.key === src.key);
+          if (hit) stackIdMap.set(src.id, hit.id);
+        }
+
+        const { data: tplLayers } = await supabaseAdmin
+          .from("spf_stack_layers")
+          .select("stack_id, product_id, scope, amount, method, mils, sort_order, on_by_default")
+          .eq("company_id", tpl)
+          .order("sort_order");
+
+        const layers = (tplLayers ?? [])
+          .map((l) => {
+            const stack_id = stackIdMap.get(l.stack_id);
+            const product_id = productIdMap.get(l.product_id);
+            // A layer whose product or stack did not come across would be a
+            // dangling row, so it is dropped rather than inserted broken.
+            if (!stack_id || !product_id) return null;
+            return {
+              company_id: target,
+              stack_id,
+              product_id,
+              scope: l.scope,
+              amount: l.amount,
+              method: l.method,
+              mils: l.mils,
+              sort_order: l.sort_order,
+              on_by_default: l.on_by_default,
+            };
+          })
+          .filter(Boolean);
+
+        if (layers.length) {
+          const { error: layerErr } = await supabaseAdmin
+            .from("spf_stack_layers")
+            .insert(layers as never);
+          if (layerErr) throw new Error(layerErr.message);
+          layerCount = layers.length;
+        }
+      }
+
+      /* ---- Field defaults: structure kept, money zeroed ---- */
+      const { data: tplFields } = await supabaseAdmin
+        .from("spf_field_defaults")
+        .select("field_key, label, group_key, value_text, simple_mode, sort_order")
+        .eq("company_id", tpl)
+        .order("sort_order");
+
+      if (tplFields?.length) {
+        const { error } = await supabaseAdmin.from("spf_field_defaults").insert(
+          tplFields.map((f) => ({
+            company_id: target,
+            field_key: f.field_key,
+            label: f.label,
+            group_key: f.group_key,
+            value_text: MONEY_FIELD_KEYS.has(f.field_key) ? "0" : f.value_text,
+            simple_mode: f.simple_mode,
+            sort_order: f.sort_order,
+          })) as never,
+        );
+        if (error) throw new Error(error.message);
+      }
+
+      /* ---- Calculator settings: one row per company ---- */
+      await supabaseAdmin
+        .from("spf_calc_settings")
+        .upsert({ company_id: target, default_mode: "detailed" } as never, {
+          onConflict: "company_id",
+        });
+
+      return {
+        products: tplProducts?.length ?? 0,
+        details: tplDetails?.length ?? 0,
+        stacks: tplStacks?.length ?? 0,
+        layers: layerCount,
+        fields: tplFields?.length ?? 0,
+      };
     };
+
+    try {
+      return await run();
+    } catch (e) {
+      await wipe(supabaseAdmin, target);
+      throw e;
+    }
   });
