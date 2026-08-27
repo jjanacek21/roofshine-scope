@@ -75,6 +75,7 @@ export function TicketInvoicePanel({
 }) {
   const qc = useQueryClient();
   const { data: company } = useCompany();
+  const brand = useCompanyBrand();
   const [inv, setInv] = useState<RKInvoice | null>(ticket.invoice ?? null);
   const [open, setOpen] = useState<boolean>(!!ticket.invoice);
 
