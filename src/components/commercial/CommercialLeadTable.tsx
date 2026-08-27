@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Eye, Phone, FileText, Upload, Send, ArrowRight, ArrowLeft } from "lucide-react";
+import { Eye, Phone, FileText, Upload, Send, ArrowRight, ArrowLeft, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useLeads } from "@/hooks/useLeads";
@@ -10,6 +10,7 @@ import { LeadDetailSheet } from "@/components/leads/LeadDetailSheet";
 import { StatusBadge } from "@/components/brand/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { fmtNum, leadStatusLabel, type LeadRow, type LeadStatus } from "@/lib/leads";
+import { buildLeadCsv, downloadCsv, exportFilename } from "@/lib/commercial/lead-export";
 
 export type CommercialLeadTableProps = {
   /** Statuses this view owns. */
@@ -36,6 +37,7 @@ export function CommercialLeadTable({
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const scoped = useMemo(
     () => leads.filter((l) => (statuses as readonly string[]).includes(l.status)),
@@ -71,6 +73,25 @@ export function CommercialLeadTable({
 
   const MoveIcon = moveAction.direction === "forward" ? ArrowRight : ArrowLeft;
 
+  /**
+   * Exports exactly what is on screen — the search box and status chips are
+   * the selection. Working a filtered slice and getting the whole database
+   * back would be the wrong answer for a CRM import.
+   */
+  async function exportCsv() {
+    if (rows.length === 0) return;
+    setExporting(true);
+    try {
+      const csv = await buildLeadCsv(rows);
+      downloadCsv(csv, exportFilename("leads"));
+      toast.success(`Exported ${rows.length} ${rows.length === 1 ? "lead" : "leads"}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -93,6 +114,17 @@ export function CommercialLeadTable({
           </div>
         )}
         <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={exportCsv}
+            disabled={exporting || rows.length === 0}
+            title="Download the leads shown here, one row per contact"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-[var(--bg-hover)] disabled:opacity-50"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <Download className="h-3.5 w-3.5" />
+            {exporting ? "Exporting…" : "Export CSV"}
+          </button>
           <Link
             to="/leads/import"
             className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-[var(--bg-hover)]"
@@ -148,7 +180,9 @@ export function CommercialLeadTable({
                     <td className="px-5 py-3 font-medium text-foreground">{l.address}</td>
                     <td className="px-5 py-3 text-muted-foreground">{l.city ?? "—"}</td>
                     <td className="px-5 py-3 text-muted-foreground">{l.owner ?? "—"}</td>
-                    <td className="px-5 py-3 font-mono-num text-muted-foreground">{fmtNum(l.sqft)}</td>
+                    <td className="px-5 py-3 font-mono-num text-muted-foreground">
+                      {fmtNum(l.sqft)}
+                    </td>
                     <td className="px-5 py-3 text-muted-foreground">{l.roof_type ?? "—"}</td>
                     <td className="px-5 py-3">
                       <StatusBadge status={l.status} />
