@@ -32,7 +32,7 @@ export const Route = createFileRoute("/cb/")({
 function CbHomePage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { workspaces, loading } = useCbSession();
+  const { workspaces, loading, error } = useCbSession();
 
   useEffect(() => {
     /* gcn.claims is an acquisition domain: strangers get sign-up, not sign-in. */
@@ -43,8 +43,12 @@ function CbHomePage() {
 
 
   useEffect(() => {
-    if (!loading && user && workspaces.length === 0) navigate({ to: "/cb/onboarding", replace: true });
-  }, [loading, user, workspaces.length, navigate]);
+    /* Only send someone to onboarding when the context loaded cleanly and there
+       really are no workspaces — an errored RPC must never look like "no company". */
+    if (!loading && !error && user && workspaces.length === 0) {
+      navigate({ to: "/cb/onboarding", replace: true });
+    }
+  }, [loading, error, user, workspaces.length, navigate]);
 
   return (
     <CbSurface>
