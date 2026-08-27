@@ -29,7 +29,10 @@ export function Topbar() {
       className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b px-6 backdrop-blur-xl"
       style={{
         borderColor: "var(--border)",
-        backgroundColor: "rgba(10, 10, 11, 0.7)",
+        /* Follows the theme. This was a hardcoded near-black, which put
+           dark-theme chrome behind light-theme icon colours — on a phone the
+           menu and bell rendered navy on charcoal and were unreadable. */
+        backgroundColor: "color-mix(in oklab, var(--bg) 72%, transparent)",
       }}
     >
       <MobileSidebarSheet />

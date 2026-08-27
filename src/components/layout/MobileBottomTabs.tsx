@@ -7,7 +7,7 @@ import { navVisible } from "@/lib/nav-features";
 const TABS = [
   { to: "/", label: "Home", icon: LayoutDashboard },
   { to: "/jobs", label: "Jobs", icon: Briefcase },
-  { to: "/leads", label: "SPF Prospecting", icon: Target },
+  { to: "/leads", label: "Prospecting", icon: Target },
   { to: "/clients", label: "Clients", icon: Users },
   { to: "/survival-guide", label: "Guide", icon: BookOpenText },
 ] as const;
@@ -21,7 +21,9 @@ export function MobileBottomTabs() {
       className="fixed inset-x-0 bottom-0 z-30 flex h-16 border-t backdrop-blur-md sm:hidden"
       style={{
         borderColor: "var(--border)",
-        backgroundColor: "rgba(10, 10, 11, 0.85)",
+        /* Same fix as the top bar: a hardcoded near-black left the inactive tab
+           labels dark-on-dark and unreadable in the light theme. */
+        backgroundColor: "color-mix(in oklab, var(--bg) 85%, transparent)",
       }}
     >
       {tabs.map((t) => {
