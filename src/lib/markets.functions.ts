@@ -5,16 +5,25 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { fetchAllPages } from "@/lib/fetch-all";
 
 const TRADE_VALUES = [
-  "roofing", "exterior", "windows", "interior", "hvac",
-  "plumbing", "electrical", "mitigation",
+  "roofing",
+  "exterior",
+  "windows",
+  "interior",
+  "hvac",
+  "plumbing",
+  "electrical",
+  "mitigation",
 ] as const;
 type Trade = (typeof TRADE_VALUES)[number];
 
 // Map free-form CSV "trade" labels onto the trade_type enum.
 function normalizeTrade(raw: unknown): Trade {
-  const t = String(raw ?? "").trim().toLowerCase();
+  const t = String(raw ?? "")
+    .trim()
+    .toLowerCase();
   if (!t) return "interior";
   if (/(roof)/.test(t)) return "roofing";
   if (/(window)/.test(t)) return "windows";
@@ -22,7 +31,8 @@ function normalizeTrade(raw: unknown): Trade {
   if (/(electric)/.test(t)) return "electrical";
   if (/(plumb)/.test(t)) return "plumbing";
   if (/(water|fire|mold|mitigat|abatement|asbestos|lead)/.test(t)) return "mitigation";
-  if (/(siding|stucco|exterior|gutter|fence|deck|concrete|masonry|landscap)/.test(t)) return "exterior";
+  if (/(siding|stucco|exterior|gutter|fence|deck|concrete|masonry|landscap)/.test(t))
+    return "exterior";
   // Everything else (Drywall, Painting, Contents, Site Protection, Cabinetry,
   // Flooring, Doors, Tile, Cleaning, Demolition, Framing, Trim, Stairs, etc.)
   return "interior";
@@ -46,7 +56,9 @@ export const listMarkets = createServerFn({ method: "GET" })
     await assertSuperAdmin(context.userId);
     const { data: books, error } = await supabaseAdmin
       .from("price_books")
-      .select("id, name, region_name, jurisdiction, zip_codes, item_count, effective_month, notes, created_at")
+      .select(
+        "id, name, region_name, jurisdiction, zip_codes, item_count, effective_month, notes, created_at",
+      )
       .is("company_id", null)
       .eq("is_default", true)
       .order("region_name", { ascending: true, nullsFirst: false });
@@ -89,14 +101,22 @@ export const getMarketDetail = createServerFn({ method: "GET" })
       unit_price: number;
       remove_price: number;
       line_item_master_id: string;
-      line_item_master: { code: string; name: string; unit: string; trade: string; subgroup: string | null } | null;
+      line_item_master: {
+        code: string;
+        name: string;
+        unit: string;
+        trade: string;
+        subgroup: string | null;
+      } | null;
     };
     const prices: PriceRow[] = [];
 
     for (let from = 0; ; from += 1000) {
       const { data: page, error: pErr } = await supabaseAdmin
         .from("line_item_prices")
-        .select("unit_price, remove_price, line_item_master_id, line_item_master:line_item_master_id(code, name, unit, trade, subgroup)")
+        .select(
+          "unit_price, remove_price, line_item_master_id, line_item_master:line_item_master_id(code, name, unit, trade, subgroup)",
+        )
         .eq("price_book_id", data.id)
         .order("line_item_master_id")
         .range(from, from + 999);
@@ -105,7 +125,6 @@ export const getMarketDetail = createServerFn({ method: "GET" })
       if ((page?.length ?? 0) < 1000) break;
     }
     return { market: book, prices };
-
   });
 
 /* ============================== Upsert market ============================= */
@@ -190,6 +209,13 @@ const IngestRowSchema = z.object({
 const IngestSchema = z.object({
   market_id: z.string().uuid(),
   replace_existing_prices: z.boolean().default(true),
+  /**
+   * One batch, not one file. A real Xactimate export is 11,000+ lines, which
+   * is both more than this cap and more than one request should carry. The
+   * upload dialog splits the file and calls this repeatedly; only the first
+   * call sets replace_existing_prices, or each batch would wipe the last one's
+   * prices.
+   */
   rows: z.array(IngestRowSchema).min(1).max(5000),
 });
 
@@ -199,19 +225,35 @@ export const ingestMarketCsv = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context.userId);
 
-    // 1. Load existing master catalog (company_id NULL) keyed by uppercase code.
-    const { data: existing, error: existErr } = await supabaseAdmin
-      .from("line_item_master")
-      .select("id, code")
-      .is("company_id", null);
-    if (existErr) throw existErr;
+    /*
+     * 1. Load existing master catalog (company_id NULL) keyed by uppercase code.
+     *
+     * Paged, and it has to be. The Data API returns at most 1,000 rows, the
+     * catalog holds ~10,000, and this map is what decides whether a code is
+     * "already in the catalog". Read unpaged, 9 in 10 existing items look new
+     * and get inserted again — and the unique index on (company_id, code)
+     * cannot stop it, because company_id is NULL here and NULL never equals
+     * NULL in a Postgres unique index. Silent duplicate catalog.
+     */
+    const existing = await fetchAllPages<{ id: string; code: string }>(
+      (from, to) =>
+        supabaseAdmin
+          .from("line_item_master")
+          .select("id, code")
+          .is("company_id", null)
+          .order("code", { ascending: true })
+          .range(from, to) as unknown as PromiseLike<{
+          data: { id: string; code: string }[] | null;
+          error: { message: string } | null;
+        }>,
+    );
     const idByCode = new Map<string, string>();
-    for (const r of existing ?? []) idByCode.set(String(r.code).toUpperCase(), r.id as string);
+    for (const r of existing) idByCode.set(String(r.code).toUpperCase(), r.id);
 
     // 2. Dedupe incoming rows by code (last occurrence wins) to avoid violating
     //    the unique (price_book_id, line_item_master_id) constraint when a CSV
     //    happens to contain the same item_number twice.
-    const dedupedByCode = new Map<string, typeof data.rows[number]>();
+    const dedupedByCode = new Map<string, (typeof data.rows)[number]>();
     for (const r of data.rows) dedupedByCode.set(r.code.toUpperCase(), r);
     const rows = Array.from(dedupedByCode.values());
 
@@ -241,7 +283,8 @@ export const ingestMarketCsv = createServerFn({ method: "POST" })
         .insert(batch)
         .select("id, code");
       if (error) throw error;
-      for (const row of inserted ?? []) idByCode.set(String(row.code).toUpperCase(), row.id as string);
+      for (const row of inserted ?? [])
+        idByCode.set(String(row.code).toUpperCase(), row.id as string);
     }
 
     // 4. Optionally wipe existing prices for this market, then insert fresh ones.
@@ -270,10 +313,19 @@ export const ingestMarketCsv = createServerFn({ method: "POST" })
       if (error) throw error;
     }
 
-    // 4. Refresh item_count on the price_book.
+    /*
+     * 5. Refresh item_count from the table, not from this batch. Setting it to
+     *    priceRows.length made the last batch of a chunked upload overwrite the
+     *    running total, so an 11,000-line book reported the size of its tail.
+     */
+    const { count: bookCount } = await supabaseAdmin
+      .from("line_item_prices")
+      .select("line_item_master_id", { count: "exact", head: true })
+      .eq("price_book_id", data.market_id);
+
     await supabaseAdmin
       .from("price_books")
-      .update({ item_count: priceRows.length, updated_at: new Date().toISOString() })
+      .update({ item_count: bookCount ?? priceRows.length, updated_at: new Date().toISOString() })
       .eq("id", data.market_id);
 
     return {
