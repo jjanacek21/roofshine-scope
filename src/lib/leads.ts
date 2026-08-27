@@ -1,15 +1,22 @@
 // Shared types and helpers for the Lead Center.
 
 export const LEAD_STATUSES = [
-  { value: "new", label: "New", color: "#3b82f6" },
+  { value: "prospect", label: "Prospect", color: "#3b82f6" },
   { value: "contacted", label: "Contacted", color: "#eab308" },
-  { value: "qualified", label: "Qualified", color: "#a855f7" },
-  { value: "quoted", label: "Quoted", color: "#06b6d4" },
   { value: "report_sent", label: "Report Sent", color: "#f97316" },
+  { value: "proposal_sent", label: "Proposal Sent", color: "#06b6d4" },
   { value: "won", label: "Won", color: "#22c55e" },
   { value: "lost", label: "Lost", color: "#ef4444" },
+  { value: "nurture", label: "Nurture", color: "#a855f7" },
   { value: "dnc", label: "Do Not Contact", color: "#71717a" },
 ] as const;
+
+/** Statuses retired by the commercial-module split; kept for legacy rows. */
+const LEGACY_STATUS_LABELS: Record<string, string> = {
+  new: "New",
+  qualified: "Qualified",
+  quoted: "Quoted",
+};
 
 export type LeadStatus = (typeof LEAD_STATUSES)[number]["value"];
 
@@ -18,7 +25,11 @@ export function leadStatusColor(status: string): string {
 }
 
 export function leadStatusLabel(status: string): string {
-  return LEAD_STATUSES.find((s) => s.value === status)?.label ?? status;
+  return (
+    LEAD_STATUSES.find((s) => s.value === status)?.label ??
+    LEGACY_STATUS_LABELS[status] ??
+    status
+  );
 }
 
 export interface LeadRow {

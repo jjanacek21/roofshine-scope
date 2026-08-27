@@ -90,6 +90,7 @@ import { Route as AppCommercialIndexRouteImport } from './routes/_app.commercial
 import { Route as AppCommercialCustomersRouteImport } from './routes/_app.commercial.customers'
 import { Route as AppCommercialExportRouteImport } from './routes/_app.commercial.export'
 import { Route as AppCommercialFormsRouteImport } from './routes/_app.commercial.forms'
+import { Route as AppCommercialLeadsRouteImport } from './routes/_app.commercial.leads'
 import { Route as AppCommercialMapRouteImport } from './routes/_app.commercial.map'
 import { Route as AppCommercialPipelineRouteImport } from './routes/_app.commercial.pipeline'
 import { Route as AppCommercialProspectingRouteImport } from './routes/_app.commercial.prospecting'
@@ -562,6 +563,11 @@ const AppCommercialFormsRoute = AppCommercialFormsRouteImport.update({
   path: '/forms',
   getParentRoute: () => AppCommercialRoute,
 } as any)
+const AppCommercialLeadsRoute = AppCommercialLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AppCommercialRoute,
+} as any)
 const AppCommercialMapRoute = AppCommercialMapRouteImport.update({
   id: '/map',
   path: '/map',
@@ -976,6 +982,7 @@ export interface FileRoutesByFullPath {
   '/commercial/customers': typeof AppCommercialCustomersRoute
   '/commercial/export': typeof AppCommercialExportRoute
   '/commercial/forms': typeof AppCommercialFormsRoute
+  '/commercial/leads': typeof AppCommercialLeadsRoute
   '/commercial/map': typeof AppCommercialMapRoute
   '/commercial/pipeline': typeof AppCommercialPipelineRoute
   '/commercial/prospecting': typeof AppCommercialProspectingRoute
@@ -1117,6 +1124,7 @@ export interface FileRoutesByTo {
   '/commercial/customers': typeof AppCommercialCustomersRoute
   '/commercial/export': typeof AppCommercialExportRoute
   '/commercial/forms': typeof AppCommercialFormsRoute
+  '/commercial/leads': typeof AppCommercialLeadsRoute
   '/commercial/map': typeof AppCommercialMapRoute
   '/commercial/pipeline': typeof AppCommercialPipelineRoute
   '/commercial/prospecting': typeof AppCommercialProspectingRoute
@@ -1266,6 +1274,7 @@ export interface FileRoutesById {
   '/_app/commercial/customers': typeof AppCommercialCustomersRoute
   '/_app/commercial/export': typeof AppCommercialExportRoute
   '/_app/commercial/forms': typeof AppCommercialFormsRoute
+  '/_app/commercial/leads': typeof AppCommercialLeadsRoute
   '/_app/commercial/map': typeof AppCommercialMapRoute
   '/_app/commercial/pipeline': typeof AppCommercialPipelineRoute
   '/_app/commercial/prospecting': typeof AppCommercialProspectingRoute
@@ -1416,6 +1425,7 @@ export interface FileRouteTypes {
     | '/commercial/customers'
     | '/commercial/export'
     | '/commercial/forms'
+    | '/commercial/leads'
     | '/commercial/map'
     | '/commercial/pipeline'
     | '/commercial/prospecting'
@@ -1557,6 +1567,7 @@ export interface FileRouteTypes {
     | '/commercial/customers'
     | '/commercial/export'
     | '/commercial/forms'
+    | '/commercial/leads'
     | '/commercial/map'
     | '/commercial/pipeline'
     | '/commercial/prospecting'
@@ -1705,6 +1716,7 @@ export interface FileRouteTypes {
     | '/_app/commercial/customers'
     | '/_app/commercial/export'
     | '/_app/commercial/forms'
+    | '/_app/commercial/leads'
     | '/_app/commercial/map'
     | '/_app/commercial/pipeline'
     | '/_app/commercial/prospecting'
@@ -2409,6 +2421,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCommercialFormsRouteImport
       parentRoute: typeof AppCommercialRoute
     }
+    '/_app/commercial/leads': {
+      id: '/_app/commercial/leads'
+      path: '/leads'
+      fullPath: '/commercial/leads'
+      preLoaderRoute: typeof AppCommercialLeadsRouteImport
+      parentRoute: typeof AppCommercialRoute
+    }
     '/_app/commercial/map': {
       id: '/_app/commercial/map'
       path: '/map'
@@ -2890,6 +2909,7 @@ interface AppCommercialRouteChildren {
   AppCommercialCustomersRoute: typeof AppCommercialCustomersRoute
   AppCommercialExportRoute: typeof AppCommercialExportRoute
   AppCommercialFormsRoute: typeof AppCommercialFormsRoute
+  AppCommercialLeadsRoute: typeof AppCommercialLeadsRoute
   AppCommercialMapRoute: typeof AppCommercialMapRoute
   AppCommercialPipelineRoute: typeof AppCommercialPipelineRoute
   AppCommercialProspectingRoute: typeof AppCommercialProspectingRoute
@@ -2902,6 +2922,7 @@ const AppCommercialRouteChildren: AppCommercialRouteChildren = {
   AppCommercialCustomersRoute: AppCommercialCustomersRoute,
   AppCommercialExportRoute: AppCommercialExportRoute,
   AppCommercialFormsRoute: AppCommercialFormsRoute,
+  AppCommercialLeadsRoute: AppCommercialLeadsRoute,
   AppCommercialMapRoute: AppCommercialMapRoute,
   AppCommercialPipelineRoute: AppCommercialPipelineRoute,
   AppCommercialProspectingRoute: AppCommercialProspectingRoute,
