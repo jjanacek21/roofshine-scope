@@ -78,7 +78,7 @@ function CommercialLayout() {
         <div className="mx-auto flex max-w-[1500px] gap-6 px-4 py-5 sm:px-6">
           {/* Sub-nav */}
           <aside className="hidden w-[220px] shrink-0 lg:block">
-            <div className="rk-crown-tile mb-4 flex flex-col items-center gap-2 px-3 py-3">
+            <div className="rk-brand-tile mb-4 flex flex-col items-center gap-2 px-3 py-3">
               {brand.logoUrl ? (
                 <img
                   src={brand.logoUrl}
@@ -86,10 +86,10 @@ function CommercialLayout() {
                   className="h-16 w-auto object-contain"
                 />
               ) : (
-                <Building2 className="h-10 w-10 text-white/80" />
+                <Building2 className="h-10 w-10" style={{ color: "var(--rk-ink-faint)" }} />
               )}
-              <p className="text-center text-xs font-semibold text-white">{brand.name}</p>
-              <p className="text-center text-[10px] uppercase tracking-wider text-white/70">
+              <p className="text-center text-xs font-semibold" style={{ color: "var(--rk-ink)" }}>{brand.name}</p>
+              <p className="text-center text-[10px] uppercase tracking-wider" style={{ color: "var(--rk-ink-faint)" }}>
                 {brand.moduleLabel}
               </p>
             </div>
