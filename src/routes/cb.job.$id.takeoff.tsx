@@ -1271,9 +1271,25 @@ function CbTakeoffPage() {
 
           <div aria-hidden className="cb-has-dock" />
           <div className="cb-dock">
-            <CbButton block onClick={() => navigate({ to: "/cb/job/$id/review", params: { id } })}>
-              Go to review
-            </CbButton>
+            <div className="mx-auto w-full max-w-[620px] space-y-2">
+              {/* The roof takeoff used to end at review, so a rep who still had
+                  exterior or interior to walk had to back out of the flow to
+                  find them. Finishing the exterior already returns here; the
+                  roof now does too. */}
+              <CbButton
+                block
+                variant="secondary"
+                onClick={() => navigate({ to: "/cb/job/$id/scope", params: { id } })}
+              >
+                Go to takeoffs
+              </CbButton>
+              <CbButton
+                block
+                onClick={() => navigate({ to: "/cb/job/$id/review", params: { id } })}
+              >
+                Go to review
+              </CbButton>
+            </div>
           </div>
         </div>
 
