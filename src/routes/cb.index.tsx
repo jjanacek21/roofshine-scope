@@ -32,7 +32,7 @@ export const Route = createFileRoute("/cb/")({
 function CbHomePage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { workspaces, loading, error } = useCbSession();
+  const { workspaces, loading, error, refresh } = useCbSession();
 
   useEffect(() => {
     /* gcn.claims is an acquisition domain: strangers get sign-up, not sign-in. */
