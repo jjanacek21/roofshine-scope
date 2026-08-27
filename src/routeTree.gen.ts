@@ -114,6 +114,7 @@ import { Route as AppLeadsSavingsRouteImport } from './routes/_app.leads.savings
 import { Route as AppLeadsTrainingRouteImport } from './routes/_app.leads.training'
 import { Route as AppLeadsWizardRouteImport } from './routes/_app.leads.wizard'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
+import { Route as AppRoofkingIndexRouteImport } from './routes/_app.roofking.index'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppTeamRequestsRouteImport } from './routes/_app.team.requests'
@@ -680,6 +681,11 @@ const AppPriceBooksNewRoute = AppPriceBooksNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AppPriceBooksRoute,
 } as any)
+const AppRoofkingIndexRoute = AppRoofkingIndexRouteImport.update({
+  id: '/roofking/',
+  path: '/roofking/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTeamIndexRoute = AppTeamIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -994,6 +1000,7 @@ export interface FileRoutesByFullPath {
   '/invoices/': typeof AppInvoicesIndexRoute
   '/jobs/': typeof AppJobsIndexRoute
   '/leads/': typeof AppLeadsIndexRoute
+  '/roofking/': typeof AppRoofkingIndexRoute
   '/team/': typeof AppTeamIndexRoute
   '/admin/companies/': typeof AdminCompaniesIndexRoute
   '/cb/admin/': typeof CbAdminIndexRoute
@@ -1131,6 +1138,7 @@ export interface FileRoutesByTo {
   '/invoices': typeof AppInvoicesIndexRoute
   '/jobs': typeof AppJobsIndexRoute
   '/leads': typeof AppLeadsIndexRoute
+  '/roofking': typeof AppRoofkingIndexRoute
   '/team': typeof AppTeamIndexRoute
   '/admin/companies': typeof AdminCompaniesIndexRoute
   '/cb/admin': typeof CbAdminIndexRoute
@@ -1278,6 +1286,7 @@ export interface FileRoutesById {
   '/_app/invoices/': typeof AppInvoicesIndexRoute
   '/_app/jobs/': typeof AppJobsIndexRoute
   '/_app/leads/': typeof AppLeadsIndexRoute
+  '/_app/roofking/': typeof AppRoofkingIndexRoute
   '/_app/team/': typeof AppTeamIndexRoute
   '/admin/companies/': typeof AdminCompaniesIndexRoute
   '/cb/admin/': typeof CbAdminIndexRoute
@@ -1425,6 +1434,7 @@ export interface FileRouteTypes {
     | '/invoices/'
     | '/jobs/'
     | '/leads/'
+    | '/roofking/'
     | '/team/'
     | '/admin/companies/'
     | '/cb/admin/'
@@ -1562,6 +1572,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/jobs'
     | '/leads'
+    | '/roofking'
     | '/team'
     | '/admin/companies'
     | '/cb/admin'
@@ -1708,6 +1719,7 @@ export interface FileRouteTypes {
     | '/_app/invoices/'
     | '/_app/jobs/'
     | '/_app/leads/'
+    | '/_app/roofking/'
     | '/_app/team/'
     | '/admin/companies/'
     | '/cb/admin/'
@@ -2540,6 +2552,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPriceBooksNewRouteImport
       parentRoute: typeof AppPriceBooksRoute
     }
+    '/_app/roofking/': {
+      id: '/_app/roofking/'
+      path: '/roofking'
+      fullPath: '/roofking/'
+      preLoaderRoute: typeof AppRoofkingIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/team/': {
       id: '/_app/team/'
       path: '/'
@@ -2974,6 +2993,7 @@ interface AppRouteChildren {
   AppJobsNewRoute: typeof AppJobsNewRoute
   AppInvoicesIndexRoute: typeof AppInvoicesIndexRoute
   AppJobsIndexRoute: typeof AppJobsIndexRoute
+  AppRoofkingIndexRoute: typeof AppRoofkingIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -2995,6 +3015,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppJobsNewRoute: AppJobsNewRoute,
   AppInvoicesIndexRoute: AppInvoicesIndexRoute,
   AppJobsIndexRoute: AppJobsIndexRoute,
+  AppRoofkingIndexRoute: AppRoofkingIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
