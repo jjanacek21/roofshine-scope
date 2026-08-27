@@ -77,7 +77,7 @@ export const Route = createFileRoute("/api/rk-ai")({
           return new Response("Unauthorized", { status: 401 });
         }
 
-        // Verify caller is a member of a Roof King company
+        // Verify caller is a member of a company with the commercial module
         const { data: prof } = await supabase
           .from("profiles")
           .select("company_id, role")
@@ -103,7 +103,7 @@ export const Route = createFileRoute("/api/rk-ai")({
         if (body.action === "polish") {
           const p = (body.payload ?? {}) as PolishPayload;
           const system =
-            "You are the office manager at Roof King, a commercial roofing company. Rewrite crew field notes into a clear, professional service report suitable for both the customer and the invoice. Keep ALL technical facts, materials, locations, quantities, and measurements exactly as written. Fix grammar and spelling. Organize the output strictly as four short sections with these exact headers on their own lines: Issue, Root Cause, Work Performed, Recommendations. Do not invent details, prices, or work that wasn't in the notes. If a section has no information, write 'Not specified.' Return only the rewritten report — no preamble, no closing remarks.";
+            "You are the office manager at a commercial roofing company. Rewrite crew field notes into a clear, professional service report suitable for both the customer and the invoice. Keep ALL technical facts, materials, locations, quantities, and measurements exactly as written. Fix grammar and spelling. Organize the output strictly as four short sections with these exact headers on their own lines: Issue, Root Cause, Work Performed, Recommendations. Do not invent details, prices, or work that wasn't in the notes. If a section has no information, write 'Not specified.' Return only the rewritten report — no preamble, no closing remarks.";
           const user = [
             p.customer ? `Customer: ${p.customer}` : null,
             p.roof_type ? `Roof Type: ${p.roof_type}` : null,

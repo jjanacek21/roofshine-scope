@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Download, FileJson, FileSpreadsheet } from "lucide-react";
-import { useIsRoofKing } from "@/hooks/useRoofKing";
+import { useFeatures } from "@/hooks/useFeatures";
 import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/commercial/useRKData";
 import { contactsCsv, propertiesCsv, ticketsCsv, fullJsonBackup, download } from "@/lib/commercial/csv";
 
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_app/commercial/export")({
 });
 
 function ExportPage() {
-  const { companyId } = useIsRoofKing();
+  const { company_id: companyId } = useFeatures();
   const { data: accounts = [] } = useRKAccounts(companyId);
   const { data: properties = [] } = useRKProperties(companyId);
   const { data: tickets = [] } = useRKTickets(companyId);

@@ -30,7 +30,7 @@ function TrainingCenter() {
         <div>
           <h2 className="text-xl font-semibold text-foreground">Training Center</h2>
           <p className="text-sm text-[var(--text-dim)]">
-            Roof Kings cold-call playbook. Add sections to your playbook to see them in the on-call panel.
+            Commercial cold-call playbook. Add sections to your playbook to see them in the on-call panel.
           </p>
         </div>
       </header>

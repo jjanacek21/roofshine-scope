@@ -12,14 +12,14 @@ export const NAV_FEATURE: Record<string, string> = {
   "/claim-buddy": "claim_buddy",
   "/card": "my_card",
   "/survival-guide": "survival_guide",
-  "/roofking": "commercial",
+  "/commercial": "commercial",
 };
 
 /**
  * Items that live at top level today but belong inside a module. When the
  * module is granted the item is owned by the module's own navigation, so the
- * top-level entry is hidden (this is how Roof King accounts keep /leads off
- * their sidebar).
+ * top-level entry is hidden (companies granted `commercial` reach prospecting
+ * at /commercial/prospecting instead).
  */
 export const NAV_HIDE_WHEN: Record<string, string> = {
   "/leads": "commercial",

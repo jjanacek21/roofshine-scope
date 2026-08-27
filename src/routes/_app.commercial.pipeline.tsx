@@ -4,7 +4,7 @@ import { DndContext, useDraggable, useDroppable, type DragEndEvent, PointerSenso
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useIsRoofKing } from "@/hooks/useRoofKing";
+import { useFeatures } from "@/hooks/useFeatures";
 import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/commercial/useRKData";
 import { TicketDrawer } from "@/components/commercial/TicketDrawer";
 import { RK_STATUSES, RK_STATUS_COLORS, RK_STATUS_LABELS } from "@/lib/commercial/types";
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_app/commercial/pipeline")({
 });
 
 function PipelinePage() {
-  const { companyId } = useIsRoofKing();
+  const { company_id: companyId } = useFeatures();
   const { data: accounts = [] } = useRKAccounts(companyId);
   const { data: properties = [] } = useRKProperties(companyId);
   const { data: tickets = [] } = useRKTickets(companyId);

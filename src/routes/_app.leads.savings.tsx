@@ -13,8 +13,7 @@ import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { supabase } from "@/integrations/supabase/client";
 import { analyzeRoofWithAI } from "@/lib/lead-ai.functions";
 import { useCompany } from "@/hooks/useCompany";
-import { useIsRoofKing } from "@/hooks/useRoofKing";
-import { RK_BRAND } from "@/lib/commercial/brand";
+import { useCompanyBrand } from "@/lib/commercial/brand";
 
 export const Route = createFileRoute("/_app/leads/savings")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -57,11 +56,15 @@ function SavingsReport() {
   const { data: leads = [] } = useLeads();
   const { data: mapboxToken } = useMapboxToken();
   const { data: company } = useCompany();
-  const { isRoofKing } = useIsRoofKing();
-  const brandName = isRoofKing ? RK_BRAND.name.toUpperCase() : (company?.name?.toUpperCase() || "LEAD CENTER");
-  const brandLogoUrl = isRoofKing ? RK_BRAND.logoUrl : company?.logo_url;
-  const brandPhone = isRoofKing ? RK_BRAND.phone : company?.phone;
-  const brandAddressLine = isRoofKing ? `${RK_BRAND.address}, ${RK_BRAND.cityStateZip}` : null;
+  const brand = useCompanyBrand();
+  const brandName = (brand.name || company?.name || "Lead Center").toUpperCase();
+  const brandLogoUrl = brand.logoUrl ?? company?.logo_url ?? null;
+  const brandPhone = brand.phone ?? company?.phone ?? null;
+  const brandAddressLine = [brand.address, brand.cityStateZip].filter(Boolean).join(", ") || null;
+  const brandFooterLine =
+    [brand.address, brand.cityStateZip, brand.phone].filter(Boolean).join(" · ") ||
+    [company?.phone, company?.email, company?.website].filter(Boolean).join(" · ") ||
+    "Schedule a free roof assessment";
   const reportRef = useRef<HTMLDivElement>(null);
 
 
@@ -377,14 +380,14 @@ function SavingsReport() {
                   <img
                     src={brandLogoUrl}
                     alt=""
-                    className={isRoofKing ? "h-14 w-auto object-contain" : "h-10 w-10 rounded object-cover"}
+                    className="h-14 w-auto max-w-[180px] object-contain"
                     crossOrigin="anonymous"
                   />
                 )}
                 <div>
                   <div className="text-2xl font-bold uppercase tracking-wider text-white">{brandName}</div>
                   <div className="text-xs uppercase tracking-widest text-slate-300">
-                    {isRoofKing ? RK_BRAND.tagline : "Commercial Roofing Solutions"}
+                    Commercial Roofing Solutions
                   </div>
                 </div>
               </div>
@@ -624,10 +627,7 @@ function SavingsReport() {
             <div>
               <div className="text-sm font-bold text-slate-900">{brandName}</div>
               <div className="text-xs text-slate-600">
-                {isRoofKing
-                  ? `${RK_BRAND.address}, ${RK_BRAND.cityStateZip} · ${RK_BRAND.phone}`
-                  : [company?.phone, company?.email, company?.website].filter(Boolean).join(" · ") ||
-                    "Schedule a free roof assessment"}
+                {brandFooterLine}
               </div>
             </div>
             <div className="text-xs italic text-slate-500">* Estimates for illustration only. Consult your tax advisor.</div>

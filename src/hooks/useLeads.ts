@@ -51,13 +51,13 @@ export function useLeadStats() {
       if (totalErr) throw totalErr;
 
       const statuses = [
-        "new",
+        "prospect",
         "contacted",
-        "qualified",
-        "quoted",
         "report_sent",
+        "proposal_sent",
         "won",
         "lost",
+        "nurture",
         "dnc",
       ] as const;
       const results = await Promise.all(

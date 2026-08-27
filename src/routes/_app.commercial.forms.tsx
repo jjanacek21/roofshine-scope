@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sparkles, Loader2, Trash2, FileCog, X } from "lucide-react";
-import { useIsRoofKing } from "@/hooks/useRoofKing";
+import { useFeatures } from "@/hooks/useFeatures";
 import { useRKFormTemplates } from "@/hooks/commercial/useRKData";
 import type { RKFormField, RKFormTemplate } from "@/lib/commercial/types";
 
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_app/commercial/forms")({
 });
 
 function FormBuilderPage() {
-  const { companyId } = useIsRoofKing();
+  const { company_id: companyId } = useFeatures();
   const { data: templates = [] } = useRKFormTemplates(companyId);
   const qc = useQueryClient();
   const [prompt, setPrompt] = useState("");

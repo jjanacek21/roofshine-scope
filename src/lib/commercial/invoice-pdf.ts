@@ -1,7 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { RKInvoice } from "./types";
-import { loadRKLogoDataUrl } from "./brand";
 
 function money(n: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n || 0);
@@ -14,6 +13,8 @@ export type RKInvoicePdfCompany = {
   website: string | null;
   address?: string | null;
   cityStateZip?: string | null;
+  /** Optional company logo as a data URL (PNG). Text-only header when absent. */
+  logoDataUrl?: string | null;
 };
 
 export async function downloadRKInvoicePdf(
@@ -30,7 +31,7 @@ export async function downloadRKInvoicePdf(
   doc.setFillColor(15, 23, 42);
   doc.rect(0, 0, W, 110, "F");
 
-  const logoData = await loadRKLogoDataUrl();
+  const logoData = company.logoDataUrl ?? null;
   if (logoData) {
     try {
       doc.addImage(logoData, "PNG", M, 18, 100, 52, undefined, "FAST");
@@ -41,7 +42,7 @@ export async function downloadRKInvoicePdf(
   doc.setTextColor(255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.text(company.name || "Roof King", logoData ? M + 110 : M, 42);
+  doc.text(company.name || "Invoice", logoData ? M + 110 : M, 42);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   const addrLines = [

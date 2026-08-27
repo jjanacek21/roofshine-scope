@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Users, Building2, Ticket, AlertCircle, FlameKindling } from "lucide-react";
-import { useIsRoofKing } from "@/hooks/useRoofKing";
+import { useFeatures } from "@/hooks/useFeatures";
 import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/commercial/useRKData";
 import { KpiCard } from "@/components/commercial/KpiCard";
 import { RKStatusBadge } from "@/components/commercial/StatusBadge";
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_app/commercial/")({
 });
 
 function Dashboard() {
-  const { companyId } = useIsRoofKing();
+  const { company_id: companyId } = useFeatures();
   const { data: accounts = [] } = useRKAccounts(companyId);
   const { data: properties = [] } = useRKProperties(companyId);
   const { data: tickets = [] } = useRKTickets(companyId);
@@ -35,7 +35,7 @@ function Dashboard() {
         <KpiCard label="Customers" value={accounts.length} icon={<Users className="h-4 w-4" />} />
         <KpiCard label="Buildings" value={properties.length} icon={<Building2 className="h-4 w-4" />} accent="#a06bff" />
         <KpiCard label="Total Tickets" value={tickets.length} icon={<Ticket className="h-4 w-4" />} accent="#5fa3ff" />
-        <KpiCard label="Ready to Invoice" value={readyCount} icon={<AlertCircle className="h-4 w-4" />} accent="#f0a73a" />
+        <KpiCard label="Ready to Invoice" value={readyCount} icon={<AlertCircle className="h-4 w-4" />} accent="var(--brand)" />
         <KpiCard label="In Progress" value={inProgressCount} icon={<FlameKindling className="h-4 w-4" />} accent="#2ec27e" />
       </div>
 

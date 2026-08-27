@@ -2,7 +2,6 @@
 // the lead detail sheet's "Generate report" action so the layout stays identical.
 import jsPDF from "jspdf";
 import { fmtMoney, fmtNum, type LeadRow } from "@/lib/leads";
-import { RK_BRAND } from "@/lib/commercial/brand";
 
 export interface ReportInputs {
   sqft: number;
@@ -92,14 +91,34 @@ export function project(inputs: ReportInputs): YearRow[] {
   return rows;
 }
 
+/** Company branding for the report header. All fields optional. */
+export interface ReportBrand {
+  name?: string | null;
+  address?: string | null;
+  cityStateZip?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  /** Header bar color. Defaults to a neutral dark slate. */
+  headerColor?: string | null;
+}
+
 export interface BuildReportArgs {
   inputs: ReportInputs;
   lead?: Pick<LeadRow, "address" | "city" | "state" | "zip" | "owner"> | null;
-  /** Optional Roof King logo as a data URL (PNG). When provided, drawn in the header. */
+  /** Optional company logo as a data URL (PNG). When absent the header is text only. */
   logoDataUrl?: string | null;
+  brand?: ReportBrand | null;
 }
 
-export function buildSavingsReportPdf({ inputs, lead, logoDataUrl }: BuildReportArgs): { doc: jsPDF; safeName: string } {
+function hexToRgb(hex: string | null | undefined): [number, number, number] {
+  const m = /^#?([0-9a-f]{6})$/i.exec((hex ?? "").trim());
+  if (!m) return [10, 25, 47];
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+export function buildSavingsReportPdf({ inputs, lead, logoDataUrl, brand }: BuildReportArgs): { doc: jsPDF; safeName: string } {
   const rows = project(inputs);
   const final = rows[rows.length - 1];
   const restoreUpfront = inputs.sqft * inputs.restorePsf;
@@ -111,8 +130,9 @@ export function buildSavingsReportPdf({ inputs, lead, logoDataUrl }: BuildReport
   const doc = new jsPDF({ unit: "pt", format: "letter" });
   const W = doc.internal.pageSize.getWidth();
 
-  // ---------- Roof King branded header ----------
-  doc.setFillColor(10, 25, 47);
+  // ---------- Company branded header ----------
+  const [hr, hg, hb] = hexToRgb(brand?.headerColor);
+  doc.setFillColor(hr, hg, hb);
   doc.rect(0, 0, W, 86, "F");
   if (logoDataUrl) {
     try {
@@ -124,12 +144,16 @@ export function buildSavingsReportPdf({ inputs, lead, logoDataUrl }: BuildReport
   doc.setTextColor(255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  doc.text(RK_BRAND.name, W - 40, 32, { align: "right" });
+  if (brand?.name) doc.text(brand.name, W - 40, 32, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text(RK_BRAND.address, W - 40, 48, { align: "right" });
-  doc.text(RK_BRAND.cityStateZip, W - 40, 60, { align: "right" });
-  doc.text(RK_BRAND.phone, W - 40, 72, { align: "right" });
+  let hy = 48;
+  [brand?.address, brand?.cityStateZip, brand?.phone, brand?.website]
+    .filter((v): v is string => !!v)
+    .forEach((line) => {
+      doc.text(line, W - 40, hy, { align: "right" });
+      hy += 12;
+    });
 
   doc.setTextColor(20);
   let y = 120;

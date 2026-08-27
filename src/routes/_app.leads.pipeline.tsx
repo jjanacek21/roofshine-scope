@@ -21,7 +21,7 @@ function LeadsPipeline() {
 
   const grouped = useMemo(() => {
     const map: Record<LeadStatus, LeadRow[]> = {
-      new: [], contacted: [], qualified: [], quoted: [], report_sent: [], won: [], lost: [], dnc: [],
+      prospect: [], contacted: [], report_sent: [], proposal_sent: [], won: [], lost: [], nurture: [], dnc: [],
     };
     leads.forEach((l) => map[l.status]?.push(l));
     return map;

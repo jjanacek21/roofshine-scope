@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Plus, Building2, Ticket } from "lucide-react";
-import { useIsRoofKing } from "@/hooks/useRoofKing";
+import { useFeatures } from "@/hooks/useFeatures";
 import { useRKAccounts, useRKProperties, useRKTickets } from "@/hooks/commercial/useRKData";
 import { AddBuildingDialog } from "@/components/commercial/CustomerDialogs";
 import { NewTicketDialog } from "@/components/commercial/NewTicketDialog";
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_app/commercial/customers")({
 });
 
 function CustomersPage() {
-  const { companyId } = useIsRoofKing();
+  const { company_id: companyId } = useFeatures();
   const { data: accounts = [] } = useRKAccounts(companyId);
   const { data: properties = [] } = useRKProperties(companyId);
   const { data: tickets = [] } = useRKTickets(companyId);

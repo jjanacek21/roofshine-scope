@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Download, FileText, Sparkles, Plus, Trash2, Save } from "lucide-react";
 import type { RKAccount, RKInvoice, RKInvoiceLine, RKProperty, RKTicket } from "@/lib/commercial/types";
 import { useCompany } from "@/hooks/useCompany";
+import { useCompanyBrand, loadLogoDataUrl } from "@/lib/commercial/brand";
 import { downloadRKInvoicePdf } from "@/lib/commercial/invoice-pdf";
 
 function todayISO() {
@@ -74,6 +75,7 @@ export function TicketInvoicePanel({
 }) {
   const qc = useQueryClient();
   const { data: company } = useCompany();
+  const brand = useCompanyBrand();
   const [inv, setInv] = useState<RKInvoice | null>(ticket.invoice ?? null);
   const [open, setOpen] = useState<boolean>(!!ticket.invoice);
 
@@ -139,12 +141,13 @@ export function TicketInvoicePanel({
     await downloadRKInvoicePdf(
       inv,
       {
-        name: "Roof King",
-        phone: "954-782-3002",
-        email: company?.email ?? null,
-        website: company?.website ?? null,
-        address: "1913 NW 18th St. Suite 2",
-        cityStateZip: "Pompano Beach, FL 33069",
+        name: brand.name || company?.name || "",
+        phone: brand.phone ?? company?.phone ?? null,
+        email: brand.email ?? company?.email ?? null,
+        website: brand.website ?? company?.website ?? null,
+        address: brand.address ?? null,
+        cityStateZip: brand.cityStateZip ?? null,
+        logoDataUrl: await loadLogoDataUrl(brand.logoUrl),
       },
       ticket.wo_number,
     );
