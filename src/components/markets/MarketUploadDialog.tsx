@@ -6,9 +6,24 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Upload, FileText, X } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ingestMarketCsv } from "@/lib/markets.functions";
+
+/**
+ * Rows per request.
+ *
+ * The server caps a call at 5,000; this stays well under so one slow batch
+ * cannot time out and take the whole import with it. Eleven thousand lines
+ * becomes six quick calls instead of one that fails validation outright.
+ */
+const BATCH_SIZE = 2000;
 
 type ParsedRow = {
   code: string;
@@ -54,25 +69,48 @@ export function MarketUploadDialog({
   const [errors, setErrors] = useState<string[]>([]);
   const [skippedBlank, setSkippedBlank] = useState(0);
   const [parsing, setParsing] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   const ingest = useServerFn(ingestMarketCsv);
   const ingestMutation = useMutation({
-    mutationFn: () =>
-      ingest({
-        data: {
-          market_id: marketId,
-          replace_existing_prices: true,
-          rows: rows.map((r) => ({
-            code: r.code,
-            name: r.name,
-            unit: r.unit,
-            replace_price: r.replace_price,
-            remove_price: r.remove_price,
-            trade: r.trade,
-            subgroup: r.subgroup,
-          })),
-        },
-      }),
+    mutationFn: async () => {
+      /*
+       * A full Xactimate export is 11,000+ lines. The server takes 5,000 a
+       * call, and one request that size is a bad idea anyway, so send the file
+       * in batches and add up what comes back.
+       *
+       * Only the FIRST batch clears the market's old prices. If every batch
+       * did, each one would delete the work of the batch before it and the
+       * book would end up holding just the last 2,000 lines.
+       */
+      const totals = { prices_written: 0, catalog_items_created: 0, catalog_items_matched: 0 };
+      const batches = Math.ceil(rows.length / BATCH_SIZE);
+      setProgress({ done: 0, total: batches });
+
+      for (let i = 0; i < batches; i += 1) {
+        const slice = rows.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+        const res = await ingest({
+          data: {
+            market_id: marketId,
+            replace_existing_prices: i === 0,
+            rows: slice.map((r) => ({
+              code: r.code,
+              name: r.name,
+              unit: r.unit,
+              replace_price: r.replace_price,
+              remove_price: r.remove_price,
+              trade: r.trade,
+              subgroup: r.subgroup,
+            })),
+          },
+        });
+        totals.prices_written += res.prices_written;
+        totals.catalog_items_created += res.catalog_items_created;
+        totals.catalog_items_matched += res.catalog_items_matched;
+        setProgress({ done: i + 1, total: batches });
+      }
+      return totals;
+    },
     onSuccess: (res) => {
       toast.success(
         `Imported ${res.prices_written} prices · ${res.catalog_items_created} new catalog items · ${res.catalog_items_matched} matched`,
@@ -82,7 +120,12 @@ export function MarketUploadDialog({
       reset();
       onClose();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      setProgress(null);
+      /* Say which batch died. Half a price book imported is worse than none if
+         nobody knows it happened. */
+      toast.error(e.message);
+    },
   });
 
   function reset() {
@@ -90,6 +133,7 @@ export function MarketUploadDialog({
     setRows([]);
     setErrors([]);
     setSkippedBlank(0);
+    setProgress(null);
   }
 
   function handleFile(f: File) {
@@ -109,7 +153,9 @@ export function MarketUploadDialog({
           const code = pick(raw, "item_number", "code", "item_code", "xact_code", "selector");
           const name = pick(raw, "description", "name", "activity", "item", "line_item");
           const unit = pick(raw, "unit", "uom", "u/m", "measure") || "EA";
-          const replace_price = parseNum(pick(raw, "replace", "unit_price", "price", "rate", "cost"));
+          const replace_price = parseNum(
+            pick(raw, "replace", "unit_price", "price", "rate", "cost"),
+          );
           const remove_price = parseNum(pick(raw, "remove", "removal", "demo"));
           const trade = pick(raw, "trade", "category_group");
           const subgroup = pick(raw, "sub_group", "subgroup", "category", "cat", "group");
@@ -168,8 +214,8 @@ export function MarketUploadDialog({
               <div className="text-sm font-semibold">Drop your CSV here</div>
               <div className="mt-1 text-xs text-muted-foreground">
                 Expected columns: <code>item_number</code>, <code>description</code>,{" "}
-                <code>unit</code>, <code>remove</code>, <code>replace</code>,{" "}
-                <code>trade</code>, <code>sub_group</code>.
+                <code>unit</code>, <code>remove</code>, <code>replace</code>, <code>trade</code>,{" "}
+                <code>sub_group</code>.
               </div>
             </div>
             <input
@@ -181,7 +227,10 @@ export function MarketUploadDialog({
           </label>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-center justify-between rounded-md border p-3" style={{ borderColor: "var(--border)" }}>
+            <div
+              className="flex items-center justify-between rounded-md border p-3"
+              style={{ borderColor: "var(--border)" }}
+            >
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 <span className="text-sm font-medium">{file.name}</span>
@@ -208,7 +257,10 @@ export function MarketUploadDialog({
             )}
 
             {preview.length > 0 && (
-              <div className="overflow-hidden rounded-md border text-xs" style={{ borderColor: "var(--border)" }}>
+              <div
+                className="overflow-hidden rounded-md border text-xs"
+                style={{ borderColor: "var(--border)" }}
+              >
                 <table className="w-full">
                   <thead className="bg-muted/30">
                     <tr>
@@ -222,19 +274,30 @@ export function MarketUploadDialog({
                   </thead>
                   <tbody>
                     {preview.map((r) => (
-                      <tr key={r.code} className="border-t" style={{ borderColor: "var(--border)" }}>
+                      <tr
+                        key={r.code}
+                        className="border-t"
+                        style={{ borderColor: "var(--border)" }}
+                      >
                         <td className="px-2 py-1 font-mono">{r.code}</td>
                         <td className="px-2 py-1 max-w-[280px] truncate">{r.name}</td>
                         <td className="px-2 py-1">{r.unit}</td>
-                        <td className="px-2 py-1 text-right font-mono">${r.remove_price.toFixed(2)}</td>
-                        <td className="px-2 py-1 text-right font-mono">${r.replace_price.toFixed(2)}</td>
+                        <td className="px-2 py-1 text-right font-mono">
+                          ${r.remove_price.toFixed(2)}
+                        </td>
+                        <td className="px-2 py-1 text-right font-mono">
+                          ${r.replace_price.toFixed(2)}
+                        </td>
                         <td className="px-2 py-1 text-muted-foreground">{r.trade ?? "—"}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
                 {rows.length > preview.length && (
-                  <div className="border-t bg-muted/20 px-2 py-1 text-center text-muted-foreground" style={{ borderColor: "var(--border)" }}>
+                  <div
+                    className="border-t bg-muted/20 px-2 py-1 text-center text-muted-foreground"
+                    style={{ borderColor: "var(--border)" }}
+                  >
                     + {rows.length - preview.length} more rows
                   </div>
                 )}
@@ -244,12 +307,18 @@ export function MarketUploadDialog({
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => (reset(), onClose())}>Cancel</Button>
+          <Button variant="outline" onClick={() => (reset(), onClose())}>
+            Cancel
+          </Button>
           <Button
             onClick={() => ingestMutation.mutate()}
             disabled={rows.length === 0 || parsing || ingestMutation.isPending}
           >
-            {ingestMutation.isPending ? "Importing…" : `Import ${rows.length} rows`}
+            {ingestMutation.isPending
+              ? progress
+                ? `Importing… batch ${progress.done + 1} of ${progress.total}`
+                : "Importing…"
+              : `Import ${rows.length} rows`}
           </Button>
         </DialogFooter>
       </DialogContent>
