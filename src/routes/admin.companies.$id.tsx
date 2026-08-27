@@ -189,7 +189,7 @@ function AdminCompanyDetail() {
     return true;
   }
 
-  const inviteLink = (token: string) => `${window.location.origin}/onboarding?invite=${token}`;
+  const inviteLink = (token: string) => `${window.location.origin}/accept-invite?token=${token}`;
 
   async function sendInvite(e: FormEvent) {
     e.preventDefault();
