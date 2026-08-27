@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useFeatures } from "@/hooks/useFeatures";
 import { useLeads, useLeadStats } from "@/hooks/useLeads";
 import { StatCard } from "@/components/brand/StatCard";
 import { LEAD_STATUSES, fmtMoney, fmtNum, leadStatusColor } from "@/lib/leads";
@@ -21,6 +22,14 @@ export const Route = createFileRoute("/_app/leads/")({
 });
 
 function LeadsDashboard() {
+  // Companies granted the commercial module own prospecting inside it.
+  const { can, loading: featuresLoading } = useFeatures();
+  const navigate = useNavigate();
+  const hasModule = can("commercial");
+  useEffect(() => {
+    if (!featuresLoading && hasModule) navigate({ to: "/commercial/prospecting", replace: true });
+  }, [featuresLoading, hasModule, navigate]);
+
   const { data: leads = [], isLoading } = useLeads();
   const { data: leadStats } = useLeadStats();
   const [openId, setOpenId] = useState<string | null>(null);
