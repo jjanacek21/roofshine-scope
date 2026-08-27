@@ -14,10 +14,25 @@ import { MaterialsTemplatesTab } from "@/components/settings/MaterialsTemplatesT
 import { LaborRatesTab } from "@/components/settings/LaborRatesTab";
 import { ReportBrandingTab } from "@/components/settings/ReportBrandingTab";
 import { CompanyLogoUploader } from "@/components/settings/CompanyLogoUploader";
+import { TeamTab } from "@/components/settings/TeamTab";
+import { useFeatures } from "@/hooks/useFeatures";
 
-
-const TABS = ["Company", "Branding", "Defaults", "Trades", "Rules", "Materials", "Labor", "Users", "Integrations"] as const;
-type Tab = (typeof TABS)[number];
+/**
+ * Settings tabs, each tied to the admin_portal feature that governs it.
+ * A tab with no feature is always available to company admins. Tabs whose
+ * feature is not granted are not rendered at all.
+ */
+const TABS = [
+  { name: "Company", feature: "admin_portal.branding" },
+  { name: "Branding", feature: "admin_portal.reports" },
+  { name: "Defaults", feature: "admin_portal.pricing" },
+  { name: "Trades", feature: null },
+  { name: "Rules", feature: null },
+  { name: "Materials", feature: "admin_portal.suppliers" },
+  { name: "Labor", feature: "admin_portal.pricing" },
+  { name: "Team", feature: "admin_portal.team" },
+] as const;
+type Tab = (typeof TABS)[number]["name"];
 const RULE_TYPES = ["required", "recommended", "conditional"] as const;
 type RuleType = (typeof RULE_TYPES)[number];
 
@@ -26,7 +41,25 @@ export const Route = createFileRoute("/_app/settings")({
 });
 
 function SettingsPage() {
+  const { can, loading } = useFeatures();
+  const visible = TABS.filter((t) => !t.feature || can(t.feature));
   const [tab, setTab] = useState<Tab>("Company");
+
+  // If the first tab is not granted, land on one that is.
+  const active = visible.some((t) => t.name === tab) ? tab : (visible[0]?.name ?? "Company");
+
+  if (loading) return <div className="text-sm text-muted-foreground">Loading…</div>;
+
+  if (visible.length === 0) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+        <p className="text-sm text-muted-foreground">
+          Nothing here is enabled for your company yet.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -38,18 +71,18 @@ function SettingsPage() {
       </div>
 
       <div className="flex gap-1 border-b" style={{ borderColor: "var(--border)" }}>
-        {TABS.map((t) => (
+        {visible.map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={t.name}
+            onClick={() => setTab(t.name)}
             className={cn(
               "border-b-2 px-4 py-2 text-sm font-medium transition-colors",
-              tab === t
+              active === t.name
                 ? "border-[var(--brand)] text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
-            {t}
+            {t.name}
           </button>
         ))}
       </div>
@@ -58,15 +91,14 @@ function SettingsPage() {
         className="rounded-xl border p-6"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
       >
-        {tab === "Company" && <CompanyTab />}
-        {tab === "Branding" && <ReportBrandingTab />}
-        {tab === "Defaults" && <DefaultsTab />}
-        {tab === "Trades" && <TradesTab />}
-        {tab === "Rules" && <RulesTab />}
-        {tab === "Materials" && <MaterialsTemplatesTab />}
-        {tab === "Labor" && <LaborRatesTab />}
-        {tab === "Users" && <Placeholder name="Users" />}
-        {tab === "Integrations" && <Placeholder name="Integrations" />}
+        {active === "Company" && <CompanyTab />}
+        {active === "Branding" && <ReportBrandingTab />}
+        {active === "Defaults" && <DefaultsTab />}
+        {active === "Trades" && <TradesTab />}
+        {active === "Rules" && <RulesTab />}
+        {active === "Materials" && <MaterialsTemplatesTab />}
+        {active === "Labor" && <LaborRatesTab />}
+        {active === "Team" && <TeamTab />}
       </div>
     </div>
   );
@@ -85,7 +117,11 @@ function DefaultsTab() {
         .eq("id", user!.id)
         .maybeSingle();
       if (!prof?.company_id) return null;
-      const { data } = await supabase.from("companies").select("*").eq("id", prof.company_id).maybeSingle();
+      const { data } = await supabase
+        .from("companies")
+        .select("*")
+        .eq("id", prof.company_id)
+        .maybeSingle();
       return data;
     },
   });
@@ -119,7 +155,10 @@ function DefaultsTab() {
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
           Photo AI
         </h2>
-        <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-lg border p-4 hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border)" }}>
+        <label
+          className="mt-3 flex cursor-pointer items-start gap-3 rounded-lg border p-4 hover:bg-[var(--surface-hover)]"
+          style={{ borderColor: "var(--border)" }}
+        >
           <input
             type="checkbox"
             checked={autoAdd}
@@ -135,17 +174,15 @@ function DefaultsTab() {
               Auto-add AI suggestions to estimate
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              When ON, line items detected from job photos are automatically inserted into the active estimate as drafts (marked with an ✨ AI chip). When OFF, suggestions appear in a review panel at the top of the estimate for you to approve.
+              When ON, line items detected from job photos are automatically inserted into the
+              active estimate as drafts (marked with an ✨ AI chip). When OFF, suggestions appear in
+              a review panel at the top of the estimate for you to approve.
             </p>
           </div>
         </label>
       </div>
     </div>
   );
-}
-
-function Placeholder({ name }: { name: string }) {
-  return <p className="text-sm text-muted-foreground">{name} settings coming in the next build.</p>;
 }
 
 function CompanyTab() {
@@ -161,7 +198,11 @@ function CompanyTab() {
         .eq("id", user!.id)
         .maybeSingle();
       if (!prof?.company_id) return null;
-      const { data } = await supabase.from("companies").select("*").eq("id", prof.company_id).maybeSingle();
+      const { data } = await supabase
+        .from("companies")
+        .select("*")
+        .eq("id", prof.company_id)
+        .maybeSingle();
       return data;
     },
   });
@@ -252,7 +293,11 @@ function TradesTab() {
         .eq("id", user!.id)
         .maybeSingle();
       if (!prof?.company_id) return null;
-      const { data } = await supabase.from("companies").select("*").eq("id", prof.company_id).maybeSingle();
+      const { data } = await supabase
+        .from("companies")
+        .select("*")
+        .eq("id", prof.company_id)
+        .maybeSingle();
       return data;
     },
   });
@@ -323,10 +368,22 @@ function TradesTab() {
   );
 }
 
-function Field({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+}) {
   return (
     <div>
-      <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</label>
+      <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </label>
       <input
         type={type}
         value={value}
@@ -352,7 +409,8 @@ type CompanionRule = {
 function RulesTab() {
   const { data: profile } = useProfile();
   const companyId = profile?.company_id ?? null;
-  const isAdmin = profile?.role === "owner" || profile?.role === "admin" || profile?.role === "super_admin";
+  const isAdmin =
+    profile?.role === "owner" || profile?.role === "admin" || profile?.role === "super_admin";
   const qc = useQueryClient();
   const [drawer, setDrawer] = useState<{ open: boolean; rule?: CompanionRule }>({ open: false });
   const [seeding, setSeeding] = useState(false);
@@ -364,7 +422,9 @@ function RulesTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("companion_rules")
-        .select("id, trigger_category, trigger_trade, suggested_codes, rule_type, jurisdiction, notes")
+        .select(
+          "id, trigger_category, trigger_trade, suggested_codes, rule_type, jurisdiction, notes",
+        )
         .order("trigger_trade")
         .order("trigger_category");
       if (error) throw error;
@@ -407,7 +467,8 @@ function RulesTab() {
   }
 
   if (!companyId) return <p className="text-sm text-muted-foreground">No company on file.</p>;
-  if (!isAdmin) return <p className="text-sm text-muted-foreground">Only admins can manage companion rules.</p>;
+  if (!isAdmin)
+    return <p className="text-sm text-muted-foreground">Only admins can manage companion rules.</p>;
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -420,10 +481,14 @@ function RulesTab() {
 
   if (rules.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-10 text-center" style={{ borderColor: "var(--border)" }}>
+      <div
+        className="rounded-lg border border-dashed p-10 text-center"
+        style={{ borderColor: "var(--border)" }}
+      >
         <h3 className="text-base font-bold text-foreground">No companion rules yet</h3>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-          Companion rules suggest related line items when an estimator picks a trigger category — e.g. when "shingles" is added, also suggest drip edge, starter, and underlayment.
+          Companion rules suggest related line items when an estimator picks a trigger category —
+          e.g. when "shingles" is added, also suggest drip edge, starter, and underlayment.
         </p>
         <div className="mt-5 flex justify-center gap-2">
           <button
@@ -431,7 +496,9 @@ function RulesTab() {
             disabled={seeding}
             className="btn-brand h-9 rounded-md px-4 text-sm font-semibold disabled:opacity-50"
           >
-            {seeding ? "Loading…" : `Load starter rules (${STARTER_RULES.length} rules across 8 trades)`}
+            {seeding
+              ? "Loading…"
+              : `Load starter rules (${STARTER_RULES.length} rules across 8 trades)`}
           </button>
           <button
             onClick={() => setDrawer({ open: true })}
@@ -473,7 +540,11 @@ function RulesTab() {
           </thead>
           <tbody>
             {rules.map((r) => (
-              <tr key={r.id} className="group border-t hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border)" }}>
+              <tr
+                key={r.id}
+                className="group border-t hover:bg-[var(--surface-hover)]"
+                style={{ borderColor: "var(--border)" }}
+              >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     {r.trigger_trade && <TradeBadge trade={r.trigger_trade} />}
@@ -487,12 +558,18 @@ function RulesTab() {
                   <span
                     className="rounded px-2 py-0.5 text-[10px] font-semibold uppercase"
                     style={{
-                      background: r.rule_type === "required" ? "rgba(239,68,68,.15)"
-                        : r.rule_type === "recommended" ? "rgba(30,144,255,.15)"
-                        : "rgba(168,85,247,.15)",
-                      color: r.rule_type === "required" ? "#fca5a5"
-                        : r.rule_type === "recommended" ? "#7dc3ff"
-                        : "#c4a5f7",
+                      background:
+                        r.rule_type === "required"
+                          ? "rgba(239,68,68,.15)"
+                          : r.rule_type === "recommended"
+                            ? "rgba(30,144,255,.15)"
+                            : "rgba(168,85,247,.15)",
+                      color:
+                        r.rule_type === "required"
+                          ? "#fca5a5"
+                          : r.rule_type === "recommended"
+                            ? "#7dc3ff"
+                            : "#c4a5f7",
                     }}
                   >
                     {r.rule_type}
@@ -538,7 +615,10 @@ function RulesTab() {
 }
 
 function RuleDrawer({
-  companyId, rule, onClose, onSaved,
+  companyId,
+  rule,
+  onClose,
+  onSaved,
 }: {
   companyId: string;
   rule?: CompanionRule;
@@ -564,7 +644,10 @@ function RuleDrawer({
         company_id: companyId,
         trigger_category: category.trim(),
         trigger_trade: trade,
-        suggested_codes: codesInput.split(",").map((s) => s.trim()).filter(Boolean),
+        suggested_codes: codesInput
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
         rule_type: type,
         jurisdiction: jurisdiction.trim() || null,
         notes: notes.trim() || null,
@@ -593,36 +676,64 @@ function RuleDrawer({
         className="fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l shadow-2xl"
         style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
       >
-        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: "var(--border)" }}>
+        <div
+          className="flex items-center justify-between border-b px-5 py-4"
+          style={{ borderColor: "var(--border)" }}
+        >
           <h2 className="text-lg font-bold text-foreground">{rule ? "Edit Rule" : "New Rule"}</h2>
-          <button onClick={onClose} className="rounded p-1 text-muted-foreground hover:text-foreground">
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-muted-foreground hover:text-foreground"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
           <RField label="Trigger Category *">
-            <input value={category} onChange={(e) => setCategory(e.target.value)} className="r-input" />
+            <input
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="r-input"
+            />
           </RField>
           <RField label="Trigger Trade">
-            <select value={trade} onChange={(e) => setTrade(e.target.value as Trade)} className="r-input">
-              {TRADES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            <select
+              value={trade}
+              onChange={(e) => setTrade(e.target.value as Trade)}
+              className="r-input"
+            >
+              {TRADES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
             </select>
           </RField>
           <RField label="Suggested Codes (comma-separated)">
-            <textarea value={codesInput} onChange={(e) => setCodesInput(e.target.value)} rows={3} className="r-input resize-none" />
+            <textarea
+              value={codesInput}
+              onChange={(e) => setCodesInput(e.target.value)}
+              rows={3}
+              className="r-input resize-none"
+            />
           </RField>
           <RField label="Rule Type">
             <div className="flex gap-2">
               {RULE_TYPES.map((t) => (
                 <button
-                  key={t} type="button" onClick={() => setType(t)}
+                  key={t}
+                  type="button"
+                  onClick={() => setType(t)}
                   className={cn(
                     "h-9 flex-1 rounded-md border text-xs font-semibold capitalize",
                     type === t ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                   )}
                   style={{
                     borderColor: type === t ? "var(--brand)" : "var(--border)",
-                    background: type === t ? "color-mix(in oklab, var(--brand) 12%, transparent)" : "transparent",
+                    background:
+                      type === t
+                        ? "color-mix(in oklab, var(--brand) 12%, transparent)"
+                        : "transparent",
                   }}
                 >
                   {t}
@@ -631,13 +742,25 @@ function RuleDrawer({
             </div>
           </RField>
           <RField label="Jurisdiction (optional)">
-            <input value={jurisdiction} onChange={(e) => setJurisdiction(e.target.value)} className="r-input" />
+            <input
+              value={jurisdiction}
+              onChange={(e) => setJurisdiction(e.target.value)}
+              className="r-input"
+            />
           </RField>
           <RField label="Notes">
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="r-input resize-none" />
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="r-input resize-none"
+            />
           </RField>
         </div>
-        <div className="flex justify-end gap-2 border-t px-5 py-4" style={{ borderColor: "var(--border)" }}>
+        <div
+          className="flex justify-end gap-2 border-t px-5 py-4"
+          style={{ borderColor: "var(--border)" }}
+        >
           <button
             onClick={onClose}
             className="h-9 rounded-md border px-4 text-sm font-semibold text-foreground hover:bg-[var(--surface-hover)]"
