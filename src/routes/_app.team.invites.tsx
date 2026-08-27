@@ -47,8 +47,10 @@ function TeamInvites() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me?.company_id]);
 
-  const inviteLink = (token: string) =>
-    `${APP_URL}/onboarding?invite=${token}`;
+  /* The accept page creates and confirms the account in one step. The old
+     /onboarding?invite= link needed an already-signed-in user, which an
+     invitee never is. */
+  const inviteLink = (token: string) => `${APP_URL}/accept-invite?token=${token}`;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();

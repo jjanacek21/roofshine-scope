@@ -16,6 +16,7 @@ import {
   Calculator,
   Building2,
   Briefcase,
+  Sliders,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFeatures } from "@/hooks/useFeatures";
@@ -36,6 +37,12 @@ const TABS = [
     to: "/commercial/spf",
     label: "Calculator",
     icon: Calculator,
+    feature: "commercial.calculator",
+  },
+  {
+    to: "/commercial/setup",
+    label: "Calculator setup",
+    icon: Sliders,
     feature: "commercial.calculator",
   },
   { to: "/leads", label: "Prospecting", icon: Target, feature: "commercial.prospecting" },
