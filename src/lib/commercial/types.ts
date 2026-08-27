@@ -14,7 +14,7 @@ export const RK_STATUS_COLORS: Record<RKStatus, string> = {
   new: "#6b7888",
   dispatched: "#2f81f7",
   field: "#a06bff",
-  ready: "#f0a73a",
+  ready: "var(--brand)",
   invoiced: "#2ec27e",
 };
 

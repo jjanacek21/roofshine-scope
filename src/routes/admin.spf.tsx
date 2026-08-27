@@ -44,7 +44,7 @@ function AdminSpfPage() {
       <div>
         <h1 className="text-2xl font-semibold">SPF Calculator</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage the global SPF catalog — coating products, detail line items, preset stacks, and per-field defaults / Simple-mode visibility. Every Roof King company uses this catalog.
+          Manage the global SPF catalog — coating products, detail line items, preset stacks, and per-field defaults / Simple-mode visibility. Every company with the commercial module uses this catalog.
         </p>
       </div>
 

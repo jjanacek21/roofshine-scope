@@ -1,4 +1,4 @@
-// Roof Kings cold-call playbook — verbatim content from the company sales guide.
+// Commercial cold-call playbook — content from the company sales guide.
 // Used by both the Training Center (full library) and the floating on-call panel.
 
 import * as React from "react";
@@ -99,13 +99,13 @@ export const PLAYBOOK: PlaybookCategory[] = [
         title: "Step 1 — The Opener (Drone Hook)",
         body:
           "**Variant 1 — Tightest:**\n" +
-          "\"Hey [Name], [Your Name] with Roof Kings. I was flying a drone next door to your building at [address] and pulled satellite on yours after — moisture flags, membrane's deteriorating. What are you spending a year on maintenance?\"\n\n" +
+          "\"Hey [Name], [Your Name] with [Company]. I was flying a drone next door to your building at [address] and pulled satellite on yours after — moisture flags, membrane's deteriorating. What are you spending a year on maintenance?\"\n\n" +
           "**Variant 2 — Conversational but fast:**\n" +
-          "\"Hi [Name]? [Your Name], Roof Kings. Quick one — I was flying next door at [address], your roof showed up on satellite and it's not looking great. Moisture intrusion, deterioration. How much you spending on maintenance right now?\"\n\n" +
+          "\"Hi [Name]? [Your Name], [Company]. Quick one — I was flying next door at [address], your roof showed up on satellite and it's not looking great. Moisture intrusion, deterioration. How much you spending on maintenance right now?\"\n\n" +
           "**Variant 3 — Most direct:**\n" +
-          "\"[Name]? [Your Name] from Roof Kings. Pulled satellite on your roof at [address] — it's deteriorating. What's your annual maintenance run you?\"\n\n" +
+          "\"[Name]? [Your Name] from [Company]. Pulled satellite on your roof at [address] — it's deteriorating. What's your annual maintenance run you?\"\n\n" +
           "**Variant 4 — Drone-first:**\n" +
-          "\"Hey [Name], [Your Name] with Roof Kings. I was droning a building next to yours at [address] and your roof flagged for moisture. What are you spending a year keeping it patched?\"",
+          "\"Hey [Name], [Your Name] with [Company]. I was droning a building next to yours at [address] and your roof flagged for moisture. What are you spending a year keeping it patched?\"",
       },
       {
         id: "delivery-rules",
@@ -251,7 +251,7 @@ export const PLAYBOOK: PlaybookCategory[] = [
         id: "ninety-second",
         title: "The 90-Second Version",
         body:
-          "\"So we're Roof Kings — 30 years in business, based in South Florida, 5 fully equipped trucks, crew that's been with us 20 years. We've sprayed millions of square feet across the country. What we do is we take your existing commercial roof — whether it's modified bit, BUR, EPDM, TPO — and we spray a layer of closed-cell polyurethane foam right over it. That foam fills every crack, every penetration, every low spot, and gives you R-7 insulation per inch. Then we prime it and top-coat it with high-solids silicone. The result is one seamless, monolithic, watertight membrane — no seams, no penetrations, fully UV-reflective, fully wind-rated. Carries a 15 or 20-year manufacturer warranty. Energy savings alone pay for it in 4-6 years, and the entire job qualifies for 179 and 179D tax write-off.\"",
+          "\"So we're [Company] — 30 years in business, based in South Florida, 5 fully equipped trucks, crew that's been with us 20 years. We've sprayed millions of square feet across the country. What we do is we take your existing commercial roof — whether it's modified bit, BUR, EPDM, TPO — and we spray a layer of closed-cell polyurethane foam right over it. That foam fills every crack, every penetration, every low spot, and gives you R-7 insulation per inch. Then we prime it and top-coat it with high-solids silicone. The result is one seamless, monolithic, watertight membrane — no seams, no penetrations, fully UV-reflective, fully wind-rated. Carries a 15 or 20-year manufacturer warranty. Energy savings alone pay for it in 4-6 years, and the entire job qualifies for 179 and 179D tax write-off.\"",
       },
       {
         id: "components",
@@ -391,61 +391,61 @@ export const PLAYBOOK: PlaybookCategory[] = [
         id: "drone",
         title: "The Drone (default)",
         body:
-          "\"Hey is this [Name]? Hi — [Your Name] with Roof Kings. I'm flying a drone over your neighbor's building at [address] right now and our AI flagged your roof in the background. Pulled satellite — looks like moisture intrusion and the membrane's deteriorating. Quick question, what are you spending a year on maintenance?\"",
+          "\"Hey is this [Name]? Hi — [Your Name] with [Company]. I'm flying a drone over your neighbor's building at [address] right now and our AI flagged your roof in the background. Pulled satellite — looks like moisture intrusion and the membrane's deteriorating. Quick question, what are you spending a year on maintenance?\"",
       },
       {
         id: "tax-hook",
         title: "The Tax Hook",
         body:
-          "\"Hey [Name] — [Your Name] from Roof Kings. I'm calling because your building at [address] qualifies for a 179D tax deduction most owners don't know about, and your roof's the trigger. You got 60 seconds?\"",
+          "\"Hey [Name] — [Your Name] from [Company]. I'm calling because your building at [address] qualifies for a 179D tax deduction most owners don't know about, and your roof's the trigger. You got 60 seconds?\"",
       },
       {
         id: "neighbor",
         title: "The Neighbor",
         body:
-          "\"Hi [Name], [Your Name] with Roof Kings. I just finished a building two doors down from yours at [nearby address] and your roof was in every drone shot. Couldn't help noticing — it's starting to age. What's your maintenance budget on it right now?\"",
+          "\"Hi [Name], [Your Name] with [Company]. I just finished a building two doors down from yours at [nearby address] and your roof was in every drone shot. Couldn't help noticing — it's starting to age. What's your maintenance budget on it right now?\"",
       },
       {
         id: "insurance-angle",
         title: "The Insurance Angle",
         body:
-          "\"Hey [Name] — [Your Name] at Roof Kings. Quick one: when's your property insurance up for renewal? Reason I'm asking — your roof at [address] is showing signs that flag with carriers, and there's a way to get ahead of it. Got 60 seconds?\"",
+          "\"Hey [Name] — [Your Name] at [Company]. Quick one: when's your property insurance up for renewal? Reason I'm asking — your roof at [address] is showing signs that flag with carriers, and there's a way to get ahead of it. Got 60 seconds?\"",
       },
       {
         id: "direct",
         title: "The Direct (no warmup)",
         body:
-          "\"Hey [Name], it's [Your Name] from Roof Kings. I'm not going to waste your time — I built a free assessment on your building at [address], it shows the roof condition, replacement cost, restoration cost, and 20-year savings. What's the best email to send it to?\"",
+          "\"Hey [Name], it's [Your Name] from [Company]. I'm not going to waste your time — I built a free assessment on your building at [address], it shows the roof condition, replacement cost, restoration cost, and 20-year savings. What's the best email to send it to?\"",
       },
       {
         id: "curious",
         title: "The Curious",
         body:
-          "\"Hi [Name], [Your Name] at Roof Kings. Random question — when was the last time anyone actually walked your roof at [address]? (pause for answer) That's what I figured. Let me cut to the chase…\"",
+          "\"Hi [Name], [Your Name] at [Company]. Random question — when was the last time anyone actually walked your roof at [address]? (pause for answer) That's what I figured. Let me cut to the chase…\"",
       },
       {
         id: "confession",
         title: "The Confession",
         body:
-          "\"Hey [Name], I'm going to be honest — this is a cold call. But I promise it's a useful one. [Your Name] with Roof Kings, I've got a free report on your building at [address] that I think will save you money. Worth 30 seconds?\"",
+          "\"Hey [Name], I'm going to be honest — this is a cold call. But I promise it's a useful one. [Your Name] with [Company], I've got a free report on your building at [address] that I think will save you money. Worth 30 seconds?\"",
       },
       {
         id: "energy-bill",
         title: "The Energy Bill",
         body:
-          "\"Hi [Name], [Your Name] with Roof Kings. Quick question: are your summer energy bills at [address] hurting? (yes/maybe) Your roof's doing about 60% of that. I built a report on what we can do about it — what's the email?\"",
+          "\"Hi [Name], [Your Name] with [Company]. Quick question: are your summer energy bills at [address] hurting? (yes/maybe) Your roof's doing about 60% of that. I built a report on what we can do about it — what's the email?\"",
       },
       {
         id: "storm",
         title: "The Storm",
         body:
-          "\"Hey [Name] — [Your Name] at Roof Kings. After the [recent storm/hurricane/big rain event], we ran satellite on commercial roofs in your zip and yours is flagged for moisture. Want me to send the assessment?\"",
+          "\"Hey [Name] — [Your Name] at [Company]. After the [recent storm/hurricane/big rain event], we ran satellite on commercial roofs in your zip and yours is flagged for moisture. Want me to send the assessment?\"",
       },
       {
         id: "witty",
         title: "The Witty",
         body:
-          "\"Hi is this [Name]? Hey it's [Your Name], I promise I'm not selling timeshares. I'm with Roof Kings and I've got something genuinely useful for you — I built a free report on your building at [address]. Got 30 seconds or am I catching you mid-something?\"",
+          "\"Hi is this [Name]? Hey it's [Your Name], I promise I'm not selling timeshares. I'm with [Company] and I've got something genuinely useful for you — I built a free report on your building at [address]. Got 30 seconds or am I catching you mid-something?\"",
       },
     ],
   },
@@ -460,14 +460,14 @@ export const PLAYBOOK: PlaybookCategory[] = [
         title: "Gatekeeper / Assistant Picks Up",
         body:
           "THEM: \"[Owner]'s office, this is Sarah.\"\n" +
-          "YOU: \"Hi Sarah! It's [Your Name] over at Roof Kings — is [Owner] around? I'm the one with the report on the building at [address]. He's expecting it.\"\n" +
+          "YOU: \"Hi Sarah! It's [Your Name] over at [Company] — is [Owner] around? I'm the one with the report on the building at [address]. He's expecting it.\"\n" +
           "(\"He's expecting it\" works because — technically — every commercial owner is expecting roof issues eventually. Don't lie. Don't claim a referral. The frame is enough.)",
       },
       {
         id: "voicemail",
         title: "Voicemail",
         body:
-          "YOU: \"Hey [Name], it's [Your Name] from Roof Kings. I built a free assessment on your building at [address] — moisture flags from satellite, 20-year cost comparison, the works. I'll text you the email link too. No pressure, just useful. [Phone number] — [Your Name], Roof Kings, talk soon.\"\n" +
+          "YOU: \"Hey [Name], it's [Your Name] from [Company]. I built a free assessment on your building at [address] — moisture flags from satellite, 20-year cost comparison, the works. I'll text you the email link too. No pressure, just useful. [Phone number] — [Your Name], [Company], talk soon.\"\n" +
           "(Keep it under 20 seconds. Mention the address. Mention the deliverable.)",
       },
       {
@@ -475,7 +475,7 @@ export const PLAYBOOK: PlaybookCategory[] = [
         title: "They Pick Up Annoyed",
         body:
           "THEM: \"What.\"\n" +
-          "YOU: \"(small laugh) Got it, you're in the middle of something. [Your Name] at Roof Kings — 30 seconds and you tell me to go away or send me your email. Fair?\"",
+          "YOU: \"(small laugh) Got it, you're in the middle of something. [Your Name] at [Company] — 30 seconds and you tell me to go away or send me your email. Fair?\"",
       },
       {
         id: "chatty",
@@ -516,7 +516,7 @@ export const PLAYBOOK: PlaybookCategory[] = [
       },
       {
         id: "already-customer",
-        title: "Already a Roof Kings Customer",
+        title: "Already a Customer",
         body:
           "YOU: \"Oh I am SO sorry — let me get that flagged so we don't call you again. Quick — who's your rep here, just so I can give them a heads up? And while I have you, are you happy with the install?\"\n" +
           "(Always turn this into a referral ask.)",
@@ -620,7 +620,7 @@ export const PLAYBOOK: PlaybookCategory[] = [
         id: "vm",
         title: "Voicemail (under 20 seconds)",
         body:
-          "\"[Name], [Your Name] at Roof Kings — built a free assessment on your building at [address]. Moisture flags, 20-year cost comparison. I'll text the email link too. No pressure, just useful. [Number]. Talk soon.\"",
+          "\"[Name], [Your Name] at [Company] — built a free assessment on your building at [address]. Moisture flags, 20-year cost comparison. I'll text the email link too. No pressure, just useful. [Number]. Talk soon.\"",
       },
       {
         id: "mantras",
@@ -657,7 +657,7 @@ export const PLAYBOOK: PlaybookCategory[] = [
           "• Memorize the 90-second product talk track.\n" +
           "• Quiz on roof types — name 4 from sight, name failure modes for each.\n" +
           "• Quiz on rebuttals — partner reads objection, rep responds in under 3 seconds.\n" +
-          "• Walk a real Roof Kings job site. Look at the materials. Touch the foam. Smell the silicone.",
+          "• Walk a real job site. Look at the materials. Touch the foam. Smell the silicone.",
       },
       {
         id: "day3",

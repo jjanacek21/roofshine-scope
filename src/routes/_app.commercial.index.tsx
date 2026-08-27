@@ -35,7 +35,7 @@ function Dashboard() {
         <KpiCard label="Customers" value={accounts.length} icon={<Users className="h-4 w-4" />} />
         <KpiCard label="Buildings" value={properties.length} icon={<Building2 className="h-4 w-4" />} accent="#a06bff" />
         <KpiCard label="Total Tickets" value={tickets.length} icon={<Ticket className="h-4 w-4" />} accent="#5fa3ff" />
-        <KpiCard label="Ready to Invoice" value={readyCount} icon={<AlertCircle className="h-4 w-4" />} accent="#f0a73a" />
+        <KpiCard label="Ready to Invoice" value={readyCount} icon={<AlertCircle className="h-4 w-4" />} accent="var(--brand)" />
         <KpiCard label="In Progress" value={inProgressCount} icon={<FlameKindling className="h-4 w-4" />} accent="#2ec27e" />
       </div>
 
