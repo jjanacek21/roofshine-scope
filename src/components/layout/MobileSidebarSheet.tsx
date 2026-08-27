@@ -158,7 +158,7 @@ export function MobileSidebarSheet() {
                     className="h-4 w-4 shrink-0"
                     strokeWidth={2}
                   />
-                  <span>{item.label}</span>
+                  <span>{navLabel(item.to, item.label)}</span>
                   {((item.badgeKey === "jobs" && jobsCount > 0) ||
                     (item.badgeKey === "cb" && cbOpenCount > 0)) && (
                     <span
@@ -197,7 +197,7 @@ export function MobileSidebarSheet() {
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
-                  <span>{item.label}</span>
+                  <span>{navLabel(item.to, item.label)}</span>
                 </Link>
               );
             })}
@@ -229,7 +229,7 @@ export function MobileSidebarSheet() {
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
-                  <span>{item.label}</span>
+                  <span>{navLabel(item.to, item.label)}</span>
                 </Link>
               );
             })}

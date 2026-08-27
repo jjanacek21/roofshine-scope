@@ -53,6 +53,9 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
   const { can } = useFeatures();
+  const brand = useCompanyBrand();
+  const navLabel = (to: string, label: string) =>
+    to === "/commercial" ? brand.moduleLabel : label;
   const [collapsed, setCollapsed] = useSidebarCollapsed();
   const isSuperAdmin = profile?.role === "super_admin";
   const isCompanyAdmin =
@@ -168,7 +171,7 @@ export function AppSidebar() {
               return collapsed ? (
                 <Tooltip key={item.to}>
                   <TooltipTrigger asChild>{link}</TooltipTrigger>
-                  <TooltipContent side="right">{item.label}</TooltipContent>
+                  <TooltipContent side="right">{navLabel(item.to, item.label)}</TooltipContent>
                 </Tooltip>
               ) : (
                 link
@@ -210,7 +213,7 @@ export function AppSidebar() {
               return collapsed ? (
                 <Tooltip key={item.to}>
                   <TooltipTrigger asChild>{link}</TooltipTrigger>
-                  <TooltipContent side="right">{item.label}</TooltipContent>
+                  <TooltipContent side="right">{navLabel(item.to, item.label)}</TooltipContent>
                 </Tooltip>
               ) : (
                 link
