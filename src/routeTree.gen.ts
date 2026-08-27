@@ -115,6 +115,7 @@ import { Route as AppLeadsTrainingRouteImport } from './routes/_app.leads.traini
 import { Route as AppLeadsWizardRouteImport } from './routes/_app.leads.wizard'
 import { Route as AppPriceBooksNewRouteImport } from './routes/_app.price-books.new'
 import { Route as AppRoofkingIndexRouteImport } from './routes/_app.roofking.index'
+import { Route as AppRoofkingSplatRouteImport } from './routes/_app.roofking.$'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppTeamRequestsRouteImport } from './routes/_app.team.requests'
@@ -686,6 +687,11 @@ const AppRoofkingIndexRoute = AppRoofkingIndexRouteImport.update({
   path: '/roofking/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRoofkingSplatRoute = AppRoofkingSplatRouteImport.update({
+  id: '/roofking/$',
+  path: '/roofking/$',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTeamIndexRoute = AppTeamIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -983,6 +989,7 @@ export interface FileRoutesByFullPath {
   '/leads/training': typeof AppLeadsTrainingRoute
   '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
+  '/roofking/$': typeof AppRoofkingSplatRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -1121,6 +1128,7 @@ export interface FileRoutesByTo {
   '/leads/training': typeof AppLeadsTrainingRoute
   '/leads/wizard': typeof AppLeadsWizardRoute
   '/price-books/new': typeof AppPriceBooksNewRoute
+  '/roofking/$': typeof AppRoofkingSplatRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -1269,6 +1277,7 @@ export interface FileRoutesById {
   '/_app/leads/training': typeof AppLeadsTrainingRoute
   '/_app/leads/wizard': typeof AppLeadsWizardRoute
   '/_app/price-books/new': typeof AppPriceBooksNewRoute
+  '/_app/roofking/$': typeof AppRoofkingSplatRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
   '/_app/team/requests': typeof AppTeamRequestsRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
@@ -1417,6 +1426,7 @@ export interface FileRouteTypes {
     | '/leads/training'
     | '/leads/wizard'
     | '/price-books/new'
+    | '/roofking/$'
     | '/team/invites'
     | '/team/requests'
     | '/admin/assemblies/import'
@@ -1555,6 +1565,7 @@ export interface FileRouteTypes {
     | '/leads/training'
     | '/leads/wizard'
     | '/price-books/new'
+    | '/roofking/$'
     | '/team/invites'
     | '/team/requests'
     | '/admin/assemblies/import'
@@ -1702,6 +1713,7 @@ export interface FileRouteTypes {
     | '/_app/leads/training'
     | '/_app/leads/wizard'
     | '/_app/price-books/new'
+    | '/_app/roofking/$'
     | '/_app/team/invites'
     | '/_app/team/requests'
     | '/admin/assemblies/import'
@@ -2559,6 +2571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRoofkingIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/roofking/$': {
+      id: '/_app/roofking/$'
+      path: '/roofking/$'
+      fullPath: '/roofking/$'
+      preLoaderRoute: typeof AppRoofkingSplatRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/team/': {
       id: '/_app/team/'
       path: '/'
@@ -2991,6 +3010,7 @@ interface AppRouteChildren {
   AppInvoicesNewRoute: typeof AppInvoicesNewRoute
   AppJobsIdRoute: typeof AppJobsIdRouteWithChildren
   AppJobsNewRoute: typeof AppJobsNewRoute
+  AppRoofkingSplatRoute: typeof AppRoofkingSplatRoute
   AppInvoicesIndexRoute: typeof AppInvoicesIndexRoute
   AppJobsIndexRoute: typeof AppJobsIndexRoute
   AppRoofkingIndexRoute: typeof AppRoofkingIndexRoute
@@ -3013,6 +3033,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInvoicesNewRoute: AppInvoicesNewRoute,
   AppJobsIdRoute: AppJobsIdRouteWithChildren,
   AppJobsNewRoute: AppJobsNewRoute,
+  AppRoofkingSplatRoute: AppRoofkingSplatRoute,
   AppInvoicesIndexRoute: AppInvoicesIndexRoute,
   AppJobsIndexRoute: AppJobsIndexRoute,
   AppRoofkingIndexRoute: AppRoofkingIndexRoute,
