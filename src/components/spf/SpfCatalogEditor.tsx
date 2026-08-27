@@ -11,7 +11,7 @@ import type {
   SpfStackLayerRow,
   SpfFieldDefaultRow,
 } from "@/lib/spf/catalog";
-import { fetchSpfCatalog } from "@/lib/spf/catalog";
+import { fetchSpfCatalog, currentCompanyId } from "@/lib/spf/catalog";
 
 const METHODS = ["spray", "roll", "brush"] as const;
 const ROLES = ["primer", "detail", "base", "top"] as const;
@@ -20,6 +20,22 @@ const SCOPES = ["field", "pct", "seams", "details", "custom"] as const;
 
 function useSpfAdminCatalog() {
   return useQuery({ queryKey: ["spf-catalog"], queryFn: () => fetchSpfCatalog() });
+}
+
+/**
+ * The signed-in user's company.
+ *
+ * Field defaults and calculator settings are keyed by company, and a super
+ * admin's RLS policy is `is_super_admin() OR company_id = auth_company_id()`
+ * — which means an unscoped update from a super admin would reach every
+ * company's row, not just their own. Every write below filters on this.
+ */
+function useCurrentCompanyId() {
+  return useQuery({
+    queryKey: ["spf-current-company"],
+    queryFn: () => currentCompanyId(),
+    staleTime: 5 * 60_000,
+  }).data;
 }
 
 export type SpfCatalogEditorProps = {
@@ -739,12 +755,14 @@ function FieldsTab({
   settingsMode: "simple" | "detailed";
   onChange: () => void;
 }) {
+  const companyId = useCurrentCompanyId();
   const [draft, setDraft] = useState<Record<string, Partial<SpfFieldDefaultRow>>>({});
   const merged = (r: SpfFieldDefaultRow) => ({ ...r, ...(draft[r.field_key] ?? {}) });
   const patch = (k: string, p: Partial<SpfFieldDefaultRow>) =>
     setDraft((d) => ({ ...d, [k]: { ...(d[k] ?? {}), ...p } }));
 
   const save = async (r: SpfFieldDefaultRow) => {
+    if (!companyId) return;
     const m = merged(r);
     const { error } = await supabase
       .from("spf_field_defaults")
@@ -753,6 +771,7 @@ function FieldsTab({
         value_text: String(m.value_text),
         simple_mode: m.simple_mode,
       })
+      .eq("company_id", companyId)
       .eq("field_key", r.field_key);
     if (error) toast.error(error.message);
     else {
@@ -767,10 +786,14 @@ function FieldsTab({
   };
 
   const setDefaultMode = async (mode: "simple" | "detailed") => {
+    if (!companyId) return;
+    // Upsert, not update: a company that has never touched this setting has no
+    // row yet, and an update would silently match nothing.
     const { error } = await supabase
       .from("spf_calc_settings")
-      .update({ default_mode: mode })
-      .eq("id", true);
+      .upsert({ company_id: companyId, default_mode: mode } as never, {
+        onConflict: "company_id",
+      });
     if (error) toast.error(error.message);
     else {
       toast.success("Default mode set");
