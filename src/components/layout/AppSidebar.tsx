@@ -16,7 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   DoorOpen,
-  Crown,
+  Building2,
   CloudLightning,
   ShieldCheck,
 } from "lucide-react";
@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useFeatures } from "@/hooks/useFeatures";
 import { navVisible } from "@/lib/nav-features";
+import { useCompanyBrand } from "@/lib/commercial/brand";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -40,7 +41,7 @@ const WORKSPACE_NAV = [
   { to: "/storm-intelligence", label: "Storm Intel", icon: CloudLightning, badgeKey: null },
   { to: "/claim-buddy", label: "Claim Buddy", icon: ShieldCheck, badgeKey: "cb" as const },
   { to: "/card", label: "My Card", icon: IdCard, badgeKey: null },
-  { to: "/roofking", label: "Roof King", icon: Crown, badgeKey: null },
+  { to: "/commercial", label: "Commercial Roofing", icon: Building2, badgeKey: null },
 ] as const;
 
 const RESOURCES_NAV = [
@@ -150,11 +151,8 @@ export function AppSidebar() {
                   <Icon
                     className="h-4 w-4 shrink-0"
                     strokeWidth={2}
-                    style={
-                      item.to === "/roofking" && !active ? { color: "#f0a73a" } : undefined
-                    }
                   />
-                  {!collapsed && <span>{item.label}</span>}
+                  {!collapsed && <span>{navLabel(item.to, item.label)}</span>}
                   {!collapsed &&
                     ((item.badgeKey === "jobs" && jobsCount > 0) ||
                       (item.badgeKey === "cb" && cbOpenCount > 0)) && (
@@ -206,7 +204,7 @@ export function AppSidebar() {
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
-                  {!collapsed && <span>{item.label}</span>}
+                  {!collapsed && <span>{navLabel(item.to, item.label)}</span>}
                 </Link>
               );
               return collapsed ? (

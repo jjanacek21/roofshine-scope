@@ -17,7 +17,7 @@ import {
   DoorOpen,
   CloudLightning,
   ShieldCheck,
-  Crown,
+  Building2,
   BookOpenText,
 } from "lucide-react";
 import {
@@ -31,6 +31,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useFeatures } from "@/hooks/useFeatures";
 import { navVisible } from "@/lib/nav-features";
+import { useCompanyBrand } from "@/lib/commercial/brand";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +44,7 @@ const WORKSPACE_NAV = [
   { to: "/storm-intelligence", label: "Storm Intel", icon: CloudLightning, badgeKey: null },
   { to: "/claim-buddy", label: "Claim Buddy", icon: ShieldCheck, badgeKey: "cb" as const },
   { to: "/card", label: "My Card", icon: IdCard, badgeKey: null },
-  { to: "/roofking", label: "Roof King", icon: Crown, badgeKey: null },
+  { to: "/commercial", label: "Commercial Roofing", icon: Building2, badgeKey: null },
 ] as const;
 
 const RESOURCES_NAV = [
@@ -156,7 +157,6 @@ export function MobileSidebarSheet() {
                   <Icon
                     className="h-4 w-4 shrink-0"
                     strokeWidth={2}
-                    style={item.to === "/roofking" && !active ? { color: "#f0a73a" } : undefined}
                   />
                   <span>{item.label}</span>
                   {((item.badgeKey === "jobs" && jobsCount > 0) ||
