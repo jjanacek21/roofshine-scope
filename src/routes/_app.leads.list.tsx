@@ -17,13 +17,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Phone, Mail, MessageSquare, Sparkles, Eye, Trash2, X, Upload } from "lucide-react";
+import {
+  Phone,
+  Mail,
+  MessageSquare,
+  Sparkles,
+  Eye,
+  Trash2,
+  X,
+  Upload,
+  Download,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { LeadDetailSheet } from "@/components/leads/LeadDetailSheet";
 import { useCallPlaybook } from "@/hooks/useCallPlaybook";
 import { useCompanyMembers, memberName } from "@/hooks/useCompanyMembers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { buildLeadCsv, downloadCsv, exportFilename } from "@/lib/commercial/lead-export";
 
 export const Route = createFileRoute("/_app/leads/list")({
   component: LeadsList,
@@ -33,15 +44,14 @@ function LeadsList() {
   const { data: leads = [], isLoading } = useLeads();
   const { data: profile } = useProfile();
   const isAdmin =
-    profile?.role === "owner" ||
-    profile?.role === "admin" ||
-    profile?.role === "super_admin";
+    profile?.role === "owner" || profile?.role === "admin" || profile?.role === "super_admin";
   const qc = useQueryClient();
   const [tab, setTab] = useState<string>("all");
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const playbook = useCallPlaybook();
   const { data: members = [] } = useCompanyMembers();
   const memberMap = new Map(members.map((m) => [m.id, m]));
@@ -107,6 +117,25 @@ function LeadsList() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
   });
 
+  /**
+   * Ticked rows win over the filter: if someone has hand-picked leads, that is
+   * the list they mean. Otherwise it is whatever the search and tab are showing.
+   */
+  async function exportCsv() {
+    const target = selected.size > 0 ? filtered.filter((l) => selected.has(l.id)) : filtered;
+    if (target.length === 0) return;
+    setExporting(true);
+    try {
+      const csv = await buildLeadCsv(target);
+      downloadCsv(csv, exportFilename("leads"));
+      toast.success(`Exported ${target.length} lead${target.length === 1 ? "" : "s"}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -117,21 +146,40 @@ function LeadsList() {
           className="max-w-xs"
         />
         <div className="flex flex-wrap gap-1">
-          <TabBtn active={tab === "all"} onClick={() => setTab("all")}>All</TabBtn>
+          <TabBtn active={tab === "all"} onClick={() => setTab("all")}>
+            All
+          </TabBtn>
           {LEAD_STATUSES.map((s) => (
             <TabBtn key={s.value} active={tab === s.value} onClick={() => setTab(s.value)}>
               {s.label}
             </TabBtn>
           ))}
         </div>
-        <Link
-          to="/leads/import"
-          className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
-          style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)" }}
-        >
-          <Upload className="h-3.5 w-3.5" />
-          Import addresses
-        </Link>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={exportCsv}
+            disabled={exporting || filtered.length === 0}
+            title="Download these leads as a CSV, one row per contact"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-[var(--bg-hover)] disabled:opacity-50"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <Download className="h-3.5 w-3.5" />
+            {exporting
+              ? "Exporting…"
+              : selected.size > 0
+                ? `Export ${selected.size}`
+                : "Export CSV"}
+          </button>
+          <Link
+            to="/leads/import"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+            style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)" }}
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Import addresses
+          </Link>
+        </div>
       </div>
 
       {selected.size > 0 && (
@@ -142,9 +190,7 @@ function LeadsList() {
             backgroundColor: "color-mix(in oklab, var(--brand) 12%, var(--bg-card))",
           }}
         >
-          <div className="text-sm font-medium text-foreground">
-            {selected.size} selected
-          </div>
+          <div className="text-sm font-medium text-foreground">{selected.size} selected</div>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -214,25 +260,38 @@ function LeadsList() {
                   <td className="px-5 py-3 font-medium text-foreground">{l.address}</td>
                   <td className="px-5 py-3 text-muted-foreground">{l.city ?? "—"}</td>
                   <td className="px-5 py-3 text-muted-foreground">{l.owner ?? "—"}</td>
-                  <td className="px-5 py-3 font-mono-num text-muted-foreground">{fmtNum(l.sqft)}</td>
-                  <td className="px-5 py-3 font-mono-num text-muted-foreground">{l.year_built ?? "—"}</td>
+                  <td className="px-5 py-3 font-mono-num text-muted-foreground">
+                    {fmtNum(l.sqft)}
+                  </td>
+                  <td className="px-5 py-3 font-mono-num text-muted-foreground">
+                    {l.year_built ?? "—"}
+                  </td>
                   <td className="px-5 py-3 text-muted-foreground">{l.roof_type ?? "—"}</td>
-                  <td className="px-5 py-3"><StatusBadge status={l.status} /></td>
+                  <td className="px-5 py-3">
+                    <StatusBadge status={l.status} />
+                  </td>
                   <td className="px-5 py-3 text-muted-foreground">
                     {(() => {
-                      const lr = l as unknown as { assigned_to?: string | null; created_by?: string | null };
+                      const lr = l as unknown as {
+                        assigned_to?: string | null;
+                        created_by?: string | null;
+                      };
                       const repId = lr.assigned_to ?? lr.created_by ?? "";
                       if (isAdmin) {
                         return (
                           <select
                             value={lr.assigned_to ?? ""}
-                            onChange={(e) => reassignLead.mutate({ id: l.id, userId: e.target.value })}
+                            onChange={(e) =>
+                              reassignLead.mutate({ id: l.id, userId: e.target.value })
+                            }
                             className="rounded border bg-transparent px-2 py-1 text-xs text-foreground"
                             style={{ borderColor: "var(--border)" }}
                           >
                             <option value="">—</option>
                             {members.map((m) => (
-                              <option key={m.id} value={m.id}>{memberName(m)}</option>
+                              <option key={m.id} value={m.id}>
+                                {memberName(m)}
+                              </option>
                             ))}
                           </select>
                         );
@@ -258,9 +317,15 @@ function LeadsList() {
                       >
                         <Phone className="h-3.5 w-3.5" />
                       </IconBtn>
-                      <IconBtn title="Email"><Mail className="h-3.5 w-3.5" /></IconBtn>
-                      <IconBtn title="Text"><MessageSquare className="h-3.5 w-3.5" /></IconBtn>
-                      <IconBtn title="AI"><Sparkles className="h-3.5 w-3.5" /></IconBtn>
+                      <IconBtn title="Email">
+                        <Mail className="h-3.5 w-3.5" />
+                      </IconBtn>
+                      <IconBtn title="Text">
+                        <MessageSquare className="h-3.5 w-3.5" />
+                      </IconBtn>
+                      <IconBtn title="AI">
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </IconBtn>
                       <IconBtn title="Open" onClick={() => setOpenId(l.id)}>
                         <Eye className="h-3.5 w-3.5" />
                       </IconBtn>
@@ -278,9 +343,12 @@ function LeadsList() {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {selected.size} lead{selected.size === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Delete {selected.size} lead{selected.size === 1 ? "" : "s"}?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently removes the selected leads, their contacts, notes, activity, reports and uploaded files. This action cannot be undone.
+              This permanently removes the selected leads, their contacts, notes, activity, reports
+              and uploaded files. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
