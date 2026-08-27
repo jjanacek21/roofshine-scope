@@ -32,11 +32,26 @@ export const Route = createFileRoute("/_app/commercial")({
 const TABS = [
   { to: "/commercial", label: "Dashboard", icon: LayoutDashboard, feature: "commercial.dashboard" },
   { to: "/commercial/leads", label: "Leads", icon: Briefcase, feature: "commercial.leads" },
-  { to: "/commercial/spf", label: "Calculator", icon: Calculator, feature: "commercial.calculator" },
-  { to: "/commercial/prospecting", label: "Prospecting", icon: Target, feature: "commercial.prospecting" },
+  {
+    to: "/commercial/spf",
+    label: "Calculator",
+    icon: Calculator,
+    feature: "commercial.calculator",
+  },
+  { to: "/leads", label: "Prospecting", icon: Target, feature: "commercial.prospecting" },
   { to: "/commercial/customers", label: "Customers", icon: Users, feature: "commercial.customers" },
-  { to: "/commercial/tickets", label: "Work Orders", icon: ListChecks, feature: "commercial.tickets" },
-  { to: "/commercial/pipeline", label: "Pipeline", icon: KanbanSquare, feature: "commercial.pipeline" },
+  {
+    to: "/commercial/tickets",
+    label: "Work Orders",
+    icon: ListChecks,
+    feature: "commercial.tickets",
+  },
+  {
+    to: "/commercial/pipeline",
+    label: "Pipeline",
+    icon: KanbanSquare,
+    feature: "commercial.pipeline",
+  },
   { to: "/commercial/map", label: "Map", icon: MapIcon, feature: "commercial.map" },
   { to: "/commercial/forms", label: "Forms", icon: FileCog, feature: "commercial.forms" },
   { to: "/commercial/export", label: "Export", icon: Download, feature: "commercial.export" },
@@ -72,6 +87,18 @@ function CommercialLayout() {
   const showCustomerActions = can("commercial.customers");
   const showTicketActions = can("commercial.tickets");
 
+  // The customer/work-order toolbar belongs to the ticketing screens only. It is
+  // meaningless on the dashboard, leads, calculator or prospecting, and a company
+  // without ticketing never sees it at all.
+  const TICKETING_PATHS = [
+    "/commercial/customers",
+    "/commercial/tickets",
+    "/commercial/pipeline",
+    "/commercial/map",
+  ];
+  const onTicketingScreen = TICKETING_PATHS.some((p) => location.pathname.startsWith(p));
+  const showToolbar = onTicketingScreen && (showCustomerActions || showTicketActions);
+
   return (
     <RKSearchContext.Provider value={{ search, setSearch }}>
       <div data-rk className="rk-page-bg -mx-4 -my-4 sm:-mx-6 sm:-my-6 min-h-[calc(100vh-4rem)]">
@@ -88,8 +115,13 @@ function CommercialLayout() {
               ) : (
                 <Building2 className="h-10 w-10" style={{ color: "var(--rk-ink-faint)" }} />
               )}
-              <p className="text-center text-xs font-semibold" style={{ color: "var(--rk-ink)" }}>{brand.name}</p>
-              <p className="text-center text-[10px] uppercase tracking-wider" style={{ color: "var(--rk-ink-faint)" }}>
+              <p className="text-center text-xs font-semibold" style={{ color: "var(--rk-ink)" }}>
+                {brand.name}
+              </p>
+              <p
+                className="text-center text-[10px] uppercase tracking-wider"
+                style={{ color: "var(--rk-ink-faint)" }}
+              >
                 {brand.moduleLabel}
               </p>
             </div>
@@ -98,7 +130,11 @@ function CommercialLayout() {
                 const active = isTabActive(location.pathname, t.to);
                 const Icon = t.icon;
                 return (
-                  <Link key={t.to} to={t.to} className={cn("rk-subnav-link", active && "is-active")}>
+                  <Link
+                    key={t.to}
+                    to={t.to}
+                    className={cn("rk-subnav-link", active && "is-active")}
+                  >
                     <Icon className="h-4 w-4" />
                     <span>{t.label}</span>
                   </Link>
@@ -141,31 +177,33 @@ function CommercialLayout() {
 
           {/* Main column */}
           <div className="min-w-0 flex-1">
-            {/* Top bar */}
-            <div className="rk-card mb-5 flex flex-wrap items-center gap-3 p-3">
-              <div className="relative min-w-[200px] flex-1">
-                <Search
-                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
-                  style={{ color: "var(--rk-ink-faint)" }}
-                />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search customers, buildings, WO#…"
-                  className="rk-input pl-9"
-                />
+            {/* Customer / work-order toolbar — ticketing screens only */}
+            {showToolbar && (
+              <div className="rk-card mb-5 flex flex-wrap items-center gap-3 p-3">
+                <div className="relative min-w-[200px] flex-1">
+                  <Search
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+                    style={{ color: "var(--rk-ink-faint)" }}
+                  />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search customers, buildings, WO#…"
+                    className="rk-input pl-9"
+                  />
+                </div>
+                {showCustomerActions && (
+                  <button onClick={() => setShowAddCustomer(true)} className="rk-btn rk-btn-ghost">
+                    <Plus className="h-3.5 w-3.5" /> Customer
+                  </button>
+                )}
+                {showTicketActions && (
+                  <button onClick={() => setShowNewTicket(true)} className="rk-btn rk-btn-primary">
+                    <Plus className="h-3.5 w-3.5" /> New Ticket
+                  </button>
+                )}
               </div>
-              {showCustomerActions && (
-                <button onClick={() => setShowAddCustomer(true)} className="rk-btn rk-btn-ghost">
-                  <Plus className="h-3.5 w-3.5" /> Customer
-                </button>
-              )}
-              {showTicketActions && (
-                <button onClick={() => setShowNewTicket(true)} className="rk-btn rk-btn-primary">
-                  <Plus className="h-3.5 w-3.5" /> New Ticket
-                </button>
-              )}
-            </div>
+            )}
 
             {/* Mobile sub-nav */}
             <div className="mb-4 flex gap-1 overflow-x-auto lg:hidden">

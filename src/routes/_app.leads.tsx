@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, Map, List, Kanban, BookOpen, Send } from "lucide-react";
+import { LayoutDashboard, Map, List, Kanban, BookOpen, Send, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CallPlaybookProvider } from "@/hooks/useCallPlaybook";
 import { CallPlaybookPanel } from "@/components/leads/CallPlaybookPanel";
+import { ReonomyImportDialog } from "@/components/commercial/ReonomyImportDialog";
+import { useIsCompanyAdmin } from "@/hooks/useProfile";
 
 export const Route = createFileRoute("/_app/leads")({
   component: LeadsLayout,
@@ -19,16 +22,28 @@ const TABS: { to: string; label: string; icon: typeof LayoutDashboard; exact?: b
 
 function LeadsLayout() {
   const location = useLocation();
+  const isAdmin = useIsCompanyAdmin();
+  const [importOpen, setImportOpen] = useState(false);
   return (
     <CallPlaybookProvider>
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">SPF Prospecting</h1>
+            <h1 className="text-3xl font-bold text-foreground">Prospecting</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Commercial roofing prospects · spray foam restoration
             </p>
           </div>
+          {isAdmin && (
+            <button
+              onClick={() => setImportOpen(true)}
+              className="flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors hover:bg-[var(--bg-hover)]"
+              style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
+            >
+              <Upload className="h-4 w-4" />
+              Import from Reonomy
+            </button>
+          )}
         </div>
 
         <nav
@@ -61,6 +76,7 @@ function LeadsLayout() {
         <Outlet />
       </div>
       <CallPlaybookPanel />
+      <ReonomyImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
     </CallPlaybookProvider>
   );
 }
