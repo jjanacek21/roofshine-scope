@@ -19,6 +19,8 @@ function AppLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     // On the standalone Claim Buddy domain "/" is the marketing landing page,
@@ -31,26 +33,66 @@ function AppLayout() {
       return;
     }
 
-    // Check the user has a company; otherwise → onboarding
+    let cancelled = false;
+
     (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("company_id, onboarding_completed_at, role")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (!data?.company_id) {
+      setLoadError(null);
+
+      async function readProfile() {
+        return supabase
+          .from("profiles")
+          .select("company_id, onboarding_completed_at, role")
+          .eq("id", user!.id)
+          .maybeSingle();
+      }
+
+      let { data, error } = await readProfile();
+
+      /* A stale/expired token makes this read fail. That is NOT the same thing as
+         "this user has no company" — refresh the session and try once more before
+         drawing any conclusion. */
+      if (error) {
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (!refreshError) {
+          ({ data, error } = await readProfile());
+        }
+      }
+      if (cancelled) return;
+
+      if (error) {
+        setLoadError(error.message);
+        return;
+      }
+
+      if (!data) {
+        /* Signed in, but no profile row is readable at all — treat as a broken
+           session rather than dumping an existing user into company setup. */
+        await supabase.auth.signOut();
+        toast.error("Your session expired. Please sign in again.");
+        navigate({ to: "/login" });
+        return;
+      }
+
+      // Super admins are never routed into the create-a-company wizard.
+      if (!data.company_id && data.role !== "super_admin") {
         const params = new URLSearchParams(window.location.search);
         const invite = params.get("invite") ?? undefined;
         navigate({ to: "/onboarding", search: { invite } });
         return;
       }
+
       // Archived companies are shut off — their members cannot sign in.
-      if (data.role !== "super_admin") {
-        const { data: co } = await supabase
+      if (data.company_id && data.role !== "super_admin") {
+        const { data: co, error: coError } = await supabase
           .from("companies")
           .select("status")
           .eq("id", data.company_id)
           .maybeSingle();
+        if (cancelled) return;
+        if (coError) {
+          setLoadError(coError.message);
+          return;
+        }
         if ((co as { status?: string } | null)?.status === "archived") {
           await supabase.auth.signOut();
           toast.error("This account has been deactivated. Contact your administrator.");
@@ -58,14 +100,51 @@ function AppLayout() {
           return;
         }
       }
+
       if (!data.onboarding_completed_at && data.role !== "super_admin") {
         navigate({ to: "/profile-setup" });
         return;
       }
       setChecking(false);
     })();
-  }, [user, loading, navigate]);
 
+    return () => {
+      cancelled = true;
+    };
+  }, [user, loading, navigate, attempt]);
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-6">
+        <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 text-center">
+          <p className="text-base font-semibold text-foreground">Couldn't load your account</p>
+          <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
+          <div className="mt-5 flex justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setLoadError(null);
+                setAttempt((n) => n + 1);
+              }}
+              className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground"
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate({ to: "/login" });
+              }}
+              className="inline-flex h-9 items-center rounded-md border border-border bg-background px-4 text-xs font-semibold hover:bg-muted"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || checking) {
     return (
