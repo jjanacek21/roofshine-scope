@@ -6730,6 +6730,66 @@ export type Database = {
           },
         ]
       }
+      site_pages: {
+        Row: {
+          slug: string
+          name: string
+          description: string | null
+          html: string
+          draft_html: string | null
+          published: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          slug: string
+          name: string
+          description?: string | null
+          html?: string
+          draft_html?: string | null
+          published?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          slug?: string
+          name?: string
+          description?: string | null
+          html?: string
+          draft_html?: string | null
+          published?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      site_page_versions: {
+        Row: {
+          id: string
+          slug: string
+          html: string
+          label: string | null
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          slug: string
+          html: string
+          label?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          slug?: string
+          html?: string
+          label?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: []
+      }
       spf_products: {
         Row: {
           active: boolean
