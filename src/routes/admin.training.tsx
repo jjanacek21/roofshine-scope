@@ -27,7 +27,7 @@ type TrainingExample = {
 };
 
 function AdminTrainingCenter() {
-  const [tab, setTab] = useState<"runs" | "pdfs" | "photos">("runs");
+  const [tab, setTab] = useState<"runs" | "pdfs" | "photos" | "reference" | "mapping">("runs");
 
   // Photo decisions state
   const [decisions, setDecisions] = useState<PhotoDecisionRow[]>([]);
