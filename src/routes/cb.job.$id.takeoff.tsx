@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Plus, Trash2, AlertTriangle } from "lucide-react";
+import { Camera, Plus, Trash2, AlertTriangle, Mic } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbBadge, CbLoading, CbChip } from "@/components/cb/primitives";
 import { CbField, CbTextarea, CbCheckbox, useScrollMemory } from "@/components/cb/forms";
 import { CbReveal, cbHaptic } from "@/components/cb/motion";
 import { CbCamera } from "@/components/cb/CbCamera";
+import { CbVoiceSheet } from "@/components/cb/CbVoiceSheet";
 import { CbPendingPill } from "@/components/claim-buddy/CbJobStepShell";
 import { CB_ELEVATIONS, CB_ELEVATION_LABEL, useCbTakeoff, type CbElevation } from "@/lib/cbTakeoff";
 import {
@@ -230,6 +231,7 @@ function CbTakeoffPage() {
   const [measure, setMeasure] = useState<Partial<CbMeasurement> | null>(null);
   const [measureDirty, setMeasureDirty] = useState(false);
   const [cam, setCam] = useState<{ itemKey: string; label: string } | null>(null);
+  const [voice, setVoice] = useState(false);
   const [wideCam, setWideCam] = useState<CbElevation | null>(null);
   const qc = useQueryClient();
   const hydrated = useRef(false);
@@ -354,6 +356,39 @@ function CbTakeoffPage() {
   const patch = useCallback(
     <K extends keyof CbSheet>(key: K, part: Partial<CbSheet[K]>) =>
       update((s) => ({ ...s, [key]: { ...(s[key] as object), ...part } })),
+    [update],
+  );
+
+  /**
+   * Apply what the rep approved in voice mode.
+   *
+   * One update() call, so the whole utterance persists as a single change
+   * rather than a burst the offline queue has to reconcile field by field.
+   * Notes are appended, never overwritten — a rep who already typed something
+   * does not lose it because they later spoke.
+   */
+  const applyVoice = useCallback(
+    (
+      findings: { group: string; field: string; value: number | boolean | string }[],
+      notes: string[],
+    ) => {
+      update((s) => {
+        /* The sheet's groups have different shapes, so walk it as a plain
+           record and hand a CbSheet back at the end. The server already
+           guaranteed every group/field pair is one this sheet owns. */
+        const next: Record<string, unknown> = { ...s };
+        for (const f of findings) {
+          const current = next[f.group];
+          if (!current || typeof current !== "object" || Array.isArray(current)) continue;
+          next[f.group] = { ...(current as Record<string, unknown>), [f.field]: f.value };
+        }
+        if (notes.length) {
+          const existing = String(next.notes ?? "").trim();
+          next.notes = existing ? `${existing}\n${notes.join("\n")}` : notes.join("\n");
+        }
+        return next as unknown as CbSheet;
+      });
+    },
     [update],
   );
 
@@ -1272,6 +1307,15 @@ function CbTakeoffPage() {
           <div aria-hidden className="cb-has-dock" />
           <div className="cb-dock">
             <div className="mx-auto w-full max-w-[620px] space-y-2">
+              {/* Voice fills THIS sheet — it is an input method, not a separate
+                  takeoff, so it sits inside the flow rather than beside Roof /
+                  Exterior / Interior on the picker. Reaching this screen already
+                  means the measurement step happened. */}
+              <CbButton block variant="secondary" onClick={() => setVoice(true)}>
+                <span className="inline-flex items-center gap-2">
+                  <Mic className="h-4 w-4" /> Fill this by voice
+                </span>
+              </CbButton>
               {/* The roof takeoff used to end at review, so a rep who still had
                   exterior or interior to walk had to back out of the flow to
                   find them. Finishing the exterior already returns here; the
@@ -1292,6 +1336,8 @@ function CbTakeoffPage() {
             </div>
           </div>
         </div>
+
+        <CbVoiceSheet open={voice} onClose={() => setVoice(false)} onApply={applyVoice} />
 
         {cam ? (
           <CbCamera
