@@ -94,10 +94,21 @@ export default function MarketingShell({ children }: { children: React.ReactNode
   return (
     <div
       data-cb
-      data-cb-theme="light"
+      data-cb-theme="dark"
       style={{
+        position: "relative",
         minHeight: "100vh",
-        background: "var(--cb-bg)",
+        /* The same drifting blue/green wash the sign-in screen and the GCN
+           marketing pages sit on, so the two properties read as one product.
+           Painted as a background layer rather than a positioned element so it
+           survives the sticky header and the page transitions. */
+        backgroundColor: "var(--cb-bg)",
+        backgroundImage:
+          "radial-gradient(62vmax 44vmax at 8% -14%, rgba(30,107,255,.24), transparent 62%)," +
+          "radial-gradient(54vmax 40vmax at 94% 108%, rgba(18,197,107,.18), transparent 64%)," +
+          "radial-gradient(38vmax 30vmax at 78% 32%, rgba(0,213,255,.10), transparent 66%)",
+        backgroundAttachment: "fixed",
+        backgroundRepeat: "no-repeat",
         color: "var(--cb-text)",
         display: "flex",
         flexDirection: "column",
