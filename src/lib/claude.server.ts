@@ -43,7 +43,14 @@ type Tool = {
  */
 export async function claudeStructured<T>(opts: {
   system: string;
-  user: string;
+  /** Plain text prompt. Ignored when `content` is given. */
+  user?: string;
+  /**
+   * Raw content blocks, for what text cannot carry — a carrier estimate goes up
+   * as a document block so the model reads the actual pages rather than
+   * someone's guess at what the PDF's text layer said.
+   */
+  content?: unknown[];
   tool: Tool;
   budgetMs?: number;
   maxTokens?: number;
@@ -55,7 +62,7 @@ export async function claudeStructured<T>(opts: {
     model: MODEL,
     max_tokens: opts.maxTokens ?? 4096,
     system: opts.system,
-    messages: [{ role: "user", content: opts.user }],
+    messages: [{ role: "user", content: opts.content ?? opts.user ?? "" }],
     tools: [opts.tool],
     tool_choice: { type: "tool", name: opts.tool.name },
   });

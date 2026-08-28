@@ -29,10 +29,26 @@ import {
   resolveCatalogScope,
   type CbQtyContext,
 } from "@/lib/cbCatalogResolve";
-import type { CbElevation, CbElevationState, CbItemEntry, CbRoom, CbTakeoffData } from "@/lib/cbTakeoff";
+import type {
+  CbElevation,
+  CbElevationState,
+  CbItemEntry,
+  CbRoom,
+  CbTakeoffData,
+} from "@/lib/cbTakeoff";
 
 export type CbEstimateMode = "per_square" | "line_item";
-export type CbLineSource = "measurement" | "takeoff" | "photo_analysis" | "macro" | "code" | "manual";
+export type CbLineSource =
+  | "measurement"
+  | "takeoff"
+  | "photo_analysis"
+  | "macro"
+  | "code"
+  | "manual"
+  /** Copied from the carrier's own estimate, so it reads on screen as theirs. */
+  | "carrier"
+  /** Ours, and absent from their estimate — the thing being supplemented for. */
+  | "supplement";
 
 export const CB_SOURCE_LABEL: Record<CbLineSource, string> = {
   measurement: "Measurement",
@@ -41,8 +57,9 @@ export const CB_SOURCE_LABEL: Record<CbLineSource, string> = {
   macro: "Assembly",
   code: "Code",
   manual: "Manual",
+  carrier: "Carrier",
+  supplement: "Supplement",
 };
-
 
 export interface CbDraftLine {
   id: string;
@@ -106,8 +123,6 @@ export function mergeCbDraft(
   }
   return kept;
 }
-
-
 
 export interface CbEstimateTotals {
   subtotal: number;
@@ -285,7 +300,6 @@ export interface CbEstimateInputs {
     /** Derived lines the rep removed — a rebuild must not resurrect them. */
     removedKeys: string[];
   } | null;
-
 }
 
 export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInputs> {
@@ -297,18 +311,23 @@ export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInp
   if (error) throw error;
   if (!job) throw new Error("Inspection not found");
 
-  const [{ data: ws }, { data: measurement }, { data: takeoff }, { data: cat }, { data: cbCompany }] =
-    await Promise.all([
-      supabase
-        .from("cb_workspaces")
-        .select("gc_company_id, default_price_per_square")
-        .eq("id", job.workspace_id)
-        .maybeSingle(),
-      supabase.from("cb_measurements").select("*").eq("job_id", jobId).maybeSingle(),
-      supabase.from("cb_takeoffs").select("data, elevations").eq("job_id", jobId).maybeSingle(),
-      supabase.from("cb_item_catalog").select("id, item_key, label, unit"),
-      supabase.from("cb_companies").select("*").eq("workspace_id", job.workspace_id).maybeSingle(),
-    ]);
+  const [
+    { data: ws },
+    { data: measurement },
+    { data: takeoff },
+    { data: cat },
+    { data: cbCompany },
+  ] = await Promise.all([
+    supabase
+      .from("cb_workspaces")
+      .select("gc_company_id, default_price_per_square")
+      .eq("id", job.workspace_id)
+      .maybeSingle(),
+    supabase.from("cb_measurements").select("*").eq("job_id", jobId).maybeSingle(),
+    supabase.from("cb_takeoffs").select("data, elevations").eq("job_id", jobId).maybeSingle(),
+    supabase.from("cb_item_catalog").select("id, item_key, label, unit"),
+    supabase.from("cb_companies").select("*").eq("workspace_id", job.workspace_id).maybeSingle(),
+  ]);
 
   const companyId = (ws?.gc_company_id as string | null) ?? null;
 
@@ -337,7 +356,7 @@ export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInp
   ]);
 
   let existing: CbEstimateInputs["existing"] = null;
-  const estRows = ((existingRes as { data: Record<string, unknown>[] | null }).data ?? []);
+  const estRows = (existingRes as { data: Record<string, unknown>[] | null }).data ?? [];
   const estRow = estRows[0] ?? null;
   /*
    * A stale save path used to insert a second estimate for the same inspection,
@@ -377,7 +396,6 @@ export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInp
     };
   }
 
-
   const data = ((takeoff?.data as CbTakeoffData) ?? {}) as CbTakeoffData;
   const catalog: Record<string, { id: string; label: string; unit: string | null }> = {};
   for (const row of cat ?? [])
@@ -395,7 +413,7 @@ export async function loadCbEstimateInputs(jobId: string): Promise<CbEstimateInp
     rooms: Array.isArray(data.rooms) ? (data.rooms as CbRoom[]) : [],
     catalog,
     analysis: (analysisRes as { data: { analysis?: unknown } | null }).data?.analysis
-      ? ((analysisRes as { data: { analysis: Record<string, unknown> } }).data.analysis)
+      ? (analysisRes as { data: { analysis: Record<string, unknown> } }).data.analysis
       : null,
     defaultPricePerSquare: n(ws?.default_price_per_square),
     percents: {
@@ -639,7 +657,10 @@ function planTakeoffLines(inputs: CbEstimateInputs): PlannedLine[] {
   for (const [key, qty] of seen) {
     const cat = inputs.catalog[key];
     if (!cat) continue;
-    const words = cat.label.toLowerCase().split(/[^a-z0-9"]+/).filter((w) => w.length > 3);
+    const words = cat.label
+      .toLowerCase()
+      .split(/[^a-z0-9"]+/)
+      .filter((w) => w.length > 3);
     if (!words.length) continue;
     out.push({
       key: `takeoff-${key}`,
@@ -655,12 +676,19 @@ function planTakeoffLines(inputs: CbEstimateInputs): PlannedLine[] {
   }
 
   /* sheet-driven exterior + interior takeoff quantities */
-  const areaLines: { label: string; unit: string; match: string[]; qty: number; where: string }[] = [];
+  const areaLines: { label: string; unit: string; match: string[]; qty: number; where: string }[] =
+    [];
   for (const [elevKey, area] of Object.entries(inputs.sheet.exterior ?? {})) {
     for (const spec of CB_EXTERIOR_FIELDS) {
       const qty = n((area as Record<string, unknown>)[spec.key as string]);
       if (qty > 0)
-        areaLines.push({ label: spec.label, unit: spec.unit, match: spec.match, qty, where: elevKey });
+        areaLines.push({
+          label: spec.label,
+          unit: spec.unit,
+          match: spec.match,
+          qty,
+          where: elevKey,
+        });
     }
   }
   for (const [roomId, area] of Object.entries(inputs.sheet.interior ?? {})) {
@@ -668,10 +696,19 @@ function planTakeoffLines(inputs: CbEstimateInputs): PlannedLine[] {
     for (const spec of CB_INTERIOR_FIELDS) {
       const qty = n((area as Record<string, unknown>)[spec.key as string]);
       if (qty > 0)
-        areaLines.push({ label: spec.label, unit: spec.unit, match: spec.match, qty, where: roomName });
+        areaLines.push({
+          label: spec.label,
+          unit: spec.unit,
+          match: spec.match,
+          qty,
+          where: roomName,
+        });
     }
   }
-  const grouped = new Map<string, { label: string; unit: string; match: string[]; qty: number; where: string[] }>();
+  const grouped = new Map<
+    string,
+    { label: string; unit: string; match: string[]; qty: number; where: string[] }
+  >();
   for (const l of areaLines) {
     const k = `${l.label}|${l.unit}`;
     const prev = grouped.get(k);
@@ -697,7 +734,6 @@ function planTakeoffLines(inputs: CbEstimateInputs): PlannedLine[] {
   return out;
 }
 
-
 /** Anything the photo analysis saw that the walk did not already cover. */
 function planPhotoLines(inputs: CbEstimateInputs): PlannedLine[] {
   const observed = (inputs.analysis?.observed_items ?? inputs.analysis?.items) as
@@ -709,7 +745,10 @@ function planPhotoLines(inputs: CbEstimateInputs): PlannedLine[] {
       const description = String(it.description ?? it.name ?? "").trim();
       const qty = n(it.suggested_qty ?? it.qty);
       if (!description || qty <= 0) return null;
-      const words = description.toLowerCase().split(/[^a-z0-9"]+/).filter((w) => w.length > 3);
+      const words = description
+        .toLowerCase()
+        .split(/[^a-z0-9"]+/)
+        .filter((w) => w.length > 3);
       if (!words.length) return null;
       return {
         key: `photo-${i}`,
@@ -739,15 +778,20 @@ async function expandMacros(
     .from("master_macros")
     .select("id, name, trade, category, is_default, company_id")
     .eq("is_default", true)
-    .or(inputs.companyId ? `company_id.eq.${inputs.companyId},company_id.is.null` : "company_id.is.null");
+    .or(
+      inputs.companyId
+        ? `company_id.eq.${inputs.companyId},company_id.is.null`
+        : "company_id.is.null",
+    );
   /* Only macros written for the SELECTED roof system may expand. A shingle
      macro must never land on a tile roof. */
   const macros = (allMacros ?? []).filter((m) => {
     const name = (m.name ?? "").toLowerCase();
-    return assembly.aliases.some((a) => name.includes(a)) || name.includes(assembly.label.toLowerCase());
+    return (
+      assembly.aliases.some((a) => name.includes(a)) || name.includes(assembly.label.toLowerCase())
+    );
   });
   if (!macros.length) return [];
-
 
   const { data: items } = await supabase
     .from("master_macro_items")
@@ -809,7 +853,13 @@ async function expandMacros(
 /* draft builders                                                      */
 /* ------------------------------------------------------------------ */
 
-function toDraft(planned: PlannedLine[], masters: MasterItem[], inputs: CbEstimateInputs, prices: PriceBookIndex, priced: boolean): CbDraftLine[] {
+function toDraft(
+  planned: PlannedLine[],
+  masters: MasterItem[],
+  inputs: CbEstimateInputs,
+  prices: PriceBookIndex,
+  priced: boolean,
+): CbDraftLine[] {
   const out: CbDraftLine[] = [];
   const used = new Set<string>();
   for (const p of planned) {
@@ -891,7 +941,7 @@ async function applyCodeRules(
 
   const out: CbDraftLine[] = [];
   for (const rule of applicable) {
-    const master = rule.line_item_id ? byId.get(rule.line_item_id) ?? null : null;
+    const master = rule.line_item_id ? (byId.get(rule.line_item_id) ?? null) : null;
     const factor = n(rule.qty_factor) || 1;
     const mode = (rule.qty_mode ?? "fixed").toLowerCase();
     let qty = factor;
@@ -969,8 +1019,8 @@ export async function buildCbDraft(
 ): Promise<{ lines: CbDraftLine[]; bookName: string | null; provenance: CbEstimateProvenance }> {
   const roofSystem =
     inputs.sheet.roof_system.roof_type === "Other"
-      ? inputs.sheet.roof_system.roof_type_other ?? "Other"
-      : inputs.sheet.roof_system.roof_type ?? null;
+      ? (inputs.sheet.roof_system.roof_type_other ?? "Other")
+      : (inputs.sheet.roof_system.roof_type ?? null);
   const roofSystemKey = normalizeRoofSystem(roofSystem);
 
   const provenance: CbEstimateProvenance = {
@@ -1015,7 +1065,9 @@ export async function buildCbDraft(
     unit: l.unit,
     qty: priced ? l.qty : 0,
     unit_price: priced
-      ? n(prices.macro[l.line_item_id ?? ""]) || n(prices.book[l.line_item_id ?? ""]) || l.default_price
+      ? n(prices.macro[l.line_item_id ?? ""]) ||
+        n(prices.book[l.line_item_id ?? ""]) ||
+        l.default_price
       : 0,
     trade: l.trade,
     category: l.category,
@@ -1051,7 +1103,6 @@ export async function buildCbDraft(
   provenance.priceBookName = prices.bookName;
   return { lines, bookName: prices.bookName, provenance };
 }
-
 
 /* ------------------------------------------------------------------ */
 /* totals                                                              */
@@ -1161,8 +1212,7 @@ export async function saveCbEstimate(args: {
     report_meta: { attach_to_report: attachToReport, cb_mode: mode } as never,
   };
 
-  let estimateId =
-    args.estimateId ?? ((inputs.existing?.estimate.id as string | undefined) ?? null);
+  let estimateId = args.estimateId ?? (inputs.existing?.estimate.id as string | undefined) ?? null;
   if (estimateId) {
     const { error } = await supabase.from("estimates").update(payload).eq("id", estimateId);
     if (error) throw error;
