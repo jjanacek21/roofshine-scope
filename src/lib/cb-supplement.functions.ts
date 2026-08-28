@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import type { CbCarrierLine, CbScopeItem } from "./cbSupplement";
+import type { CbCarrierLine, CbCarrierMeasure, CbScopeItem } from "./cbSupplement";
 
 /**
  * Two server calls, deliberately separate.
@@ -44,6 +44,8 @@ export interface CbParsedEstimate {
   claimNumber: string | null;
   total: number | null;
   lines: CbCarrierLine[];
+  /** Off their sketch page, when the estimate prints one. */
+  measure: CbCarrierMeasure;
 }
 
 const PARSE_SYSTEM = `You read insurance carrier property estimates and return the line items exactly as printed.
@@ -54,7 +56,8 @@ RULES:
 3. Copy the unit as printed (SQ, LF, SF, EA, HR, DA...). If no unit is printed, use "".
 4. If a value is not printed, use null. Never estimate a missing price.
 5. Return only line items. Skip headers, subtotals, tax lines, overhead and profit lines, depreciation summaries and page footers.
-6. Do not add any line item that is not printed in this document, for any reason.`;
+6. Do not add any line item that is not printed in this document, for any reason.
+7. If the estimate prints a roof measurement or sketch summary, copy those figures into "measure". Total area is in SQUARES: 1 square is 100 SF, so 3,240 SF is 32.4. If a figure is not printed, leave it null — never derive one figure from another.`;
 
 export const cbParseCarrierEstimate = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => ParseInput.parse(data))
@@ -68,6 +71,7 @@ export const cbParseCarrierEstimate = createServerFn({ method: "POST" })
         carrier?: unknown;
         claim_number?: unknown;
         total?: unknown;
+        measure?: Record<string, unknown>;
         lines?: unknown[];
       }>({
         system: PARSE_SYSTEM,
@@ -78,7 +82,7 @@ export const cbParseCarrierEstimate = createServerFn({ method: "POST" })
           },
           {
             type: "text",
-            text: "Return every line item printed in this estimate, plus the carrier name, claim number and grand total if they appear.",
+            text: "Return every line item printed in this estimate, plus the carrier name, claim number, grand total, and any roof measurements printed on the sketch or measurement summary.",
           },
         ],
         budgetMs: 90_000,
@@ -93,6 +97,23 @@ export const cbParseCarrierEstimate = createServerFn({ method: "POST" })
               carrier: { type: ["string", "null"] },
               claim_number: { type: ["string", "null"] },
               total: { type: ["number", "null"] },
+              measure: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  total_squares: { type: ["number", "null"] },
+                  ridge_lf: { type: ["number", "null"] },
+                  hip_lf: { type: ["number", "null"] },
+                  valley_lf: { type: ["number", "null"] },
+                  eave_lf: { type: ["number", "null"] },
+                  rake_lf: { type: ["number", "null"] },
+                  drip_edge_lf: { type: ["number", "null"] },
+                  step_flashing_lf: { type: ["number", "null"] },
+                  wall_flashing_lf: { type: ["number", "null"] },
+                  pitch: { type: ["string", "null"] },
+                  stories: { type: ["number", "null"] },
+                },
+              },
               lines: {
                 type: "array",
                 items: {
@@ -144,6 +165,34 @@ export const cbParseCarrierEstimate = createServerFn({ method: "POST" })
 
       if (lines.length === 0) return { ok: false, reason: "no_line_items_found" };
 
+      /*
+       * Their sketch drives quantities from here on, so a mis-read number is
+       * worse than a missing one. Anything non-numeric, negative or absurd for
+       * a residential roof is dropped rather than carried forward.
+       */
+      const CAP: Record<string, number> = {
+        total_squares: 400,
+        ridge_lf: 4000,
+        hip_lf: 4000,
+        valley_lf: 4000,
+        eave_lf: 6000,
+        rake_lf: 6000,
+        drip_edge_lf: 10_000,
+        step_flashing_lf: 4000,
+        wall_flashing_lf: 4000,
+        stories: 6,
+      };
+      const measure: CbCarrierMeasure = {};
+      const rawMeasure = res.data.measure ?? {};
+      for (const [k, cap] of Object.entries(CAP)) {
+        const v = num(rawMeasure[k]);
+        if (v !== null && v > 0 && v <= cap) {
+          (measure as Record<string, unknown>)[k] = v;
+        }
+      }
+      const pitch = rawMeasure.pitch ? String(rawMeasure.pitch).trim().slice(0, 12) : "";
+      if (/\d+\s*[/:]\s*12/.test(pitch)) measure.pitch = pitch;
+
       return {
         ok: true,
         result: {
@@ -151,6 +200,7 @@ export const cbParseCarrierEstimate = createServerFn({ method: "POST" })
           claimNumber: res.data.claim_number ? String(res.data.claim_number).slice(0, 60) : null,
           total: num(res.data.total),
           lines,
+          measure,
         },
       };
     },
@@ -263,3 +313,124 @@ export const cbMatchCarrierLines = createServerFn({ method: "POST" })
 
 /** Re-exported so the tab can type its scope without importing the lib twice. */
 export type { CbScopeItem };
+
+/* ------------------------------------------------------------------ */
+/* photos                                                              */
+/* ------------------------------------------------------------------ */
+
+const PhotoInput = z.object({
+  /** Signed URLs for the job's inspection photos. */
+  images: z.array(z.string().url()).min(1).max(20),
+  /** What the rep already recorded, so the model does not re-report it. */
+  known: z.array(z.string()).max(80),
+});
+
+export interface CbPhotoFinding {
+  /** Plain-language item, resolved against the price book by the caller. */
+  label: string;
+  unit: string;
+  qty: number | null;
+  /** What is visible in the photo that supports it. */
+  seen: string;
+  /** Index of the photo it was seen in. */
+  photo: number;
+}
+
+const PHOTO_SYSTEM = `You look at roof and exterior inspection photos and report only what is visibly damaged or visibly present.
+
+RULES:
+1. Report only what you can SEE in the photograph. Never infer what is probably there.
+2. "seen" must describe the visible evidence in the photo — "creased shingle tabs, upper left" — not a conclusion about the claim.
+3. If you cannot count something, set qty null. A count you guessed is worse than no count.
+4. Do not report anything already in KNOWN — the inspector has that.
+5. Never state or imply that damage was caused by any particular event, and never mention hail or wind unless the physical signature is unmistakable in the image.
+6. Return nothing at all rather than something you are unsure of. An empty list is a correct answer.`;
+
+/**
+ * What the photos support, on top of what the rep already wrote down.
+ *
+ * Kept separate from the carrier parse so a slow or failed vision pass never
+ * costs the rep the carrier's line items, which are the part they cannot
+ * reconstruct by hand.
+ */
+export const cbSupplementPhotoFindings = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => PhotoInput.parse(data))
+  .handler(
+    async ({
+      data,
+    }): Promise<{ ok: true; findings: CbPhotoFinding[] } | { ok: false; reason: string }> => {
+      const { claudeStructured } = await import("@/lib/claude.server");
+
+      const content: unknown[] = data.images.map((url: string) => ({
+        type: "image",
+        source: { type: "url", url },
+      }));
+      content.push({
+        type: "text",
+        text: `KNOWN — already recorded by the inspector, do not repeat:\n${
+          data.known.join("\n") || "(nothing)"
+        }\n\nReport what these photos visibly support that is not in KNOWN.`,
+      });
+
+      const res = await claudeStructured<{ findings?: unknown[] }>({
+        system: PHOTO_SYSTEM,
+        content,
+        budgetMs: 90_000,
+        maxTokens: 4_000,
+        tool: {
+          name: "record_photo_findings",
+          description: "Items the photographs visibly support.",
+          input_schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              findings: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    label: { type: "string" },
+                    unit: { type: "string" },
+                    qty: { type: ["number", "null"] },
+                    seen: { type: "string" },
+                    photo: { type: "integer" },
+                  },
+                  required: ["label", "unit", "seen", "photo"],
+                },
+              },
+            },
+            required: ["findings"],
+          },
+        },
+      });
+
+      if (!res.ok) return { ok: false, reason: res.reason };
+
+      const findings: CbPhotoFinding[] = [];
+      for (const raw of res.data.findings ?? []) {
+        const f = raw as Record<string, unknown>;
+        const label = String(f.label ?? "").trim();
+        const seen = String(f.seen ?? "").trim();
+        const photo = Number(f.photo);
+        /* No evidence sentence and no real photo means nothing a rep could
+           defend, whatever the label says. */
+        if (!label || !seen) continue;
+        if (!Number.isInteger(photo) || photo < 0 || photo >= data.images.length) continue;
+        const qty = Number(f.qty);
+        findings.push({
+          label: label.slice(0, 120),
+          unit:
+            String(f.unit ?? "EA")
+              .trim()
+              .toUpperCase()
+              .slice(0, 8) || "EA",
+          qty: Number.isFinite(qty) && qty > 0 ? qty : null,
+          seen: seen.slice(0, 200),
+          photo,
+        });
+      }
+
+      return { ok: true, findings: findings.slice(0, 20) };
+    },
+  );

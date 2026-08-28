@@ -43,6 +43,27 @@ export function cbSupTable(): CbSupQuery {
   return (supabase as unknown as { from(t: string): CbSupQuery }).from("cb_supplements");
 }
 
+/**
+ * The measurements printed on the carrier's own sketch page.
+ *
+ * Xactimate measures off the same aerial data we do but their sketch is what
+ * the desk adjuster will defend, so where they published a number it wins over
+ * ours — arguing quantity is a fight worth losing to win the line item.
+ */
+export interface CbCarrierMeasure {
+  total_squares?: number | null;
+  ridge_lf?: number | null;
+  hip_lf?: number | null;
+  valley_lf?: number | null;
+  eave_lf?: number | null;
+  rake_lf?: number | null;
+  drip_edge_lf?: number | null;
+  step_flashing_lf?: number | null;
+  wall_flashing_lf?: number | null;
+  pitch?: string | null;
+  stories?: number | null;
+}
+
 export interface CbCarrierLine {
   code: string | null;
   name: string;
@@ -62,6 +83,19 @@ export interface CbScopeItem {
   backing: string;
   /** Words a carrier might write for the same thing, to steer the match. */
   aka: string;
+  /** Where the claim comes from, so the rep can weigh it. */
+  origin: "carrier_sketch" | "measurement" | "takeoff" | "photo" | "code";
+  /** Set on code-driven items so an adjuster can see the citation. */
+  codeReference?: string;
+}
+
+/** A scope item after the price book has been asked what it costs. */
+export interface CbPricedItem {
+  lineItemId: string;
+  code: string | null;
+  name: string;
+  unit: string;
+  unitPrice: number;
 }
 
 export interface CbGapItem extends CbScopeItem {
@@ -69,6 +103,12 @@ export interface CbGapItem extends CbScopeItem {
   /** What the carrier allowed, when they allowed something. */
   carrierQty: number | null;
   carrierName: string | null;
+  /**
+   * The price book match. Prices in that book come from the same Xactimate
+   * data the carrier prices from, so an adjuster verifying a supplement line
+   * is checking it against their own software's number, not ours.
+   */
+  priced?: CbPricedItem;
 }
 
 export interface CbSupplementRow {
@@ -82,6 +122,7 @@ export interface CbSupplementRow {
   claim_number: string | null;
   carrier_total: number | null;
   lines: CbCarrierLine[];
+  carrier_measure: CbCarrierMeasure;
   gaps: CbGapItem[];
   applied: string[];
   carrier_imported_at: string | null;
@@ -114,8 +155,13 @@ const n = (v: unknown): number => {
 const round = (x: number) => Math.round(x * 10) / 10;
 
 /**
- * Everything this roof has that a carrier estimate ought to pay for, built
- * from the measurement and the takeoff sheet — never from a model.
+ * Everything this roof has that a carrier estimate ought to pay for.
+ *
+ * Quantities prefer the carrier's own sketch. Xactimate measured the same roof
+ * and their number is the one their desk adjuster will defend, so adopting it
+ * removes the argument a rep cannot win and leaves only the argument worth
+ * having: that the line item belongs at all. Our measurement fills in whatever
+ * their sketch did not print.
  *
  * An item is only included when we have a real number for it. A field the rep
  * left blank produces no scope item, so it can never become a gap: silence in
@@ -124,6 +170,7 @@ const round = (x: number) => Math.round(x * 10) / 10;
 export function cbScopeFromJob(
   measure: CbMeasureLike | null | undefined,
   sheet: Partial<CbSheet> | null | undefined,
+  carrier?: CbCarrierMeasure | null,
 ): CbScopeItem[] {
   const out: CbScopeItem[] = [];
   const add = (
@@ -133,113 +180,169 @@ export function cbScopeFromJob(
     qty: number,
     backing: string,
     aka: string,
+    origin: CbScopeItem["origin"] = "takeoff",
   ) => {
-    if (qty > 0) out.push({ id, label, unit, qty: round(qty), backing, aka });
+    if (qty > 0) out.push({ id, label, unit, qty: round(qty), backing, aka, origin });
   };
 
   const m = measure ?? {};
+  const c = carrier ?? {};
   const s = (sheet ?? {}) as Partial<CbSheet>;
 
-  /* ── from the measurement ── */
-  const squares = n(m.total_squares);
+  /**
+   * Their number when they printed one, ours otherwise — and the label says
+   * which, because a rep quoting a quantity to an adjuster needs to know whose
+   * sketch it came off.
+   */
+  const from = (
+    field: keyof CbCarrierMeasure & keyof CbMeasureLike,
+    fallback?: number,
+  ): { qty: number; origin: CbScopeItem["origin"]; who: string } => {
+    const theirs = n(c[field] as unknown);
+    if (theirs > 0) return { qty: theirs, origin: "carrier_sketch", who: "Their sketch" };
+    const ours = n(m[field] as unknown) || n(fallback);
+    return { qty: ours, origin: "measurement", who: "Our measurement" };
+  };
+
+  /* ── roof body ── */
+  const field = from("total_squares");
   add(
     "roof_field",
     "Roof covering — remove and replace",
     "SQ",
-    squares,
-    `Measurement: ${round(squares)} squares`,
+    field.qty,
+    `${field.who}: ${round(field.qty)} squares`,
     "remove and replace composition shingles, laminated, 3 tab, tear off",
+    field.origin,
   );
   add(
     "underlayment",
     "Underlayment",
     "SQ",
-    squares,
-    `Measurement: ${round(squares)} squares`,
+    field.qty,
+    `${field.who}: ${round(field.qty)} squares`,
     "felt, synthetic underlayment, ice and water barrier",
+    field.origin,
   );
+
+  const ridge = (() => {
+    const theirs = n(c.ridge_lf) + n(c.hip_lf);
+    if (theirs > 0) return { qty: theirs, origin: "carrier_sketch" as const, who: "Their sketch" };
+    return {
+      qty: n(m.ridge_cap_lf) || n(m.ridge_lf) + n(m.hip_lf),
+      origin: "measurement" as const,
+      who: "Our measurement",
+    };
+  })();
   add(
     "ridge_cap",
     "Ridge cap",
     "LF",
-    n(m.ridge_cap_lf) || n(m.ridge_lf) + n(m.hip_lf),
-    `Measurement: ${round(n(m.ridge_cap_lf) || n(m.ridge_lf) + n(m.hip_lf))} LF of ridge and hip`,
+    ridge.qty,
+    `${ridge.who}: ${round(ridge.qty)} LF of ridge and hip`,
     "hip and ridge cap, cut from 3 tab, ridge cap composition",
+    ridge.origin,
   );
+
+  const eave = from("eave_lf", n(m.starter_lf));
   add(
     "starter",
     "Starter course",
     "LF",
-    n(m.starter_lf) || n(m.eave_lf),
-    `Measurement: ${round(n(m.starter_lf) || n(m.eave_lf))} LF of eave`,
+    eave.qty,
+    `${eave.who}: ${round(eave.qty)} LF of eave`,
     "starter course, starter row, asphalt starter",
+    eave.origin,
   );
+
+  const drip = (() => {
+    const theirs = n(c.drip_edge_lf) || n(c.eave_lf) + n(c.rake_lf);
+    if (theirs > 0) return { qty: theirs, origin: "carrier_sketch" as const, who: "Their sketch" };
+    return {
+      qty: n(m.drip_edge_lf) || n(m.eave_lf) + n(m.rake_lf),
+      origin: "measurement" as const,
+      who: "Our measurement",
+    };
+  })();
   add(
     "drip_edge",
     "Drip edge",
     "LF",
-    n(m.drip_edge_lf) || n(m.eave_lf) + n(m.rake_lf),
-    `Measurement: ${round(n(m.drip_edge_lf) || n(m.eave_lf) + n(m.rake_lf))} LF of eave and rake`,
+    drip.qty,
+    `${drip.who}: ${round(drip.qty)} LF of eave and rake`,
     "drip edge, eave flashing, rake metal",
+    drip.origin,
   );
+
+  const valley = from("valley_lf");
   add(
     "valley_metal",
     "Valley metal",
     "LF",
-    n(m.valley_lf),
-    `Measurement: ${round(n(m.valley_lf))} LF of valley`,
+    valley.qty,
+    `${valley.who}: ${round(valley.qty)} LF of valley`,
     "valley metal, W valley, open valley flashing",
+    valley.origin,
   );
+
+  const step = from("step_flashing_lf");
   add(
     "step_flashing",
     "Step flashing",
     "LF",
-    n(m.step_flashing_lf),
-    `Measurement: ${round(n(m.step_flashing_lf))} LF of step flashing`,
+    step.qty,
+    `${step.who}: ${round(step.qty)} LF of step flashing`,
     "step flashing, roof to wall flashing",
+    step.origin,
   );
+
+  const wall = from("wall_flashing_lf", n(s.flashing?.roof_to_wall_lf));
   add(
     "wall_flashing",
     "Roof-to-wall flashing",
     "LF",
-    n(m.wall_flashing_lf) || n(s.flashing?.roof_to_wall_lf),
-    `Measurement: ${round(n(m.wall_flashing_lf) || n(s.flashing?.roof_to_wall_lf))} LF`,
+    wall.qty,
+    `${wall.who}: ${round(wall.qty)} LF`,
     "roof to wall flashing, counterflashing, headwall, sidewall",
+    wall.origin,
   );
+
   add(
     "gutters",
     "Gutters",
     "LF",
     n(s.gutters?.lf) || n(m.gutter_lf),
-    `Measurement: ${round(n(s.gutters?.lf) || n(m.gutter_lf))} LF of gutter`,
+    `Takeoff: ${round(n(s.gutters?.lf) || n(m.gutter_lf))} LF of gutter`,
     "gutter, aluminum gutter, seamless gutter",
   );
 
   /* ── steep and two-story charges, which carriers routinely leave off ── */
   const pitchNum = (() => {
-    const raw = String(m.pitch ?? s.roof_system?.pitch ?? "");
+    const raw = String(c.pitch ?? m.pitch ?? s.roof_system?.pitch ?? "");
     const hit = raw.match(/(\d+)\s*[/:]\s*12/);
     return hit ? Number(hit[1]) : 0;
   })();
-  if (pitchNum >= 7 && squares > 0) {
+  if (pitchNum >= 7 && field.qty > 0) {
     add(
       "steep_charge",
       "Steep roof charge",
       "SQ",
-      squares,
-      `Measurement: pitch ${pitchNum}/12`,
+      field.qty,
+      `Pitch ${pitchNum}/12`,
       "steep charge, steep slope, additional charge for steep roof 7/12 to 9/12",
+      field.origin,
     );
   }
-  const stories = n(m.stories) || n(s.roof_system?.stories);
-  if (stories >= 2 && squares > 0) {
+  const stories = n(c.stories) || n(m.stories) || n(s.roof_system?.stories);
+  if (stories >= 2 && field.qty > 0) {
     add(
       "two_story_charge",
       "Two-story charge",
       "SQ",
-      squares,
-      `Takeoff: ${stories} stories`,
+      field.qty,
+      `${stories} stories`,
       "high roof, two story charge, additional charge for high roof 2 stories",
+      field.origin,
     );
   }
 
@@ -346,7 +449,7 @@ export function cbScopeFromJob(
       "renail",
       "Deck re-nail",
       "SQ",
-      squares,
+      field.qty,
       "Takeoff: deck marked for re-nail",
       "re-nail decking, renail roof sheathing to code",
     );

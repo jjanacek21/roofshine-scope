@@ -211,6 +211,69 @@ function pick(items: MasterItem[], spec: Spec, companyId: string | null): Master
   return best;
 }
 
+/** A catalog item found for a plain-language description, already priced. */
+export interface CbCatalogHit {
+  line_item_id: string;
+  code: string | null;
+  name: string;
+  unit: string;
+  trade: string | null;
+  category: string | null;
+  unit_price: number;
+}
+
+/**
+ * Resolve plain-language wants to real price book items, with the company's
+ * own price attached.
+ *
+ * The supplement leans on this: a line we put in front of an adjuster has to
+ * carry a code and a price out of the same book the rest of the estimate uses.
+ * An item with no catalog match is simply absent from the result, so the caller
+ * can say so rather than shipping a priceless line.
+ */
+export async function cbResolveCatalogItems(
+  wants: { key: string; label: string; unit: string }[],
+  companyId: string | null,
+  job: { zip?: string | null; state?: string | null },
+): Promise<Record<string, CbCatalogHit>> {
+  if (wants.length === 0) return {};
+
+  const specs: Spec[] = wants.map((w) => {
+    const words = w.label
+      .toLowerCase()
+      .split(/[^a-z0-9"]+/)
+      .filter((x) => x.length > 3);
+    return {
+      key: w.key,
+      must: words.slice(0, 1),
+      prefer: words.slice(1, 4),
+      unit: w.unit,
+      label: w.label,
+    };
+  });
+
+  const [masters, prices] = await Promise.all([
+    loadMasterCandidates(specs),
+    loadPricing(companyId, job),
+  ]);
+
+  const out: Record<string, CbCatalogHit> = {};
+  for (const spec of specs) {
+    const item = pick(masters, spec, companyId);
+    if (!item) continue;
+    out[spec.key] = {
+      line_item_id: item.id,
+      code: item.code,
+      name: item.name,
+      unit: item.unit ?? spec.unit,
+      trade: item.trade,
+      category: item.category,
+      unit_price: priceFor(item, prices),
+    };
+  }
+  return out;
+}
+
 /* ------------------------------------------------------------------ */
 /* pricing resolution                                                  */
 /* ------------------------------------------------------------------ */
