@@ -64,6 +64,7 @@ import { Route as ApiAssistantChatRouteImport } from './routes/api.assistant-cha
 import { Route as ApiAutoAddPhotoSuggestionsRouteImport } from './routes/api.auto-add-photo-suggestions'
 import { Route as ApiBuildRoofEstimateRouteImport } from './routes/api.build-roof-estimate'
 import { Route as ApiCalibrateSolarRouteImport } from './routes/api.calibrate-solar'
+import { Route as ApiDemoAerialRouteImport } from './routes/api.demo-aerial'
 import { Route as ApiImportAssemblyPdfRouteImport } from './routes/api.import-assembly-pdf'
 import { Route as ApiMapboxTokenRouteImport } from './routes/api.mapbox-token'
 import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xactimate-pdf'
@@ -434,6 +435,11 @@ const ApiBuildRoofEstimateRoute = ApiBuildRoofEstimateRouteImport.update({
 const ApiCalibrateSolarRoute = ApiCalibrateSolarRouteImport.update({
   id: '/api/calibrate-solar',
   path: '/api/calibrate-solar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDemoAerialRoute = ApiDemoAerialRouteImport.update({
+  id: '/api/demo-aerial',
+  path: '/api/demo-aerial',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiImportAssemblyPdfRoute = ApiImportAssemblyPdfRouteImport.update({
@@ -974,6 +980,7 @@ export interface FileRoutesByFullPath {
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
   '/api/build-roof-estimate': typeof ApiBuildRoofEstimateRoute
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
+  '/api/demo-aerial': typeof ApiDemoAerialRoute
   '/api/import-assembly-pdf': typeof ApiImportAssemblyPdfRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
@@ -1119,6 +1126,7 @@ export interface FileRoutesByTo {
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
   '/api/build-roof-estimate': typeof ApiBuildRoofEstimateRoute
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
+  '/api/demo-aerial': typeof ApiDemoAerialRoute
   '/api/import-assembly-pdf': typeof ApiImportAssemblyPdfRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
@@ -1271,6 +1279,7 @@ export interface FileRoutesById {
   '/api/auto-add-photo-suggestions': typeof ApiAutoAddPhotoSuggestionsRoute
   '/api/build-roof-estimate': typeof ApiBuildRoofEstimateRoute
   '/api/calibrate-solar': typeof ApiCalibrateSolarRoute
+  '/api/demo-aerial': typeof ApiDemoAerialRoute
   '/api/import-assembly-pdf': typeof ApiImportAssemblyPdfRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
@@ -1426,6 +1435,7 @@ export interface FileRouteTypes {
     | '/api/auto-add-photo-suggestions'
     | '/api/build-roof-estimate'
     | '/api/calibrate-solar'
+    | '/api/demo-aerial'
     | '/api/import-assembly-pdf'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
@@ -1571,6 +1581,7 @@ export interface FileRouteTypes {
     | '/api/auto-add-photo-suggestions'
     | '/api/build-roof-estimate'
     | '/api/calibrate-solar'
+    | '/api/demo-aerial'
     | '/api/import-assembly-pdf'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
@@ -1722,6 +1733,7 @@ export interface FileRouteTypes {
     | '/api/auto-add-photo-suggestions'
     | '/api/build-roof-estimate'
     | '/api/calibrate-solar'
+    | '/api/demo-aerial'
     | '/api/import-assembly-pdf'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
@@ -1847,6 +1859,7 @@ export interface RootRouteChildren {
   ApiAutoAddPhotoSuggestionsRoute: typeof ApiAutoAddPhotoSuggestionsRoute
   ApiBuildRoofEstimateRoute: typeof ApiBuildRoofEstimateRoute
   ApiCalibrateSolarRoute: typeof ApiCalibrateSolarRoute
+  ApiDemoAerialRoute: typeof ApiDemoAerialRoute
   ApiImportAssemblyPdfRoute: typeof ApiImportAssemblyPdfRoute
   ApiMapboxTokenRoute: typeof ApiMapboxTokenRoute
   ApiParseXactimatePdfRoute: typeof ApiParseXactimatePdfRoute
@@ -2275,6 +2288,13 @@ declare module '@tanstack/react-router' {
       path: '/api/calibrate-solar'
       fullPath: '/api/calibrate-solar'
       preLoaderRoute: typeof ApiCalibrateSolarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/demo-aerial': {
+      id: '/api/demo-aerial'
+      path: '/api/demo-aerial'
+      fullPath: '/api/demo-aerial'
+      preLoaderRoute: typeof ApiDemoAerialRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/import-assembly-pdf': {
@@ -3263,6 +3283,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAutoAddPhotoSuggestionsRoute: ApiAutoAddPhotoSuggestionsRoute,
   ApiBuildRoofEstimateRoute: ApiBuildRoofEstimateRoute,
   ApiCalibrateSolarRoute: ApiCalibrateSolarRoute,
+  ApiDemoAerialRoute: ApiDemoAerialRoute,
   ApiImportAssemblyPdfRoute: ApiImportAssemblyPdfRoute,
   ApiMapboxTokenRoute: ApiMapboxTokenRoute,
   ApiParseXactimatePdfRoute: ApiParseXactimatePdfRoute,
