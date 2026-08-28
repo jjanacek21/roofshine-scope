@@ -251,10 +251,15 @@ function AdminTrainingCenter() {
               tab === t.id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            <t.icon className="h-4 w-4" /> {t.label} <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">{t.count}</span>
+            <t.icon className="h-4 w-4" /> {t.label}
+            {t.count > 0 && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">{t.count}</span>}
           </button>
         ))}
       </div>
+
+      {tab === "reference" && <ReferenceLibraryTab />}
+      {tab === "mapping" && <CodeMappingTab />}
+
 
       {tab === "runs" && (
         <div className="space-y-4">
