@@ -12,6 +12,9 @@ import {
   CbMeasurementReport,
   type CbMeasurementReportData,
 } from "@/components/cb/CbMeasurementReport";
+import { CbSupplementTab } from "@/components/cb/CbSupplementTab";
+import type { CbMeasureLike } from "@/lib/cbSupplement";
+import type { CbSheet } from "@/lib/cbSheet";
 import { cbPhotoSignedUrl } from "@/lib/cbPhotos";
 import { cbTradeColor, cbTradeLabel } from "@/lib/cbPriceBook";
 import { CB_LEAD_STAGES, cbNextStage, cbStageOf, type CbLeadStage } from "@/lib/cbLeads";
@@ -49,6 +52,7 @@ const TABS = [
   { k: "measure", label: "Measurements" },
   { k: "photos", label: "Photos" },
   { k: "estimate", label: "Estimate" },
+  { k: "supplement", label: "Supplement" },
   { k: "docs", label: "Documents" },
 ] as const;
 type TabKey = (typeof TABS)[number]["k"];
@@ -122,6 +126,22 @@ function CbLeadPage() {
         .eq("estimate_id", (est as { id: string }).id)
         .order("sort_order", { ascending: true });
       return { est: est as EstimateRow, lines: (lines ?? []) as LineRow[] };
+    },
+  });
+
+  /* The takeoff sheet — the supplement compares against it, so it is only
+     fetched when that tab is the one on screen. */
+  const { data: takeoff } = useQuery({
+    queryKey: ["cb-lead-takeoff", id],
+    enabled: tab === "supplement",
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cb_takeoffs")
+        .select("data")
+        .eq("job_id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as { data?: { sheet?: unknown } } | null;
     },
   });
 
@@ -475,6 +495,18 @@ function CbLeadPage() {
                   Carrier report
                 </CbButton>
               </div>
+            </CbReveal>
+          ) : null}
+
+          {tab === "supplement" ? (
+            <CbReveal>
+              <CbSupplementTab
+                jobId={id}
+                workspaceId={(job?.workspace_id as string | undefined) ?? workspace?.id ?? null}
+                measure={(measurement ?? null) as CbMeasureLike | null}
+                sheet={(takeoff?.data?.sheet ?? null) as Partial<CbSheet> | null}
+                estimateId={estimate?.est.id ?? null}
+              />
             </CbReveal>
           ) : null}
 
