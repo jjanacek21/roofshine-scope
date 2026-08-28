@@ -27,7 +27,29 @@ const abortTolerantMiddleware = createMiddleware({ type: 'request' }).server(
   },
 );
 
+/**
+ * The abort can also surface AFTER the middleware chain resolves (while the SSR
+ * stream is still writing), where nothing is left to catch it — Node then
+ * reports it as an unhandled error and the dev overlay paints a blank screen.
+ * Swallow only that specific case at the process level.
+ */
+declare const process:
+  | { on?: (event: string, cb: (err: unknown) => void) => void; __gcnAbortGuard?: boolean }
+  | undefined;
+
+if (typeof process !== 'undefined' && process?.on && !process.__gcnAbortGuard) {
+  process.__gcnAbortGuard = true;
+  const swallow = (error: unknown) => {
+    if (!isClientAbort(error)) {
+      console.error('[unhandled]', error);
+    }
+  };
+  process.on('unhandledRejection', swallow);
+  process.on('uncaughtException', swallow);
+}
+
 export const startInstance = createStart(() => ({
   requestMiddleware: [abortTolerantMiddleware],
   functionMiddleware: [attachSupabaseAuth],
 }));
+
