@@ -503,6 +503,11 @@ function CbLeadPage() {
               <CbSupplementTab
                 jobId={id}
                 workspaceId={(job?.workspace_id as string | undefined) ?? workspace?.id ?? null}
+                job={{
+                  state: (job?.state as string | null) ?? null,
+                  county: (job?.county as string | null) ?? null,
+                  zip: (job?.zip as string | null) ?? null,
+                }}
                 measure={(measurement ?? null) as CbMeasureLike | null}
                 sheet={(takeoff?.data?.sheet ?? null) as Partial<CbSheet> | null}
                 estimateId={estimate?.est.id ?? null}
