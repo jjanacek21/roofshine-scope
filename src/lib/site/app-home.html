@@ -450,6 +450,22 @@ footer{border-top:1px solid var(--line-soft);padding:32px 0 46px}
 @media(min-width:620px){.results{grid-template-columns:repeat(4,1fr)}}
 .watermark{display:flex;align-items:center;gap:10px;padding:11px 15px;border-radius:var(--r-sm);border:1px dashed rgba(255,176,32,.4);background:var(--amber-dim)}
 .watermark span{font-family:var(--mono);font-size:.71rem;color:var(--amber);letter-spacing:.05em}
+.bl{filter:blur(6px);-webkit-filter:blur(6px);user-select:none;-webkit-user-select:none;display:inline-block;color:var(--ink-2)}
+.kpi.open{border-color:rgba(60,224,138,.36);background:linear-gradient(180deg,rgba(60,224,138,.10),rgba(19,26,41,.55))}
+.kpi.open .v{color:var(--grass)}
+.pitchrow{display:inline-flex;border:1px solid var(--line-soft);border-radius:999px;overflow:hidden}
+.pitchrow button{font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;background:transparent;border:0;color:var(--ink-4);cursor:pointer}
+.pitchrow button[aria-pressed="true"]{background:var(--grass);color:#04120a}
+.mtable{width:100%;border-collapse:collapse}
+.mtable th{font-family:var(--mono);font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-4);text-align:left;padding:0 0 9px;font-weight:400}
+.mtable th+th,.mtable td+td{text-align:right}
+.mtable td{padding:9px 0;border-top:1px solid var(--line-soft);color:var(--ink-3);font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:.75rem}
+.mtable td.nm{color:var(--ink-2);font-family:var(--body);font-size:.86rem}
+.mtable .sw{display:inline-block;width:13px;height:4px;border-radius:2px;margin-right:9px;vertical-align:middle}
+.aerialimg{display:block;width:100%;height:auto;background:#12161c}
+.geocred{position:absolute;right:9px;bottom:7px;z-index:4;font-family:var(--mono);font-size:.55rem;letter-spacing:.06em;color:rgba(244,248,255,.6);text-shadow:0 1px 3px rgba(0,0,0,.85);pointer-events:none}
+.blurnote{display:flex;align-items:center;gap:10px;padding:11px 15px;border-radius:var(--r-sm);border:1px solid rgba(56,232,255,.3);background:rgba(56,232,255,.07);flex-wrap:wrap}
+.blurnote span{font-size:.83rem;color:var(--ink-2)}
 
 /* price book */
 .pb-search{display:flex;gap:10px;flex-wrap:wrap}
@@ -982,7 +998,7 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
       <div class="card rv">
         <div class="card-h">
           <span class="dot c"></span>
-          <span class="t">Roof measurement &middot; sample imagery</span>
+          <span class="t">Roof measurement &middot; <span id="measSource">live aerial imagery</span></span>
           <span class="quota" id="measQuota" style="margin-left:auto">3 demo runs left</span>
         </div>
         <div class="card-b" style="display:flex;flex-direction:column;gap:16px">
@@ -993,8 +1009,12 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
           </div>
 
           <div class="stagewrap crosshair" id="measStage">
-            <canvas id="aerial" width="1600" height="1040" aria-label="Sample aerial imagery of a commercial building"></canvas>
+            <img class="aerialimg" id="aerial" src="/api/demo-aerial?h=3" width="1000" height="650"
+                 alt="Aerial photograph of a single-family house">
+            <canvas id="aerialAlt" width="1600" height="1040" hidden
+                    aria-label="Sample aerial imagery of a building"></canvas>
             <svg id="trace" viewBox="0 0 800 520" role="application" aria-label="Roof tracing surface"></svg>
+            <span class="geocred" id="measCred">&copy; Mapbox &copy; Maxar</span>
             <div class="lockwrap" id="measLock" hidden>
               <div class="in">
                 <span class="quota out">Demo runs used</span>
@@ -1015,9 +1035,27 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
 
           <div id="measResults" hidden style="display:flex;flex-direction:column;gap:14px">
             <div class="results" id="measResultGrid"></div>
+
+            <div id="measTableWrap">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+                <span class="eyebrow dim">Everything a full report carries</span>
+                <span class="mono" style="font-size:.68rem;color:var(--ink-4)">Lengths hidden in the demo</span>
+              </div>
+              <table class="mtable">
+                <thead><tr><th>Line</th><th>Length</th><th>Runs</th><th>From</th></tr></thead>
+                <tbody id="measTableBody"></tbody>
+              </table>
+            </div>
+
+            <div class="blurnote">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38e8ff" stroke-width="2" style="flex:0 0 auto"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+              <span>The roof area is yours. Every other figure &mdash; eaves, rakes, ridges, hips, valleys, flashing, pitch, waste &mdash; comes with the report, and reports are what a seat buys.</span>
+              <a class="btn sm" href="/book/seat" target="_top" style="margin-left:auto">Claim a founding seat</a>
+            </div>
+
             <div class="watermark">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffb020" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-              <span>Temporary result &mdash; report saving, PDF export and pitch calculation are disabled in the demo.</span>
+              <span>Temporary result &mdash; nothing here is saved, and the demo cannot export a PDF.</span>
             </div>
           </div>
 
@@ -1686,10 +1724,40 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
   }
 
   /* ============================================================
-     Sample aerial imagery, drawn rather than fetched
+     The aerial
+
+     First choice is a photograph of a real roof, served by
+     /api/demo-aerial so the Mapbox token never leaves the server. If that
+     request fails the demo falls back to a drawn scene rather than showing
+     a broken frame, and the scale and starting footprint swap with it.
      ============================================================ */
-  const BUILDING = [[180,120],[560,120],[560,300],[420,300],[420,390],[180,390]];
-  const FT_PER_UNIT = 0.42;
+  const AERIAL = { lat:28.0104, zoom:19.4, frameW:1000 };
+  /* Web-mercator ground resolution at this latitude, carried from the image
+     frame onto the 800-unit tracing surface and then into feet. The constant
+     is half the familiar 156543 because Mapbox zoom is defined against 512px
+     tiles, not 256px ones — get that wrong and every measurement doubles. */
+  const REAL_FT_PER_UNIT =
+    78271.516964 * Math.cos(AERIAL.lat * Math.PI / 180) / Math.pow(2, AERIAL.zoom)
+    * (AERIAL.frameW / 800) * 3.280839895;
+
+  const SCENES = {
+    real: {
+      ftPerUnit: REAL_FT_PER_UNIT,
+      label: "live aerial imagery",
+      cred: "\u00a9 Mapbox \u00a9 Maxar",
+      /* Traced off the roof in the photograph. */
+      foot: [[371,239.2],[442,239.2],[442,292.4],[460,292.4],
+             [460,401.8],[342.4,401.8],[342.4,276.8],[371,276.8]]
+    },
+    drawn: {
+      ftPerUnit: 0.42,
+      label: "sample imagery",
+      cred: "Illustration",
+      foot: [[180,120],[560,120],[560,300],[420,300],[420,390],[180,390]]
+    }
+  };
+  let SCENE = SCENES.real;
+  const BUILDING = SCENES.drawn.foot;
 
   function drawAerial(cv){
     const ctx = cv.getContext("2d");
@@ -1759,8 +1827,6 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
     const linesBox=$("#measLines"), lineList=$("#measLineList"), lineCount=$("#measLineCount");
     const resultsBox=$("#measResults"), resultGrid=$("#measResultGrid"), quotaEl=$("#measQuota");
 
-    drawAerial($("#aerial"));
-
     let state="pin", pin=null, poly=null, drag=-1, lines=[], pending=null, hover=null;
 
     function refreshQuota(){
@@ -1812,14 +1878,14 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
     function area(){
       let a=0; for(let i=0;i<poly.length;i++){ const j=(i+1)%poly.length;
         a += poly[i][0]*poly[j][1] - poly[j][0]*poly[i][1]; }
-      return Math.abs(a/2)*FT_PER_UNIT*FT_PER_UNIT;
+      return Math.abs(a/2)*SCENE.ftPerUnit*SCENE.ftPerUnit;
     }
     function perim(){
       let p=0; for(let i=0;i<poly.length;i++){ const j=(i+1)%poly.length;
         p += Math.hypot(poly[j][0]-poly[i][0], poly[j][1]-poly[i][1]); }
-      return p*FT_PER_UNIT;
+      return p*SCENE.ftPerUnit;
     }
-    const lineFt = l => Math.hypot(l.b.x-l.a.x, l.b.y-l.a.y)*FT_PER_UNIT;
+    const lineFt = l => Math.hypot(l.b.x-l.a.x, l.b.y-l.a.y)*SCENE.ftPerUnit;
 
     function setStep(n,t,h,ok){
       stepEl.textContent = "STEP "+n;
@@ -1837,7 +1903,7 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
           '<span class="ln">Line '+(i+1)+'</span>'+
           '<select data-i="'+i+'" aria-label="Line '+(i+1)+' type"><option value="">Unlabeled</option>'+
           Object.keys(LTYPES).map(k=>'<option value="'+k+'"'+(l.type===k?" selected":"")+'>'+LTYPES[k].n+'</option>').join("")+
-          '</select><span class="lf">'+lineFt(l).toFixed(1)+' lf</span>';
+          '</select><span class="lf"><span class="bl">'+lineFt(l).toFixed(1)+'</span> lf</span>';
         row.addEventListener("mouseenter",()=>{hover=i;render();});
         row.addEventListener("mouseleave",()=>{hover=null;render();});
         lineList.appendChild(row);
@@ -1850,18 +1916,74 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
       }));
     }
 
-    function showResults(){
-      const byType={};
-      lines.forEach(l=>{ byType[l.type]=(byType[l.type]||0)+lineFt(l); });
-      const a=area(), p=perim();
+    /* A real report carries all of these whether or not the visitor drew
+       them. What they traced is measured; the rest is seeded off their
+       outline the way the report seeds it. Every length is blurred either
+       way — the roof area is the only figure the demo gives away. */
+    const REPORT_LINES = [
+      { k:"eave",    n:"Eaves",         c:"#3ce08a", ofP:0.58, runs:4 },
+      { k:"rake",    n:"Rakes",         c:"#7fd4ff", ofP:0.34, runs:4 },
+      { k:"ridge",   n:"Ridges",        c:"#ff6b5a", ofA:1/26, cap:0.34, runs:2 },
+      { k:"hip",     n:"Hips",          c:"#ffb020", ofA:1/34, cap:0.46, runs:4 },
+      { k:"valley",  n:"Valleys",       c:"#38e8ff", ofA:1/62, cap:0.22, runs:2 },
+      { k:"parapet", n:"Parapet",       c:"#c3d0e8", ofP:0,    runs:0 },
+      { k:"step",    n:"Step flashing", c:"#8fa2c2", ofP:0.09, runs:2 },
+      { k:"wall",    n:"Wall flashing", c:"#8fa2c2", ofP:0.06, runs:1 },
+      { k:"drip",    n:"Drip edge",     c:"#8fa2c2", ofP:1.00, runs:1 }
+    ];
+    const PITCHES = [4,6,8];
+    let pitch = 6;
+    const fmt = n => Math.round(n).toLocaleString("en-US");
+
+    function paintKpis(a,p){
+      const mult = Math.sqrt(1 + (pitch/12)*(pitch/12));
       resultGrid.innerHTML =
-        '<div class="kpi"><span class="k">Footprint</span><span class="v">'+Math.round(a).toLocaleString("en-US")+'</span><span class="d" style="color:var(--ink-4)">sq ft</span></div>'+
-        '<div class="kpi"><span class="k">Squares</span><span class="v">'+(a/100).toFixed(1)+'</span><span class="d" style="color:var(--ink-4)">SQ</span></div>'+
-        '<div class="kpi"><span class="k">Perimeter</span><span class="v">'+Math.round(p).toLocaleString("en-US")+'</span><span class="d" style="color:var(--ink-4)">lf</span></div>'+
-        '<div class="kpi"><span class="k">Lines traced</span><span class="v">'+lines.length+'</span><span class="d" style="color:var(--ink-4)">'+
-          Object.keys(byType).map(k=>LTYPES[k].n+" "+Math.round(byType[k])+"'").join(" &middot; ")+'</span></div>';
+        '<div class="kpi open"><span class="k">Roof area &middot; pitch off</span>'+
+          '<span class="v">'+fmt(a)+'</span>'+
+          '<span class="d" style="color:var(--ink-4)">sq ft footprint</span></div>'+
+        '<div class="kpi open"><span class="k">Roof area &middot; pitch on</span>'+
+          '<span class="v">'+fmt(a*mult)+'</span>'+
+          '<span class="d"><span class="pitchrow" id="measPitch">'+
+          PITCHES.map(x=>'<button type="button" data-p="'+x+'" aria-pressed="'+(x===pitch)+'">'+x+':12</button>').join("")+
+          '</span></span></div>'+
+        '<div class="kpi"><span class="k">Perimeter</span>'+
+          '<span class="v bl">'+fmt(p)+'</span>'+
+          '<span class="d" style="color:var(--ink-4)">lf</span></div>'+
+        '<div class="kpi"><span class="k">Squares &middot; waste</span>'+
+          '<span class="v bl">'+(a*mult/100).toFixed(1)+'</span>'+
+          '<span class="d" style="color:var(--ink-4)">SQ @ <span class="bl">3%</span></span></div>';
+      $$("#measPitch button").forEach(b=>b.addEventListener("click",()=>{
+        pitch = +b.dataset.p; paintKpis(a,p);
+      }));
+    }
+
+    function paintTable(byType,countType,a,p){
+      $("#measTableBody").innerHTML = REPORT_LINES.map(r=>{
+        const traced = (byType[r.k]||0) > 0;
+        /* The area-derived lengths are capped against the perimeter so a
+           very large footprint cannot produce more ridge than roof edge. */
+        const ft = traced ? byType[r.k]
+                : (r.ofA ? Math.min(a*r.ofA, p*r.cap) : p*r.ofP);
+        if(!traced && ft < 1) return "";
+        const runs = traced ? countType[r.k] : r.runs;
+        return '<tr><td class="nm"><span class="sw" style="background:'+r.c+'"></span>'+r.n+'</td>'+
+               '<td><span class="bl">'+fmt(ft)+'</span> lf</td>'+
+               '<td><span class="bl">'+runs+'</span></td>'+
+               '<td style="color:var(--ink-4)">'+(traced?"Traced":"Estimated")+'</td></tr>';
+      }).join("");
+    }
+
+    function showResults(){
+      const byType={}, countType={};
+      lines.forEach(l=>{
+        byType[l.type]=(byType[l.type]||0)+lineFt(l);
+        countType[l.type]=(countType[l.type]||0)+1;
+      });
+      const a=area(), p=perim();
+      paintKpis(a,p);
+      paintTable(byType,countType,a,p);
       resultsBox.hidden=false;
-      setStep(5,"Footprint complete","This is where the demo stops. Nothing here is saved.",true);
+      setStep(5,"The roof area is yours","Area with the pitch off and with it on. Every other number on the report is blurred in the demo.",true);
       btn.textContent = qLeft("meas")>0 ? "Run it again" : "No runs left";
       btn.disabled = qLeft("meas")===0;
       state="results";
@@ -1873,7 +1995,7 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
       stage.classList.add("crosshair");
       setStep(1,"Drop a pin on the roof","Click anywhere on the large building. The detector finds the footprint from there.");
       btn.disabled=true; btn.textContent="Waiting for a pin…";
-      $("#measFoot").textContent = "Sample imagery · 1 px ≈ "+FT_PER_UNIT+" ft";
+      $("#measFoot").textContent = "Scale locked to the imagery · 1 unit ≈ "+SCENE.ftPerUnit.toFixed(2)+" ft";
       render(); if(hard) refreshQuota();
     }
 
@@ -1891,8 +2013,8 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
         setStep(1,"Detecting the footprint…","Reading the roof edges out from your pin.");
         btn.textContent="Detecting…";
         setTimeout(()=>{
-          let r=13; const jit=()=>{ r=(r*9301+49297)%233280; return (r/233280-.5)*30; };
-          poly = BUILDING.map(pt=>[pt[0]+jit(),pt[1]+jit()]);
+          let r=13; const jit=()=>{ r=(r*9301+49297)%233280; return (r/233280-.5)*17; };
+          poly = SCENE.foot.map(pt=>[pt[0]+jit(),pt[1]+jit()]);
           state="shape"; render();
           setStep(2,"Drag the corners onto the roof edges","The detector gets you close. Pull each handle until the outline sits on the real edge — good enough is good enough.");
           btn.disabled=false; btn.textContent="Footprint looks good";
@@ -1937,6 +2059,27 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
     restart.addEventListener("click",()=>reset(true));
 
     reset(true);
+
+    /* Real photo first; the drawn scene only if it never arrives. */
+    (function imagery(){
+      const img = $("#aerial"), alt = $("#aerialAlt");
+      const srcEl = $("#measSource"), credEl = $("#measCred");
+      let swapped = false;
+      function useDrawn(){
+        if(swapped) return;
+        swapped = true;
+        SCENE = SCENES.drawn;
+        img.hidden = true; alt.hidden = false;
+        drawAerial(alt);
+        if(srcEl) srcEl.textContent = SCENE.label;
+        if(credEl) credEl.textContent = SCENE.cred;
+        reset(false);
+      }
+      img.addEventListener("error", useDrawn);
+      if(img.complete && !img.naturalWidth) setTimeout(useDrawn, 0);
+      /* A photo that never resolves is the same failure as one that errors. */
+      setTimeout(()=>{ if(!img.naturalWidth) useDrawn(); }, 6000);
+    })();
   })();
 
   /* ============================================================
