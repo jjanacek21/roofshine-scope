@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -378,6 +378,72 @@ export type Database = {
           points_awarded?: number | null
           tier?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      booking_requests: {
+        Row: {
+          address: string | null
+          company: string | null
+          created_at: string
+          current_tools: string | null
+          email: string
+          goals: string | null
+          id: string
+          industry: string | null
+          kind: string
+          name: string
+          phone: string | null
+          preferred_date: string | null
+          preferred_time: string | null
+          product: string
+          question: string | null
+          status: string
+          team_size: string | null
+          timezone: string | null
+          wants: string[] | null
+        }
+        Insert: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          current_tools?: string | null
+          email: string
+          goals?: string | null
+          id?: string
+          industry?: string | null
+          kind: string
+          name: string
+          phone?: string | null
+          preferred_date?: string | null
+          preferred_time?: string | null
+          product?: string
+          question?: string | null
+          status?: string
+          team_size?: string | null
+          timezone?: string | null
+          wants?: string[] | null
+        }
+        Update: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          current_tools?: string | null
+          email?: string
+          goals?: string | null
+          id?: string
+          industry?: string | null
+          kind?: string
+          name?: string
+          phone?: string | null
+          preferred_date?: string | null
+          preferred_time?: string | null
+          product?: string
+          question?: string | null
+          status?: string
+          team_size?: string | null
+          timezone?: string | null
+          wants?: string[] | null
         }
         Relationships: []
       }
@@ -1605,6 +1671,77 @@ export type Database = {
           video_url?: string | null
         }
         Relationships: []
+      }
+      cb_supplements: {
+        Row: {
+          applied: Json
+          carrier: string | null
+          carrier_imported_at: string | null
+          carrier_measure: Json
+          carrier_total: number | null
+          claim_number: string | null
+          created_at: string
+          created_by: string | null
+          file_name: string | null
+          gaps: Json
+          id: string
+          job_id: string
+          lines: Json
+          parse_error: string | null
+          pdf_path: string | null
+          photo_findings: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          applied?: Json
+          carrier?: string | null
+          carrier_imported_at?: string | null
+          carrier_measure?: Json
+          carrier_total?: number | null
+          claim_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_name?: string | null
+          gaps?: Json
+          id?: string
+          job_id: string
+          lines?: Json
+          parse_error?: string | null
+          pdf_path?: string | null
+          photo_findings?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          applied?: Json
+          carrier?: string | null
+          carrier_imported_at?: string | null
+          carrier_measure?: Json
+          carrier_total?: number | null
+          claim_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_name?: string | null
+          gaps?: Json
+          id?: string
+          job_id?: string
+          lines?: Json
+          parse_error?: string | null
+          pdf_path?: string | null
+          photo_findings?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_supplements_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "cb_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cb_takeoffs: {
         Row: {
@@ -6623,72 +6760,6 @@ export type Database = {
             referencedColumns: ["slug"]
           },
         ]
-      }
-      booking_requests: {
-        Row: {
-          id: string
-          kind: string
-          product: string
-          name: string
-          company: string | null
-          email: string
-          phone: string | null
-          industry: string | null
-          team_size: string | null
-          current_tools: string | null
-          goals: string | null
-          wants: string[] | null
-          address: string | null
-          question: string | null
-          preferred_date: string | null
-          preferred_time: string | null
-          timezone: string | null
-          status: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          kind: string
-          product?: string
-          name: string
-          company?: string | null
-          email: string
-          phone?: string | null
-          industry?: string | null
-          team_size?: string | null
-          current_tools?: string | null
-          goals?: string | null
-          wants?: string[] | null
-          address?: string | null
-          question?: string | null
-          preferred_date?: string | null
-          preferred_time?: string | null
-          timezone?: string | null
-          status?: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          kind?: string
-          product?: string
-          name?: string
-          company?: string | null
-          email?: string
-          phone?: string | null
-          industry?: string | null
-          team_size?: string | null
-          current_tools?: string | null
-          goals?: string | null
-          wants?: string[] | null
-          address?: string | null
-          question?: string | null
-          preferred_date?: string | null
-          preferred_time?: string | null
-          timezone?: string | null
-          status?: string
-          created_at?: string
-        }
-        Relationships: []
       }
       site_pages: {
         Row: {
