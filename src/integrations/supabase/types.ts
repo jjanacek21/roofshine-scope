@@ -6589,6 +6589,74 @@ export type Database = {
           },
         ]
       }
+      site_page_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          html: string
+          id: string
+          label: string | null
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          html: string
+          id?: string
+          label?: string | null
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          html?: string
+          id?: string
+          label?: string | null
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_page_versions_slug_fkey"
+            columns: ["slug"]
+            isOneToOne: false
+            referencedRelation: "site_pages"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      site_pages: {
+        Row: {
+          description: string | null
+          draft_html: string | null
+          html: string
+          name: string
+          published: boolean
+          slug: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          draft_html?: string | null
+          html?: string
+          name: string
+          published?: boolean
+          slug: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          draft_html?: string | null
+          html?: string
+          name?: string
+          published?: boolean
+          slug?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       spatial_ref_sys: {
         Row: {
           auth_name: string | null
