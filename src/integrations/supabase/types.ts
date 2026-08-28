@@ -6624,6 +6624,72 @@ export type Database = {
           },
         ]
       }
+      booking_requests: {
+        Row: {
+          id: string
+          kind: string
+          product: string
+          name: string
+          company: string | null
+          email: string
+          phone: string | null
+          industry: string | null
+          team_size: string | null
+          current_tools: string | null
+          goals: string | null
+          wants: string[] | null
+          address: string | null
+          question: string | null
+          preferred_date: string | null
+          preferred_time: string | null
+          timezone: string | null
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          kind: string
+          product?: string
+          name: string
+          company?: string | null
+          email: string
+          phone?: string | null
+          industry?: string | null
+          team_size?: string | null
+          current_tools?: string | null
+          goals?: string | null
+          wants?: string[] | null
+          address?: string | null
+          question?: string | null
+          preferred_date?: string | null
+          preferred_time?: string | null
+          timezone?: string | null
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          kind?: string
+          product?: string
+          name?: string
+          company?: string | null
+          email?: string
+          phone?: string | null
+          industry?: string | null
+          team_size?: string | null
+          current_tools?: string | null
+          goals?: string | null
+          wants?: string[] | null
+          address?: string | null
+          question?: string | null
+          preferred_date?: string | null
+          preferred_time?: string | null
+          timezone?: string | null
+          status?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       site_pages: {
         Row: {
           description: string | null
