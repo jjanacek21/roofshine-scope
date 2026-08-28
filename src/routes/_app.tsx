@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { MobileBottomTabs } from "@/components/layout/MobileBottomTabs";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 import { AssistantBubble } from "@/components/assistant/AssistantBubble";
+import { SitePage } from "@/components/site/SitePage";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -18,7 +19,12 @@ export const Route = createFileRoute("/_app")({
 function AppLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [checking, setChecking] = useState(true);
+  // Signed out at the root, a visitor gets the marketing page rather than a
+  // login form. Every other app route still bounces to /login.
+  const [publicHome, setPublicHome] = useState(false);
+  const atRoot = location.pathname === "/" || location.pathname === "";
   const [loadError, setLoadError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
@@ -29,9 +35,14 @@ function AppLayout() {
     if (getSurface() === "standalone") return;
     if (loading) return;
     if (!user) {
+      if (atRoot) {
+        setPublicHome(true);
+        return;
+      }
       navigate({ to: "/login" });
       return;
     }
+    setPublicHome(false);
 
     let cancelled = false;
 
@@ -111,7 +122,11 @@ function AppLayout() {
     return () => {
       cancelled = true;
     };
-  }, [user, loading, navigate, attempt]);
+  }, [user, loading, navigate, attempt, atRoot]);
+
+  if (publicHome) {
+    return <SitePage slug="app-home" />;
+  }
 
   if (loadError) {
     return (
@@ -172,7 +187,10 @@ function AppLayout() {
 function ContentArea({ children }: { children: React.ReactNode }) {
   const [collapsed] = useSidebarCollapsed();
   return (
-    <div style={{ paddingLeft: undefined }} className={collapsed ? "lg:pl-[72px]" : "lg:pl-[240px]"}>
+    <div
+      style={{ paddingLeft: undefined }}
+      className={collapsed ? "lg:pl-[72px]" : "lg:pl-[240px]"}
+    >
       {children}
     </div>
   );
