@@ -381,6 +381,16 @@ td .sb{font-family:var(--mono);font-size:.71rem;color:var(--ink-4)}
 .rung.next{opacity:.6}
 .rung .who b{display:block;font-size:.95rem;font-weight:600}
 .rung .who s{display:block;text-decoration:none;font-family:var(--mono);font-size:.69rem;color:var(--ink-4);margin-top:2px}
+.tier.pick{border-color:rgba(60,224,138,.4);background:linear-gradient(180deg,rgba(60,224,138,.1),rgba(13,18,29,.72))}
+.tier h3{font-size:1.16rem;margin-top:2px}
+.tier .amt{display:flex;align-items:baseline;gap:7px;margin-top:4px}
+.tier .amt b{font-family:var(--display);font-stretch:86%;font-size:2.45rem;font-weight:800;line-height:1}
+.tier .amt s{text-decoration:none;font-family:var(--mono);font-size:.72rem;color:var(--ink-4)}
+.tier .seat{font-family:var(--mono);font-size:.7rem;letter-spacing:.045em;color:var(--ink-3);border-top:1px dashed var(--line-soft);padding-top:12px;margin-top:4px}
+.tier .seat b{color:var(--ink-1);font-weight:600}
+.lockrow{display:flex;gap:15px;align-items:flex-start;border-radius:var(--r);border:1px solid rgba(60,224,138,.32);background:linear-gradient(180deg,rgba(60,224,138,.09),rgba(13,18,29,.55));padding:21px 24px;margin-top:28px}
+.lockrow p{font-size:.95rem;color:var(--ink-2);margin:0;max-width:78ch}
+.lockrow p b{color:var(--ink-1)}
 .rung .pr{font-family:var(--display);font-stretch:86%;font-weight:800;font-size:1.3rem;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .rung.now .pr{color:var(--grass)}
 .rung.next .pr{color:var(--ink-4)}
@@ -1005,7 +1015,7 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
 
           <div class="hud" id="measHud">
             <span class="n" id="measStep">STEP 1</span>
-            <span class="m"><b id="measTitle">Drop a pin on the roof</b><span id="measHelp">Click anywhere on the large building. The detector finds the footprint from there.</span></span>
+            <span class="m"><b id="measTitle">Drop a pin on the roof</b><span id="measHelp">Click anywhere on the house. The detector reads the footprint out from your pin.</span></span>
           </div>
 
           <div class="stagewrap crosshair" id="measStage">
@@ -1194,11 +1204,12 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
   <div class="wrap">
     <div class="shead rv">
       <p class="eyebrow">Pricing</p>
-      <h2>The price only moves in one direction, and you can stand in front of it.</h2>
+      <h2>Three seats to start. The price you lock is the price you keep.</h2>
       <p class="lede">
-        Every module on the roadmap below ships into the same subscription. Nobody who is already
-        in pays a cent more when it lands &mdash; the rate you join at is the rate you keep, for as long
-        as you stay. The rate <em style="font-style:normal;color:var(--ink)">new</em> companies pay goes up at each step.
+        Every tier comes with three logins, so you, whoever writes your estimates and your first rep
+        are all working on day one. Extra seats are cheap and you add them when you actually hire.
+        Every module on the roadmap lands inside the tier you already pay for &mdash;
+        <em style="font-style:normal;color:var(--ink)">free</em>, for as long as the subscription stays alive.
       </p>
     </div>
 
@@ -1210,43 +1221,87 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
       <p class="ct">Founding seats taken. At 25, the founding rate closes and the next step opens.</p>
     </div>
 
-    <div class="grid g2" style="gap:24px;align-items:start">
-      <div class="rv">
-        <h4 style="margin-bottom:14px">The ladder</h4>
-        <div class="ladder">
-          <div class="rung now">
-            <div class="who"><b>Founding &mdash; first 25 companies</b><s>locked for life &middot; 7 taken</s></div>
-            <div class="pr">$249<span style="font-size:.8rem;color:var(--ink-4);font-weight:500">/mo</span></div>
-          </div>
-          <div class="rung next">
-            <div class="who"><b>Early &mdash; companies 26&ndash;75</b><s>opens when founding closes</s></div>
-            <div class="pr">$399<span style="font-size:.8rem;font-weight:500">/mo</span></div>
-          </div>
-          <div class="rung next">
-            <div class="who"><b>Standard &mdash; 76 and up</b><s>full roadmap shipped</s></div>
-            <div class="pr">$599<span style="font-size:.8rem;font-weight:500">/mo</span></div>
-          </div>
-        </div>
-        <p style="font-size:.85rem;color:var(--ink-4);margin-top:14px">
-          Includes 5 users. Extra seats $39/user/mo at the founding rate. Claim Buddy is billed
-          separately on its own tiers. Placeholder figures &mdash; final numbers land before launch.
-        </p>
-      </div>
+    <div class="grid g3" style="gap:16px;align-items:stretch">
 
-      <div class="rv">
-        <h4 style="margin-bottom:14px">Shipping next &mdash; each one moves the price</h4>
-        <div class="soon">
-          <div class="soon-item"><span class="q">Q4</span><div><b>AI follow-up agent</b><span>Works your sent-report list, calls and texts until someone answers</span></div></div>
-          <div class="soon-item"><span class="q">Q4</span><div><b>Supplier price lists &rarr; order forms</b><span>Load a distributor sheet, build the material order from the estimate</span></div></div>
-          <div class="soon-item"><span class="q">Q4</span><div><b>Multi-system proposal engine</b><span>Good / better / best on one page, each with its own warranty</span></div></div>
-          <div class="soon-item"><span class="q">Q1</span><div><b>AI document intake</b><span>Drop in a company's docs, the app extracts and fills the setup</span></div></div>
-          <div class="soon-item"><span class="q">Q1</span><div><b>Field mobile app</b><span>Offline photo protocol and measurements on the roof</span></div></div>
-          <div class="soon-item"><span class="q">Q1</span><div><b>Multi-market price books</b><span>Xactimate pricing per market with duplicate detection</span></div></div>
-          <div class="soon-item"><span class="q">Q2</span><div><b>Referral network</b><span>Send and receive work across the GCN network with tracked splits</span></div></div>
-          <div class="soon-item"><span class="q">Q2</span><div><b>Canvass route builder</b><span>Hail swath in, optimized door list out</span></div></div>
-        </div>
+      <article class="mod tier rv">
+        <span class="pill" style="align-self:flex-start">Tier 1 &middot; Estimating</span>
+        <h3>Run the jobs you already sell</h3>
+        <div class="amt"><b>$120</b><s>/mo &middot; 3 seats included</s></div>
+        <p>Everything it takes to walk a job from the first knock to a signed contract and a paid invoice.</p>
+        <ul>
+          <li>Dashboard, jobs and customers</li>
+          <li>Open a job and it is all right there: measurements and photos</li>
+          <li>Estimate built off your own price book</li>
+          <li>Order forms, invoices</li>
+          <li>Contracts and contingencies</li>
+          <li>Report builder and job documents</li>
+          <li>Commercial roofing section included</li>
+          <li>Owner's admin: settings, pricing and teams</li>
+        </ul>
+        <p class="seat">Extra seats <b>$25</b> per month each</p>
+        <a class="btn sm" href="/book/seat" target="_top" style="align-self:flex-start;margin-top:4px">Claim a founding seat</a>
+      </article>
+
+      <article class="mod tier pick rv">
+        <span class="pill won" style="align-self:flex-start">Tier 2 &middot; Most companies</span>
+        <h3>The whole operation</h3>
+        <div class="amt"><b>$180</b><s>/mo &middot; 3 seats included</s></div>
+        <p>The full app. Prospecting and storm work on the front end, the Tier 1 job engine behind it.</p>
+        <ul>
+          <li>Everything in Tier 1</li>
+          <li>Storm Intel &mdash; hail and wind history, swath maps</li>
+          <li>Door to Door World &mdash; territory, knocks, rep leaderboards</li>
+          <li>Prospecting, leads and report delivery tracking</li>
+          <li>Every module in the app except Claim Buddy</li>
+        </ul>
+        <p class="seat">Extra seats <b>$45</b> per month each</p>
+        <a class="btn sm" href="/book/seat" target="_top" style="align-self:flex-start;margin-top:4px">Claim a founding seat</a>
+      </article>
+
+      <article class="mod tier rv">
+        <span class="pill hot" style="align-self:flex-start">Tier 3 &middot; Insurance restoration</span>
+        <h3>Everything, plus Claim Buddy</h3>
+        <div class="amt"><b>$360</b><s>/mo &middot; 3 seats included</s></div>
+        <p>For companies running insurance restoration, where the inspection and the packet are the sale.</p>
+        <ul>
+          <li>Everything in Tier 2</li>
+          <li>Claim Buddy: guided field inspection and photo protocol</li>
+          <li>Roof-line tracing with instant measurements</li>
+          <li>Xactimate-based pricing and takeoff sheets</li>
+          <li>Damage reports and supplement packets</li>
+          <li>Contracts and e-signature in the field</li>
+          <li>Rep training and the branded presentation that closes at the table</li>
+        </ul>
+        <p class="seat">Extra seats <b>$75</b> per month each</p>
+        <a class="btn sm" href="/book/seat" target="_top" style="align-self:flex-start;margin-top:4px">Claim a founding seat</a>
+      </article>
+
+    </div>
+
+    <div class="lockrow rv">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ce08a" stroke-width="2" style="flex:0 0 auto;margin-top:1px"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      <p>
+        <b>Lock the rate and you are grandfathered.</b> Keep the subscription and your price never moves,
+        no matter what ships. The AI follow-up agent, the supplier order loop, the multi-system proposal
+        engine, the field mobile app, the referral network &mdash; all of it lands in your account at the
+        price you joined at. New companies pay whatever the number is that month. You pay what you locked.
+      </p>
+    </div>
+
+    <div class="rv" style="margin-top:32px">
+      <h4 style="margin-bottom:14px">Shipping next &mdash; each one moves the price for everybody but you</h4>
+      <div class="soon">
+        <div class="soon-item"><span class="q">Q4</span><div><b>AI follow-up agent</b><span>Works your sent-report list, calls and texts until someone answers</span></div></div>
+        <div class="soon-item"><span class="q">Q4</span><div><b>Supplier price lists &rarr; order forms</b><span>Load a distributor sheet, build the material order from the estimate</span></div></div>
+        <div class="soon-item"><span class="q">Q4</span><div><b>Multi-system proposal engine</b><span>Good / better / best on one page, each with its own warranty</span></div></div>
+        <div class="soon-item"><span class="q">Q1</span><div><b>AI document intake</b><span>Drop in a company's docs, the app extracts and fills the setup</span></div></div>
+        <div class="soon-item"><span class="q">Q1</span><div><b>Field mobile app</b><span>Offline photo protocol and measurements on the roof</span></div></div>
+        <div class="soon-item"><span class="q">Q1</span><div><b>Multi-market price books</b><span>Xactimate pricing per market with duplicate detection</span></div></div>
+        <div class="soon-item"><span class="q">Q2</span><div><b>Referral network</b><span>Send and receive work across the GCN network with tracked splits</span></div></div>
+        <div class="soon-item"><span class="q">Q2</span><div><b>Canvass route builder</b><span>Hail swath in, optimized door list out</span></div></div>
       </div>
     </div>
+
   </div>
 </section>
 
@@ -1993,7 +2048,7 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
       state="pin"; pin=null; poly=null; lines=[]; pending=null; hover=null; drag=-1;
       linesBox.hidden=true; resultsBox.hidden=true;
       stage.classList.add("crosshair");
-      setStep(1,"Drop a pin on the roof","Click anywhere on the large building. The detector finds the footprint from there.");
+      setStep(1,"Drop a pin on the roof","Click anywhere on the house. The detector reads the footprint out from your pin.");
       btn.disabled=true; btn.textContent="Waiting for a pin…";
       $("#measFoot").textContent = "Scale locked to the imagery · 1 unit ≈ "+SCENE.ftPerUnit.toFixed(2)+" ft";
       render(); if(hard) refreshQuota();
