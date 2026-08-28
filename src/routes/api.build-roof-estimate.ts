@@ -259,21 +259,20 @@ export const Route = createFileRoute("/api/build-roof-estimate")({
             .eq("estimate_id", estimate.id);
           const baseSort = existingCount ?? 0;
 
-          const rows = preview
-            .filter((i) => i.line_item_id) // only insert resolved catalog items
-            .map((i, idx) => ({
-              estimate_id: estimate.id,
-              line_item_id: i.line_item_id!,
-              code: i.code,
-              name: i.name,
-              trade: i.trade,
-              unit: i.unit,
-              qty: i.qty,
-              unit_price: i.unit_price,
-              total: i.qty * i.unit_price,
-              source: i.source,
-              sort_order: baseSort + idx,
-            }));
+          const rows = preview.map((i, idx) => ({
+            estimate_id: estimate.id,
+            line_item_id: i.line_item_id ?? null,
+            code: i.code,
+            name: i.name,
+            trade: i.trade,
+            unit: i.unit,
+            qty: i.qty,
+            unit_price: i.unit_price,
+            replace_price: i.unit_price,
+            total: i.qty * i.unit_price,
+            source: i.source,
+            sort_order: baseSort + idx,
+          }));
           if (rows.length) {
             const { error } = await supabase.from("estimate_line_items").insert(rows);
             if (error) return Response.json({ error: error.message }, { status: 500 });
