@@ -5,34 +5,46 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CbButton, CbCard, CbBadge, CbEmptyState, CbLoading } from "@/components/cb/primitives";
 import { CB_DOC_BUCKET } from "@/lib/cbPdf";
+import { cbPhotoSignedUrl } from "@/lib/cbPhotos";
+import { cbResolveCatalogItems } from "@/lib/cbEstimate";
+import { resolveCodeRules } from "@/lib/cbCodeRules";
 import {
   cbGapsFrom,
   cbScopeFromJob,
   cbSupTable,
   type CbCarrierLine,
+  type CbCarrierMeasure,
   type CbGapItem,
   type CbMeasureLike,
   type CbScopeItem,
 } from "@/lib/cbSupplement";
-import { cbMatchCarrierLines, cbParseCarrierEstimate } from "@/lib/cb-supplement.functions";
+import {
+  cbMatchCarrierLines,
+  cbParseCarrierEstimate,
+  cbSupplementPhotoFindings,
+} from "@/lib/cb-supplement.functions";
 import type { CbSheet } from "@/lib/cbSheet";
 
 /**
  * The supplement tab.
  *
- * Two lists, in the order a rep works: what the carrier wrote, and what the
- * roof has that they did not write. Nothing on the second list enters the
- * estimate until the rep ticks it — the estimate is a document an adjuster
- * reads, and a wrong line that arrived by default is worse than one that
- * needed a tap.
+ * Three lists in the order a rep works them: what the carrier wrote, what is
+ * missing from it, and what that costs out of the company's own price book.
+ *
+ * Two things make the missing list defensible rather than a guess. Quantities
+ * prefer the carrier's own sketch, so a desk adjuster is checking their own
+ * measurement. And prices come from the price book, which is loaded from the
+ * same Xactimate data the carrier prices from — so verifying a supplement line
+ * means opening their software, not taking our word.
  */
 
 const MAX_BYTES = 18 * 1024 * 1024;
+const MAX_PHOTOS = 20;
 
 const money = (v: number | null | undefined) =>
   v == null ? "—" : `$${Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
-/** Reads the picked file without ever putting it through a string per byte. */
+/** Reads the picked file without building a string one byte at a time. */
 async function toBase64(file: File): Promise<string> {
   const buf = new Uint8Array(await file.arrayBuffer());
   let bin = "";
@@ -43,17 +55,28 @@ async function toBase64(file: File): Promise<string> {
   return btoa(bin);
 }
 
-type Phase = "idle" | "reading" | "parsing" | "matching";
+type Phase = "idle" | "reading" | "parsing" | "photos" | "matching" | "pricing";
+
+const PHASE_LABEL: Record<Phase, string> = {
+  idle: "",
+  reading: "Reading the file…",
+  parsing: "Reading every page of their estimate…",
+  photos: "Looking through the inspection photos…",
+  matching: "Comparing their lines against this roof…",
+  pricing: "Pricing what is missing from your price book…",
+};
 
 export function CbSupplementTab({
   jobId,
   workspaceId,
+  job,
   measure,
   sheet,
   estimateId,
 }: {
   jobId: string;
   workspaceId: string | null;
+  job: { state?: string | null; county?: string | null; zip?: string | null } | null;
   measure: CbMeasureLike | null;
   sheet: Partial<CbSheet> | null;
   estimateId: string | null;
@@ -63,8 +86,6 @@ export function CbSupplementTab({
   const [phase, setPhase] = useState<Phase>("idle");
   const [picked, setPicked] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
-
-  const scope = useMemo(() => cbScopeFromJob(measure, sheet), [measure, sheet]);
 
   const { data: sup, isLoading } = useQuery({
     queryKey: ["cb-supplement", jobId],
@@ -80,23 +101,50 @@ export function CbSupplementTab({
     },
   });
 
-  /* Memoised because both lists feed useCallback deps — a fresh array each
-     render would rebuild the two write handlers on every keystroke. */
   const lines = useMemo(() => (sup?.lines ?? []) as CbCarrierLine[], [sup]);
   const gaps = useMemo(() => (sup?.gaps ?? []) as CbGapItem[], [sup]);
   const applied = useMemo(() => new Set((sup?.applied ?? []) as string[]), [sup]);
+  const carrierMeasure = useMemo(() => (sup?.carrier_measure ?? {}) as CbCarrierMeasure, [sup]);
 
-  /* ── upload → parse → match, all in one press ── */
+  /** Items the local building code requires, with the citation attached. */
+  const codeScope = useCallback(
+    async (squares: number, perimeter: number): Promise<CbScopeItem[]> => {
+      if (!job?.state) return [];
+      const { set, items } = await resolveCodeRules({
+        state: job.state ?? null,
+        county: job.county ?? null,
+      });
+      if (!set) return [];
+      return items
+        .map((rule): CbScopeItem | null => {
+          const factor = Number(rule.qty_factor) || 1;
+          const mode = (rule.qty_mode ?? "fixed").toLowerCase();
+          let qty = factor;
+          if (mode.includes("square") || mode.includes("sq")) qty = factor * squares;
+          else if (mode.includes("perimeter") || mode.includes("lf")) qty = factor * perimeter;
+          if (!(qty > 0)) return null;
+          const label = rule.item_name ?? "Code-required item";
+          return {
+            id: `code_${rule.id}`,
+            label,
+            unit: (rule.unit ?? "EA").toUpperCase(),
+            qty: Math.round(qty * 10) / 10,
+            backing: `${set.name} — ${rule.code_reference}${rule.note ? ` · ${rule.note}` : ""}`,
+            aka: label.toLowerCase(),
+            origin: "code",
+            codeReference: rule.code_reference,
+          };
+        })
+        .filter((x): x is CbScopeItem => x !== null);
+    },
+    [job],
+  );
+
+  /* ── upload → parse → photos → match → price ── */
   const onFile = useCallback(
     async (file: File) => {
       if (file.size > MAX_BYTES) {
         toast.error("That PDF is over 18 MB — export a smaller copy and try again.");
-        return;
-      }
-      if (scope.length === 0) {
-        toast.error(
-          "Measure the roof and fill the takeoff first — there is nothing to compare to.",
-        );
         return;
       }
 
@@ -104,9 +152,9 @@ export function CbSupplementTab({
       try {
         const b64 = await toBase64(file);
 
-        /* Store the document first. If the parse fails afterwards the rep has
-           still filed the carrier's estimate against the job, which is the
-           half of this that matters to a claim file. */
+        /* Store the document first. If everything after this fails, the rep has
+           still filed the carrier's estimate against the job, which is the half
+           that matters to a claim file. */
         const path = `${workspaceId ?? "ws"}/${jobId}/carrier-${Date.now()}.pdf`;
         await supabase.storage
           .from(CB_DOC_BUCKET)
@@ -140,6 +188,60 @@ export function CbSupplementTab({
           return;
         }
 
+        /* Their sketch wins on quantity from here on. */
+        const base = cbScopeFromJob(measure, sheet, parsed.result.measure);
+        const squares = Number(parsed.result.measure.total_squares ?? measure?.total_squares ?? 0);
+        const perimeter =
+          Number(parsed.result.measure.eave_lf ?? measure?.eave_lf ?? 0) +
+          Number(parsed.result.measure.rake_lf ?? measure?.rake_lf ?? 0);
+
+        /* ── photos ── */
+        setPhase("photos");
+        const photoScope: CbScopeItem[] = [];
+        try {
+          const { data: photoRows } = await supabase
+            .from("cb_photos")
+            .select("storage_path")
+            .eq("job_id", jobId)
+            .order("sort_order", { ascending: true })
+            .limit(MAX_PHOTOS);
+          const urls = (
+            await Promise.all(
+              (photoRows ?? []).map((p) =>
+                cbPhotoSignedUrl((p as { storage_path: string }).storage_path),
+              ),
+            )
+          ).filter((u): u is string => Boolean(u));
+
+          if (urls.length) {
+            const seen = await cbSupplementPhotoFindings({
+              data: {
+                images: urls,
+                known: [...base.map((b) => b.label), ...parsed.result.lines.map((l) => l.name)],
+              },
+            });
+            if (seen.ok) {
+              for (const [i, f] of seen.findings.entries()) {
+                photoScope.push({
+                  id: `photo_${i}`,
+                  label: f.label,
+                  unit: f.unit,
+                  /* No visible count means the rep sets it. Carrying 1 forward
+                     would put a fabricated quantity on a carrier document. */
+                  qty: f.qty ?? 1,
+                  backing: `Photo ${f.photo + 1}: ${f.seen}`,
+                  aka: f.label.toLowerCase(),
+                  origin: "photo",
+                });
+              }
+            }
+          }
+        } catch {
+          /* Vision is the optional half. Losing it must not lose the estimate. */
+        }
+
+        const scope = [...base, ...photoScope, ...(await codeScope(squares, perimeter))];
+
         setPhase("matching");
         const matched = await cbMatchCarrierLines({
           data: {
@@ -148,10 +250,47 @@ export function CbSupplementTab({
           },
         });
 
-        /* A failed match is not a failed upload. The carrier's lines are worth
-           having on their own, so they are saved either way and the gap list
-           simply stays empty rather than being filled with guesses. */
-        const nextGaps = matched.ok ? cbGapsFrom(scope, parsed.result.lines, matched.matches) : [];
+        /* A failed match is not a failed upload. Their lines are worth having on
+           their own, so they save either way and the missing list stays empty
+           rather than filling with guesses. */
+        let nextGaps = matched.ok ? cbGapsFrom(scope, parsed.result.lines, matched.matches) : [];
+
+        /* ── price what is missing ── */
+        if (nextGaps.length) {
+          setPhase("pricing");
+          try {
+            const { data: ws } = await supabase
+              .from("cb_workspaces")
+              .select("gc_company_id")
+              .eq("id", workspaceId ?? "")
+              .maybeSingle();
+            const companyId =
+              (ws as { gc_company_id: string | null } | null)?.gc_company_id ?? null;
+
+            const hits = await cbResolveCatalogItems(
+              nextGaps.map((g) => ({ key: g.id, label: g.label, unit: g.unit })),
+              companyId,
+              { zip: job?.zip ?? null, state: job?.state ?? null },
+            );
+            nextGaps = nextGaps.map((g) => {
+              const hit = hits[g.id];
+              return hit
+                ? {
+                    ...g,
+                    priced: {
+                      lineItemId: hit.line_item_id,
+                      code: hit.code,
+                      name: hit.name,
+                      unit: hit.unit,
+                      unitPrice: hit.unit_price,
+                    },
+                  }
+                : g;
+            });
+          } catch {
+            /* Unpriced items still list; the rep prices them in the builder. */
+          }
+        }
 
         await cbSupTable()
           .update({
@@ -159,6 +298,7 @@ export function CbSupplementTab({
             carrier: parsed.result.carrier,
             claim_number: parsed.result.claimNumber,
             carrier_total: parsed.result.total,
+            carrier_measure: parsed.result.measure,
             lines: parsed.result.lines,
             gaps: nextGaps,
             parse_error: matched.ok ? null : matched.reason,
@@ -177,7 +317,7 @@ export function CbSupplementTab({
         setPhase("idle");
       }
     },
-    [jobId, workspaceId, scope, qc],
+    [jobId, workspaceId, measure, sheet, job, codeScope, qc],
   );
 
   /* ── write into the estimate ── */
@@ -189,8 +329,9 @@ export function CbSupplementTab({
         qty: number;
         unit_price: number;
         code: string | null;
+        line_item_id: string | null;
         note: string;
-        source: "carrier" | "supplement";
+        source: "carrier" | "supplement" | "code";
       }[],
     ) => {
       if (!estimateId) {
@@ -209,6 +350,7 @@ export function CbSupplementTab({
       const { error } = await supabase.from("estimate_line_items").insert(
         rows.map((r, i) => ({
           estimate_id: estimateId,
+          line_item_id: r.line_item_id,
           trade: "roofing" as never,
           code: r.code,
           name: r.name,
@@ -219,7 +361,7 @@ export function CbSupplementTab({
           sort_order: base + i,
           source: r.source,
           note: r.note,
-          /* Manual keeps these through a rebuild — the estimate builder wipes
+          /* Manual keeps these through a rebuild. The estimate builder wipes
              and regenerates everything it derived itself, and a carrier's own
              line is not ours to regenerate. */
           is_manual: true,
@@ -244,6 +386,7 @@ export function CbSupplementTab({
         qty: l.qty,
         unit_price: l.unit_price ?? 0,
         code: l.code,
+        line_item_id: null,
         note: `From the carrier estimate${sup?.carrier ? ` — ${String(sup.carrier)}` : ""}`,
         source: "carrier" as const,
       })),
@@ -253,7 +396,7 @@ export function CbSupplementTab({
         .update({ carrier_imported_at: new Date().toISOString() })
         .eq("id", String(sup?.id));
       qc.invalidateQueries({ queryKey: ["cb-supplement", jobId] });
-      toast.success(`${lines.length} carrier lines added to the estimate`);
+      toast.success(`${lines.length} carrier lines added at their pricing`);
     }
     setBusy(false);
   }, [addRows, lines, sup, jobId, qc]);
@@ -264,17 +407,14 @@ export function CbSupplementTab({
     setBusy(true);
     const ok = await addRows(
       chosen.map((g) => ({
-        name: g.label,
-        unit: g.unit,
+        name: g.priced?.name ?? g.label,
+        unit: g.priced?.unit ?? g.unit,
         qty: g.kind === "short" ? Math.max(0, g.qty - (g.carrierQty ?? 0)) : g.qty,
-        /* Price is left at zero on purpose. It comes from the company's own
-           price book when the estimate is rebuilt; inventing one here would put
-           a number on a carrier document that nothing in this app stands
-           behind. */
-        unit_price: 0,
-        code: null,
+        unit_price: g.priced?.unitPrice ?? 0,
+        code: g.priced?.code ?? null,
+        line_item_id: g.priced?.lineItemId ?? null,
         note: g.backing,
-        source: "supplement" as const,
+        source: g.origin === "code" ? ("code" as const) : ("supplement" as const),
       })),
     );
     if (ok) {
@@ -283,15 +423,28 @@ export function CbSupplementTab({
         .eq("id", String(sup?.id));
       qc.invalidateQueries({ queryKey: ["cb-supplement", jobId] });
       setPicked({});
-      toast.success(`${chosen.length} added — price them in the estimate`);
+      toast.success(`${chosen.length} added to the estimate`);
     }
     setBusy(false);
   }, [gaps, picked, addRows, applied, sup, jobId, qc]);
 
   if (isLoading) return <CbLoading label="Opening the supplement…" />;
 
-  const pickedCount = gaps.filter((g) => picked[g.id]).length;
+  const chosen = gaps.filter((g) => picked[g.id]);
+  const chosenTotal = chosen.reduce((sum, g) => {
+    const qty = g.kind === "short" ? Math.max(0, g.qty - (g.carrierQty ?? 0)) : g.qty;
+    return sum + qty * (g.priced?.unitPrice ?? 0);
+  }, 0);
   const working = phase !== "idle";
+  const sketch = Object.keys(carrierMeasure).length > 0;
+
+  const ORIGIN_LABEL: Record<CbScopeItem["origin"], string> = {
+    carrier_sketch: "Their sketch",
+    measurement: "Measurement",
+    takeoff: "Takeoff",
+    photo: "Photo",
+    code: "Code",
+  };
 
   return (
     <div className="space-y-4">
@@ -317,11 +470,14 @@ export function CbSupplementTab({
             <p className="mt-1 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
               {sup?.file_name
                 ? `${String(sup.file_name)}${sup.carrier ? ` · ${String(sup.carrier)}` : ""}`
-                : "Upload the adjuster's estimate PDF and it is compared against this roof."}
+                : "Upload the adjuster's estimate PDF. Their line items, their measurements, and what they left off."}
             </p>
             {sup?.carrier_total ? (
               <p className="mt-1 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
                 Their total {money(Number(sup.carrier_total))} · {lines.length} lines
+                {sketch && carrierMeasure.total_squares
+                  ? ` · their sketch: ${carrierMeasure.total_squares} SQ`
+                  : ""}
               </p>
             ) : null}
           </div>
@@ -329,13 +485,7 @@ export function CbSupplementTab({
             size="md"
             variant={sup ? "secondary" : "primary"}
             loading={working}
-            loadingText={
-              phase === "reading"
-                ? "Reading…"
-                : phase === "parsing"
-                  ? "Reading pages…"
-                  : "Comparing…"
-            }
+            loadingText={PHASE_LABEL[phase] || "Working…"}
             onClick={() => fileRef.current?.click()}
           >
             <span className="inline-flex items-center gap-2">
@@ -344,14 +494,14 @@ export function CbSupplementTab({
           </CbButton>
         </div>
 
-        {scope.length === 0 ? (
+        {sup?.status === "parsed" && !sketch ? (
           <p
             className="mt-3 flex items-start gap-2 text-[13.5px]"
             style={{ color: "var(--cb-text-muted)" }}
           >
             <AlertTriangle className="mt-[2px] h-4 w-4 shrink-0" />
-            There is no measurement or takeoff on this job yet, so nothing can be compared. Run
-            those first.
+            Their estimate printed no sketch measurements, so quantities below come from your own
+            measurement.
           </p>
         ) : null}
 
@@ -408,22 +558,23 @@ export function CbSupplementTab({
         gaps.length ? (
           <CbCard className="p-4">
             <div className="flex items-center justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <p className="text-[15px] font-semibold" style={{ color: "var(--cb-text)" }}>
                   Not on their estimate
                 </p>
                 <p className="mt-1 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
-                  Every item below comes from this job&apos;s own measurement or takeoff.
+                  Priced from your price book, quantities off their sketch where they printed one.
                 </p>
               </div>
               <CbButton
                 size="md"
                 loading={busy}
-                disabled={pickedCount === 0}
+                disabled={chosen.length === 0}
                 onClick={() => void addPicked()}
               >
                 <span className="inline-flex items-center gap-2">
-                  <Plus className="h-4 w-4" /> Add {pickedCount || ""}
+                  <Plus className="h-4 w-4" />
+                  Add {chosen.length ? `${chosen.length} · ${money(chosenTotal)}` : ""}
                 </span>
               </CbButton>
             </div>
@@ -431,6 +582,7 @@ export function CbSupplementTab({
             <div className="mt-3 space-y-2">
               {gaps.map((g) => {
                 const already = applied.has(g.id);
+                const qty = g.kind === "short" ? Math.max(0, g.qty - (g.carrierQty ?? 0)) : g.qty;
                 return (
                   <label
                     key={g.id}
@@ -453,8 +605,19 @@ export function CbSupplementTab({
                           className="text-[14px] font-medium"
                           style={{ color: "var(--cb-text)" }}
                         >
-                          {g.label}
+                          {g.priced?.name ?? g.label}
                         </span>
+                        {g.priced?.code ? (
+                          <span
+                            className="font-mono text-[11.5px]"
+                            style={{ color: "var(--cb-text-muted)" }}
+                          >
+                            {g.priced.code}
+                          </span>
+                        ) : null}
+                        <CbBadge tone={g.origin === "code" ? "accent" : "neutral"}>
+                          {ORIGIN_LABEL[g.origin]}
+                        </CbBadge>
                         <CbBadge tone={g.kind === "missing" ? "danger" : "warning"}>
                           {g.kind === "missing" ? "Not written" : "Short"}
                         </CbBadge>
@@ -467,16 +630,24 @@ export function CbSupplementTab({
                         {g.kind === "short"
                           ? `They allowed ${g.carrierQty} ${g.unit}${g.carrierName ? ` (${g.carrierName})` : ""} · ${g.backing}`
                           : g.backing}
+                        {g.priced ? null : " · no price book match — price it in the builder"}
                       </span>
                     </span>
-                    <span
-                      className="whitespace-nowrap text-[13.5px] tabular-nums"
-                      style={{ color: "var(--cb-text-muted)" }}
-                    >
-                      {g.kind === "short"
-                        ? `+${Math.round((g.qty - (g.carrierQty ?? 0)) * 10) / 10}`
-                        : g.qty}{" "}
-                      {g.unit}
+                    <span className="whitespace-nowrap text-right">
+                      <span
+                        className="block text-[13.5px] tabular-nums"
+                        style={{ color: "var(--cb-text-muted)" }}
+                      >
+                        {Math.round(qty * 10) / 10} {g.priced?.unit ?? g.unit}
+                      </span>
+                      {g.priced ? (
+                        <span
+                          className="block text-[13.5px] font-medium tabular-nums"
+                          style={{ color: "var(--cb-text)" }}
+                        >
+                          {money(qty * g.priced.unitPrice)}
+                        </span>
+                      ) : null}
                     </span>
                   </label>
                 );
@@ -486,7 +657,7 @@ export function CbSupplementTab({
         ) : (
           <CbEmptyState
             headline="Nothing missing"
-            body="Every item this job's measurement and takeoff support already appears on their estimate."
+            body="Every item this job's measurement, takeoff, photos and local code support already appears on their estimate."
           />
         )
       ) : null}
@@ -497,15 +668,9 @@ export function CbSupplementTab({
           style={{ color: "var(--cb-text-muted)" }}
         >
           <Loader2 className="h-4 w-4 animate-spin" />
-          {phase === "parsing"
-            ? "Reading every page of their estimate — this takes a moment on a long one."
-            : phase === "matching"
-              ? "Comparing their lines against this roof…"
-              : "Reading the file…"}
+          {PHASE_LABEL[phase]}
         </p>
       ) : null}
     </div>
   );
 }
-
-export type { CbScopeItem };
