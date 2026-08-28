@@ -14,8 +14,13 @@
 const API = "https://api.anthropic.com/v1/messages";
 const VERSION = "2023-06-01";
 
-/** Overridable so a model change is an env edit, not a deploy. */
-const MODEL = process.env["ANTHROPIC_MODEL"] ?? "claude-sonnet-4-5";
+/**
+ * The same pinned id the rest of the app already calls successfully
+ * (lead-ai, cb-site-ai, api.rk-ai, api.analyze-roof-condition), so voice mode
+ * inherits a model this key is known to be entitled to rather than betting on
+ * an alias. Overridable so a model change is a secret edit, not a deploy.
+ */
+const MODEL = process.env["ANTHROPIC_MODEL"] ?? "claude-sonnet-4-5-20250929";
 const DEFAULT_BUDGET_MS = 25_000;
 
 export type ClaudeResult<T> =
