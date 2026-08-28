@@ -94,14 +94,15 @@ export default function MarketingShell({ children }: { children: React.ReactNode
   return (
     <div
       data-cb
-      data-cb-theme="dark"
+      data-cb-theme="gcn"
       style={{
         position: "relative",
         minHeight: "100vh",
         /* The same drifting blue/green wash the sign-in screen and the GCN
            marketing pages sit on, so the two properties read as one product.
-           Painted as a background layer rather than a positioned element so it
-           survives the sticky header and the page transitions. */
+           Scoped to the marketing shell only — the Claim Buddy app keeps its
+           own theme. Painted as a background layer rather than a positioned
+           element so it survives the sticky header and page transitions. */
         backgroundColor: "var(--cb-bg)",
         backgroundImage:
           "radial-gradient(62vmax 44vmax at 8% -14%, rgba(30,107,255,.24), transparent 62%)," +
