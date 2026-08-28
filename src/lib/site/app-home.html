@@ -406,7 +406,7 @@ td .sb{font-family:var(--mono);font-size:.71rem;color:var(--ink-4)}
 .cta{border-radius:var(--r-lg);border:1px solid var(--line);background:linear-gradient(180deg,var(--panel-2),#0b0f18);padding:clamp(34px,5vw,62px);text-align:center;display:flex;flex-direction:column;align-items:center;gap:18px;position:relative;overflow:hidden;box-shadow:0 30px 80px -40px rgba(0,0,0,.95)}
 .cta .lede{margin:0 auto}
 .cta-glow{position:absolute;top:-240px;left:50%;transform:translateX(-50%);width:760px;height:480px;pointer-events:none;background:radial-gradient(ellipse at center,rgba(56,232,255,.16),transparent 66%)}
-.cta > *{position:relative}
+.cta > *:not(.cta-glow){position:relative}
 
 /* ---------- footer ---------- */
 footer{border-top:1px solid var(--line-soft);padding:32px 0 46px}
@@ -594,7 +594,7 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
       </p>
       <div class="hero-cta">
         <a class="btn" href="#apply">Claim a founding seat</a>
-        <a class="btn ghost" href="#try">Play with the demo</a>
+        <a class="btn ghost" href="/book/demo" target="_top">Book a demo call</a>
       </div>
       <p class="hero-note" style="margin-top:14px">No card. No demo call required. Price locked for life at the seat you take.</p>
       <div class="credline">
