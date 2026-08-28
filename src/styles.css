@@ -552,51 +552,53 @@
    property in this one block. Components never hardcode hex.
    ========================================================= */
 [data-cb] {
-  /* Palette — the Global Contractor Network dark theme, the same one the
-     sign-in screen and the marketing pages use, so Claim Buddy reads as part
-     of the same product. Every Claim Buddy colour resolves from here; nothing
-     downstream hardcodes a hex. Swap here only. */
-  --cb-accent: #3ce08a;
-  --cb-accent-bright: #4ef0a2;
-  --cb-accent-deep: #17c27a;
-  --cb-accent-rgb: 60, 224, 138;
+  /* Palette (current Claim Buddy colors — swap here only) */
+  --cb-accent: var(--brand);
+  --cb-accent-bright: #22a355;
+  --cb-accent-deep: var(--brand-dim);
+  --cb-accent-rgb: 21, 128, 61;
 
-  --cb-bg: #05070e;
-  --cb-surface: #0d121d;
-  --cb-surface-2: #131a29;
-  --cb-hairline: rgba(126, 166, 255, 0.14);
-  --cb-hairline-strong: rgba(126, 166, 255, 0.3);
-  --cb-text: #f4f8ff;
-  --cb-text-dim: #c3d0e8;
-  --cb-text-muted: #8fa2c2;
-  --cb-on-accent: #04120a;
+  --cb-bg: var(--bg);
+  --cb-surface: var(--bg-card);
+  --cb-surface-2: var(--bg-elevated);
+  --cb-hairline: var(--border);
+  --cb-hairline-strong: var(--border-bright);
+  --cb-text: var(--text);
+  --cb-text-dim: var(--text-dim);
+  --cb-text-muted: var(--text-muted);
+  --cb-on-accent: #ffffff;
 
-  --cb-success: #3ce08a;
-  --cb-warning: #ffb020;
-  --cb-danger: #ff6b5a;
+  --cb-success: var(--success);
+  --cb-warning: var(--warning);
+  --cb-danger: var(--danger);
 
-  /* Depth recipes — background < card < raised < floating.
-     On a dark ground the lift comes from shadow spread plus a hairline top
-     highlight, not from a lighter fill. */
+  /* Depth recipes — background < card < raised < floating */
   --cb-radius: 18px;
-  --cb-top-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  --cb-bottom-inset: inset 0 -1px 0 rgba(0, 0, 0, 0.4);
-  --cb-shadow-card: 0 10px 26px -14px rgba(0, 0, 0, 0.8), 0 1px 2px rgba(0, 0, 0, 0.5);
-  --cb-shadow-raised: 0 22px 48px -24px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.5);
-  --cb-shadow-floating: 0 40px 80px -32px rgba(0, 0, 0, 0.9), 0 4px 10px rgba(0, 0, 0, 0.55);
+  --cb-top-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  --cb-bottom-inset: inset 0 -1px 0 rgba(15, 23, 42, 0.06);
+  --cb-shadow-card: 0 10px 26px -14px rgba(15, 23, 42, 0.28), 0 1px 2px rgba(15, 23, 42, 0.10);
+  --cb-shadow-raised: 0 22px 48px -24px rgba(15, 23, 42, 0.36), 0 2px 4px rgba(15, 23, 42, 0.12);
+  --cb-shadow-floating: 0 40px 80px -32px rgba(15, 23, 42, 0.44), 0 4px 10px rgba(15, 23, 42, 0.16);
 
   --cb-ease: cubic-bezier(.16, 1, .3, 1);
 
   color: var(--cb-text);
-  background-color: var(--cb-bg);
 }
 
-/* Claim Buddy is dark-first now. Both theme values resolve to the same palette
-   so any existing `theme="light"` caller still renders correctly rather than
-   dropping to an unstyled white ground. */
-[data-cb][data-cb-theme="dark"],
-[data-cb][data-cb-theme="light"] {
-  background-color: var(--cb-bg);
+[data-cb][data-cb-theme="dark"] {
+  --cb-bg: #14161a;
+  --cb-surface: #1b1f26;
+  --cb-surface-2: #222831;
+  --cb-hairline: #2c333d;
+  --cb-hairline-strong: #3a424e;
+  --cb-text: #eef2f7;
+  --cb-text-dim: #c6cedb;
+  --cb-text-muted: #97a2b2;
+  --cb-bottom-inset: inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+  --cb-shadow-card: 0 10px 26px -14px rgba(0, 0, 0, 0.7), 0 1px 2px rgba(0, 0, 0, 0.5);
+  --cb-shadow-raised: 0 22px 48px -24px rgba(0, 0, 0, 0.75), 0 2px 4px rgba(0, 0, 0, 0.5);
+  --cb-shadow-floating: 0 40px 80px -32px rgba(0, 0, 0, 0.8), 0 4px 10px rgba(0, 0, 0, 0.55);
+  background: var(--cb-bg);
 }
 
 /* ---- Type ---- */
@@ -1350,7 +1352,7 @@
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  color: #fff;
+  color: var(--cb-on-accent);
   background: var(--cb-accent);
   box-shadow: 0 10px 24px -10px var(--cb-accent);
 }
@@ -1375,10 +1377,7 @@
 [data-cb] .cb-input { min-height: 52px; }
 
 /* --- 5. Sunlight legibility: stronger text pairs on the field surfaces --- */
-[data-cb][data-cb-theme="light"] {
-  --cb-text-dim: #253040;
-  --cb-text-muted: #465266;
-}
+[data-cb][data-cb-theme="light"],
 [data-cb][data-cb-theme="dark"] {
   --cb-text-dim: #dde4ee;
   --cb-text-muted: #b3bdcc;
