@@ -83,6 +83,28 @@ function snapStraightFrom(
   return [anchor[0] + (Math.cos(rad) * len) / s.lng, anchor[1] + (Math.sin(rad) * len) / s.lat];
 }
 
+/**
+ * Every map layer this editor owns, in draw order.
+ *
+ * One list, used both to decide whether initialisation finished and to
+ * re-assert the stack above the satellite style. Keeping them separate is how
+ * a half-built map came to report itself complete.
+ */
+const CB_LAYER_IDS = [
+  "cb-fill-l",
+  "cb-fill-outline",
+  "cb-ai-l",
+  "cb-conf-l",
+  "cb-conf-pt",
+  "cb-edge-l",
+  "cb-edge-hit",
+  "cb-line-l",
+  "cb-line-hit",
+  "cb-line-label",
+  "cb-chip-l",
+  "cb-measure-pin-l",
+] as const;
+
 export function CbRoofPlanEditor({
   plan,
   onPlanChange,
@@ -284,7 +306,18 @@ export function CbRoofPlanEditor({
      * it and the next signal tries again.
      */
     const initLayers = () => {
-      if (map.getLayer("cb-measure-pin-l")) {
+      /*
+       * "Done" means the WHOLE stack is present, not one layer.
+       *
+       * This used to sentinel on cb-measure-pin-l alone. That layer is added
+       * last, and every addLayer below swallows its own throw — so a pass over
+       * a half-parsed style could fail to add the fill, the outline, the edges
+       * and the line labels, succeed on the measure pin, and then return early
+       * forever after. The roof rendered as bare corner handles (those are DOM
+       * markers, not layers) with no footprint and no lines, permanently, with
+       * nothing logged.
+       */
+      if (CB_LAYER_IDS.every((id) => map.getLayer(id))) {
         setReady(true);
         setMapStuck(false);
         // A previous pass may have died half way through: make sure the paint
@@ -444,20 +477,7 @@ export function CbRoofPlanEditor({
        * later in some style revisions, which buried the roof fill. Re-assert
        * our own stack on top, in draw order, every time we (re)initialise.
        */
-      [
-        "cb-fill-l",
-        "cb-fill-outline",
-        "cb-ai-l",
-        "cb-conf-l",
-        "cb-conf-pt",
-        "cb-edge-l",
-        "cb-edge-hit",
-        "cb-line-l",
-        "cb-line-hit",
-        "cb-line-label",
-        "cb-chip-l",
-        "cb-measure-pin-l",
-      ].forEach((id) => {
+      CB_LAYER_IDS.forEach((id) => {
         try {
           if (map.getLayer(id)) map.moveLayer(id);
         } catch {
@@ -466,7 +486,10 @@ export function CbRoofPlanEditor({
       });
       setReady(true);
       setMapStuck(false);
-      layersDoneRef.current = true;
+      /* Only mark it finished once nothing is missing. If a layer still failed
+         to add, leave this false so the next styledata event tries again
+         instead of latching a half-built map. */
+      layersDoneRef.current = CB_LAYER_IDS.every((id) => map.getLayer(id));
       // Re-run the paint effect: a style reload wipes source data.
       setLayersVersion((v) => v + 1);
 
