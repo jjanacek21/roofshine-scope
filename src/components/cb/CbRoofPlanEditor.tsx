@@ -161,11 +161,20 @@ export function CbRoofPlanEditor({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fillAlpha, setFillAlpha] = useState(() => {
     if (typeof window === "undefined") return 0.45;
-    const stored = window.localStorage.getItem("cb-fill-alpha");
-    /* Number(null) is 0, not NaN — so a browser that had never opened the
-       settings sheet passed the isFinite/range guard with 0 and rendered the
-       roof fill fully transparent. The 0.45 default never applied to anyone
-       on their first visit. Check for the key before converting it. */
+    /*
+     * The key is versioned because the old one holds a poisoned value.
+     *
+     * This used to read `Number(localStorage.getItem("cb-fill-alpha"))`, and
+     * Number(null) is 0, not NaN — so a browser that had never opened the
+     * settings sheet sailed through the isFinite/range guard with 0 and drew
+     * the roof fill fully transparent. Worse, the slider then persisted that
+     * 0 for real, so simply reading the key correctly does not rescue anyone
+     * who already has it. A stored 0 is now indistinguishable from a rep who
+     * genuinely wants no fill, so the only honest fix is to start a new key:
+     * everybody gets the intended 0.45 once, and a deliberate 0 set from here
+     * on is still respected.
+     */
+    const stored = window.localStorage.getItem("cb-fill-alpha-v2");
     if (stored === null) return 0.45;
     const raw = Number(stored);
     return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 0.45;
@@ -1787,9 +1796,31 @@ export function CbRoofPlanEditor({
           <div className="border-t px-4 py-3" style={{ borderColor: "var(--cb-border)" }}>
 
             {activeSection && !activeSection.isLocked ? (
-              <CbButton block onClick={() => onSaveFootprint?.(activeSection.id)} loading={savingFootprint} loadingText="Saving footprint…">
-                Save this footprint
-              </CbButton>
+              /* Redrawing has to be reachable from here too. A traced outline
+                 that came back wrong leaves the rep in exactly this state, and
+                 offering only "Save this footprint" means the way out of a bad
+                 trace is to save the bad trace. Dragging nine handles onto the
+                 right roof is slower than drawing it. */
+              <div className="space-y-2">
+                <CbButton
+                  block
+                  onClick={() => onSaveFootprint?.(activeSection.id)}
+                  loading={savingFootprint}
+                  loadingText="Saving footprint…"
+                >
+                  Save this footprint
+                </CbButton>
+                <CbButton
+                  block
+                  variant="secondary"
+                  onClick={() => {
+                    setTool("outline");
+                    setDraft([]);
+                  }}
+                >
+                  Draw this roof by hand instead
+                </CbButton>
+              </div>
             ) : measurePins.length > plan.sections.length && onMeasure ? (
               /* Hand-drawing has to stay on screen in THIS state. A pin is
                  down, and this is exactly where a failed trace leaves you —
@@ -2025,7 +2056,7 @@ export function CbRoofPlanEditor({
               onChange={(e) => {
                 const next = Number(e.target.value) / 100;
                 setFillAlpha(next);
-                try { window.localStorage.setItem("cb-fill-alpha", String(next)); } catch { /* private mode */ }
+                try { window.localStorage.setItem("cb-fill-alpha-v2", String(next)); } catch { /* private mode */ }
               }}
               className="mt-3 w-full"
               style={{ accentColor: "var(--cb-accent, #f97316)" }}
