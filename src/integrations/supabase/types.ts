@@ -128,6 +128,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_reference_photos: {
+        Row: {
+          bucket: string
+          category: string
+          created_at: string
+          created_by: string | null
+          default_unit: string | null
+          id: string
+          is_active: boolean
+          label: string
+          line_item_code: string | null
+          notes: string | null
+          storage_path: string
+          trade: string
+          updated_at: string
+        }
+        Insert: {
+          bucket?: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          default_unit?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          line_item_code?: string | null
+          notes?: string | null
+          storage_path: string
+          trade?: string
+          updated_at?: string
+        }
+        Update: {
+          bucket?: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          default_unit?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          line_item_code?: string | null
+          notes?: string | null
+          storage_path?: string
+          trade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_training_sessions: {
         Row: {
           answer: string | null
@@ -5048,6 +5096,65 @@ export type Database = {
           },
         ]
       }
+      photo_learning_rules: {
+        Row: {
+          asset_type: string | null
+          company_id: string | null
+          correct_code: string | null
+          correct_unit: string | null
+          created_at: string
+          created_by: string | null
+          guidance: string | null
+          hits: number
+          id: string
+          match_phrase: string
+          status: string
+          trade: string | null
+          updated_at: string
+          wrong_code: string | null
+        }
+        Insert: {
+          asset_type?: string | null
+          company_id?: string | null
+          correct_code?: string | null
+          correct_unit?: string | null
+          created_at?: string
+          created_by?: string | null
+          guidance?: string | null
+          hits?: number
+          id?: string
+          match_phrase: string
+          status?: string
+          trade?: string | null
+          updated_at?: string
+          wrong_code?: string | null
+        }
+        Update: {
+          asset_type?: string | null
+          company_id?: string | null
+          correct_code?: string | null
+          correct_unit?: string | null
+          created_at?: string
+          created_by?: string | null
+          guidance?: string | null
+          hits?: number
+          id?: string
+          match_phrase?: string
+          status?: string
+          trade?: string | null
+          updated_at?: string
+          wrong_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_learning_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       photo_suggestion_decisions: {
         Row: {
           ai_confidence: string | null
@@ -6518,6 +6625,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "roof_system_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roof_template_code_map: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          note: string | null
+          qty_factor: number
+          slot_code: string
+          target_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          qty_factor?: number
+          slot_code: string
+          target_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          qty_factor?: number
+          slot_code?: string
+          target_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roof_template_code_map_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
