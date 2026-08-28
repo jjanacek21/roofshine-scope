@@ -1,0 +1,2143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Global Contractor Network</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+</head>
+<body>
+<style>
+/* ============================================================
+   Global Contractor Network — marketing site.
+   Palette, depth and motion carried over from the app's sign-in
+   screen: #05070e ground, drifting blue/green aurora, a drafting
+   grid in perspective, a slow scan sweep, and cards that lift on
+   a cyan→grass gradient. One product, one world.
+   Committed dark: every colour is painted, nothing inherited.
+   ============================================================ */
+
+@property --a { syntax:'<angle>'; initial-value:0deg; inherits:false; }
+
+:root{
+  --ground:#05070e;
+  --ground-2:#080c15;
+  --panel:#0d121d;
+  --panel-2:#131a29;
+  --panel-3:#18223a;
+  --line:rgba(126,166,255,.22);
+  --line-soft:rgba(126,166,255,.11);
+  --ink:#f4f8ff;
+  --ink-2:#c3d0e8;
+  --ink-3:#8fa2c2;
+  --ink-4:#6c7d9c;
+
+  --cyan:#38e8ff;
+  --blue:#1e6bff;
+  --grass:#3ce08a;
+  --grass-2:#17c27a;
+  --teal:#23d8c8;
+  --amber:#ffb020;
+  --red:#ff6b5a;
+
+  --grad:linear-gradient(135deg,#3ce08a,#17c27a 52%,#23d8c8);
+  --grad-txt:linear-gradient(140deg,#eaf3ff,#7fd4ff 55%,#3ce08a);
+
+  --cyan-dim:rgba(56,232,255,.12);
+  --grass-dim:rgba(60,224,138,.12);
+  --amber-dim:rgba(255,176,32,.12);
+  --red-dim:rgba(255,107,90,.12);
+
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono","SFMono-Regular",Consolas,monospace;
+
+  --r:16px;
+  --r-sm:11px;
+  --r-lg:22px;
+  --maxw:1160px;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--body);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+  position:relative;
+  isolation:isolate;
+}
+
+/* ---------- the scene: same atmosphere as sign-in ---------- */
+.scene{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;background:var(--ground)}
+.aurora{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;will-change:transform}
+.aurora.a{width:46vmax;height:46vmax;top:-18vmax;left:-14vmax;background:radial-gradient(circle,#1e6bff 0%,transparent 70%);animation:drift-a 22s ease-in-out infinite alternate}
+.aurora.b{width:40vmax;height:40vmax;bottom:-16vmax;right:-12vmax;background:radial-gradient(circle,#12c56b 0%,transparent 70%);animation:drift-b 27s ease-in-out infinite alternate}
+.aurora.c{width:30vmax;height:30vmax;top:38%;right:16%;background:radial-gradient(circle,#00d5ff 0%,transparent 70%);opacity:.26;animation:drift-c 19s ease-in-out infinite alternate}
+.gridfloor{
+  position:absolute;inset:-50%;
+  background-image:linear-gradient(rgba(120,170,255,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(120,170,255,.10) 1px,transparent 1px);
+  background-size:46px 46px;
+  transform:perspective(560px) rotateX(62deg);
+  transform-origin:50% 100%;
+  mask-image:radial-gradient(ellipse 60% 55% at 50% 62%,#000 15%,transparent 72%);
+  -webkit-mask-image:radial-gradient(ellipse 60% 55% at 50% 62%,#000 15%,transparent 72%);
+  animation:gridmove 18s linear infinite;
+}
+.scan{position:absolute;inset-inline:0;height:34vh;top:-34vh;background:linear-gradient(180deg,transparent,rgba(56,232,255,.06),transparent);animation:scan 11s linear infinite}
+.vig{position:absolute;inset:0;background:radial-gradient(ellipse 80% 70% at 50% 34%,transparent 38%,rgba(3,5,10,.88) 100%)}
+
+@keyframes drift-a{to{transform:translate3d(9vmax,6vmax,0) scale(1.14)}}
+@keyframes drift-b{to{transform:translate3d(-8vmax,-5vmax,0) scale(1.18)}}
+@keyframes drift-c{to{transform:translate3d(-6vmax,7vmax,0) scale(.86)}}
+@keyframes gridmove{to{background-position:0 46px,46px 0}}
+@keyframes scan{to{transform:translateY(180vh)}}
+@keyframes sheen{to{--a:360deg}}
+@keyframes float{50%{transform:translateY(-5px)}}
+@keyframes enter{from{opacity:0;transform:translateY(22px) rotateX(9deg) scale(.97)}to{opacity:1;transform:none}}
+@keyframes lineIn{to{opacity:1;transform:none}}
+@keyframes blink{50%{opacity:0}}
+
+/* ---------- type ---------- */
+h1,h2,h3,h4{font-family:var(--display);font-weight:800;font-stretch:110%;line-height:1.04;letter-spacing:-.025em;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.6rem,6vw,4.7rem)}
+h2{font-size:clamp(1.85rem,3.5vw,2.85rem)}
+h3{font-size:clamp(1.1rem,1.6vw,1.38rem);font-weight:700;font-stretch:104%}
+h4{font-size:.98rem;font-weight:700;font-stretch:100%;letter-spacing:-.01em}
+p{margin:0}
+
+.grad-txt{background:var(--grad-txt);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+.eyebrow{font-family:var(--mono);font-size:.69rem;font-weight:500;letter-spacing:.17em;text-transform:uppercase;color:var(--cyan)}
+.eyebrow.g{color:var(--grass)}
+.eyebrow.dim{color:var(--ink-4)}
+.lede{font-size:clamp(1.02rem,1.3vw,1.16rem);color:var(--ink-2);max-width:62ch;line-height:1.62}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.num{font-family:var(--display);font-stretch:86%;font-variant-numeric:tabular-nums;letter-spacing:-.025em}
+a{color:inherit}
+
+/* ---------- shell ---------- */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+section{position:relative}
+.band{padding:clamp(68px,8.5vw,124px) 0}
+.band + .band{border-top:1px solid var(--line-soft)}
+.shead{display:flex;flex-direction:column;gap:13px;max-width:70ch;margin-bottom:40px}
+
+/* ---------- nav ---------- */
+.nav{position:sticky;top:0;z-index:50;background:rgba(5,7,14,.76);backdrop-filter:blur(16px);border-bottom:1px solid var(--line-soft)}
+.nav-in{max-width:var(--maxw);margin:0 auto;padding:0 22px;height:64px;display:flex;align-items:center;gap:26px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.brand-mark{
+  width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+  background:linear-gradient(150deg,#22304f,#131b2e);
+  border:1px solid rgba(140,180,255,.34);
+  box-shadow:0 8px 20px -8px rgba(0,0,0,.95),0 0 22px -8px rgba(56,232,255,.65),inset 0 1px 0 rgba(255,255,255,.16);
+  font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:-.5px;
+  animation:float 5.5s ease-in-out infinite;
+}
+.brand-mark span{background:var(--grad-txt);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand-w b{display:block;font-family:var(--display);font-weight:800;font-stretch:106%;font-size:.98rem;letter-spacing:-.02em}
+.brand-w em{display:block;font-style:normal;font-family:var(--mono);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-4)}
+.nav-links{display:none;gap:24px;margin-left:auto;align-items:center}
+@media(min-width:960px){.nav-links{display:flex}}
+.nav-links a{font-family:var(--mono);font-size:.73rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);text-decoration:none;transition:color .2s}
+.nav-links a:hover{color:var(--cyan)}
+.nav-cta{margin-left:auto}
+@media(max-width:560px){.brand-w em{display:none}.nav-in{gap:12px;height:58px}.btn.sm{padding:8px 12px;font-size:.76rem}.brand-mark{width:34px;height:34px}}
+@media(min-width:960px){.nav-cta{margin-left:8px}}
+
+/* ---------- buttons ---------- */
+.btn{
+  position:relative;overflow:hidden;
+  font-family:var(--body);font-size:.9rem;font-weight:700;letter-spacing:.01em;
+  padding:13px 24px;border:none;border-radius:13px;cursor:pointer;text-decoration:none;
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  color:#04120a;background:var(--grad);
+  box-shadow:0 12px 26px -12px rgba(35,216,200,.85),inset 0 1px 0 rgba(255,255,255,.4);
+  transition:transform .16s ease,box-shadow .22s ease,filter .2s ease;
+}
+.btn:hover{filter:brightness(1.06);box-shadow:0 16px 34px -12px rgba(35,216,200,.95),inset 0 1px 0 rgba(255,255,255,.45)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.42;cursor:not-allowed;box-shadow:none;filter:none}
+.btn:disabled:hover{filter:none;box-shadow:none}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.btn.ghost:hover{border-color:rgba(56,232,255,.5);color:var(--cyan);filter:none;box-shadow:0 0 26px -12px rgba(56,232,255,.7)}
+.btn.sm{padding:9px 16px;font-size:.82rem;border-radius:10px}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:4px}
+
+/* ---------- cards ---------- */
+.card{
+  position:relative;border-radius:var(--r);border:1px solid var(--line);
+  background:linear-gradient(180deg,var(--panel-2) 0%,var(--panel) 58%,#0b0f18 100%);
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 30px 70px -34px rgba(0,0,0,.9);
+}
+.card-h{display:flex;align-items:center;gap:11px;padding:14px 18px;border-bottom:1px solid var(--line-soft)}
+.card-h .t{font-family:var(--mono);font-size:.71rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.card-b{padding:20px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--grass);box-shadow:0 0 9px var(--grass)}
+.dot.c{background:var(--cyan);box-shadow:0 0 9px var(--cyan)}
+
+/* travelling edge highlight, as on the sign-in card */
+.sheen{
+  position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;padding:1px;
+  background:conic-gradient(from var(--a),transparent 0 62%,rgba(56,232,255,.75) 78%,rgba(60,224,138,.6) 88%,transparent 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  animation:sheen 6s linear infinite;
+}
+
+/* ---------- hero ---------- */
+.hero{padding:clamp(58px,7.5vw,104px) 0 clamp(52px,6.5vw,90px)}
+.hero-in{display:grid;gap:46px}
+@media(min-width:1040px){.hero-in{grid-template-columns:1.02fr .98fr;align-items:center;gap:52px}}
+.hero-tag{display:inline-flex;align-items:center;gap:10px;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(19,26,41,.6);margin-bottom:24px}
+.hero-tag span{font-family:var(--mono);font-size:.68rem;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-2)}
+.hero h1 em{font-style:normal;background:var(--grad-txt);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-sub{margin-top:22px}
+.hero-cta{display:flex;flex-wrap:wrap;gap:13px;margin-top:30px;align-items:center}
+.hero-note{font-family:var(--mono);font-size:.71rem;color:var(--ink-4);letter-spacing:.04em}
+.credline{display:flex;flex-wrap:wrap;gap:9px 24px;margin-top:32px;padding-top:22px;border-top:1px solid var(--line-soft)}
+.credline span{font-family:var(--mono);font-size:.71rem;color:var(--ink-4);letter-spacing:.05em}
+.credline b{color:var(--ink-2);font-weight:500}
+
+/* hero readout */
+.readout{animation:enter .8s cubic-bezier(.22,1,.36,1) both}
+.ro-top{padding:20px 20px 17px;border-bottom:1px solid var(--line-soft);display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.ro-top .lab{font-family:var(--mono);font-size:.66rem;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-4)}
+.ro-top .val{font-family:var(--display);font-stretch:88%;font-weight:800;font-size:clamp(1.95rem,4.2vw,2.75rem);line-height:1;font-variant-numeric:tabular-nums}
+.ro-meta{text-align:right}
+.ro-meta .m1{font-family:var(--mono);font-size:.73rem;color:var(--grass);letter-spacing:.05em}
+.ro-meta .m2{font-family:var(--mono);font-size:.67rem;color:var(--ink-4);letter-spacing:.05em;margin-top:3px}
+.ro-lines{list-style:none;margin:0;padding:8px 0;min-height:232px}
+.ro-lines li{display:flex;justify-content:space-between;gap:14px;padding:7px 20px;font-family:var(--mono);font-size:.75rem;color:var(--ink-3);opacity:0;transform:translateY(6px);animation:lineIn .45s ease forwards}
+.ro-lines li .r{color:var(--ink-2);font-variant-numeric:tabular-nums}
+.ro-lines li.acc .r{color:var(--cyan)}
+.ro-foot{padding:12px 20px;border-top:1px solid var(--line-soft);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.ro-foot .s{font-family:var(--mono);font-size:.67rem;color:var(--ink-4);letter-spacing:.06em}
+.caret{display:inline-block;width:7px;height:12px;background:var(--cyan);margin-left:3px;vertical-align:-1px;animation:blink 1.1s steps(1) infinite}
+
+/* ---------- grids ---------- */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr}
+@media(min-width:760px){.g2{grid-template-columns:1fr 1fr}}
+.g3{grid-template-columns:1fr}
+@media(min-width:700px){.g3{grid-template-columns:1fr 1fr}}
+@media(min-width:1000px){.g3{grid-template-columns:repeat(3,1fr)}}
+.mod{padding:24px 22px;display:flex;flex-direction:column;gap:11px;border-radius:var(--r);border:1px solid var(--line-soft);background:linear-gradient(180deg,rgba(19,26,41,.72),rgba(13,18,29,.72));transition:border-color .25s,transform .25s,box-shadow .25s}
+.mod:hover{border-color:var(--line);transform:translateY(-3px);box-shadow:0 24px 50px -34px rgba(0,0,0,.95),0 0 34px -22px rgba(56,232,255,.7)}
+.mod .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(56,232,255,.09);border:1px solid rgba(56,232,255,.24)}
+.mod p{color:var(--ink-3);font-size:.93rem}
+.mod ul{margin:4px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+.mod li{font-size:.86rem;color:var(--ink-3);display:flex;gap:9px;align-items:flex-start}
+.mod li::before{content:"";flex:0 0 auto;width:5px;height:5px;margin-top:8px;border-radius:50%;background:var(--grass);opacity:.8}
+.mod li.soon::before{background:var(--ink-4);opacity:.5}
+.mod li.soon{color:var(--ink-4)}
+
+/* ---------- tool chrome ---------- */
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:16px}
+.tab{
+  font-family:var(--mono);font-size:.71rem;letter-spacing:.1em;text-transform:uppercase;
+  padding:9px 15px;border-radius:999px;border:1px solid var(--line-soft);background:transparent;
+  color:var(--ink-3);cursor:pointer;white-space:nowrap;transition:all .2s;
+}
+.tab:hover{color:var(--ink-2);border-color:var(--line)}
+.tab[aria-selected="true"]{color:var(--ground);background:var(--grad);border-color:transparent;font-weight:600}
+
+label.f{display:flex;flex-direction:column;gap:8px}
+label.f .fl{font-family:var(--mono);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-4);display:flex;justify-content:space-between;gap:10px}
+label.f .fl b{color:var(--cyan);font-weight:500}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:4px;background:rgba(126,166,255,.18);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--grad);cursor:pointer;box-shadow:0 0 0 4px rgba(5,7,14,.9),0 0 14px -2px rgba(35,216,200,.9)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radius:50%;background:#2fd6a0;cursor:pointer;box-shadow:0 0 0 4px rgba(5,7,14,.9)}
+select{width:100%;background:var(--ground-2);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--ink);font-family:var(--body);font-size:.9rem;padding:11px 12px}
+select:focus{border-color:rgba(56,232,255,.55);outline:none}
+.seg{display:flex;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
+.seg button{flex:1;background:transparent;border:0;color:var(--ink-3);cursor:pointer;font-family:var(--mono);font-size:.7rem;letter-spacing:.03em;line-height:1.2;white-space:nowrap;padding:11px 8px;border-right:1px solid var(--line-soft);transition:all .18s}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:rgba(56,232,255,.13);color:var(--cyan)}
+.seg button:hover{color:var(--ink)}
+
+/* ---------- KPIs / charts ---------- */
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:860px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.kpi{border-radius:var(--r-sm);border:1px solid var(--line-soft);background:rgba(19,26,41,.55);padding:15px 16px;display:flex;flex-direction:column;gap:6px}
+.kpi .k{font-family:var(--mono);font-size:.63rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4)}
+.kpi .v{font-family:var(--display);font-stretch:86%;font-size:1.6rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.kpi .d{font-family:var(--mono);font-size:.69rem;display:flex;align-items:center;gap:6px}
+.up{color:var(--grass)}.down{color:var(--red)}
+.spark{display:block;width:100%;height:26px;margin-top:3px}
+
+/* ---------- tables ---------- */
+.tbl-wrap{overflow-x:auto;border-radius:var(--r-sm);border:1px solid var(--line-soft)}
+table{width:100%;border-collapse:collapse;font-size:.86rem;min-width:600px}
+th{font-family:var(--mono);font-size:.63rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);text-align:left;font-weight:500;padding:11px 14px;border-bottom:1px solid var(--line-soft);background:rgba(8,12,21,.7);white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid var(--line-soft);color:var(--ink-3);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr{transition:background .16s}
+tbody tr:hover{background:rgba(56,232,255,.045)}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono)}
+td .nm{color:var(--ink);font-weight:500;display:block}
+td .sb{font-family:var(--mono);font-size:.71rem;color:var(--ink-4)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.64rem;letter-spacing:.09em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid var(--line-soft);color:var(--ink-3);white-space:nowrap}
+.pill.hot{color:var(--cyan);border-color:rgba(56,232,255,.34);background:var(--cyan-dim)}
+.pill.won{color:var(--grass);border-color:rgba(60,224,138,.34);background:var(--grass-dim)}
+.pill.warm{color:var(--amber);border-color:rgba(255,176,32,.32);background:var(--amber-dim)}
+.pill.risk{color:var(--red);border-color:rgba(255,107,90,.34);background:var(--red-dim)}
+
+/* ---------- stack calculator ---------- */
+.stack-grid{display:grid;gap:10px}
+@media(min-width:640px){.stack-grid{grid-template-columns:1fr 1fr}}
+@media(min-width:1020px){.stack-grid{grid-template-columns:repeat(3,1fr)}}
+.app-row{position:relative;display:block;cursor:pointer;user-select:none;border-radius:var(--r-sm);border:1px solid var(--line-soft);background:rgba(19,26,41,.5);transition:border-color .18s,background .18s}
+.app-row:hover{background:rgba(19,26,41,.85);border-color:var(--line)}
+.app-row input{position:absolute;opacity:0;pointer-events:none}
+.app-inner{display:flex;align-items:center;gap:12px;padding:13px 15px}
+.box{width:18px;height:18px;border-radius:6px;border:1px solid var(--line);flex:0 0 auto;display:grid;place-items:center;transition:all .18s}
+.box svg{opacity:0;transition:opacity .18s}
+.app-row input:checked ~ .app-inner .box{border-color:transparent;background:var(--grad)}
+.app-row input:checked ~ .app-inner .box svg{opacity:1}
+.app-row input:focus-visible ~ .app-inner .box{outline:2px solid var(--cyan);outline-offset:3px}
+.app-inner .lbl{flex:1;min-width:0}
+.app-inner .lbl b{display:block;font-weight:500;font-size:.89rem;color:var(--ink)}
+.app-inner .lbl s{display:block;font-family:var(--mono);font-size:.67rem;color:var(--ink-4);text-decoration:none}
+.app-inner .amt{font-family:var(--mono);font-size:.79rem;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+.verdict{display:grid;gap:12px;margin-top:16px}
+@media(min-width:860px){.verdict{grid-template-columns:repeat(3,1fr)}}
+.vcell{border-radius:var(--r-sm);border:1px solid var(--line-soft);background:rgba(19,26,41,.55);padding:19px 21px;display:flex;flex-direction:column;gap:5px}
+.vcell .k{font-family:var(--mono);font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4)}
+.vcell .v{font-family:var(--display);font-stretch:86%;font-size:1.9rem;font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums}
+.vcell .s{font-size:.81rem;color:var(--ink-4)}
+.vcell.win{border-color:rgba(60,224,138,.34);background:linear-gradient(180deg,rgba(60,224,138,.13),rgba(19,26,41,.5))}
+.vcell.win .v{background:var(--grad-txt);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ---------- estimate calculator ---------- */
+.calc{display:grid;gap:14px}
+@media(min-width:940px){.calc{grid-template-columns:minmax(0,330px) minmax(0,1fr)}}
+.calc-in{padding:20px;display:flex;flex-direction:column;gap:19px}
+.calc-out{padding:20px;display:flex;flex-direction:column;gap:17px}
+.big-num{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.big-num .v{font-family:var(--display);font-stretch:86%;font-size:clamp(2.2rem,5vw,3.1rem);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;background:var(--grad-txt);-webkit-background-clip:text;background-clip:text;color:transparent}
+.big-num .u{font-family:var(--mono);font-size:.77rem;color:var(--ink-4);letter-spacing:.08em}
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar-row{display:grid;grid-template-columns:96px 1fr 86px;align-items:center;gap:12px}
+.bar-row .bl{font-family:var(--mono);font-size:.68rem;color:var(--ink-4);letter-spacing:.07em;text-transform:uppercase}
+.bar-track{height:8px;border-radius:5px;background:rgba(126,166,255,.1);position:relative;overflow:hidden}
+.bar-fill{position:absolute;inset:0 auto 0 0;width:0;border-radius:5px;transition:width .55s cubic-bezier(.22,1,.36,1)}
+.bar-row .bv{font-family:var(--mono);font-size:.77rem;text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.mini{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:600px){.mini{grid-template-columns:repeat(4,1fr)}}
+.mini div{border-radius:var(--r-sm);border:1px solid var(--line-soft);background:rgba(8,12,21,.6);padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.mini .k{font-family:var(--mono);font-size:.61rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-4)}
+.mini .v{font-family:var(--display);font-stretch:86%;font-size:1.14rem;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ---------- simulator ---------- */
+.sim{display:grid;gap:14px}
+@media(min-width:900px){.sim{grid-template-columns:minmax(0,1fr) minmax(0,350px)}}
+.sim-stage{padding:24px;min-height:430px;display:flex;flex-direction:column;gap:18px}
+.sim-side{padding:22px;display:flex;flex-direction:column;gap:20px}
+.steps{display:flex;flex-direction:column;gap:3px}
+.step{display:flex;gap:12px;align-items:flex-start;padding:11px 13px;border-radius:10px;border:1px solid transparent;transition:all .28s}
+.step.done{opacity:.72}
+.step.done .n{color:var(--grass)}
+.step.now{border-color:rgba(56,232,255,.28);background:var(--cyan-dim)}
+.step .n{font-family:var(--mono);font-size:.67rem;color:var(--ink-4);padding-top:2px;min-width:18px}
+.step.now .n{color:var(--cyan)}
+.step .tx b{display:block;font-size:.87rem;font-weight:500;color:var(--ink-3)}
+.step.now .tx b,.step.done .tx b{color:var(--ink)}
+.step .tx s{display:block;text-decoration:none;font-family:var(--mono);font-size:.67rem;color:var(--ink-4);margin-top:2px}
+.script{border-radius:var(--r-sm);background:rgba(8,12,21,.75);border:1px solid var(--line-soft);padding:17px 18px 16px;font-size:.96rem;color:var(--ink);line-height:1.6;position:relative;margin-top:6px}
+.script::before{content:"REP SAYS";position:absolute;top:-8px;left:14px;background:var(--panel-2);font-family:var(--mono);font-size:.59rem;letter-spacing:.17em;color:var(--cyan);padding:0 8px}
+.app-does{border-radius:var(--r-sm);border:1px solid rgba(60,224,138,.2);background:rgba(60,224,138,.06);padding:15px 18px;display:flex;flex-direction:column;gap:9px}
+.app-does .h{font-family:var(--mono);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--grass)}
+.app-does ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.app-does li{font-size:.86rem;color:var(--ink-2);display:flex;gap:9px}
+.app-does li::before{content:"→";color:var(--grass);font-family:var(--mono);font-size:.8rem}
+.meter{display:flex;flex-direction:column;gap:8px}
+.meter-track{height:10px;border-radius:6px;background:rgba(126,166,255,.1);position:relative;overflow:hidden}
+.meter-fill{position:absolute;inset:0 auto 0 0;width:0;border-radius:6px;background:linear-gradient(90deg,#ff6b5a,#ffb020 48%,#3ce08a);transition:width .65s cubic-bezier(.22,1,.36,1)}
+.meter-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.67rem;color:var(--ink-4);letter-spacing:.08em}
+
+/* ---------- pricing / roadmap ---------- */
+.counter{display:flex;flex-wrap:wrap;align-items:center;gap:20px;border-radius:var(--r);border:1px solid rgba(56,232,255,.26);background:linear-gradient(180deg,rgba(56,232,255,.1),rgba(13,18,29,.6));padding:20px 24px;margin-bottom:30px}
+.counter .cn{font-family:var(--display);font-stretch:86%;font-size:2.1rem;font-weight:800;line-height:1;background:var(--grad-txt);-webkit-background-clip:text;background-clip:text;color:transparent}
+.counter .ct{font-size:.9rem;color:var(--ink-2);max-width:50ch}
+.counter .cbar{flex:1 1 200px;min-width:160px}
+.counter-track{height:6px;border-radius:4px;background:rgba(56,232,255,.16);position:relative;overflow:hidden}
+.counter-fill{position:absolute;inset:0 auto 0 0;border-radius:4px;background:var(--grad);width:0;transition:width 1.5s cubic-bezier(.22,1,.36,1)}
+
+.ladder{display:flex;flex-direction:column;gap:10px}
+.rung{border-radius:var(--r-sm);border:1px solid var(--line-soft);background:rgba(19,26,41,.5);padding:16px 20px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.rung.now{border-color:rgba(60,224,138,.4);background:linear-gradient(180deg,rgba(60,224,138,.12),rgba(19,26,41,.5))}
+.rung.next{opacity:.6}
+.rung .who b{display:block;font-size:.95rem;font-weight:600}
+.rung .who s{display:block;text-decoration:none;font-family:var(--mono);font-size:.69rem;color:var(--ink-4);margin-top:2px}
+.rung .pr{font-family:var(--display);font-stretch:86%;font-weight:800;font-size:1.3rem;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.rung.now .pr{color:var(--grass)}
+.rung.next .pr{color:var(--ink-4)}
+
+.soon{display:grid;gap:10px}
+@media(min-width:760px){.soon{grid-template-columns:1fr 1fr}}
+.soon-item{border-radius:var(--r-sm);border:1px solid var(--line-soft);background:rgba(19,26,41,.5);padding:15px 18px;display:flex;gap:14px;align-items:flex-start}
+.soon-item .q{font-family:var(--mono);font-size:.63rem;letter-spacing:.1em;color:var(--cyan);padding-top:3px;white-space:nowrap}
+.soon-item b{display:block;font-size:.91rem;font-weight:500;color:var(--ink)}
+.soon-item span{font-size:.82rem;color:var(--ink-4)}
+
+/* ---------- founder ---------- */
+.founder{display:grid;gap:34px}
+@media(min-width:940px){.founder{grid-template-columns:.92fr 1.08fr;gap:56px;align-items:start}}
+.pull{font-family:var(--display);font-stretch:104%;font-weight:700;font-size:clamp(1.3rem,2.4vw,1.9rem);line-height:1.26;letter-spacing:-.025em;text-wrap:balance}
+.pull em{font-style:normal;background:var(--grad-txt);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sig{display:flex;flex-direction:column;gap:3px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line-soft)}
+.sig b{font-size:.92rem;font-weight:600}
+.sig span{font-family:var(--mono);font-size:.71rem;color:var(--ink-4)}
+.founder .stack-p{display:flex;flex-direction:column;gap:16px}
+.founder p{color:var(--ink-2);font-size:1rem;line-height:1.72}
+
+/* ---------- cta ---------- */
+.cta{border-radius:var(--r-lg);border:1px solid var(--line);background:linear-gradient(180deg,var(--panel-2),#0b0f18);padding:clamp(34px,5vw,62px);text-align:center;display:flex;flex-direction:column;align-items:center;gap:18px;position:relative;overflow:hidden;box-shadow:0 30px 80px -40px rgba(0,0,0,.95)}
+.cta .lede{margin:0 auto}
+.cta-glow{position:absolute;top:-240px;left:50%;transform:translateX(-50%);width:760px;height:480px;pointer-events:none;background:radial-gradient(ellipse at center,rgba(56,232,255,.16),transparent 66%)}
+.cta > *{position:relative}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--line-soft);padding:32px 0 46px}
+.foot-in{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center}
+.foot-in span{font-family:var(--mono);font-size:.7rem;color:var(--ink-4);letter-spacing:.05em}
+.proto{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.63rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);border:1px dashed var(--line-soft);border-radius:999px;padding:5px 12px}
+
+/* ---------- reveal ---------- */
+.rv.in{opacity:1;transform:none}
+
+/* ---------- gated demos ---------- */
+.quota{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:.63rem;letter-spacing:.11em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,176,32,.34);background:var(--amber-dim);color:var(--amber);white-space:nowrap}
+.quota.out{border-color:rgba(255,107,90,.4);background:var(--red-dim);color:var(--red)}
+
+.stagewrap{position:relative;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--line-soft);background:#12161c}
+.stagewrap canvas,.stagewrap svg{display:block;width:100%;height:auto}
+.stagewrap svg{position:absolute;inset:0;height:100%;touch-action:none}
+.stagewrap.crosshair{cursor:crosshair}
+
+.hud{display:flex;gap:12px;align-items:flex-start;padding:13px 16px;border-radius:var(--r-sm);border:1px solid rgba(56,232,255,.26);background:rgba(56,232,255,.08)}
+.hud .n{font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;color:var(--cyan);padding-top:3px;white-space:nowrap}
+.hud .m b{display:block;font-size:.92rem;font-weight:600;color:var(--ink)}
+.hud .m span{font-size:.85rem;color:var(--ink-2)}
+.hud.ok{border-color:rgba(60,224,138,.3);background:rgba(60,224,138,.08)}
+.hud.ok .n{color:var(--grass)}
+
+.lockwrap{position:absolute;inset:0;display:grid;place-items:center;padding:24px;background:rgba(5,7,14,.86);backdrop-filter:blur(6px);text-align:center;z-index:5}
+.lockwrap .in{display:flex;flex-direction:column;align-items:center;gap:13px;max-width:44ch}
+.lockwrap h4{font-size:1.15rem}
+.lockwrap p{font-size:.9rem;color:var(--ink-2)}
+
+.lineitems{display:flex;flex-direction:column;gap:8px;max-height:250px;overflow-y:auto;padding-right:4px}
+.lrow{display:grid;grid-template-columns:22px 1fr auto auto;gap:11px;align-items:center;padding:9px 12px;border-radius:9px;border:1px solid var(--line-soft);background:rgba(8,12,21,.55)}
+.lrow .sw{width:14px;height:4px;border-radius:2px}
+.lrow .ln{font-family:var(--mono);font-size:.74rem;color:var(--ink-2)}
+.lrow select{width:auto;min-width:118px;padding:6px 9px;font-size:.76rem;font-family:var(--mono);border-radius:8px}
+.lrow .lf{font-family:var(--mono);font-size:.76rem;color:var(--ink-3);font-variant-numeric:tabular-nums;min-width:58px;text-align:right}
+
+.results{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:620px){.results{grid-template-columns:repeat(4,1fr)}}
+.watermark{display:flex;align-items:center;gap:10px;padding:11px 15px;border-radius:var(--r-sm);border:1px dashed rgba(255,176,32,.4);background:var(--amber-dim)}
+.watermark span{font-family:var(--mono);font-size:.71rem;color:var(--amber);letter-spacing:.05em}
+
+/* price book */
+.pb-search{display:flex;gap:10px;flex-wrap:wrap}
+.pb-search input{flex:1;min-width:200px;background:var(--ground-2);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--ink);font-family:var(--body);font-size:.92rem;padding:12px 14px}
+.pb-search input:focus{border-color:rgba(56,232,255,.55);outline:none}
+.pb-chips{display:flex;gap:7px;flex-wrap:wrap}
+.pb-chip{font-family:var(--mono);font-size:.68rem;padding:6px 11px;border-radius:999px;border:1px solid var(--line-soft);background:transparent;color:var(--ink-3);cursor:pointer;transition:all .18s}
+.pb-chip:hover{color:var(--cyan);border-color:rgba(56,232,255,.4)}
+.pb-empty{padding:26px 18px;text-align:center;color:var(--ink-4);font-size:.88rem}
+.blurred{filter:blur(5px);opacity:.55;user-select:none}
+
+.pb-split{display:grid;gap:16px}
+@media(min-width:1000px){.pb-split{grid-template-columns:minmax(0,1fr) minmax(0,330px)}}
+.pb-browse{display:flex;flex-direction:column;gap:13px;min-width:0}
+.pb-sheet{display:flex;flex-direction:column;gap:12px;padding:17px;border-radius:var(--r-sm);border:1px solid var(--line-soft);background:rgba(8,12,21,.55)}
+.pb-cart{display:flex;flex-direction:column;gap:8px;min-height:70px}
+.pb-cart .empty{font-size:.85rem;color:var(--ink-4);padding:14px 0}
+.ci{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:10px 12px;border-radius:9px;border:1px solid var(--line-soft);background:rgba(19,26,41,.6)}
+.ci b{font-size:.83rem;font-weight:500;color:var(--ink);line-height:1.3}
+.ci .x{background:none;border:0;color:var(--ink-4);cursor:pointer;font-family:var(--mono);font-size:.9rem;padding:0 2px;line-height:1}
+.ci .x:hover{color:var(--red)}
+.ci .qty{grid-column:1/-1;display:flex;align-items:center;gap:9px;margin-top:2px}
+.ci .qty input{width:74px;background:var(--ground-2);border:1px solid var(--line-soft);border-radius:7px;color:var(--ink);font-family:var(--mono);font-size:.76rem;padding:5px 8px}
+.ci .qty .u{font-family:var(--mono);font-size:.68rem;color:var(--ink-4);letter-spacing:.08em}
+.ci .qty .ext{margin-left:auto;font-family:var(--mono);font-size:.79rem;color:var(--grass);font-variant-numeric:tabular-nums}
+.pb-total{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding-top:11px;border-top:1px solid var(--line-soft)}
+.pb-total .k{font-family:var(--mono);font-size:.65rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-4)}
+.pb-total .v{font-family:var(--display);font-stretch:86%;font-weight:800;font-size:1.35rem;font-variant-numeric:tabular-nums;background:var(--grad-txt);-webkit-background-clip:text;background-clip:text;color:transparent}
+.pb-locknote{display:flex;flex-direction:column;gap:9px;padding:14px;border-radius:9px;border:1px solid rgba(255,176,32,.34);background:var(--amber-dim)}
+.pb-locknote b{font-size:.88rem;color:var(--amber)}
+.pb-locknote span{font-size:.83rem;color:var(--ink-2)}
+.addbtn{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;padding:6px 11px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink-2);cursor:pointer;white-space:nowrap;transition:all .18s}
+.addbtn:hover:not(:disabled){border-color:rgba(60,224,138,.5);color:var(--grass);background:var(--grass-dim)}
+.addbtn:disabled{opacity:.38;cursor:not-allowed}
+.addbtn.in{border-color:rgba(60,224,138,.5);color:var(--grass);background:var(--grass-dim)}
+
+/* ---------- depth, tilt and cursor ---------- */
+.scrollbar{position:fixed;top:0;left:0;right:0;height:2px;z-index:80;background:transparent;pointer-events:none}
+.scrollbar i{display:block;height:100%;width:0;background:var(--grad);box-shadow:0 0 14px rgba(56,232,255,.7)}
+
+.cursor,.cursor-ring{position:fixed;top:0;left:0;pointer-events:none;z-index:90;will-change:transform;opacity:0;transition:opacity .3s}
+.cursor{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 14px 2px rgba(56,232,255,.85)}
+.cursor-ring{width:34px;height:34px;border-radius:50%;border:1px solid rgba(126,166,255,.45);transition:opacity .3s,width .25s,height .25s,border-color .25s,background .25s}
+.cursor-ring.hot{width:52px;height:52px;border-color:rgba(60,224,138,.75);background:rgba(60,224,138,.09)}
+body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
+@media(hover:none),(pointer:coarse){.cursor,.cursor-ring{display:none}}
+
+.deck{perspective:1400px;perspective-origin:50% 40%}
+.tilt3d{
+  --rx:0deg;--ry:0deg;--gx:50%;--gy:0%;
+  transform:rotateX(var(--rx)) rotateY(var(--ry));
+  transform-style:preserve-3d;
+  transition:transform .5s cubic-bezier(.22,1,.36,1),box-shadow .4s ease;
+}
+.tilt3d::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(420px 240px at var(--gx) var(--gy),rgba(120,190,255,.14),transparent 68%);
+  opacity:0;transition:opacity .4s ease;
+}
+.tilt3d.lit::after{opacity:1}
+.lift{transform:translateZ(30px)}
+.lift-sm{transform:translateZ(16px)}
+
+/* cards get real depth on approach */
+.mod{transform-style:preserve-3d;will-change:transform}
+.mod:hover{transform:translateY(-6px) rotateX(3deg) scale(1.012)}
+
+/* scroll reveal, now with rotation out of the page plane */
+.rv{opacity:0;transform:translateY(26px) rotateX(7deg) scale(.985);transform-origin:50% 100%;
+    transition:opacity .8s ease,transform .9s cubic-bezier(.22,1,.36,1)}
+.rv.in{opacity:1;transform:none}
+.rv.d1{transition-delay:.07s}.rv.d2{transition-delay:.14s}.rv.d3{transition-delay:.21s}
+
+/* parallax layers */
+.aurora,.gridfloor{will-change:transform}
+.scene{transform:translate3d(0,var(--py,0px),0)}
+
+/* headline entrance */
+.hero h1,.hero .hero-tag,.hero-sub,.hero-cta,.hero-note,.credline{
+  animation:enterUp .9s cubic-bezier(.22,1,.36,1) both;
+}
+.hero .hero-tag{animation-delay:.05s}
+.hero h1{animation-delay:.12s}
+.hero-sub{animation-delay:.22s}
+.hero-cta{animation-delay:.3s}
+.hero-note{animation-delay:.36s}
+.credline{animation-delay:.42s}
+@keyframes enterUp{from{opacity:0;transform:translateY(26px) rotateX(8deg)}to{opacity:1;transform:none}}
+
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+  .rv{opacity:1;transform:none}
+  .tilt3d{transform:none !important}
+  .cursor,.cursor-ring{display:none}
+  .scene{transform:none !important}
+}
+</style>
+
+<div class="scrollbar" aria-hidden="true"><i id="sbFill"></i></div>
+<span class="cursor" id="cur" aria-hidden="true"></span>
+<span class="cursor-ring" id="curRing" aria-hidden="true"></span>
+
+<div class="scene" aria-hidden="true">
+  <span class="aurora a"></span>
+  <span class="aurora b"></span>
+  <span class="aurora c"></span>
+  <span class="gridfloor"></span>
+  <span class="scan"></span>
+  <span class="vig"></span>
+</div>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a class="brand" href="#top">
+      <span class="brand-mark"><span>G</span></span>
+      <span class="brand-w"><b>GCN App</b><em>Estimating OS for contractors</em></span>
+    </a>
+    <div class="nav-links">
+      <a href="#stack">The 20-app problem</a>
+      <a href="#inside">What's inside</a>
+      <a href="#try">Try it</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#ways">Other ways in</a>
+    </div>
+    <a class="btn sm nav-cta" href="#apply">Claim a founding seat</a>
+  </div>
+</nav>
+
+<!-- ============================ HERO ============================ -->
+<section class="hero" id="top">
+  <div class="wrap hero-in">
+    <div>
+      <div class="hero-tag">
+        <span class="dot"></span>
+        <span>Founding seats open &middot; 7 of 25 taken</span>
+      </div>
+      <h1>The only contractor app that <em>closes the deal for you</em>.</h1>
+      <p class="lede hero-sub">
+        Every other platform hands your rep an empty form and wishes him luck. This one walks him
+        through the door, measures the roof, prices the job, writes the proposal, sends it, tracks
+        who opened it and tells him what to say next. Green reps stop guessing. Seasoned guys stop
+        doing paperwork at 11pm.
+      </p>
+      <div class="hero-cta">
+        <a class="btn" href="#apply">Claim a founding seat</a>
+        <a class="btn ghost" href="#try">Play with the demo</a>
+      </div>
+      <p class="hero-note" style="margin-top:14px">No card. No demo call required. Price locked for life at the seat you take.</p>
+      <div class="credline">
+        <span><b>Built by a roofer</b>, not a software company</span>
+        <span><b>15+ years</b> D2D, storm &amp; commercial</span>
+        <span><b>One login</b> replaces the whole stack</span>
+      </div>
+    </div>
+
+    <div class="deck"><div class="card readout tilt3d" id="readout">
+      <span class="sheen" aria-hidden="true"></span>
+      <div class="card-h">
+        <span class="dot c"></span>
+        <span class="t">Live estimate &middot; 41,200 sq ft warehouse</span>
+      </div>
+      <div class="ro-top">
+        <div>
+          <div class="lab">Sell price</div>
+          <div class="val" id="roVal">$0</div>
+        </div>
+        <div class="ro-meta">
+          <div class="m1" id="roMargin">&mdash;</div>
+          <div class="m2" id="roTime">building scope&hellip;</div>
+        </div>
+      </div>
+      <ul class="ro-lines" id="roLines"></ul>
+      <div class="ro-foot">
+        <span class="s">Proposal ready in <b id="roClock">0.0</b>s<span class="caret"></span></span>
+        <span class="s">vs. 3&ndash;5 days by hand</span>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ============================ STACK ============================ -->
+<section class="band" id="stack">
+  <div class="wrap">
+    <div class="shead rv">
+      <p class="eyebrow">The problem</p>
+      <h2>You are not paying for software. You are paying for glue.</h2>
+      <p class="lede">
+        Tick everything you currently pay for. Most roofing companies we talk to are running eleven
+        to fourteen tools that don't talk to each other, plus a person whose actual job is
+        retyping the same address into all of them.
+      </p>
+    </div>
+
+    <div class="stack-grid rv" id="stackGrid"></div>
+
+    <div class="verdict rv">
+      <div class="vcell">
+        <span class="k">Your stack today</span>
+        <span class="v" id="stkCount">0 tools</span>
+        <span class="s" id="stkMonthly">$0 / month</span>
+      </div>
+      <div class="vcell">
+        <span class="k">Per year</span>
+        <span class="v" id="stkYear">$0</span>
+        <span class="s">Before the hours spent re-keying data between them</span>
+      </div>
+      <div class="vcell win">
+        <span class="k">One GCN subscription</span>
+        <span class="v" id="stkSave">$0</span>
+        <span class="s" id="stkSaveNote">saved a year &mdash; and one place to look</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ INSIDE ============================ -->
+<section class="band" id="inside">
+  <div class="wrap">
+    <div class="shead rv">
+      <p class="eyebrow">What's inside</p>
+      <h2>Nine modules. Turn on only what your company runs.</h2>
+      <p class="lede">
+        No tiers, no "upgrade to unlock". When your account is set up, every module and every
+        sub-tab is switched on or off for your company individually. A commercial coatings crew and
+        a residential storm team see two completely different apps under the same login.
+      </p>
+    </div>
+
+    <div class="grid g3">
+      <article class="mod rv">
+        <span class="ic" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#38e8ff" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>
+        <h3>Command dashboard</h3>
+        <p>Revenue, pipeline, close rate, aging jobs and rep leaderboard on one screen, scoped to your company only.</p>
+        <ul>
+          <li>Live pipeline value by stage</li>
+          <li>Rep-by-rep close rate and speed-to-lead</li>
+          <li>Job aging and stalled-deal flags</li>
+        </ul>
+      </article>
+
+      <article class="mod rv">
+        <span class="ic" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#38e8ff" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg></span>
+        <h3>Commercial estimator</h3>
+        <p>A real SPF and coatings engine, not a spreadsheet in a browser. Your products, your stacks, your rates.</p>
+        <ul>
+          <li>Coating stacks with per-layer mils and method</li>
+          <li>Production rates drive the schedule and the labor</li>
+          <li>Soft costs, permits, warranty fees, bonds</li>
+          <li>Your markups: tax, overhead, commission, margin</li>
+        </ul>
+      </article>
+
+      <article class="mod rv">
+        <span class="ic" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#38e8ff" stroke-width="2"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg></span>
+        <h3>Prospecting &amp; map</h3>
+        <p>Work a territory instead of a list. Pins on satellite imagery, owner contacts attached, routes that make sense.</p>
+        <ul>
+          <li>Reonomy CSV import with owners, execs, every phone and email</li>
+          <li>Satellite roof review before you ever drive out</li>
+          <li>Clickable map pins straight into a lead</li>
+        </ul>
+      </article>
+
+      <article class="mod rv">
+        <span class="ic" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#38e8ff" stroke-width="2"><path d="M4 5h16v14H4z"/><path d="M4 9h16M9 9v10"/></svg></span>
+        <h3>Leads &amp; report delivery</h3>
+        <p>The part everyone else skips: proof of what you sent, to whom, and when.</p>
+        <ul>
+          <li>Branded savings and scope reports as PDF</li>
+          <li>Records the recipient, method and timestamp</li>
+          <li>Copy filed in the job's documents automatically</li>
+          <li>One-click CSV out to your CRM or follow-up agent</li>
+        </ul>
+      </article>
+
+      <article class="mod rv">
+        <span class="ic" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#38e8ff" stroke-width="2"><path d="M9 12l2 2 4-5"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg></span>
+        <h3>Work orders &amp; production</h3>
+        <p>Ticket to crew to invoice without leaving the app. Customers, buildings and WO numbers stay linked.</p>
+        <ul>
+          <li>Customers, properties and tickets in one graph</li>
+          <li>Kanban pipeline from sold to collected</li>
+          <li>Field forms that produce a real document</li>
+        </ul>
+      </article>
+
+      <article class="mod rv">
+        <span class="ic" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#38e8ff" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span>
+        <h3>Company admin portal</h3>
+        <p>Your own back office. You set the numbers, your reps can't fat-finger a price into a proposal.</p>
+        <ul>
+          <li>Price books and retail macros by market</li>
+          <li>Supplier price lists feeding the order form</li>
+          <li>Branding, contracts, contingencies, report attachments</li>
+        </ul>
+      </article>
+
+      <article class="mod rv">
+        <span class="ic" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#38e8ff" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <h3>Storm intelligence</h3>
+        <p>NOAA hail swath and wind data over your territory, so you canvass where the damage actually landed.</p>
+        <ul>
+          <li>MRMS/MESH hail swaths by date</li>
+          <li>Overlay against your existing customer list</li>
+          <li class="soon">Automatic canvass route builder &mdash; shipping soon</li>
+        </ul>
+      </article>
+
+      <article class="mod rv">
+        <span class="ic" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#38e8ff" stroke-width="2"><path d="M12 3v18M5 8l7-5 7 5"/><path d="M5 8v8l7 5 7-5V8"/></svg></span>
+        <h3>Instant Quote wizard</h3>
+        <p>Twenty-five trades, config-driven. A homeowner or PM gets a number while you're still on the driveway.</p>
+        <ul>
+          <li>Multi-trade: roof, gutters, siding, interior, more</li>
+          <li>Runs off your price book, not a national average</li>
+        </ul>
+      </article>
+
+      <article class="mod rv">
+        <span class="ic" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#38e8ff" stroke-width="2"><path d="M4 18v-6a8 8 0 0 1 16 0v6"/><path d="M4 16h4v5H6a2 2 0 0 1-2-2zM20 16h-4v5h2a2 2 0 0 0 2-2z"/></svg></span>
+        <h3>AI receptionist</h3>
+        <p>Nobody misses a storm call again. Answers, qualifies, books, and drops the lead into your pipeline.</p>
+        <ul>
+          <li>Answers 24/7 in your company's voice</li>
+          <li>Books straight onto the calendar</li>
+          <li class="soon">Outbound follow-up agent &mdash; shipping soon</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ TRY IT ============================ -->
+<section class="band" id="try">
+  <div class="wrap">
+    <div class="shead rv">
+      <p class="eyebrow g">Hands on</p>
+      <h2>Don't take the tour. Drive it.</h2>
+      <p class="lede">
+        Three pieces of the real app, running right here on sample data. Move the sliders, switch
+        the tabs, walk a rep through a door. Nothing to install and nothing to sign.
+      </p>
+    </div>
+
+    <div class="tabs rv" role="tablist" aria-label="Interactive demos">
+      <button class="tab" role="tab" id="tab-dash" aria-controls="pane-dash" aria-selected="true">Command dashboard</button>
+      <button class="tab" role="tab" id="tab-calc" aria-controls="pane-calc" aria-selected="false">Instant estimator</button>
+      <button class="tab" role="tab" id="tab-sim" aria-controls="pane-sim" aria-selected="false">Rep &rarr; racehorse</button>
+      <button class="tab" role="tab" id="tab-meas" aria-controls="pane-meas" aria-selected="false">Measure a roof</button>
+      <button class="tab" role="tab" id="tab-pb" aria-controls="pane-pb" aria-selected="false">Price book</button>
+    </div>
+
+    <!-- ---------- DASHBOARD ---------- -->
+    <div class="pane" id="pane-dash" role="tabpanel" aria-labelledby="tab-dash">
+      <div class="card rv">
+        <div class="card-h">
+          <span class="dot"></span>
+          <span class="t">O&amp;M Construction &middot; Commercial Roofing &middot; live</span>
+          <span style="margin-left:auto" class="seg" role="group" aria-label="Date range">
+            <button type="button" data-range="30" aria-pressed="true">30d</button>
+            <button type="button" data-range="90" aria-pressed="false">90d</button>
+            <button type="button" data-range="365" aria-pressed="false">YTD</button>
+          </span>
+        </div>
+        <div class="card-b" style="display:flex;flex-direction:column;gap:20px">
+          <div class="kpis" id="dashKpis"></div>
+
+          <div class="grid g2" style="gap:14px">
+            <div style="border-radius:11px;border:1px solid rgba(126,166,255,.11);background:rgba(8,12,21,.5);padding:18px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+                <span class="eyebrow dim">Pipeline by stage</span>
+                <span class="mono" style="font-size:.72rem;color:var(--ink-3)" id="pipeTotal"></span>
+              </div>
+              <div class="bars" id="pipeBars"></div>
+            </div>
+            <div style="border-radius:11px;border:1px solid rgba(126,166,255,.11);background:rgba(8,12,21,.5);padding:18px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+                <span class="eyebrow dim">Rep leaderboard</span>
+                <span class="mono" style="font-size:.72rem;color:var(--ink-3)">close rate</span>
+              </div>
+              <div class="bars" id="repBars"></div>
+            </div>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+              <span class="eyebrow dim">Open opportunities</span>
+              <span class="mono" style="font-size:.72rem;color:var(--ink-4)">click a row to see what the app does next</span>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Property</th><th>Stage</th><th>Rep</th>
+                    <th class="r">Sq ft</th><th class="r">Value</th><th class="r">Age</th>
+                  </tr>
+                </thead>
+                <tbody id="dealRows"></tbody>
+              </table>
+            </div>
+            <div id="dealNote" style="margin-top:12px;display:none" class="app-does">
+              <span class="h">Next action queued</span>
+              <ul id="dealNoteList"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- ESTIMATOR ---------- -->
+    <div class="pane" id="pane-calc" role="tabpanel" aria-labelledby="tab-calc" hidden>
+      <div class="calc rv">
+        <div class="card calc-in">
+          <div class="card-h" style="margin:-20px -20px 0;padding:14px 18px">
+            <span class="dot c"></span><span class="t">Scope</span>
+          </div>
+          <label class="f">
+            <span class="fl">Roof area <b id="lblSqft">41,200 sq ft</b></span>
+            <input type="range" id="inSqft" min="5000" max="150000" step="200" value="41200">
+          </label>
+          <label class="f">
+            <span class="fl">System</span>
+            <select id="inSystem">
+              <option value="sil2">Silicone restoration &mdash; 2 coat, 30 mil</option>
+              <option value="sil1">Silicone &mdash; single coat, 20 mil</option>
+              <option value="acr2">Acrylic &mdash; 2 coat, 30 mil</option>
+              <option value="foam">SPF 1.5&Prime; foam + silicone top</option>
+              <option value="rust">Rust / metal system</option>
+            </select>
+          </label>
+          <label class="f">
+            <span class="fl">Existing surface</span>
+            <select id="inSurf">
+              <option value="1">Built-up / mod bit</option>
+              <option value="1.14">Metal &mdash; panel seams</option>
+              <option value="1.06">Single-ply TPO / EPDM</option>
+              <option value="1.28">Failed coating, needs strip</option>
+            </select>
+          </label>
+          <label class="f">
+            <span class="fl">Building height <b id="lblHt">24 ft</b></span>
+            <input type="range" id="inHt" min="12" max="90" step="2" value="24">
+          </label>
+          <label class="f">
+            <span class="fl">Access</span>
+            <span class="seg" role="group" aria-label="Access method">
+              <button type="button" data-acc="1" aria-pressed="true">Ladder</button>
+              <button type="button" data-acc="1.09" aria-pressed="false">Lift</button>
+              <button type="button" data-acc="1.19" aria-pressed="false">Crane</button>
+            </span>
+          </label>
+          <label class="f">
+            <span class="fl">Occupied building</span>
+            <span class="seg" role="group" aria-label="Occupied">
+              <button type="button" data-occ="1" aria-pressed="true">No</button>
+              <button type="button" data-occ="1.07" aria-pressed="false">Day work</button>
+              <button type="button" data-occ="1.16" aria-pressed="false">Nights</button>
+            </span>
+          </label>
+        </div>
+
+        <div class="card calc-out">
+          <div class="card-h" style="margin:-20px -20px 0;padding:14px 18px">
+            <span class="dot"></span><span class="t">Priced in real time</span>
+          </div>
+          <div>
+            <span class="eyebrow dim">Sell price</span>
+            <div class="big-num" style="margin-top:6px">
+              <span class="v" id="calcTotal">$0</span>
+              <span class="u" id="calcPsf">&mdash;</span>
+            </div>
+          </div>
+          <div class="bars" id="calcBars"></div>
+          <div class="mini" id="calcMini"></div>
+          <p style="font-size:.82rem;color:var(--ink-4);margin-top:2px">
+            Demo numbers use a sample price book. In your account every one of these lines comes
+            from your own products, wages, rig rates and markups &mdash; nothing is shared between
+            companies on the platform.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- SIMULATOR ---------- -->
+    <div class="pane" id="pane-sim" role="tabpanel" aria-labelledby="tab-sim" hidden>
+      <div class="sim rv">
+        <div class="card sim-stage">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <div>
+              <span class="eyebrow">Day 1 rep &middot; first commercial door</span>
+              <h3 id="simTitle" style="margin-top:8px">Ready when you are</h3>
+            </div>
+            <span class="pill" id="simStage">Not started</span>
+          </div>
+
+          <p id="simBody" style="color:var(--ink-2);font-size:.96rem">
+            Most new reps fail at the same six moments. Step through them and watch what the app
+            puts in front of him at each one &mdash; the script, the number, the document, the next move.
+          </p>
+
+          <div class="script" id="simScript" style="display:none"></div>
+          <div class="app-does" id="simApp" style="display:none">
+            <span class="h">What the app does</span>
+            <ul id="simAppList"></ul>
+          </div>
+
+          <div style="margin-top:auto;display:flex;gap:10px;flex-wrap:wrap;padding-top:14px">
+            <button class="btn" id="simNext" type="button">Start the knock</button>
+            <button class="btn ghost sm" id="simReset" type="button">Reset</button>
+          </div>
+        </div>
+
+        <div class="card sim-side">
+          <div class="meter">
+            <div class="meter-row"><span>Rep confidence</span><span id="simPct">0%</span></div>
+            <div class="meter-track"><span class="meter-fill" id="simMeter"></span></div>
+            <div class="meter-row"><span style="color:var(--red)">Green</span><span style="color:var(--grass)">Racehorse</span></div>
+          </div>
+          <div class="steps" id="simSteps"></div>
+          <p style="font-size:.81rem;color:var(--ink-4)">
+            Every step above is a screen that already exists in the app. The rep is never asked to
+            remember anything &mdash; he is asked to tap the thing in front of him.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- MEASUREMENT TOOL (3 runs) ---------- -->
+    <div class="pane" id="pane-meas" role="tabpanel" aria-labelledby="tab-meas" hidden>
+      <div class="card rv">
+        <div class="card-h">
+          <span class="dot c"></span>
+          <span class="t">Roof measurement &middot; sample imagery</span>
+          <span class="quota" id="measQuota" style="margin-left:auto">3 demo runs left</span>
+        </div>
+        <div class="card-b" style="display:flex;flex-direction:column;gap:16px">
+
+          <div class="hud" id="measHud">
+            <span class="n" id="measStep">STEP 1</span>
+            <span class="m"><b id="measTitle">Drop a pin on the roof</b><span id="measHelp">Click anywhere on the large building. The detector finds the footprint from there.</span></span>
+          </div>
+
+          <div class="stagewrap crosshair" id="measStage">
+            <canvas id="aerial" width="1600" height="1040" aria-label="Sample aerial imagery of a commercial building"></canvas>
+            <svg id="trace" viewBox="0 0 800 520" role="application" aria-label="Roof tracing surface"></svg>
+            <div class="lockwrap" id="measLock" hidden>
+              <div class="in">
+                <span class="quota out">Demo runs used</span>
+                <h4>That's the three free runs.</h4>
+                <p>The real tool has no run limit, works on live high-resolution imagery of any address, calculates pitch and generates a measurement report you can send.</p>
+                <a class="btn" href="#apply">Claim a founding seat</a>
+              </div>
+            </div>
+          </div>
+
+          <div id="measLines" hidden>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+              <span class="eyebrow dim">Label each line you drew</span>
+              <span class="mono" style="font-size:.71rem;color:var(--ink-4)" id="measLineCount"></span>
+            </div>
+            <div class="lineitems" id="measLineList"></div>
+          </div>
+
+          <div id="measResults" hidden style="display:flex;flex-direction:column;gap:14px">
+            <div class="results" id="measResultGrid"></div>
+            <div class="watermark">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffb020" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+              <span>Temporary result &mdash; report saving, PDF export and pitch calculation are disabled in the demo.</span>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <button class="btn" id="measNext" type="button" disabled>Waiting for a pin&hellip;</button>
+            <button class="btn ghost sm" id="measRestart" type="button">Start over</button>
+            <button class="btn ghost sm" id="measSave" type="button" disabled title="Sign up to save reports">Save report</button>
+            <span class="mono" style="font-size:.7rem;color:var(--ink-4)" id="measFoot"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- PRICE BOOK (browse all, add 5) ---------- -->
+    <div class="pane" id="pane-pb" role="tabpanel" aria-labelledby="tab-pb" hidden>
+      <div class="card rv">
+        <div class="card-h">
+          <span class="dot"></span>
+          <span class="t">Price book &middot; Houston&ndash;Gulf Coast market</span>
+          <span class="quota" id="pbQuota" style="margin-left:auto">5 line items left to add</span>
+        </div>
+        <div class="card-b">
+          <div class="pb-split">
+            <div class="pb-browse">
+              <p style="font-size:.9rem;color:var(--ink-2)">
+                Browse the whole book &mdash; search a trade, a material or a code. Adding to the
+                estimate is what the demo limits: five line items, then the sheet locks.
+              </p>
+              <div class="pb-search">
+                <input type="text" id="pbInput" placeholder="Search line items&hellip;" autocomplete="off" aria-label="Search price book line items">
+                <button class="btn ghost sm" id="pbClear" type="button">Clear</button>
+              </div>
+              <div class="pb-chips">
+                <button class="pb-chip" data-q="silicone">silicone</button>
+                <button class="pb-chip" data-q="TPO">TPO</button>
+                <button class="pb-chip" data-q="coping">coping</button>
+                <button class="pb-chip" data-q="shingle">shingle</button>
+                <button class="pb-chip" data-q="tear off">tear off</button>
+                <button class="pb-chip" data-q="EQP">equipment</button>
+              </div>
+              <div class="tbl-wrap" style="max-height:400px;overflow-y:auto">
+                <table>
+                  <thead><tr><th>Code</th><th>Description</th><th>Unit</th><th class="r">Unit price</th><th class="r">O&amp;P</th><th></th></tr></thead>
+                  <tbody id="pbRows"></tbody>
+                </table>
+              </div>
+              <p class="mono" style="font-size:.7rem;color:var(--ink-4)" id="pbCount"></p>
+            </div>
+
+            <div class="pb-sheet">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+                <span class="eyebrow dim">Your estimate</span>
+                <span class="mono" style="font-size:.7rem;color:var(--ink-4)" id="pbSlots">0 / 5</span>
+              </div>
+              <div id="pbCart" class="pb-cart"></div>
+              <div class="pb-total">
+                <span class="k">Estimate total with O&amp;P</span>
+                <span class="v" id="pbTotal">$0.00</span>
+              </div>
+              <div id="pbLockNote" class="pb-locknote" hidden>
+                <b>That's the five free line items.</b>
+                <span>A real estimate runs to eighty. The full book prices from your own suppliers and pushes straight into the proposal and the material order.</span>
+                <a class="btn sm" href="#apply" style="align-self:flex-start">Claim a founding seat</a>
+              </div>
+              <button class="btn ghost sm" id="pbReset" type="button" style="align-self:flex-start">Clear the sheet</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================ WAYS IN ============================ -->
+<section class="band" id="ways">
+  <div class="wrap">
+    <div class="shead rv">
+      <p class="eyebrow">Three doors, one network</p>
+      <h2>Not every contractor needs the same thing on day one.</h2>
+      <p class="lede">
+        The app is the workhorse. If you run insurance restoration, Claim Buddy is probably the
+        better first move. And the Network &mdash; the part that sends you work instead of tools &mdash;
+        opens next.
+      </p>
+    </div>
+
+    <div class="grid g3">
+      <article class="mod rv" style="border-color:rgba(60,224,138,.3)">
+        <span class="pill won" style="align-self:flex-start">Live now</span>
+        <h3>GCN App</h3>
+        <p class="mono" style="font-size:.72rem;color:var(--ink-4);letter-spacing:.06em">globalcontractor.app</p>
+        <p>Estimating, prospecting, leads, proposals, work orders and your back office. Commercial and residential, modules switched on per company.</p>
+        <ul>
+          <li>Full commercial coatings estimator</li>
+          <li>Territory prospecting and map</li>
+          <li>Report delivery tracking and CSV export</li>
+        </ul>
+        <a class="btn sm" style="margin-top:8px;align-self:flex-start" href="#apply">Claim a founding seat</a>
+      </article>
+
+      <article class="mod rv" style="border-color:rgba(56,232,255,.3)">
+        <span class="pill hot" style="align-self:flex-start">Live now &middot; separate product</span>
+        <h3>Claim Buddy</h3>
+        <p class="mono" style="font-size:.72rem;color:var(--ink-4);letter-spacing:.06em">gcn.claims</p>
+        <p>The insurance restoration side: rep training, D2D tracking, storm data, roof-line tracing with instant measurements, takeoffs, photo protocol, report builder and a branded presentation that closes at the table.</p>
+        <ul>
+          <li>Guided field inspection and photo protocol</li>
+          <li>Trace the roof line, get measurements instantly</li>
+          <li>Xactimate-based pricing and takeoff sheets</li>
+          <li>Contracts and e-signature in the field</li>
+        </ul>
+        <a class="btn sm ghost" style="margin-top:8px;align-self:flex-start" href="https://gcn.claims" target="_blank" rel="noopener">Go to gcn.claims &rarr;</a>
+      </article>
+
+      <article class="mod rv">
+        <span class="pill warm" style="align-self:flex-start">Coming soon</span>
+        <h3>GCN Network</h3>
+        <p class="mono" style="font-size:.72rem;color:var(--ink-4);letter-spacing:.06em">globalcontractor.network</p>
+        <p>The other half of the idea: a vetted contractor network where the work moves between companies instead of dying on a shelf.</p>
+        <ul>
+          <li class="soon">Verified contractor directory by trade and territory</li>
+          <li class="soon">Referral marketplace with a 75/25 split, tracked in-app</li>
+          <li class="soon">Contractor Score built from real completed work</li>
+          <li class="soon">Overflow and out-of-area lead handoff</li>
+          <li class="soon">GCN Equipment: spray rigs and material at dealer pricing</li>
+        </ul>
+        <a class="btn sm ghost" style="margin-top:8px;align-self:flex-start" href="#apply">Join the waitlist</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PRICING ============================ -->
+<section class="band" id="pricing">
+  <div class="wrap">
+    <div class="shead rv">
+      <p class="eyebrow">Pricing</p>
+      <h2>The price only moves in one direction, and you can stand in front of it.</h2>
+      <p class="lede">
+        Every module on the roadmap below ships into the same subscription. Nobody who is already
+        in pays a cent more when it lands &mdash; the rate you join at is the rate you keep, for as long
+        as you stay. The rate <em style="font-style:normal;color:var(--ink)">new</em> companies pay goes up at each step.
+      </p>
+    </div>
+
+    <div class="counter rv">
+      <span class="cn" id="seatN">7 / 25</span>
+      <div class="cbar">
+        <div class="counter-track"><span class="counter-fill" id="seatFill"></span></div>
+      </div>
+      <p class="ct">Founding seats taken. At 25, the founding rate closes and the next step opens.</p>
+    </div>
+
+    <div class="grid g2" style="gap:24px;align-items:start">
+      <div class="rv">
+        <h4 style="margin-bottom:14px">The ladder</h4>
+        <div class="ladder">
+          <div class="rung now">
+            <div class="who"><b>Founding &mdash; first 25 companies</b><s>locked for life &middot; 7 taken</s></div>
+            <div class="pr">$249<span style="font-size:.8rem;color:var(--ink-4);font-weight:500">/mo</span></div>
+          </div>
+          <div class="rung next">
+            <div class="who"><b>Early &mdash; companies 26&ndash;75</b><s>opens when founding closes</s></div>
+            <div class="pr">$399<span style="font-size:.8rem;font-weight:500">/mo</span></div>
+          </div>
+          <div class="rung next">
+            <div class="who"><b>Standard &mdash; 76 and up</b><s>full roadmap shipped</s></div>
+            <div class="pr">$599<span style="font-size:.8rem;font-weight:500">/mo</span></div>
+          </div>
+        </div>
+        <p style="font-size:.85rem;color:var(--ink-4);margin-top:14px">
+          Includes 5 users. Extra seats $39/user/mo at the founding rate. Claim Buddy is billed
+          separately on its own tiers. Placeholder figures &mdash; final numbers land before launch.
+        </p>
+      </div>
+
+      <div class="rv">
+        <h4 style="margin-bottom:14px">Shipping next &mdash; each one moves the price</h4>
+        <div class="soon">
+          <div class="soon-item"><span class="q">Q4</span><div><b>AI follow-up agent</b><span>Works your sent-report list, calls and texts until someone answers</span></div></div>
+          <div class="soon-item"><span class="q">Q4</span><div><b>Supplier price lists &rarr; order forms</b><span>Load a distributor sheet, build the material order from the estimate</span></div></div>
+          <div class="soon-item"><span class="q">Q4</span><div><b>Multi-system proposal engine</b><span>Good / better / best on one page, each with its own warranty</span></div></div>
+          <div class="soon-item"><span class="q">Q1</span><div><b>AI document intake</b><span>Drop in a company's docs, the app extracts and fills the setup</span></div></div>
+          <div class="soon-item"><span class="q">Q1</span><div><b>Field mobile app</b><span>Offline photo protocol and measurements on the roof</span></div></div>
+          <div class="soon-item"><span class="q">Q1</span><div><b>Multi-market price books</b><span>Xactimate pricing per market with duplicate detection</span></div></div>
+          <div class="soon-item"><span class="q">Q2</span><div><b>Referral network</b><span>Send and receive work across the GCN network with tracked splits</span></div></div>
+          <div class="soon-item"><span class="q">Q2</span><div><b>Canvass route builder</b><span>Hail swath in, optimized door list out</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ FOUNDER ============================ -->
+<section class="band" id="founder">
+  <div class="wrap founder">
+    <div class="rv">
+      <p class="eyebrow dim" style="margin-bottom:16px">Why this exists</p>
+      <p class="pull">
+        I built this because I got tired of paying eleven companies to give me
+        <em>half a sales process</em>.
+      </p>
+      <div class="sig">
+        <b>Jared Janacek</b>
+        <span>Founder &middot; Global Contractor Network</span>
+        <span>RRCA &middot; Roof King Coating &middot; Buddy's Roofing &middot; GCN Equipment</span>
+      </div>
+    </div>
+    <div class="stack-p rv">
+      <p>
+        Fifteen years in roofing. Door to door, storm work, insurance restoration, and now
+        commercial coatings. I have hired green reps and watched them quit in six weeks because the
+        job was actually twelve jobs: measure it, price it, write it, chase it, file it, order it.
+      </p>
+      <p>
+        Every tool I bought solved one of those twelve and created a new gap on either side of
+        itself. The CRM didn't know what the estimator priced. The estimator didn't know what the
+        supplier charged this week. The proposal tool didn't know the job existed. And none of them
+        told a new guy what to say when the property manager said "just email me something."
+      </p>
+      <p>
+        So I built the whole line. One login, one price book, one record of the job from the first
+        pin on the map to the final invoice. The estimating engine is the one I use on my own
+        commercial work &mdash; production rates, coating stacks, soft costs, the lot &mdash; not a
+        simplified version made for a demo.
+      </p>
+      <p style="color:var(--ink)">
+        If it doesn't close deals, it doesn't ship. That's the only test I hold it to.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ CTA ============================ -->
+<section class="band" id="apply">
+  <div class="wrap">
+    <div class="deck"><div class="cta rv tilt3d">
+      <span class="cta-glow" aria-hidden="true"></span>
+      <p class="eyebrow">Founding seats &middot; 18 left</p>
+      <h2 style="max-width:19ch">Take a seat before the price does.</h2>
+      <p class="lede" style="text-align:center">
+        You get every module that exists today, every module on the roadmap as it ships, setup done
+        with you rather than handed to you, and the founding rate for as long as you stay.
+      </p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:8px">
+        <a class="btn" href="https://globalcontractor.app" target="_blank" rel="noopener">Claim a founding seat</a>
+        <a class="btn ghost" href="https://gcn.claims" target="_blank" rel="noopener">I want Claim Buddy instead</a>
+      </div>
+      <p class="hero-note" style="margin-top:6px">Questions first? Reply to this page and I'll get back to you same day. &mdash; Jared</p>
+    </div></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-in">
+    <span>&copy; 2026 Global Contractor Network</span>
+    <span style="display:flex;gap:18px;flex-wrap:wrap">
+      <a href="https://globalcontractor.app" target="_blank" rel="noopener" style="text-decoration:none">globalcontractor.app</a>
+      <a href="https://gcn.claims" target="_blank" rel="noopener" style="text-decoration:none">gcn.claims</a>
+      <a href="#ways" style="text-decoration:none">globalcontractor.network &middot; soon</a>
+    </span>
+    <span class="proto">Prototype &middot; sample data</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  const $  = (s,r) => (r||document).querySelector(s);
+  const $$ = (s,r) => Array.from((r||document).querySelectorAll(s));
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const money = n => "$" + Math.round(n).toLocaleString("en-US");
+  const money1 = n => "$" + n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  /* ============================================================
+     Scroll reveal
+     ============================================================ */
+  const io = new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
+  },{rootMargin:"0px 0px -8% 0px",threshold:.06});
+  $$(".grid .rv, .soon .rv").forEach((el,i)=>el.classList.add("d"+((i%3)+1)));
+  $$(".rv").forEach(el=>io.observe(el));
+
+  /* ============================================================
+     Hero: an estimate assembling itself
+     ============================================================ */
+  const HERO_LINES = [
+    ["Roof area &middot; 41,200 sf @ 3% waste","42,436 sf"],
+    ["Prep &middot; power wash + rust treat","$18,720"],
+    ["Silicone base &middot; 20 mil, sprayed","$71,404"],
+    ["Silicone top &middot; 10 mil, rolled","$35,702"],
+    ["Seams &amp; details &middot; 2,140 lf fabric","$16,264"],
+    ["Labor &middot; 4-man crew, 9 days","$44,064"],
+    ["Rig, fuel, pump, consumables","$8,820"],
+    ["Permit, engineering, inspections","$6,145"],
+    ["Overhead, margin, tax","$41,882"]
+  ];
+  function runHero(){
+    const wrap = $("#roLines"), val = $("#roVal"), mar = $("#roMargin"),
+          tm = $("#roTime"), clock = $("#roClock");
+    if(!wrap) return;
+    wrap.innerHTML = ""; let total = 0, t0 = performance.now();
+    const target = 243001;
+    HERO_LINES.forEach((L,i)=>{
+      setTimeout(()=>{
+        const li = document.createElement("li");
+        li.className = i >= 7 ? "acc" : "";
+        li.innerHTML = '<span>'+L[0]+'</span><span class="r">'+L[1]+'</span>';
+        wrap.appendChild(li);
+        if(L[1].charAt(0)==="$") total += Number(L[1].replace(/[^0-9]/g,""));
+        val.textContent = money(total);
+        clock.textContent = ((performance.now()-t0)/1000).toFixed(1);
+        if(i === HERO_LINES.length-1){
+          val.textContent = money(target);
+          mar.textContent = "28% margin held";
+          tm.textContent = "scope + proposal complete";
+        }
+      }, reduced ? 0 : 220 + i*250);
+    });
+  }
+  runHero();
+
+  /* ============================================================
+     The 20-app problem
+     ============================================================ */
+  const APPS = [
+    ["CRM","Salesforce, HubSpot, JobNimbus",299],
+    ["Estimating","Xactimate or a spreadsheet",125],
+    ["Aerial measurement","EagleView, per report",180],
+    ["Proposal / e-sign","PandaDoc, DocuSign",89],
+    ["Photo documentation","CompanyCam",99],
+    ["Answering service","Missed-call cover",320],
+    ["Canvassing app","SalesRabbit, Spotio",195],
+    ["Storm / hail data","HailTrace, Interactive Hail",99],
+    ["Production board","Monday, Trello",84],
+    ["Invoicing &amp; payments","QuickBooks + processor",145],
+    ["Scheduling","Calendly, ServiceTitan add-on",60],
+    ["Material ordering","Distributor portal + phone",0],
+    ["Email / SMS marketing","Mailchimp, Podium",129],
+    ["File storage","Dropbox, Drive business",42],
+    ["Reporting / BI","Spreadsheets and a Sunday",0]
+  ];
+  const GCN_MONTHLY = 249;
+
+  (function stackCalc(){
+    const grid = $("#stackGrid"); if(!grid) return;
+    APPS.forEach((a,i)=>{
+      const on = i < 9;
+      const lab = document.createElement("label");
+      lab.className = "app-row";
+      lab.innerHTML =
+        '<input type="checkbox" data-cost="'+a[2]+'"'+(on?" checked":"")+'>'+
+        '<span class="app-inner">'+
+          '<span class="box"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#04120a" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>'+
+          '<span class="lbl"><b>'+a[0]+'</b><s>'+a[1]+'</s></span>'+
+          '<span class="amt">'+(a[2] ? "$"+a[2] : "time")+'</span>'+
+        '</span>';
+      grid.appendChild(lab);
+    });
+    const boxes = $$("#stackGrid input");
+    function recalc(){
+      const on = boxes.filter(b=>b.checked);
+      const monthly = on.reduce((s,b)=>s+Number(b.dataset.cost),0);
+      const year = monthly*12;
+      const save = Math.max(0,(monthly-GCN_MONTHLY))*12;
+      $("#stkCount").textContent = on.length + (on.length===1?" tool":" tools");
+      $("#stkMonthly").textContent = money(monthly)+" / month";
+      $("#stkYear").textContent = money(year);
+      $("#stkSave").textContent = save>0 ? money(save) : money(0);
+      $("#stkSaveNote").textContent = save>0
+        ? "saved a year, at the founding rate of $249/mo"
+        : "add the tools you actually pay for to see the gap";
+    }
+    boxes.forEach(b=>b.addEventListener("change",recalc));
+    recalc();
+  })();
+
+  /* ============================================================
+     Tabs
+     ============================================================ */
+  (function tabs(){
+    const btns = $$(".tab");
+    btns.forEach(b=>b.addEventListener("click",()=>{
+      btns.forEach(o=>{
+        const on = o===b;
+        o.setAttribute("aria-selected", on ? "true":"false");
+        const pane = document.getElementById(o.getAttribute("aria-controls"));
+        if(pane) pane.hidden = !on;
+      });
+      const pane = document.getElementById(b.getAttribute("aria-controls"));
+      if(pane) $$(".rv",pane).forEach(el=>el.classList.add("in"));
+    }));
+  })();
+
+  /* ============================================================
+     Dashboard
+     ============================================================ */
+  const DASH = {
+    30:{ kpi:[["Revenue booked","$412,800","+18.4%",1],["Pipeline value","$1.94M","+7.1%",1],
+              ["Close rate","31.2%","+4.6 pts",1],["Avg days to close","19","-5 days",1]],
+         pipe:[["Prospect",640000],["Report sent",512000],["Verbal",428000],["Contract out",236000],["Sold",124000]],
+         reps:[["Marcus D.",38],["Elena R.",34],["Tony V.",29],["New &mdash; Cole B.",12]] },
+    90:{ kpi:[["Revenue booked","$1.28M","+22.9%",1],["Pipeline value","$3.41M","+11.4%",1],
+              ["Close rate","29.7%","+2.8 pts",1],["Avg days to close","22","-3 days",1]],
+         pipe:[["Prospect",1180000],["Report sent",902000],["Verbal",711000],["Contract out",398000],["Sold",219000]],
+         reps:[["Marcus D.",36],["Elena R.",33],["Tony V.",27],["New &mdash; Cole B.",21]] },
+    365:{ kpi:[["Revenue booked","$4.86M","+41.2%",1],["Pipeline value","$3.90M","+16.0%",1],
+              ["Close rate","28.4%","-1.1 pts",0],["Avg days to close","24","-8 days",1]],
+         pipe:[["Prospect",1420000],["Report sent",1105000],["Verbal",860000],["Contract out",512000],["Sold",298000]],
+         reps:[["Marcus D.",34],["Elena R.",31],["Tony V.",26],["New &mdash; Cole B.",28]] }
+  };
+  const DEALS = [
+    ["Sysco Cold Storage","Stafford, TX","hot","Report sent","Marcus D.",68400,"$412,800",6,
+     ["Follow-up call queued for 9:15am tomorrow","Second report copy filed under Documents","Owner + facilities contact both have the PDF"]],
+    ["Northline Distribution","Missouri City","won","Contract out","Elena R.",41200,"$243,001",2,
+     ["Contract sent for e-signature 4 hours ago","Material order drafted from the estimate","Crew pencilled in for week of the 14th"]],
+    ["Gulf Coast Plastics","Rosenberg","warm","Verbal","Tony V.",96500,"$588,900",11,
+     ["Verbal yes &mdash; contract not out. Flagged as stalling","Reminder set: call before Friday","Good / better / best sheet ready to send"]],
+    ["Bayou Logistics Park","Katy","hot","Report sent","Marcus D.",122000,"$714,200",4,
+     ["Report opened twice, not replied &mdash; escalated","Text follow-up drafted, waiting on your OK","Comparable job photos attached"]],
+    ["Harbor Freight #2188","Sugar Land","risk","Prospect","Unassigned",28900,"$168,400",34,
+     ["No contact in 34 days &mdash; going cold","Owner phone and email pulled from Reonomy","Suggest reassigning to Cole B."]],
+    ["Trinity Metal Works","Richmond","warm","Prospect","Cole B.",54300,"$317,600",9,
+     ["Satellite review flags heavy rust at the seams","Rust/metal system pre-selected in the estimator","First site visit not yet booked"]]
+  ];
+  function spark(seed,up){
+    const pts=[]; let v=50;
+    for(let i=0;i<24;i++){ v += Math.sin((i+seed)*1.7)*7 + (up?1.9:-.9) + ((i*seed)%5)-2; pts.push(Math.max(8,Math.min(92,v))); }
+    const d = pts.map((p,i)=>(i/(pts.length-1)*100).toFixed(1)+","+(100-p).toFixed(1)).join(" ");
+    const col = up ? "#3ce08a" : "#ff6b5a";
+    return '<svg class="spark" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+
+      '<polyline points="'+d+'" fill="none" stroke="'+col+'" stroke-width="2.4" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>'+
+      '<circle cx="100" cy="'+(100-pts[pts.length-1]).toFixed(1)+'" r="2.6" fill="'+col+'"/></svg>';
+  }
+  function bar(label,val,max,color,fmt){
+    const pct = Math.max(3,Math.round(val/max*100));
+    return '<div class="bar-row"><span class="bl">'+label+'</span>'+
+      '<span class="bar-track"><span class="bar-fill" style="background:'+color+'" data-w="'+pct+'"></span></span>'+
+      '<span class="bv">'+fmt(val)+'</span></div>';
+  }
+  function paintDash(range){
+    const d = DASH[range];
+    $("#dashKpis").innerHTML = d.kpi.map((k,i)=>
+      '<div class="kpi"><span class="k">'+k[0]+'</span><span class="v">'+k[1]+'</span>'+
+      '<span class="d '+(k[3]?"up":"down")+'">'+(k[3]?"▲":"▼")+' '+k[2]+'</span>'+spark(i+2,k[3])+'</div>').join("");
+    const pmax = Math.max.apply(null,d.pipe.map(p=>p[1]));
+    $("#pipeBars").innerHTML = d.pipe.map((p,i)=>
+      bar(p[0],p[1],pmax,"linear-gradient(90deg,#1e6bff,#38e8ff)",v=>v>=1e6 ? "$"+(v/1e6).toFixed(2)+"M" : "$"+Math.round(v/1000)+"k")).join("");
+    $("#pipeTotal").textContent = money(d.pipe.reduce((s,p)=>s+p[1],0));
+    const rmax = 45;
+    $("#repBars").innerHTML = d.reps.map(r=>
+      bar(r[0],r[1],rmax,"linear-gradient(90deg,#17c27a,#3ce08a)",v=>v+"%")).join("");
+    requestAnimationFrame(()=>$$("#pane-dash .bar-fill").forEach(f=>f.style.width=f.dataset.w+"%"));
+  }
+  (function dash(){
+    if(!$("#dashKpis")) return;
+    $("#dealRows").innerHTML = DEALS.map((d,i)=>
+      '<tr data-i="'+i+'" tabindex="0"><td><span class="nm">'+d[0]+'</span><span class="sb">'+d[1]+'</span></td>'+
+      '<td><span class="pill '+d[2]+'">'+d[3]+'</span></td><td>'+d[4]+'</td>'+
+      '<td class="r">'+d[5].toLocaleString("en-US")+'</td><td class="r">'+d[6]+'</td>'+
+      '<td class="r">'+d[7]+'d</td></tr>').join("");
+    function showDeal(i){
+      const d = DEALS[i];
+      $("#dealNote").style.display = "flex";
+      $("#dealNoteList").innerHTML = d[8].map(x=>"<li>"+x+"</li>").join("");
+    }
+    $$("#dealRows tr").forEach(tr=>{
+      tr.addEventListener("click",()=>showDeal(+tr.dataset.i));
+      tr.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); showDeal(+tr.dataset.i);} });
+    });
+    $$('[data-range]').forEach(b=>b.addEventListener("click",()=>{
+      $$('[data-range]').forEach(o=>o.setAttribute("aria-pressed", o===b ? "true":"false"));
+      paintDash(b.dataset.range);
+    }));
+    paintDash("30");
+  })();
+
+  /* ============================================================
+     Instant estimator
+     ============================================================ */
+  const SYS = {
+    sil2:{n:"Silicone 2-coat",mat:1.62,lab:.94,rate:11000},
+    sil1:{n:"Silicone single",mat:1.08,lab:.72,rate:14000},
+    acr2:{n:"Acrylic 2-coat",mat:1.21,lab:.90,rate:12000},
+    foam:{n:"SPF + silicone",mat:3.10,lab:1.62,rate:5000},
+    rust:{n:"Rust / metal",mat:1.74,lab:1.26,rate:8000}
+  };
+  let ACC = 1, OCC = 1;
+  function estimate(){
+    const sqft = +$("#inSqft").value;
+    const sys  = SYS[$("#inSystem").value];
+    const surf = +$("#inSurf").value;
+    const ht   = +$("#inHt").value;
+    const htF  = 1 + Math.max(0,(ht-24))*.0042;
+
+    const area = sqft*1.03;
+    const material = area*sys.mat*(1+(surf-1)*.35);
+    const days = Math.max(3,Math.ceil(sqft/sys.rate)+2);
+    const labor = area*sys.lab*surf*ACC*OCC*htF;
+    const equipment = days*760 + 1400;
+    const soft = 2500 + sqft*.032 + (ht>40?1800:0);
+    const cost = material+labor+equipment+soft;
+    const overhead = cost*.11;
+    const margin = (cost+overhead)*.28;
+    const tax = material*.07;
+    const sell = cost+overhead+margin+tax;
+
+    $("#lblSqft").textContent = sqft.toLocaleString("en-US")+" sq ft";
+    $("#lblHt").textContent = ht+" ft";
+    $("#calcTotal").textContent = money(sell);
+    $("#calcPsf").textContent = money1(sell/sqft)+" / sq ft";
+
+    const rows = [
+      ["Material",material,"linear-gradient(90deg,#1e6bff,#38e8ff)"],
+      ["Labor",labor,"linear-gradient(90deg,#17c27a,#3ce08a)"],
+      ["Equipment",equipment,"linear-gradient(90deg,#23d8c8,#7fd4ff)"],
+      ["Soft costs",soft,"linear-gradient(90deg,#5b6fa8,#8fa2c2)"],
+      ["OH + margin + tax",overhead+margin+tax,"linear-gradient(90deg,#ffb020,#ffd27a)"]
+    ];
+    const mx = Math.max.apply(null,rows.map(r=>r[1]));
+    $("#calcBars").innerHTML = rows.map(r=>bar(r[0],r[1],mx,r[2],money)).join("");
+    requestAnimationFrame(()=>$$("#calcBars .bar-fill").forEach(f=>f.style.width=f.dataset.w+"%"));
+
+    $("#calcMini").innerHTML =
+      '<div><span class="k">Crew days</span><span class="v">'+days+'</span></div>'+
+      '<div><span class="k">Coverage</span><span class="v">'+Math.round(area).toLocaleString("en-US")+' sf</span></div>'+
+      '<div><span class="k">Margin of sell</span><span class="v">'+Math.round(margin/sell*100)+'%</span></div>'+
+      '<div><span class="k">Cost / sf</span><span class="v">'+money1(cost/sqft)+'</span></div>';
+  }
+  (function calc(){
+    if(!$("#inSqft")) return;
+    ["#inSqft","#inHt","#inSystem","#inSurf"].forEach(s=>{
+      $(s).addEventListener("input",estimate); $(s).addEventListener("change",estimate);
+    });
+    $$('[data-acc]').forEach(b=>b.addEventListener("click",()=>{
+      ACC = +b.dataset.acc;
+      $$('[data-acc]').forEach(o=>o.setAttribute("aria-pressed", o===b ? "true":"false"));
+      estimate();
+    }));
+    $$('[data-occ]').forEach(b=>b.addEventListener("click",()=>{
+      OCC = +b.dataset.occ;
+      $$('[data-occ]').forEach(o=>o.setAttribute("aria-pressed", o===b ? "true":"false"));
+      estimate();
+    }));
+    estimate();
+  })();
+
+  /* ============================================================
+     Rep → racehorse
+     ============================================================ */
+  const STEPS = [
+    {t:"The knock",s:"Front desk, no appointment",stage:"Door",
+     script:"“I'm not here to sell you a roof. I'm here because your building came up on a list of flat roofs in this park that are past year twelve. Takes me nine minutes on the roof, and I'll email whoever handles the building a report either way — even if the answer is that it's fine.”",
+     app:["Pin already loaded with owner, entity and facilities contact from the property record",
+          "Objection handling one tap away — he doesn't have to improvise",
+          "Visit logged the second he taps Arrived, with time and GPS"]},
+    {t:"The roof",s:"Nine minutes, guided",stage:"Inspection",
+     script:"“I'm going to walk the perimeter first, then the field, then the penetrations. You'll get every photo I take.”",
+     app:["Guided photo protocol — the app tells him which shot is next",
+          "Trace the roof line, get area and perimeter instantly",
+          "Rust, ponding and seam failures tagged as he goes"]},
+    {t:"The number",s:"Priced in the truck, not the office",stage:"Estimate",
+     script:"“Give me four minutes in the truck and I'll have a real number for you, not a range.”",
+     app:["Measurements flow straight into the estimator",
+          "Your price book, your wages, your markups — he cannot underprice it",
+          "Good / better / best built from the same scope"]},
+    {t:"The report",s:"Sent before he leaves the lot",stage:"Proposal",
+     script:"“It's in your inbox now. Scope, photos, three options and what each one costs you over ten years.”",
+     app:["Branded PDF generated from the inspection",
+          "Recipient, method and timestamp recorded on the lead",
+          "Copy filed in the job's documents automatically"]},
+    {t:"The follow-up",s:"Where most reps quietly die",stage:"Follow-up",
+     script:"“You opened it Tuesday, so I'll assume the ten-year column is the sticking point. Can I show you the middle option?”",
+     app:["Knows the report was opened, and when",
+          "Call and text sequence queued automatically",
+          "Stalled deals surface on the dashboard before they go cold"]},
+    {t:"The close",s:"Signed at the table",stage:"Closed won",
+     script:"“Sign here and I'll have the crew on the schedule this week. Material's already priced at today's cost.”",
+     app:["Contract and contingency built from your own templates",
+          "E-signature captured on the spot",
+          "Material order drafted from the estimate, ready to send"]}
+  ];
+  (function sim(){
+    const stepsEl = $("#simSteps"); if(!stepsEl) return;
+    let i = -1;
+    function paintSteps(){
+      stepsEl.innerHTML = STEPS.map((s,n)=>
+        '<div class="step '+(n<i?"done":n===i?"now":"")+'">'+
+        '<span class="n">'+(n<i?"✓":String(n+1).padStart(2,"0"))+'</span>'+
+        '<span class="tx"><b>'+s.t+'</b><s>'+s.s+'</s></span></div>').join("");
+    }
+    function paint(){
+      if(i < 0){
+        $("#simTitle").textContent = "Ready when you are";
+        $("#simStage").textContent = "Not started";
+        $("#simStage").className = "pill";
+        $("#simBody").style.display = "";
+        $("#simScript").style.display = "none";
+        $("#simApp").style.display = "none";
+        $("#simNext").textContent = "Start the knock";
+        $("#simMeter").style.width = "0%";
+        $("#simPct").textContent = "0%";
+      } else {
+        const s = STEPS[i];
+        $("#simTitle").textContent = s.t;
+        $("#simStage").textContent = s.stage;
+        $("#simStage").className = "pill " + (i===STEPS.length-1 ? "won" : "hot");
+        $("#simBody").style.display = "none";
+        $("#simScript").style.display = "block";
+        $("#simScript").textContent = s.script;
+        $("#simApp").style.display = "flex";
+        $("#simAppList").innerHTML = s.app.map(a=>"<li>"+a+"</li>").join("");
+        const pct = Math.round((i+1)/STEPS.length*100);
+        $("#simMeter").style.width = pct+"%";
+        $("#simPct").textContent = pct+"%";
+        $("#simNext").textContent = i < STEPS.length-1 ? "Next →" : "Run it again";
+      }
+      paintSteps();
+    }
+    $("#simNext").addEventListener("click",()=>{ i = i >= STEPS.length-1 ? -1 : i+1; if(i===-1) i=0; paint(); });
+    $("#simReset").addEventListener("click",()=>{ i = -1; paint(); });
+    paint();
+  })();
+
+  /* ============================================================
+     Founding-seat counter
+     ============================================================ */
+  (function seats(){
+    const fill = $("#seatFill"); if(!fill) return;
+    const o = new IntersectionObserver(es=>{
+      es.forEach(e=>{ if(e.isIntersecting){ fill.style.width = "28%"; o.disconnect(); } });
+    },{threshold:.4});
+    o.observe(fill.closest(".counter"));
+  })();
+
+
+  /* ============================================================
+     Demo quotas — per browser, so a visitor can try the real
+     thing without the free version quietly becoming the product.
+     ============================================================ */
+  const QUOTA = { meas:3, pb:5 };
+  function qLeft(k){
+    try { return Math.max(0, QUOTA[k] - (parseInt(localStorage.getItem("gcn_demo_"+k)||"0",10)||0)); }
+    catch(e){ return QUOTA[k]; }
+  }
+  function qUse(k){
+    try { localStorage.setItem("gcn_demo_"+k, String(QUOTA[k]-qLeft(k)+1)); } catch(e){}
+  }
+
+  /* ============================================================
+     Sample aerial imagery, drawn rather than fetched
+     ============================================================ */
+  const BUILDING = [[180,120],[560,120],[560,300],[420,300],[420,390],[180,390]];
+  const FT_PER_UNIT = 0.42;
+
+  function drawAerial(cv){
+    const ctx = cv.getContext("2d");
+    ctx.save(); ctx.scale(2,2);
+    ctx.fillStyle="#222a23"; ctx.fillRect(0,0,800,520);
+    let r = 7;
+    const rnd = () => (r = (r*9301 + 49297) % 233280) / 233280;
+    for(let i=0;i<70;i++){
+      ctx.fillStyle = rnd()>.5 ? "#26302666" : "#1e261f66";
+      const x=rnd()*800,y=rnd()*520,w=30+rnd()*90;
+      ctx.beginPath(); ctx.ellipse(x,y,w,w*.55,rnd()*3,0,6.3); ctx.fill();
+    }
+    ctx.fillStyle="#2b2e33"; ctx.fillRect(0,486,800,34);
+    ctx.strokeStyle="#4a4f57"; ctx.lineWidth=1.5; ctx.setLineDash([16,14]);
+    ctx.beginPath(); ctx.moveTo(0,503); ctx.lineTo(800,503); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle="#23262b"; ctx.fillRect(120,404,600,74);
+    ctx.strokeStyle="#33383f"; ctx.lineWidth=1.4;
+    for(let x=136;x<712;x+=24){ ctx.beginPath(); ctx.moveTo(x,410); ctx.lineTo(x,442); ctx.stroke(); }
+    for(let i=0;i<11;i++){
+      ctx.fillStyle = ["#3d434b","#4a505a","#353a41","#565d68"][i%4];
+      ctx.fillRect(140+i*24+3,414,17,24);
+    }
+    ctx.save(); ctx.shadowColor="rgba(0,0,0,.7)"; ctx.shadowBlur=18; ctx.shadowOffsetX=11; ctx.shadowOffsetY=9;
+    ctx.fillStyle="#5e656b"; ctx.beginPath();
+    BUILDING.forEach((p,i)=> i ? ctx.lineTo(p[0],p[1]) : ctx.moveTo(p[0],p[1]));
+    ctx.closePath(); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.beginPath();
+    BUILDING.forEach((p,i)=> i ? ctx.lineTo(p[0],p[1]) : ctx.moveTo(p[0],p[1]));
+    ctx.closePath(); ctx.clip();
+    ctx.strokeStyle="#565d63"; ctx.lineWidth=1.2;
+    for(let x=180;x<570;x+=26){ ctx.beginPath(); ctx.moveTo(x,110); ctx.lineTo(x,400); ctx.stroke(); }
+    ctx.fillStyle="#535a61";
+    [[250,190,54,30],[330,240,42,26],[470,170,60,34],[300,330,40,26]].forEach(b=>{
+      ctx.beginPath(); ctx.ellipse(b[0],b[1],b[2],b[3],0,0,6.3); ctx.fill();
+    });
+    [[220,150,34,22],[280,150,34,22],[470,240,30,20],[520,150,26,18],[250,340,30,20]].forEach(u=>{
+      ctx.fillStyle="rgba(0,0,0,.45)"; ctx.fillRect(u[0]+5,u[1]+5,u[2],u[3]);
+      ctx.fillStyle="#8b9299"; ctx.fillRect(u[0],u[1],u[2],u[3]);
+      ctx.fillStyle="#6f767d"; ctx.fillRect(u[0]+3,u[1]+3,u[2]-6,u[3]-6);
+    });
+    ctx.strokeStyle="#7f878e"; ctx.lineWidth=5; ctx.stroke();
+    ctx.restore();
+    [[80,150,26],[92,240,20],[700,140,30],[730,250,22],[60,350,24],[740,360,26],[640,60,22],[120,60,18]].forEach(t=>{
+      ctx.fillStyle="rgba(0,0,0,.45)"; ctx.beginPath(); ctx.arc(t[0]+7,t[1]+6,t[2],0,6.3); ctx.fill();
+      ctx.fillStyle="#2f4331"; ctx.beginPath(); ctx.arc(t[0],t[1],t[2],0,6.3); ctx.fill();
+      ctx.fillStyle="#3a5340"; ctx.beginPath(); ctx.arc(t[0]-t[2]*.25,t[1]-t[2]*.25,t[2]*.6,0,6.3); ctx.fill();
+    });
+    ctx.fillStyle="rgba(18,40,72,.16)"; ctx.fillRect(0,0,800,520);
+    for(let i=0;i<2600;i++){
+      ctx.fillStyle = rnd()>.5 ? "rgba(255,255,255,.022)" : "rgba(0,0,0,.05)";
+      ctx.fillRect(rnd()*800,rnd()*520,1.4,1.4);
+    }
+    ctx.restore();
+  }
+
+  /* ============================================================
+     Roof tracer
+     ============================================================ */
+  const LTYPES = {
+    ridge:{n:"Ridge",c:"#ff6b5a"}, hip:{n:"Hip",c:"#ffb020"}, valley:{n:"Valley",c:"#38e8ff"},
+    eave:{n:"Eave",c:"#3ce08a"}, rake:{n:"Rake",c:"#7fd4ff"}, parapet:{n:"Parapet",c:"#c3d0e8"}
+  };
+  (function tracer(){
+    const svg = document.getElementById("trace"); if(!svg) return;
+    const stage=$("#measStage"), lock=$("#measLock"), btn=$("#measNext"), restart=$("#measRestart");
+    const stepEl=$("#measStep"), titleEl=$("#measTitle"), helpEl=$("#measHelp"), hud=$("#measHud");
+    const linesBox=$("#measLines"), lineList=$("#measLineList"), lineCount=$("#measLineCount");
+    const resultsBox=$("#measResults"), resultGrid=$("#measResultGrid"), quotaEl=$("#measQuota");
+
+    drawAerial($("#aerial"));
+
+    let state="pin", pin=null, poly=null, drag=-1, lines=[], pending=null, hover=null;
+
+    function refreshQuota(){
+      const n = qLeft("meas");
+      quotaEl.textContent = n===0 ? "No runs left" : n+(n===1?" demo run left":" demo runs left");
+      quotaEl.className = "quota" + (n===0 ? " out":"");
+      if(n===0 && state!=="results"){
+        lock.hidden = false;
+        if(state==="pin"){
+          setStep(1,"Out of demo runs","Three runs is enough to see how it works. The real tool has no limit.");
+          btn.disabled = true; btn.textContent = "No runs left";
+        }
+      }
+    }
+    function loc(e){
+      const r = svg.getBoundingClientRect();
+      return { x:(e.clientX-r.left)/r.width*800, y:(e.clientY-r.top)/r.height*520 };
+    }
+    const el=(t,a)=>{ const n=document.createElementNS("http://www.w3.org/2000/svg",t); for(const k in a) n.setAttribute(k,a[k]); return n; };
+
+    function render(){
+      svg.innerHTML="";
+      if(pin && !poly){
+        svg.appendChild(el("circle",{cx:pin.x,cy:pin.y,r:16,fill:"none",stroke:"#38e8ff","stroke-width":1.5,opacity:.5}));
+        svg.appendChild(el("circle",{cx:pin.x,cy:pin.y,r:5,fill:"#38e8ff"}));
+      }
+      if(poly){
+        svg.appendChild(el("polygon",{points:poly.map(p=>p[0]+","+p[1]).join(" "),
+          fill:"rgba(56,232,255,.13)",stroke:"#38e8ff","stroke-width":2.4,"stroke-linejoin":"round"}));
+      }
+      lines.forEach((l,i)=>{
+        const c = l.type ? LTYPES[l.type].c : "#f4f8ff";
+        svg.appendChild(el("line",{x1:l.a.x,y1:l.a.y,x2:l.b.x,y2:l.b.y,stroke:c,
+          "stroke-width":(hover===i?5:3.4),"stroke-linecap":"round",opacity:.95}));
+      });
+      if(pending && hover && state==="draw"){
+        svg.appendChild(el("line",{x1:pending.x,y1:pending.y,x2:hover.x,y2:hover.y,
+          stroke:"#f4f8ff","stroke-width":2,"stroke-dasharray":"6 5",opacity:.7}));
+      }
+      if(poly && state==="shape"){
+        poly.forEach((p,i)=>{
+          const h = el("circle",{cx:p[0],cy:p[1],r:9,fill:"#38e8ff",stroke:"#05070e","stroke-width":3,
+            "data-i":i,style:"cursor:grab"});
+          svg.appendChild(h);
+        });
+      }
+    }
+
+    function area(){
+      let a=0; for(let i=0;i<poly.length;i++){ const j=(i+1)%poly.length;
+        a += poly[i][0]*poly[j][1] - poly[j][0]*poly[i][1]; }
+      return Math.abs(a/2)*FT_PER_UNIT*FT_PER_UNIT;
+    }
+    function perim(){
+      let p=0; for(let i=0;i<poly.length;i++){ const j=(i+1)%poly.length;
+        p += Math.hypot(poly[j][0]-poly[i][0], poly[j][1]-poly[i][1]); }
+      return p*FT_PER_UNIT;
+    }
+    const lineFt = l => Math.hypot(l.b.x-l.a.x, l.b.y-l.a.y)*FT_PER_UNIT;
+
+    function setStep(n,t,h,ok){
+      stepEl.textContent = "STEP "+n;
+      titleEl.textContent = t; helpEl.textContent = h;
+      hud.className = "hud" + (ok ? " ok":"");
+    }
+
+    function paintLineList(){
+      lineCount.textContent = lines.length + (lines.length===1?" line":" lines");
+      lineList.innerHTML = "";
+      lines.forEach((l,i)=>{
+        const row=document.createElement("div"); row.className="lrow";
+        const c = l.type ? LTYPES[l.type].c : "#6c7d9c";
+        row.innerHTML = '<span class="sw" style="background:'+c+'"></span>'+
+          '<span class="ln">Line '+(i+1)+'</span>'+
+          '<select data-i="'+i+'" aria-label="Line '+(i+1)+' type"><option value="">Unlabeled</option>'+
+          Object.keys(LTYPES).map(k=>'<option value="'+k+'"'+(l.type===k?" selected":"")+'>'+LTYPES[k].n+'</option>').join("")+
+          '</select><span class="lf">'+lineFt(l).toFixed(1)+' lf</span>';
+        row.addEventListener("mouseenter",()=>{hover=i;render();});
+        row.addEventListener("mouseleave",()=>{hover=null;render();});
+        lineList.appendChild(row);
+      });
+      $$("#measLineList select").forEach(sel=>sel.addEventListener("change",()=>{
+        lines[+sel.dataset.i].type = sel.value || null;
+        paintLineList(); render();
+        btn.disabled = lines.some(l=>!l.type);
+        btn.textContent = btn.disabled ? "Label every line to continue" : "See the measurements";
+      }));
+    }
+
+    function showResults(){
+      const byType={};
+      lines.forEach(l=>{ byType[l.type]=(byType[l.type]||0)+lineFt(l); });
+      const a=area(), p=perim();
+      resultGrid.innerHTML =
+        '<div class="kpi"><span class="k">Footprint</span><span class="v">'+Math.round(a).toLocaleString("en-US")+'</span><span class="d" style="color:var(--ink-4)">sq ft</span></div>'+
+        '<div class="kpi"><span class="k">Squares</span><span class="v">'+(a/100).toFixed(1)+'</span><span class="d" style="color:var(--ink-4)">SQ</span></div>'+
+        '<div class="kpi"><span class="k">Perimeter</span><span class="v">'+Math.round(p).toLocaleString("en-US")+'</span><span class="d" style="color:var(--ink-4)">lf</span></div>'+
+        '<div class="kpi"><span class="k">Lines traced</span><span class="v">'+lines.length+'</span><span class="d" style="color:var(--ink-4)">'+
+          Object.keys(byType).map(k=>LTYPES[k].n+" "+Math.round(byType[k])+"'").join(" &middot; ")+'</span></div>';
+      resultsBox.hidden=false;
+      setStep(5,"Footprint complete","This is where the demo stops. Nothing here is saved.",true);
+      btn.textContent = qLeft("meas")>0 ? "Run it again" : "No runs left";
+      btn.disabled = qLeft("meas")===0;
+      state="results";
+    }
+
+    function reset(hard){
+      state="pin"; pin=null; poly=null; lines=[]; pending=null; hover=null; drag=-1;
+      linesBox.hidden=true; resultsBox.hidden=true;
+      stage.classList.add("crosshair");
+      setStep(1,"Drop a pin on the roof","Click anywhere on the large building. The detector finds the footprint from there.");
+      btn.disabled=true; btn.textContent="Waiting for a pin…";
+      $("#measFoot").textContent = "Sample imagery · 1 px ≈ "+FT_PER_UNIT+" ft";
+      render(); if(hard) refreshQuota();
+    }
+
+    svg.addEventListener("pointerdown",e=>{
+      if(state==="shape"){
+        const i = e.target.getAttribute && e.target.getAttribute("data-i");
+        if(i!==null && i!==undefined){ drag=+i; svg.setPointerCapture(e.pointerId); }
+        return;
+      }
+      if(state==="pin"){
+        if(qLeft("meas")===0){ lock.hidden=false; return; }
+        qUse("meas"); refreshQuota();
+        pin = loc(e); render();
+        stage.classList.remove("crosshair");
+        setStep(1,"Detecting the footprint…","Reading the roof edges out from your pin.");
+        btn.textContent="Detecting…";
+        setTimeout(()=>{
+          let r=13; const jit=()=>{ r=(r*9301+49297)%233280; return (r/233280-.5)*30; };
+          poly = BUILDING.map(pt=>[pt[0]+jit(),pt[1]+jit()]);
+          state="shape"; render();
+          setStep(2,"Drag the corners onto the roof edges","The detector gets you close. Pull each handle until the outline sits on the real edge — good enough is good enough.");
+          btn.disabled=false; btn.textContent="Footprint looks good";
+        }, reduced?0:1100);
+        return;
+      }
+      if(state==="draw"){
+        const p = loc(e);
+        if(!pending){ pending=p; }
+        else { lines.push({a:pending,b:p,type:null}); pending=null;
+               btn.disabled=false; btn.textContent="Done drawing ("+lines.length+")"; }
+        render();
+      }
+    });
+    svg.addEventListener("pointermove",e=>{
+      if(state==="shape" && drag>=0){ const p=loc(e); poly[drag]=[p.x,p.y]; render(); return; }
+      if(state==="draw" && pending){ hover=loc(e); render(); }
+    });
+    svg.addEventListener("pointerup",()=>{ drag=-1; });
+    svg.addEventListener("pointerleave",()=>{ drag=-1; });
+
+    btn.addEventListener("click",()=>{
+      if(state==="shape"){
+        state="draw"; pending=null; hover=null; render();
+        stage.classList.add("crosshair");
+        setStep(3,"Draw the roof lines","Click one end of a ridge, hip or valley, then the other. Draw as many as you like, then hit Done drawing.");
+        btn.disabled=true; btn.textContent="Draw at least one line";
+        return;
+      }
+      if(state==="draw"){
+        if(!lines.length) return;
+        state="label"; pending=null; hover=null; render();
+        stage.classList.remove("crosshair");
+        setStep(4,"Label what you drew","Ridge, hip, valley, eave, rake or parapet. The label is what turns a line into a material quantity.");
+        linesBox.hidden=false; paintLineList();
+        btn.disabled=true; btn.textContent="Label every line to continue";
+        return;
+      }
+      if(state==="label"){ showResults(); return; }
+      if(state==="results"){ reset(true); }
+    });
+    restart.addEventListener("click",()=>reset(true));
+
+    reset(true);
+  })();
+
+  /* ============================================================
+     Price book — five lookups
+     ============================================================ */
+  const BOOK = [
+    ["RFG SILC","Silicone roof coating, 2-coat, 30 mil DFT","SQ",412.80],
+    ["RFG SILC1","Silicone roof coating, single coat, 20 mil","SQ",286.40],
+    ["RFG ACRC","Acrylic elastomeric coating, 2-coat","SQ",318.90],
+    ["RFG SPF15","SPF roof, 1.5\" 3 lb closed cell + top coat","SQ",806.25],
+    ["RFG PRIME","Roof primer, spray applied","SQ",64.15],
+    ["RFG FAB6","Polyester reinforcing fabric, 6\" seam","LF",3.42],
+    ["RFG WASH","Power wash roof surface, low pressure","SQ",28.60],
+    ["RFG RUST","Rust converter / metal prep","SF",0.94],
+    ["RFG TPO60","TPO membrane, 60 mil, mechanically attached","SQ",498.00],
+    ["RFG TPOFL","TPO flashing, walls and curbs","LF",12.85],
+    ["RFG EPDM","EPDM membrane, 60 mil, fully adhered","SQ",542.10],
+    ["RFG MODB","Modified bitumen cap sheet, torch applied","SQ",468.75],
+    ["RFG BUR4","Built-up roof, 4-ply asphalt and gravel","SQ",596.40],
+    ["RFG ISO2","Polyiso insulation board, 2\" R-11.4","SF",1.62],
+    ["RFG TAPER","Tapered insulation system, average","SF",2.94],
+    ["RFG CVRBD","Cover board, 1/2\" gypsum roof board","SF",1.28],
+    ["RFG COPING","Metal coping cap, 24 ga, factory finish","LF",26.40],
+    ["RFG EDGEM","Roof edge metal / gravel stop","LF",14.20],
+    ["RFG DRIP","Drip edge, aluminum","LF",3.86],
+    ["RFG SCUP","Scupper, sheet metal, fabricate and set","EA",184.00],
+    ["RFG DRN","Roof drain, retrofit insert with clamp","EA",412.00],
+    ["RFG PITPAN","Pitch pan, fabricate, set and fill","EA",96.50],
+    ["RFG CURB","Curb flashing, up to 8 sf","EA",148.30],
+    ["RFG VENT","Pipe jack / vent flashing","EA",62.75],
+    ["RFG SKY","Skylight flashing kit, curb mount","EA",236.90],
+    ["RFG 240","Laminated composition shingle, 30 yr","SQ",284.16],
+    ["RFG 3TAB","3-tab composition shingle, 25 yr","SQ",228.40],
+    ["RFG RIDGE","Ridge cap, composition, high profile","LF",8.94],
+    ["RFG FELT","Synthetic underlayment","SQ",42.30],
+    ["RFG ICEW","Ice and water shield","SQ",96.80],
+    ["RFG VALLEY","Valley metal, W profile, 24 ga","LF",11.60],
+    ["RFG STAND","Standing seam metal panel, 24 ga","SQ",1042.00],
+    ["RFG RR1","Remove 1 layer composition shingle","SQ",64.20],
+    ["RFG RRBUR","Tear off built-up roof, 3 layers","SQ",148.70],
+    ["RFG DECKR","Roof sheathing, 7/16 OSB, replace","SF",3.18],
+    ["LAB SUPER","Roofing superintendent, per day","DAY",512.00],
+    ["EQP LIFT","Telescopic boom lift, 60 ft, per day","DAY",486.00],
+    ["EQP CRANE","Crane and operator, 40 ton, per hour","HR",312.00],
+    ["EQP DUMP","Dumpster, 30 yd, haul and disposal","EA",698.00],
+    ["EQP LADDR","Ladder hoist / conveyor, per day","DAY",184.00],
+    ["GEN PERMIT","Building permit, commercial reroof","EA",1240.00],
+    ["GEN ENG","Engineering letter, wind uplift","EA",2500.00],
+    ["GEN IR","Infrared moisture scan","SQ",18.40],
+    ["GEN CORE","Roof core sample and patch","EA",148.00]
+  ];
+  (function priceBook(){
+    const inp=$("#pbInput"); if(!inp) return;
+    const rows=$("#pbRows"), cart=$("#pbCart"), quotaEl=$("#pbQuota"),
+          slots=$("#pbSlots"), totalEl=$("#pbTotal"), note=$("#pbLockNote"),
+          countEl=$("#pbCount"), clear=$("#pbClear"), reset=$("#pbReset");
+    const MAX = QUOTA.pb;
+    let picked = [];
+
+    const esc = t => t.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+    const left = () => qLeft("pb");
+
+    function refresh(){
+      const n = left();
+      quotaEl.textContent = n===0 ? "Line-item limit reached"
+        : n + (n===1 ? " line item left to add" : " line items left to add");
+      quotaEl.className = "quota" + (n===0 ? " out" : "");
+      slots.textContent = (MAX-n) + " / " + MAX;
+      note.hidden = n>0;
+      $$("#pbRows .addbtn").forEach(b=>{
+        const inCart = picked.some(p=>p.code===b.dataset.code);
+        b.classList.toggle("in", inCart);
+        b.textContent = inCart ? "Added" : "+ Add";
+        b.disabled = inCart || n===0;
+      });
+    }
+
+    function paintCart(){
+      if(!picked.length){
+        cart.innerHTML = '<p class="empty">Nothing on the sheet yet. Add a line item from the book.</p>';
+      } else {
+        cart.innerHTML = picked.map((p,i)=>
+          '<div class="ci"><b>'+esc(p.desc)+'</b>'+
+          '<button class="x" data-rm="'+i+'" aria-label="Remove '+esc(p.desc)+'">&times;</button>'+
+          '<span class="qty"><input type="number" min="0" step="0.5" value="'+p.qty+'" data-q="'+i+'" aria-label="Quantity">'+
+          '<span class="u">'+p.unit+' &times; $'+(p.price*1.2).toFixed(2)+'</span>'+
+          '<span class="ext">$'+(p.qty*p.price*1.2).toFixed(2)+'</span></span></div>').join("");
+        $$("#pbCart [data-rm]").forEach(b=>b.addEventListener("click",()=>{
+          picked.splice(+b.dataset.rm,1); paintCart(); refresh();
+        }));
+        $$("#pbCart [data-q]").forEach(inp2=>inp2.addEventListener("input",()=>{
+          picked[+inp2.dataset.q].qty = Math.max(0, Number(inp2.value)||0);
+          paintCart(); 
+        }));
+      }
+      const t = picked.reduce((s2,p)=>s2 + p.qty*p.price*1.2, 0);
+      totalEl.textContent = "$" + t.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+    }
+
+    function add(code){
+      if(left()===0) return;
+      const b = BOOK.find(x=>x[0]===code); if(!b) return;
+      if(picked.some(p=>p.code===code)) return;
+      picked.push({code:b[0],desc:b[1],unit:b[2],price:b[3],qty:1});
+      qUse("pb"); paintCart(); refresh();
+    }
+
+    function paintRows(){
+      const q = inp.value.trim().toLowerCase();
+      const hits = q ? BOOK.filter(b=>(b[0]+" "+b[1]).toLowerCase().includes(q)) : BOOK;
+      countEl.textContent = hits.length + " of " + BOOK.length + " line items" + (q ? ' matching "'+q+'"' : " — whole book, free to browse");
+      if(!hits.length){
+        rows.innerHTML = '<tr><td colspan="6" class="pb-empty">Nothing matches that. Try roof, coating, metal, tear off, permit.</td></tr>';
+        return;
+      }
+      rows.innerHTML = hits.map(b=>
+        '<tr><td class="sb" style="white-space:nowrap">'+b[0]+'</td>'+
+        '<td><span class="nm">'+esc(b[1])+'</span></td>'+
+        '<td class="sb">'+b[2]+'</td>'+
+        '<td class="r" style="color:var(--ink)">$'+b[3].toFixed(2)+'</td>'+
+        '<td class="r" style="color:var(--grass)">$'+(b[3]*1.2).toFixed(2)+'</td>'+
+        '<td class="r"><button class="addbtn" data-code="'+b[0]+'">+ Add</button></td></tr>').join("");
+      $$("#pbRows .addbtn").forEach(btn2=>btn2.addEventListener("click",()=>add(btn2.dataset.code)));
+      refresh();
+    }
+
+    inp.addEventListener("input",paintRows);
+    clear.addEventListener("click",()=>{ inp.value=""; paintRows(); });
+    reset.addEventListener("click",()=>{ picked=[]; paintCart(); refresh(); });
+    $$(".pb-chip").forEach(c=>c.addEventListener("click",()=>{ inp.value=c.dataset.q; paintRows(); }));
+    paintRows(); paintCart(); refresh();
+  })();
+
+
+  /* ============================================================
+     Depth: pointer tilt, a cursor that reacts, scroll parallax
+     ============================================================ */
+  (function depth(){
+    if(reduced) return;
+    const fine = window.matchMedia("(hover:hover) and (pointer:fine)").matches;
+
+    /* --- scroll progress + parallax --- */
+    const sb = $("#sbFill"), scene = $(".scene");
+    let ticking = false;
+    function onScroll(){
+      if(ticking) return; ticking = true;
+      requestAnimationFrame(()=>{
+        const y = window.scrollY;
+        const h = document.documentElement.scrollHeight - window.innerHeight;
+        if(sb) sb.style.width = (h>0 ? Math.min(100,(y/h)*100) : 0) + "%";
+        if(scene) scene.style.setProperty("--py", (-y*0.06).toFixed(1)+"px");
+        $$(".aurora").forEach((a,i)=>{
+          a.style.marginTop = (y * (0.03 + i*0.018)).toFixed(1) + "px";
+        });
+        const gf = $(".gridfloor");
+        if(gf) gf.style.opacity = String(Math.max(.25, 1 - y/2200));
+        ticking = false;
+      });
+    }
+    window.addEventListener("scroll",onScroll,{passive:true});
+    onScroll();
+
+    /* --- tilt: cards lean toward the pointer, like the sign-in card --- */
+    function bindTilt(el,max){
+      const m = max || 7;
+      const move = e => {
+        const r = el.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width;
+        const py = (e.clientY - r.top) / r.height;
+        el.style.setProperty("--ry", ((px - .5) *  m * 2).toFixed(2) + "deg");
+        el.style.setProperty("--rx", ((.5 - py) *  m * 1.4).toFixed(2) + "deg");
+        el.style.setProperty("--gx", (px*100).toFixed(1) + "%");
+        el.style.setProperty("--gy", (py*100).toFixed(1) + "%");
+        el.classList.add("lit");
+      };
+      const leave = () => {
+        el.style.setProperty("--rx","0deg"); el.style.setProperty("--ry","0deg");
+        el.classList.remove("lit");
+      };
+      el.addEventListener("pointermove",move);
+      el.addEventListener("pointerleave",leave);
+    }
+    if(fine) $$(".tilt3d").forEach(el=>bindTilt(el, el.classList.contains("cta") ? 3.5 : 7));
+
+    /* --- the cursor --- */
+    if(!fine) return;
+    const dot = $("#cur"), ring = $("#curRing");
+    let rx = window.innerWidth/2, ry = window.innerHeight/2, tx = rx, ty = ry;
+    document.body.classList.add("has-cursor");
+    window.addEventListener("pointermove",e=>{
+      tx = e.clientX; ty = e.clientY;
+      dot.style.transform = "translate3d("+(tx-3.5)+"px,"+(ty-3.5)+"px,0)";
+      const t = e.target;
+      const hot = t.closest && t.closest("a,button,input,select,.app-row,.mod,tbody tr,.tab,.pb-chip");
+      ring.classList.toggle("hot", !!hot);
+    },{passive:true});
+    (function follow(){
+      rx += (tx-rx)*.16; ry += (ty-ry)*.16;
+      const s = ring.classList.contains("hot") ? 26 : 17;
+      ring.style.transform = "translate3d("+(rx-s)+"px,"+(ry-s)+"px,0)";
+      requestAnimationFrame(follow);
+    })();
+    window.addEventListener("pointerleave",()=>document.body.classList.remove("has-cursor"));
+    window.addEventListener("pointerenter",()=>document.body.classList.add("has-cursor"));
+  })();
+
+  /* ============================================================
+     Smooth in-page nav
+     ============================================================ */
+  $$('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{
+    const id = a.getAttribute("href");
+    if(id.length < 2) return;
+    const el = document.querySelector(id);
+    if(!el) return;
+    e.preventDefault();
+    el.scrollIntoView({behavior: reduced ? "auto" : "smooth", block:"start"});
+  }));
+})();
+</script>
+
+</body>
+</html>
