@@ -187,12 +187,31 @@ export const Route = createFileRoute("/api/build-roof-estimate")({
           }
         }
 
-        // Resolve catalog (codes -> id/name/price)
-        const allCodes = [
+        // Template slots (RFG-*/FL-*) are internal names, not price book codes.
+        // The map turns each one into the real catalog code so the line prices.
+        const slotCodes = [
           ...systemItems.map((i) => i.code),
           ...flItems.map((i) => i.code),
           ...damage.keys(),
         ];
+        const { data: mapRows = [] } = await supabase
+          .from("roof_template_code_map")
+          .select("slot_code, company_id, target_code, qty_factor")
+          .eq("is_active", true)
+          .in("slot_code", slotCodes);
+        type MapRow = { slot_code: string; company_id: string | null; target_code: string | null; qty_factor: number | null };
+        const slotMap = new Map<string, { code: string; factor: number }>();
+        for (const r of ((mapRows ?? []) as MapRow[])) {
+          if (!r.target_code) continue;
+          // A company-specific row wins over the platform default.
+          const existing = slotMap.get(r.slot_code);
+          if (existing && r.company_id === null) continue;
+          slotMap.set(r.slot_code, { code: r.target_code, factor: Number(r.qty_factor ?? 1) || 1 });
+        }
+        const resolveSlot = (code: string) => slotMap.get(code) ?? { code, factor: 1 };
+
+        // Resolve catalog (codes -> id/name/price)
+        const allCodes = Array.from(new Set(slotCodes.map((c) => resolveSlot(c).code)));
         const { data: catalog = [] } = await supabase
           .from("line_item_master")
           .select("id, code, name, unit, trade, default_price")
@@ -211,28 +230,34 @@ export const Route = createFileRoute("/api/build-roof-estimate")({
           priceMap = Object.fromEntries((prices ?? []).map((p) => [p.line_item_master_id, Number(p.unit_price)]));
         }
 
-        type PreviewItem = { code: string; name: string; qty: number; unit: string; unit_price: number; source: "system" | "fl_code" | "ai_photo"; line_item_id: string | null; trade: string };
+        type PreviewItem = { code: string; slot_code: string | null; name: string; qty: number; unit: string; unit_price: number; source: "system" | "fl_code" | "ai_photo"; line_item_id: string | null; trade: string; unmatched: boolean; reason: string | null };
         const preview: PreviewItem[] = [];
 
-        const push = (code: string, qty: number, unit: string, source: PreviewItem["source"], fallbackName?: string) => {
-          const cat = catByCode.get(code);
+        const push = (code: string, qty: number, unit: string, source: PreviewItem["source"], fallbackName?: string, reason?: string) => {
+          const mapped = resolveSlot(code);
+          const cat = catByCode.get(mapped.code);
           const id = cat?.id ?? null;
           const price = id && priceMap[id] != null ? priceMap[id] : Number(cat?.default_price ?? 0);
+          const finalQty = Math.round(qty * mapped.factor * 100) / 100;
           preview.push({
-            code,
+            code: cat?.code ?? mapped.code,
+            slot_code: mapped.code === code ? null : code,
             name: cat?.name ?? fallbackName ?? code,
-            qty,
+            qty: finalQty,
             unit: cat?.unit ?? unit,
             unit_price: price,
             source,
             line_item_id: id,
             trade: cat?.trade ?? "roofing",
+            unmatched: !cat,
+            reason: reason ?? null,
           });
         };
 
-        for (const i of systemItems) push(i.code, i.qty, i.unit, "system");
-        for (const i of flItems) push(i.code, i.qty, i.unit, "fl_code");
-        for (const [code, d] of damage) push(code, d.qty, d.unit, "ai_photo", d.description);
+        for (const i of systemItems) push(i.code, i.qty, i.unit, "system", undefined, `Standard for a ${system.replaceAll("_", " ")} roof`);
+        for (const i of flItems) push(i.code, i.qty, i.unit, "fl_code", undefined, "Florida code package");
+        for (const [code, d] of damage) push(code, d.qty, d.unit, "ai_photo", d.description, d.description);
+
 
         // Persist detected roof_system on the job for future runs.
         await supabase.from("jobs").update({ roof_system: system }).eq("id", job_id);
