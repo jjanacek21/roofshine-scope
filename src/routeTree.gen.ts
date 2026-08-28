@@ -71,6 +71,7 @@ import { Route as ApiReportAiRouteImport } from './routes/api.report-ai'
 import { Route as ApiRkAiRouteImport } from './routes/api.rk-ai'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
+import { Route as BookKindRouteImport } from './routes/book.$kind'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as CbIndexRouteImport } from './routes/cb.index'
 import { Route as CbAcceptRouteImport } from './routes/cb.accept'
@@ -468,6 +469,11 @@ const ApiSolarRoofExtractRoute = ApiSolarRoofExtractRouteImport.update({
 const ApiTrainFromPdfRoute = ApiTrainFromPdfRouteImport.update({
   id: '/api/train-from-pdf',
   path: '/api/train-from-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookKindRoute = BookKindRouteImport.update({
+  id: '/book/$kind',
+  path: '/book/$kind',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CSlugRoute = CSlugRouteImport.update({
@@ -975,6 +981,7 @@ export interface FileRoutesByFullPath {
   '/api/rk-ai': typeof ApiRkAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
+  '/book/$kind': typeof BookKindRoute
   '/c/$slug': typeof CSlugRoute
   '/cb/accept': typeof CbAcceptRoute
   '/cb/admin': typeof CbAdminRouteWithChildren
@@ -1119,6 +1126,7 @@ export interface FileRoutesByTo {
   '/api/rk-ai': typeof ApiRkAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
+  '/book/$kind': typeof BookKindRoute
   '/c/$slug': typeof CSlugRoute
   '/cb/accept': typeof CbAcceptRoute
   '/cb/companies': typeof CbCompaniesRoute
@@ -1270,6 +1278,7 @@ export interface FileRoutesById {
   '/api/rk-ai': typeof ApiRkAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
+  '/book/$kind': typeof BookKindRoute
   '/c/$slug': typeof CSlugRoute
   '/cb/accept': typeof CbAcceptRoute
   '/cb/admin': typeof CbAdminRouteWithChildren
@@ -1424,6 +1433,7 @@ export interface FileRouteTypes {
     | '/api/rk-ai'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
+    | '/book/$kind'
     | '/c/$slug'
     | '/cb/accept'
     | '/cb/admin'
@@ -1568,6 +1578,7 @@ export interface FileRouteTypes {
     | '/api/rk-ai'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
+    | '/book/$kind'
     | '/c/$slug'
     | '/cb/accept'
     | '/cb/companies'
@@ -1718,6 +1729,7 @@ export interface FileRouteTypes {
     | '/api/rk-ai'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
+    | '/book/$kind'
     | '/c/$slug'
     | '/cb/accept'
     | '/cb/admin'
@@ -1842,6 +1854,7 @@ export interface RootRouteChildren {
   ApiRkAiRoute: typeof ApiRkAiRoute
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
+  BookKindRoute: typeof BookKindRoute
   CSlugRoute: typeof CSlugRoute
   CbAcceptRoute: typeof CbAcceptRoute
   CbAdminRoute: typeof CbAdminRouteWithChildren
@@ -2311,6 +2324,13 @@ declare module '@tanstack/react-router' {
       path: '/api/train-from-pdf'
       fullPath: '/api/train-from-pdf'
       preLoaderRoute: typeof ApiTrainFromPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book/$kind': {
+      id: '/book/$kind'
+      path: '/book/$kind'
+      fullPath: '/book/$kind'
+      preLoaderRoute: typeof BookKindRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/c/$slug': {
@@ -3250,6 +3270,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiRkAiRoute: ApiRkAiRoute,
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
+  BookKindRoute: BookKindRoute,
   CSlugRoute: CSlugRoute,
   CbAcceptRoute: CbAcceptRoute,
   CbAdminRoute: CbAdminRouteWithChildren,
