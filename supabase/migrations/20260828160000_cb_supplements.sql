@@ -17,6 +17,11 @@ create table if not exists public.cb_supplements (
   carrier_total numeric,
   -- [{code,name,unit,qty,unit_price,total}] exactly as printed on their estimate
   lines jsonb not null default '[]'::jsonb,
+  -- Xactimate's own measurements off their sketch page. More accurate than
+  -- ours when present, so they win on quantity.
+  carrier_measure jsonb not null default '{}'::jsonb,
+  -- what the inspection photos support, kept so a re-open does not re-bill vision
+  photo_findings jsonb not null default '[]'::jsonb,
   -- [{id,label,unit,qty,backing,kind,carrierQty,carrierName}] derived from our own numbers
   gaps jsonb not null default '[]'::jsonb,
   -- gap ids the rep has already pushed into the estimate
