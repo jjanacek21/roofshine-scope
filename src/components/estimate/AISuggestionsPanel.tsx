@@ -135,11 +135,23 @@ export function AISuggestionsPanel({
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium text-foreground">
                   <span className="font-mono-num text-purple-300">{it.code}</span> · {it.name}
+                  {it.unmatched && (
+                    <span className="ml-1.5 rounded bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-400">
+                      no catalog match
+                    </span>
+                  )}
                 </p>
                 <p className="font-mono-num text-[10px] text-muted-foreground">
                   {it.qty} {it.unit} × ${it.unit_price.toFixed(2)} = ${(it.qty * it.unit_price).toFixed(2)}
+                  {it.slot_code ? <span className="ml-1 font-sans">· from {it.slot_code}</span> : null}
                 </p>
+                {it.reason && (
+                  <p className="truncate text-[10px] italic text-muted-foreground" title={it.reason}>
+                    why: {it.reason}
+                  </p>
+                )}
               </div>
+
             </div>
             <button
               onClick={() => setDismissed((p) => new Set(p).add(it.code))}
