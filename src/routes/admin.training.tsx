@@ -240,6 +240,9 @@ function AdminTrainingCenter() {
           { id: "runs" as const, label: "AI Measurements", icon: Sparkles, count: runs.length },
           { id: "pdfs" as const, label: "Ground-truth PDFs", icon: FileText, count: rows.length },
           { id: "photos" as const, label: "Photo Analyses", icon: Camera, count: sessions.length },
+          { id: "reference" as const, label: "Reference Library", icon: ImageIcon, count: 0 },
+          { id: "mapping" as const, label: "Code Mapping", icon: Link2, count: 0 },
+
         ].map((t) => (
           <button
             key={t.id}
