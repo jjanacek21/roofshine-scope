@@ -388,11 +388,13 @@ export const cbSubmitDemoRequest = createServerFn({ method: "POST" })
         ),
       });
 
-      const { data: admins } = await supabaseAdmin
-        .from("profiles")
-        .select("email")
-        .eq("role", "super_admin");
-      const to = (admins ?? []).map((a) => a.email).filter((e): e is string => !!e);
+      /* Demo requests are sales leads, so they go to the company inbox rather
+         than to whoever holds the super_admin role. Same rule as the GCN
+         booking flow — one place to watch for both platforms. */
+      const to = (process.env["BOOKING_NOTIFY_TO"] || "Admin@gcn.support")
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
       if (to.length) {
         await sendMail({
           to,

@@ -167,6 +167,9 @@ function ownerEmail(input: BookingInput) {
   };
 }
 
+/** The Global Contractor Network company inbox. Every booking lands here. */
+const GCN_INBOX = "Admin@gcn.support";
+
 export const submitBooking = createServerFn({ method: "POST" })
   .validator((d: BookingInput) => d)
   .handler(async ({ data }) => {
@@ -199,23 +202,14 @@ export const submitBooking = createServerFn({ method: "POST" })
     } as never);
     if (error) throw new Error(error.message);
 
-    /* Who gets told. Reads the platform's own super admins rather than a
-       hardcoded inbox, so adding an admin adds a recipient. */
-    const { data: admins } = await supabaseAdmin
-      .from("profiles")
-      .select("email")
-      .eq("role", "super_admin");
-    const notify = (admins ?? [])
-      .map((a) => (a as { email: string | null }).email)
-      .filter((e): e is string => !!e);
-    const extra = process.env["BOOKING_NOTIFY_TO"];
-    if (extra)
-      notify.push(
-        ...extra
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-      );
+    /* Who gets told. Bookings are sales leads, so they go to the company
+       inbox rather than to whoever happens to hold the super_admin role —
+       promoting an admin should not quietly start forwarding leads to them.
+       BOOKING_NOTIFY_TO overrides, and accepts a comma-separated list. */
+    const notify = (process.env["BOOKING_NOTIFY_TO"] || GCN_INBOX)
+      .split(",")
+      .map((e) => e.trim())
+      .filter(Boolean);
 
     const cust = customerEmail(data);
     const own = ownerEmail(data);
