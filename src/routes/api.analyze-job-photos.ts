@@ -128,6 +128,42 @@ export const Route = createFileRoute("/api/analyze-job-photos")({
           },
         ];
 
+        // Labeled hardware/accessory library — teaches the model our naming and codes.
+        const { data: refPhotos = [] } = await supabase
+          .from("ai_reference_photos")
+          .select("label, category, trade, line_item_code, default_unit, notes, storage_path, bucket")
+          .eq("is_active", true)
+          .limit(60);
+        type RefRow = { label: string; category: string; trade: string; line_item_code: string | null; default_unit: string | null; notes: string | null; storage_path: string; bucket: string };
+        const refRows = (refPhotos ?? []) as RefRow[];
+        const relevantRefs = refRows.filter((r) => !tradeHint || r.trade === tradeHint);
+        const referenceText = relevantRefs
+          .map((r) => `- ${r.label} (${r.category})${r.line_item_code ? ` → code ${r.line_item_code}` : ""}${r.default_unit ? ` [${r.default_unit}]` : ""}${r.notes ? ` — ${r.notes}` : ""}`)
+          .join("\n");
+
+        // Up to 6 labeled example images alongside the jobsite photo.
+        const refImages: Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }> = [];
+        for (const r of relevantRefs.slice(0, 6)) {
+          const { data: rs } = await supabase.storage
+            .from(r.bucket || "ai-reference-photos")
+            .createSignedUrl(r.storage_path, 600);
+          if (!rs?.signedUrl) continue;
+          refImages.push({ type: "text", text: `REFERENCE — ${r.label}${r.line_item_code ? ` (code ${r.line_item_code})` : ""}` });
+          refImages.push({ type: "image_url", image_url: { url: rs.signedUrl } });
+        }
+
+        // Corrections a human made previously, so the same mistake stops repeating.
+        const { data: rules = [] } = await supabase
+          .from("photo_learning_rules")
+          .select("match_phrase, wrong_code, correct_code, correct_unit, guidance, trade, asset_type")
+          .eq("status", "active")
+          .limit(80);
+        type RuleRow = { match_phrase: string; wrong_code: string | null; correct_code: string | null; correct_unit: string | null; guidance: string | null; trade: string | null; asset_type: string | null };
+        const rulesText = ((rules ?? []) as RuleRow[])
+          .filter((r) => !tradeHint || !r.trade || r.trade === tradeHint)
+          .map((r) => `- When you see "${r.match_phrase}"${r.asset_type ? ` on ${r.asset_type}` : ""}: use ${r.correct_code ?? "the corrected code"}${r.correct_unit ? ` (${r.correct_unit})` : ""}${r.wrong_code ? `, NOT ${r.wrong_code}` : ""}.${r.guidance ? ` ${r.guidance}` : ""}`)
+          .join("\n");
+
         const userPrompt = `You are a senior residential restoration estimator. Analyze this jobsite photo for damage and required repairs.
 
 GUIDANCE:
@@ -139,8 +175,16 @@ GUIDANCE:
 - Always include suggested_qty when reporting damage. Mark confidence=low when guessing.
 - Florida-specific: hurricane uplift patterns, HVHZ requirements, stucco hairline cracking, flat-roof ponding, humidity-driven mold.
 
+HARDWARE & ACCESSORY REFERENCE (how this company names these parts, and the code each maps to):
+${referenceText || "(none yet)"}
+
+LEARNED CORRECTIONS (a human already corrected these — follow them exactly):
+${rulesText || "(none yet)"}
+
 CATALOG (use these codes when matching):
 ${catalogText || "(no items)"}
+
+The jobsite photo to analyze is the LAST image. Any earlier images are labeled reference examples only — never report damage from them.
 
 Return your analysis via the analyze_photo tool.`;
 
@@ -158,6 +202,8 @@ Return your analysis via the analyze_photo tool.`;
                 role: "user",
                 content: [
                   { type: "text", text: userPrompt },
+                  ...refImages,
+                  { type: "text", text: "JOBSITE PHOTO TO ANALYZE:" },
                   { type: "image_url", image_url: { url: signed.signedUrl } },
                 ],
               },
@@ -166,6 +212,7 @@ Return your analysis via the analyze_photo tool.`;
             tool_choice: { type: "function", function: { name: "analyze_photo" } },
           }),
         });
+
         if (!r.ok) {
           const txt = await r.text();
           return Response.json({ error: "AI gateway error", status: r.status, detail: txt.slice(0, 500) }, { status: 502 });
