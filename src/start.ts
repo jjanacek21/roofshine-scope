@@ -33,20 +33,22 @@ const abortTolerantMiddleware = createMiddleware({ type: 'request' }).server(
  * reports it as an unhandled error and the dev overlay paints a blank screen.
  * Swallow only that specific case at the process level.
  */
-declare const process:
-  | { on?: (event: string, cb: (err: unknown) => void) => void; __gcnAbortGuard?: boolean }
-  | undefined;
-
-if (typeof process !== 'undefined' && process?.on && !process.__gcnAbortGuard) {
-  process.__gcnAbortGuard = true;
-  const swallow = (error: unknown) => {
-    if (!isClientAbort(error)) {
-      console.error('[unhandled]', error);
-    }
+const proc = (globalThis as unknown as {
+  process?: {
+    on?: (event: string, cb: (err: unknown) => void) => void;
+    __gcnAbortGuard?: boolean;
   };
-  process.on('unhandledRejection', swallow);
-  process.on('uncaughtException', swallow);
+}).process;
+
+if (proc?.on && !proc.__gcnAbortGuard) {
+  proc.__gcnAbortGuard = true;
+  const swallow = (error: unknown) => {
+    if (!isClientAbort(error)) console.error('[unhandled]', error);
+  };
+  proc.on('unhandledRejection', swallow);
+  proc.on('uncaughtException', swallow);
 }
+
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [abortTolerantMiddleware],
