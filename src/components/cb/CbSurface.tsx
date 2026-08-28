@@ -40,11 +40,12 @@ function useKeyboardInset() {
 export function CbSurface({
   children,
   className = "",
-  theme = "light",
+  theme = "dark",
 }: {
   children: ReactNode;
   className?: string;
-  /** Surface theme. Palette values live in the `[data-cb]` block of src/styles.css. */
+  /** Surface theme. Both values resolve to the same dark palette; the values
+   *  live in the `[data-cb]` block of src/styles.css. */
   theme?: "dark" | "light";
 }) {
   useKeyboardInset();
