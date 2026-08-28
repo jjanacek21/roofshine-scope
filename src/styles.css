@@ -1352,7 +1352,7 @@
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  color: var(--cb-on-accent);
+  color: #fff;
   background: var(--cb-accent);
   box-shadow: 0 10px 24px -10px var(--cb-accent);
 }
@@ -1377,7 +1377,10 @@
 [data-cb] .cb-input { min-height: 52px; }
 
 /* --- 5. Sunlight legibility: stronger text pairs on the field surfaces --- */
-[data-cb][data-cb-theme="light"],
+[data-cb][data-cb-theme="light"] {
+  --cb-text-dim: #253040;
+  --cb-text-muted: #465266;
+}
 [data-cb][data-cb-theme="dark"] {
   --cb-text-dim: #dde4ee;
   --cb-text-muted: #b3bdcc;
@@ -1758,4 +1761,44 @@
   [data-cb] .cb-deck .g4 { grid-template-columns: minmax(0, 1fr); }
   [data-cb] .cb-deck .flow, [data-cb] .cb-deck .steps { grid-template-columns: minmax(0, 1fr); }
   [data-cb] .cb-deck .tbl { font-size: 16px; }
+}
+
+
+/* =========================================================
+   gcn.claims marketing pages only.
+   The public site borrows the Global Contractor Network dark
+   palette so the two properties read as one product. The Claim
+   Buddy app itself is untouched and keeps its own light and dark
+   themes above. Applied by MarketingShell via data-cb-theme.
+   ========================================================= */
+[data-cb][data-cb-theme="gcn"] {
+  --cb-accent: #3ce08a;
+  --cb-accent-bright: #4ef0a2;
+  --cb-accent-deep: #17c27a;
+  --cb-accent-rgb: 60, 224, 138;
+
+  --cb-bg: #05070e;
+  --cb-surface: #0d121d;
+  --cb-surface-2: #131a29;
+  --cb-hairline: rgba(126, 166, 255, 0.14);
+  --cb-hairline-strong: rgba(126, 166, 255, 0.3);
+  --cb-text: #f4f8ff;
+  --cb-text-dim: #c3d0e8;
+  --cb-text-muted: #8fa2c2;
+  --cb-on-accent: #04120a;
+
+  --cb-success: #3ce08a;
+  --cb-warning: #ffb020;
+  --cb-danger: #ff6b5a;
+
+  /* On a dark ground the lift comes from shadow spread plus a hairline top
+     highlight, not from a lighter fill. */
+  --cb-top-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --cb-bottom-inset: inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+  --cb-shadow-card: 0 10px 26px -14px rgba(0, 0, 0, 0.8), 0 1px 2px rgba(0, 0, 0, 0.5);
+  --cb-shadow-raised: 0 22px 48px -24px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.5);
+  --cb-shadow-floating: 0 40px 80px -32px rgba(0, 0, 0, 0.9), 0 4px 10px rgba(0, 0, 0, 0.55);
+
+  color: var(--cb-text);
+  background-color: var(--cb-bg);
 }
