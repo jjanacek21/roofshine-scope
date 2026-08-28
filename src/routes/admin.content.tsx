@@ -82,7 +82,7 @@ function HomePageCMS() {
       if (prev) return prev;
       const current = rows.find((r) => r.slug === slug);
       if (!current) return SITE_DEFAULTS[slug] ?? "";
-      return current.draft_html ?? current.html ?? SITE_DEFAULTS[current.slug] ?? "";
+      return current.draft_html || current.html || SITE_DEFAULTS[current.slug] || "";
     });
   }, [slug]);
 
@@ -97,7 +97,7 @@ function HomePageCMS() {
     const p = pages.find((x) => x.slug === next);
     setSlug(next);
     setDraft(
-      p ? (p.draft_html ?? p.html ?? SITE_DEFAULTS[next] ?? "") : (SITE_DEFAULTS[next] ?? ""),
+      p ? (p.draft_html || p.html || SITE_DEFAULTS[next] || "") : (SITE_DEFAULTS[next] ?? ""),
     );
     dirtyRef.current = false;
     setShowVersions(false);
