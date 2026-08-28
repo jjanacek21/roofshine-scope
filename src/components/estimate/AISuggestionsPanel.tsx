@@ -6,13 +6,17 @@ import { toast } from "sonner";
 
 type PreviewItem = {
   code: string;
+  slot_code?: string | null;
   name: string;
   qty: number;
   unit: string;
   unit_price: number;
   source: "system" | "fl_code" | "ai_photo";
   trade: string;
+  unmatched?: boolean;
+  reason?: string | null;
 };
+
 
 type Preview = {
   system: string | null;
