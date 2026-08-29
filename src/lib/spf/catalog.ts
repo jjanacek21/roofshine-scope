@@ -95,7 +95,14 @@ export async function fetchSpfCatalog(companyIdArg?: string | null): Promise<Spf
   };
   if (!companyId) return empty;
   const [products, details, stacks, stackLayers, fieldDefaults, settings] = await Promise.all([
-    supabase.from("spf_products").select("*").eq("company_id", companyId).order("sort_order"),
+    /* Company products PLUS the shared manufacturer catalogue (company_id
+       null), so a Conklin contractor gets the real product list without
+       anyone having to retype it into every company. */
+    supabase
+      .from("spf_products")
+      .select("*")
+      .or(`company_id.eq.${companyId},company_id.is.null`)
+      .order("sort_order"),
     supabase.from("spf_details").select("*").eq("company_id", companyId).order("sort_order"),
     supabase.from("spf_stacks").select("*").eq("company_id", companyId).order("sort_order"),
     supabase.from("spf_stack_layers").select("*").eq("company_id", companyId).order("sort_order"),
