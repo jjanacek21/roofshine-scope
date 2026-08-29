@@ -461,18 +461,42 @@ footer{border-top:1px solid var(--line-soft);padding:32px 0 46px}
 .watermark{display:flex;align-items:center;gap:10px;padding:11px 15px;border-radius:var(--r-sm);border:1px dashed rgba(255,176,32,.4);background:var(--amber-dim)}
 .watermark span{font-family:var(--mono);font-size:.71rem;color:var(--amber);letter-spacing:.05em}
 .bl{filter:blur(6px);-webkit-filter:blur(6px);user-select:none;-webkit-user-select:none;display:inline-block;color:var(--ink-2)}
-.kpi.open{border-color:rgba(60,224,138,.36);background:linear-gradient(180deg,rgba(60,224,138,.10),rgba(19,26,41,.55))}
-.kpi.open .v{color:var(--grass)}
-.pitchrow{display:inline-flex;border:1px solid var(--line-soft);border-radius:999px;overflow:hidden}
-.pitchrow button{font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;background:transparent;border:0;color:var(--ink-4);cursor:pointer}
-.pitchrow button[aria-pressed="true"]{background:var(--grass);color:#04120a}
-.mtable{width:100%;border-collapse:collapse}
-.mtable th{font-family:var(--mono);font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-4);text-align:left;padding:0 0 9px;font-weight:400}
-.mtable th+th,.mtable td+td{text-align:right}
-.mtable td{padding:9px 0;border-top:1px solid var(--line-soft);color:var(--ink-3);font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:.75rem}
-.mtable td.nm{color:var(--ink-2);font-family:var(--body);font-size:.86rem}
-.mtable .sw{display:inline-block;width:13px;height:4px;border-radius:2px;margin-right:9px;vertical-align:middle}
 .aerialimg{display:block;width:100%;height:auto;background:#12161c}
+.rp-tools{position:absolute;left:10px;top:10px;z-index:6;display:flex;gap:6px;flex-wrap:wrap}
+.rp-icons{position:absolute;right:10px;top:10px;z-index:6;display:flex;gap:6px}
+.rp-act{position:absolute;left:10px;right:10px;bottom:10px;z-index:6;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.mbtn{min-height:38px;padding:0 13px;border-radius:10px;font-family:var(--body);font-size:.8rem;font-weight:600;color:#fff;background:rgba(12,16,22,.78);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(6px);cursor:pointer;white-space:nowrap}
+.mbtn[aria-pressed="true"]{background:#f97316;border-color:#f97316;color:#170e04}
+.mbtn:disabled{opacity:.45;cursor:default}
+.mbtn.light{background:rgba(19,26,41,.85);border-color:var(--line-soft)}
+.mibtn{width:38px;height:38px;display:grid;place-items:center;border-radius:10px;color:#fff;background:rgba(12,16,22,.82);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(6px);cursor:pointer}
+.mibtn:disabled{opacity:.4;cursor:default}
+.rp-actnote{font-family:var(--mono);font-size:.66rem;letter-spacing:.05em;color:rgba(255,255,255,.86);background:rgba(12,16,22,.72);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:8px 11px;border-radius:9px}
+.rp-pop{position:absolute;z-index:9;width:252px;padding:13px;border-radius:14px;background:rgba(9,13,20,.96);border:1px solid rgba(255,255,255,.2);box-shadow:0 24px 50px rgba(0,0,0,.6);backdrop-filter:blur(10px)}
+.rp-poph{font-family:var(--mono);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4);margin:0 0 9px}
+.rp-popg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.rp-popg button{padding:7px 9px;border-radius:999px;font-size:.73rem;font-weight:600;border:1px solid;cursor:pointer;font-family:var(--body)}
+.rp-struct{border-radius:var(--r-sm);border:1px solid var(--line-soft);background:rgba(19,26,41,.5);padding:16px 18px}
+.rp-sh{display:flex;align-items:center;gap:10px}
+.rp-sw{width:14px;height:14px;border-radius:4px;background:#f97316;flex:0 0 auto}
+.rp-sh b{font-size:1rem}
+.rp-sa{margin-left:auto;font-family:var(--mono);font-size:.92rem;font-weight:700;color:var(--grass);font-variant-numeric:tabular-nums}
+.rp-sb{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.rp-pitchrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.rp-pitchrow button{font-family:var(--mono);font-size:.68rem;padding:6px 10px;border-radius:8px;background:rgba(8,12,21,.6);border:1px solid var(--line-soft);color:var(--ink-3);cursor:pointer}
+.rp-pitchrow button[aria-pressed="true"]{background:var(--grass);border-color:var(--grass);color:#04120a;font-weight:700}
+.rp-hint{font-size:.78rem;color:var(--ink-4);margin:14px 0 0}
+.rp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.rp-chip{font-family:var(--mono);font-size:.7rem;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid;cursor:pointer;white-space:nowrap}
+.rp-tot{border-radius:var(--r-sm);border:1px solid var(--line-soft);background:rgba(13,18,29,.62);padding:16px 18px}
+.rp-toth{font-family:var(--mono);font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-4);margin:0 0 12px}
+.rp-totg{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 22px}
+@media(min-width:620px){.rp-totg{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:900px){.rp-totg{grid-template-columns:repeat(5,1fr)}}
+.rp-totr{display:flex;align-items:baseline;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line-soft);padding-bottom:8px}
+.rp-totr .k{font-size:.78rem;color:var(--ink-4)}
+.rp-totr .v{font-family:var(--mono);font-size:.86rem;font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.rp-totr .v.open{color:var(--grass)}
 .geocred{position:absolute;right:9px;bottom:7px;z-index:4;font-family:var(--mono);font-size:.55rem;letter-spacing:.06em;color:rgba(244,248,255,.6);text-shadow:0 1px 3px rgba(0,0,0,.85);pointer-events:none}
 .blurnote{display:flex;align-items:center;gap:10px;padding:11px 15px;border-radius:var(--r-sm);border:1px solid rgba(56,232,255,.3);background:rgba(56,232,255,.07);flex-wrap:wrap}
 .blurnote span{font-size:.83rem;color:var(--ink-2)}
@@ -1011,11 +1035,11 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
           <span class="t">Roof measurement &middot; <span id="measSource">live aerial imagery</span></span>
           <span class="quota" id="measQuota" style="margin-left:auto">3 demo runs left</span>
         </div>
-        <div class="card-b" style="display:flex;flex-direction:column;gap:16px">
+        <div class="card-b" style="display:flex;flex-direction:column;gap:14px">
 
           <div class="hud" id="measHud">
             <span class="n" id="measStep">STEP 1</span>
-            <span class="m"><b id="measTitle">Drop a pin on the roof</b><span id="measHelp">Click anywhere on the house. The detector reads the footprint out from your pin.</span></span>
+            <span class="m"><b id="measTitle">Drop a pin on the roof</b><span id="measHelp">Tap the house. The tracer reads the footprint out from your pin.</span></span>
           </div>
 
           <div class="stagewrap crosshair" id="measStage">
@@ -1024,49 +1048,60 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
             <canvas id="aerialAlt" width="1600" height="1040" hidden
                     aria-label="Sample aerial imagery of a building"></canvas>
             <svg id="trace" viewBox="0 0 800 520" role="application" aria-label="Roof tracing surface"></svg>
+
+            <div class="rp-tools" id="measTools" hidden>
+              <button type="button" class="mbtn" data-tool="select" aria-pressed="true">Select</button>
+              <button type="button" class="mbtn" data-tool="refine" aria-pressed="false">Refine</button>
+              <button type="button" class="mbtn" data-tool="line" aria-pressed="false">Line</button>
+            </div>
+
+            <div class="rp-icons" id="measIcons" hidden>
+              <button type="button" class="mibtn" id="measUndo" aria-label="Undo" title="Undo">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>
+              </button>
+              <button type="button" class="mibtn" id="measRedraw" aria-label="Start over" title="Start over">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+              </button>
+            </div>
+
+            <div class="rp-act" id="measAct" hidden></div>
+            <div class="rp-pop" id="measPop" hidden></div>
             <span class="geocred" id="measCred">&copy; Mapbox &copy; Maxar</span>
+
             <div class="lockwrap" id="measLock" hidden>
               <div class="in">
                 <span class="quota out">Demo runs used</span>
                 <h4>That's the three free runs.</h4>
-                <p>The real tool has no run limit, works on live high-resolution imagery of any address, calculates pitch and generates a measurement report you can send.</p>
+                <p>The real tool has no run limit, works on live imagery of any address you type, and writes a report you can send.</p>
                 <a class="btn" href="/book/seat" target="_top">Claim a founding seat</a>
               </div>
             </div>
           </div>
 
-          <div id="measLines" hidden>
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-              <span class="eyebrow dim">Label each line you drew</span>
-              <span class="mono" style="font-size:.71rem;color:var(--ink-4)" id="measLineCount"></span>
+          <div class="rp-struct" id="measStruct" hidden>
+            <div class="rp-sh">
+              <span class="rp-sw" aria-hidden="true"></span>
+              <b>Main roof</b>
+              <span class="rp-sa" id="measSectionArea">&mdash;</span>
             </div>
-            <div class="lineitems" id="measLineList"></div>
+            <div class="rp-sb">
+              <button type="button" class="mbtn light" id="measPitchBtn">Pitch 6/12</button>
+              <button type="button" class="mbtn light" id="measLineBtn">Continue to lines</button>
+            </div>
+            <div class="rp-pitchrow" id="measPitchRow" hidden></div>
+            <p class="rp-hint">Tap any chip to relabel that run &mdash; same as the app.</p>
+            <div class="rp-chips" id="measChips"></div>
           </div>
 
-          <div id="measResults" hidden style="display:flex;flex-direction:column;gap:14px">
-            <div class="results" id="measResultGrid"></div>
+          <div class="rp-tot" id="measTotals" hidden>
+            <p class="rp-toth">Live totals</p>
+            <div class="rp-totg" id="measTotalsGrid"></div>
+          </div>
 
-            <div id="measTableWrap">
-              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-                <span class="eyebrow dim">Everything a full report carries</span>
-                <span class="mono" style="font-size:.68rem;color:var(--ink-4)">Lengths hidden in the demo</span>
-              </div>
-              <table class="mtable">
-                <thead><tr><th>Line</th><th>Length</th><th>Runs</th><th>From</th></tr></thead>
-                <tbody id="measTableBody"></tbody>
-              </table>
-            </div>
-
-            <div class="blurnote">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38e8ff" stroke-width="2" style="flex:0 0 auto"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-              <span>The roof area is yours. Every other figure &mdash; eaves, rakes, ridges, hips, valleys, flashing, pitch, waste &mdash; comes with the report, and reports are what a seat buys.</span>
-              <a class="btn sm" href="/book/seat" target="_top" style="margin-left:auto">Claim a founding seat</a>
-            </div>
-
-            <div class="watermark">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffb020" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-              <span>Temporary result &mdash; nothing here is saved, and the demo cannot export a PDF.</span>
-            </div>
+          <div class="blurnote" id="measNote" hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38e8ff" stroke-width="2" style="flex:0 0 auto"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <span>Area and squares are yours. Every run length &mdash; eaves, rakes, ridges, hips, valleys, flashing &mdash; is blurred in the demo and printed in full on the report.</span>
+            <a class="btn sm" href="/book/seat" target="_top" style="margin-left:auto">Claim a founding seat</a>
           </div>
 
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
@@ -1869,249 +1904,449 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
   }
 
   /* ============================================================
-     Roof tracer
+     Roof plan editor
+
+     A faithful miniature of the editor that ships inside the app
+     (src/components/cb/CbRoofPlanEditor.tsx). Same flow — pin drop, trace,
+     refine corners, draw lines, label runs — and deliberately the same
+     vocabulary: the edge colours, edge names and pitch list below are the
+     ones in src/lib/roof-math.ts, not marketing approximations. A visitor
+     who books a demo should recognise the screen.
      ============================================================ */
-  const LTYPES = {
-    ridge:{n:"Ridge",c:"#ff6b5a"}, hip:{n:"Hip",c:"#ffb020"}, valley:{n:"Valley",c:"#38e8ff"},
-    eave:{n:"Eave",c:"#3ce08a"}, rake:{n:"Rake",c:"#7fd4ff"}, parapet:{n:"Parapet",c:"#c3d0e8"}
+  const ETYPES = ["eave","rake","hip","ridge","valley","gutter","wall_flashing","step_flashing","transition"];
+  const ELABEL = {
+    eave:"Eave", rake:"Rake", hip:"Hip", ridge:"Ridge", valley:"Valley",
+    gutter:"Gutter", wall_flashing:"Wall Flashing", step_flashing:"Step Flashing",
+    transition:"Transition", unlabeled:"Unlabeled"
   };
-  (function tracer(){
+  const ECOLOR = {
+    eave:"#3b82f6", rake:"#8b5cf6", hip:"#f59e0b", ridge:"#ef4444", valley:"#10b981",
+    gutter:"#06b6d4", wall_flashing:"#ec4899", step_flashing:"#f97316",
+    transition:"#a3a3a3", unlabeled:"#e2e8f0"
+  };
+  const PITCHES = ["0/12","2/12","4/12","6/12","8/12","10/12","12/12"];
+  const SECTION_COLOR = "#f97316";
+
+  function pitchMult(p){
+    const m = /^(\d+)\/(\d+)$/.exec(p);
+    if(!m) return 1;
+    const run = +m[2]; if(!run) return 1;
+    const rise = +m[1];
+    return Math.sqrt(1 + (rise/run)*(rise/run));
+  }
+
+  (function roofPlan(){
     const svg = document.getElementById("trace"); if(!svg) return;
     const stage=$("#measStage"), lock=$("#measLock"), btn=$("#measNext"), restart=$("#measRestart");
     const stepEl=$("#measStep"), titleEl=$("#measTitle"), helpEl=$("#measHelp"), hud=$("#measHud");
-    const linesBox=$("#measLines"), lineList=$("#measLineList"), lineCount=$("#measLineCount");
-    const resultsBox=$("#measResults"), resultGrid=$("#measResultGrid"), quotaEl=$("#measQuota");
+    const toolsEl=$("#measTools"), iconsEl=$("#measIcons"), actEl=$("#measAct"), popEl=$("#measPop");
+    const structEl=$("#measStruct"), chipsEl=$("#measChips"), areaEl=$("#measSectionArea");
+    const pitchBtn=$("#measPitchBtn"), pitchRow=$("#measPitchRow"), lineBtn=$("#measLineBtn");
+    const totEl=$("#measTotals"), totGrid=$("#measTotalsGrid"), noteEl=$("#measNote");
+    const quotaEl=$("#measQuota"), undoBtn=$("#measUndo"), redrawBtn=$("#measRedraw");
 
-    let state="pin", pin=null, poly=null, drag=-1, lines=[], pending=null, hover=null;
+    /* The plan, shaped like the one the app persists. */
+    let plan = null;          /* { ring:[[x,y]], edges:[type], pitch, lines:[{pts,type}] } */
+    let phase = "pin";        /* pin | trace | edit | done */
+    let tool  = "select";     /* select | refine | line */
+    let draft = [];           /* line tool: points placed so far */
+    let ghost = null;         /* line tool: cursor position for the rubber band */
+    let drag  = -1;
+    let hoverEdge = -1;
+    let past  = [];
 
-    function refreshQuota(){
-      const n = qLeft("meas");
-      quotaEl.textContent = n===0 ? "No runs left" : n+(n===1?" demo run left":" demo runs left");
-      quotaEl.className = "quota" + (n===0 ? " out":"");
-      if(n===0 && state!=="results"){
-        lock.hidden = false;
-        if(state==="pin"){
-          setStep(1,"Out of demo runs","Three runs is enough to see how it works. The real tool has no limit.");
-          btn.disabled = true; btn.textContent = "No runs left";
-        }
-      }
-    }
+    const el=(t,a)=>{ const n=document.createElementNS("http://www.w3.org/2000/svg",t); for(const k in a) n.setAttribute(k,a[k]); return n; };
+    const fmt = n => Math.round(n).toLocaleString("en-US");
+    const snapshot = () => JSON.parse(JSON.stringify(plan));
+    function push(){ if(plan){ past.push(snapshot()); if(past.length>40) past.shift(); } syncIcons(); }
+
     function loc(e){
       const r = svg.getBoundingClientRect();
       return { x:(e.clientX-r.left)/r.width*800, y:(e.clientY-r.top)/r.height*520 };
     }
-    const el=(t,a)=>{ const n=document.createElementNS("http://www.w3.org/2000/svg",t); for(const k in a) n.setAttribute(k,a[k]); return n; };
+    /* SVG units -> px inside the stage, for positioning HTML overlays. */
+    function toPx(p){
+      const r = svg.getBoundingClientRect();
+      return { x:p.x/800*r.width, y:p.y/520*r.height };
+    }
 
-    function render(){
-      svg.innerHTML="";
-      if(pin && !poly){
-        svg.appendChild(el("circle",{cx:pin.x,cy:pin.y,r:16,fill:"none",stroke:"#38e8ff","stroke-width":1.5,opacity:.5}));
-        svg.appendChild(el("circle",{cx:pin.x,cy:pin.y,r:5,fill:"#38e8ff"}));
+    const FT = () => SCENE.ftPerUnit;
+    const segFt = (a,b) => Math.hypot(b[0]-a[0], b[1]-a[1]) * FT();
+
+    function ringEdges(ring){
+      const out=[];
+      for(let i=0;i<ring.length;i++) out.push([ring[i], ring[(i+1)%ring.length]]);
+      return out;
+    }
+    function planArea(ring){
+      let a=0;
+      for(let i=0;i<ring.length;i++){ const j=(i+1)%ring.length;
+        a += ring[i][0]*ring[j][1] - ring[j][0]*ring[i][1]; }
+      return Math.abs(a/2)*FT()*FT();
+    }
+
+    /* ----------------------------------------------------------
+       Auto-classification
+
+       The shipped tracer hands back edges already labelled, which is why the
+       app never opens on a wall of "Unlabeled". A footprint on its own cannot
+       tell an eave from a rake — that needs the ridge line — so every
+       perimeter run starts as an eave, which is what it is on a hip roof and
+       one tap away from right on a gable.
+       ---------------------------------------------------------- */
+    function autoClassify(ring){
+      return ringEdges(ring).map(()=>"eave");
+    }
+
+    /* ------------------------------- totals ------------------------------- */
+    function totals(){
+      const by={}; ETYPES.forEach(t=>by[t]=0);
+      let perim=0;
+      if(plan){
+        const edges = ringEdges(plan.ring);
+        edges.forEach(([a,b],i)=>{
+          const ft = segFt(a,b);
+          perim += ft;
+          const t = plan.edges[i] || "eave";
+          by[t] = (by[t]||0) + ft;
+        });
+        plan.lines.forEach(l=>{
+          let ft=0;
+          for(let i=0;i<l.pts.length-1;i++) ft += segFt(l.pts[i], l.pts[i+1]);
+          by[l.type] = (by[l.type]||0) + ft;
+        });
       }
-      if(poly){
-        svg.appendChild(el("polygon",{points:poly.map(p=>p[0]+","+p[1]).join(" "),
-          fill:"rgba(56,232,255,.13)",stroke:"#38e8ff","stroke-width":2.4,"stroke-linejoin":"round"}));
-      }
-      lines.forEach((l,i)=>{
-        const c = l.type ? LTYPES[l.type].c : "#f4f8ff";
-        svg.appendChild(el("line",{x1:l.a.x,y1:l.a.y,x2:l.b.x,y2:l.b.y,stroke:c,
-          "stroke-width":(hover===i?5:3.4),"stroke-linecap":"round",opacity:.95}));
+      const flat = plan ? planArea(plan.ring) : 0;
+      const area = flat * pitchMult(plan ? plan.pitch : "6/12");
+      return { flat, area, squares:area/100, perim, by };
+    }
+
+    function paintTotals(){
+      const t = totals();
+      /* Same ten rows, same order, as the app's Live totals strip. */
+      const rows = [
+        ["Squares", t.squares.toFixed(2), true],
+        ["Area", fmt(t.area)+" sf", true],
+        ["Ridge", fmt(t.by.ridge)+" LF", false],
+        ["Hip", fmt(t.by.hip)+" LF", false],
+        ["Valley", fmt(t.by.valley)+" LF", false],
+        ["Rake", fmt(t.by.rake)+" LF", false],
+        ["Eave", fmt(t.by.eave + t.by.gutter)+" LF", false],
+        ["Gutter", fmt(t.by.gutter)+" LF", false],
+        ["Wall flash", fmt(t.by.wall_flashing)+" LF", false],
+        ["Step flash", fmt(t.by.step_flashing)+" LF", false]
+      ];
+      totGrid.innerHTML = rows.map(([k,v,open])=>
+        '<div class="rp-totr"><span class="k">'+k+'</span><span class="v'+(open?" open":" bl")+'">'+v+'</span></div>'
+      ).join("");
+      areaEl.textContent = fmt(t.area)+" sf";
+    }
+
+    function paintChips(){
+      if(!plan){ chipsEl.innerHTML=""; return; }
+      const edges = ringEdges(plan.ring);
+      const parts = edges.map(([a,b],i)=>{
+        const t = plan.edges[i] || "eave";
+        return '<button type="button" class="rp-chip" data-kind="edge" data-i="'+i+'" '+
+          'style="background:'+ECOLOR[t]+'22;color:'+ECOLOR[t]+';border-color:'+ECOLOR[t]+'66">'+
+          ELABEL[t]+' <span class="bl">'+fmt(segFt(a,b))+'</span></button>';
       });
-      if(pending && hover && state==="draw"){
-        svg.appendChild(el("line",{x1:pending.x,y1:pending.y,x2:hover.x,y2:hover.y,
-          stroke:"#f4f8ff","stroke-width":2,"stroke-dasharray":"6 5",opacity:.7}));
+      plan.lines.forEach((l,i)=>{
+        let ft=0; for(let k=0;k<l.pts.length-1;k++) ft+=segFt(l.pts[k], l.pts[k+1]);
+        parts.push('<button type="button" class="rp-chip" data-kind="line" data-i="'+i+'" '+
+          'style="background:'+ECOLOR[l.type]+'22;color:'+ECOLOR[l.type]+';border-color:'+ECOLOR[l.type]+'66">'+
+          ELABEL[l.type]+' <span class="bl">'+fmt(ft)+'</span></button>');
+      });
+      chipsEl.innerHTML = parts.join("");
+      $$("#measChips .rp-chip").forEach(c=>c.addEventListener("click",()=>{
+        openLabel(c.dataset.kind, +c.dataset.i, c);
+      }));
+    }
+
+    /* ------------------------------- label ------------------------------- */
+    let popFor = null;
+    function openLabel(kind, i, anchorEl){
+      popFor = { kind, i };
+      popEl.innerHTML =
+        '<p class="rp-poph">'+(kind==="edge"?"Label this run":"Label this line")+'</p>'+
+        '<div class="rp-popg">'+
+        ETYPES.map(t=>'<button type="button" data-t="'+t+'" style="background:'+ECOLOR[t]+'1f;color:'+ECOLOR[t]+';border-color:'+ECOLOR[t]+'59">'+ELABEL[t]+'</button>').join("")+
+        '</div>';
+      popEl.hidden = false;
+      /* Anchor to the chip when the chip opened it, otherwise to the run. */
+      let px;
+      if(anchorEl){
+        const sr = stage.getBoundingClientRect(), ar = anchorEl.getBoundingClientRect();
+        px = { x: ar.left - sr.left + ar.width/2, y: Math.max(60, sr.height - 150) };
+      } else {
+        const e = ringEdges(plan.ring)[i];
+        px = toPx({ x:(e[0][0]+e[1][0])/2, y:(e[0][1]+e[1][1])/2 });
       }
-      if(poly && state==="shape"){
-        poly.forEach((p,i)=>{
-          const h = el("circle",{cx:p[0],cy:p[1],r:9,fill:"#38e8ff",stroke:"#05070e","stroke-width":3,
-            "data-i":i,style:"cursor:grab"});
-          svg.appendChild(h);
+      const w = popEl.offsetWidth || 250, h = popEl.offsetHeight || 160;
+      const sw = stage.clientWidth, sh = stage.clientHeight;
+      popEl.style.left = Math.max(8, Math.min(sw-w-8, px.x-w/2)) + "px";
+      popEl.style.top  = Math.max(8, Math.min(sh-h-8, px.y-h-14)) + "px";
+      $$("#measPop button").forEach(b=>b.addEventListener("click",()=>{
+        push();
+        if(popFor.kind==="edge") plan.edges[popFor.i] = b.dataset.t;
+        else plan.lines[popFor.i].type = b.dataset.t;
+        closeLabel(); render(); paintChips(); paintTotals();
+      }));
+    }
+    function closeLabel(){ popEl.hidden = true; popFor = null; }
+
+    /* ------------------------------- render ------------------------------ */
+    function render(){
+      svg.innerHTML = "";
+      if(!plan){
+        if(phase==="trace"){
+          svg.appendChild(el("circle",{cx:pinAt.x,cy:pinAt.y,r:22,fill:"none",stroke:SECTION_COLOR,"stroke-width":2,opacity:.55}));
+          svg.appendChild(el("circle",{cx:pinAt.x,cy:pinAt.y,r:6,fill:SECTION_COLOR}));
+        }
+        return;
+      }
+      const pts = plan.ring.map(p=>p[0]+","+p[1]).join(" ");
+      /* Light enough to read the shingles through, the way the app's
+         highlight-transparency setting is normally left. */
+      svg.appendChild(el("polygon",{points:pts, fill:SECTION_COLOR, "fill-opacity":.15,
+        stroke:"none"}));
+
+      /* Every run in its own colour, the way the app draws them. */
+      ringEdges(plan.ring).forEach(([a,b],i)=>{
+        const t = plan.edges[i] || "eave";
+        svg.appendChild(el("line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],
+          stroke:ECOLOR[t], "stroke-width":(hoverEdge===i?7:4.5), "stroke-linecap":"round"}));
+        const hit = el("line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],
+          stroke:"transparent","stroke-width":22,"data-edge":i,style:"cursor:pointer"});
+        svg.appendChild(hit);
+      });
+
+      plan.lines.forEach((l,i)=>{
+        for(let k=0;k<l.pts.length-1;k++){
+          svg.appendChild(el("line",{x1:l.pts[k][0],y1:l.pts[k][1],x2:l.pts[k+1][0],y2:l.pts[k+1][1],
+            stroke:ECOLOR[l.type],"stroke-width":4.5,"stroke-linecap":"round"}));
+          svg.appendChild(el("line",{x1:l.pts[k][0],y1:l.pts[k][1],x2:l.pts[k+1][0],y2:l.pts[k+1][1],
+            stroke:"transparent","stroke-width":22,"data-line":i,style:"cursor:pointer"}));
+        }
+      });
+
+      if(draft.length){
+        for(let k=0;k<draft.length-1;k++)
+          svg.appendChild(el("line",{x1:draft[k][0],y1:draft[k][1],x2:draft[k+1][0],y2:draft[k+1][1],
+            stroke:"#fff","stroke-width":3.5,"stroke-linecap":"round",opacity:.95}));
+        if(ghost)
+          svg.appendChild(el("line",{x1:draft[draft.length-1][0],y1:draft[draft.length-1][1],
+            x2:ghost.x,y2:ghost.y,stroke:"#fff","stroke-width":2.5,"stroke-dasharray":"7 6",opacity:.8}));
+        draft.forEach(p=>svg.appendChild(el("circle",{cx:p[0],cy:p[1],r:4.5,fill:"#fff"})));
+      }
+
+      /* 44px grab targets with a small visible dot — the app's handle. */
+      if(tool!=="line"){
+        plan.ring.forEach((p,i)=>{
+          svg.appendChild(el("circle",{cx:p[0],cy:p[1],r:22,fill:"transparent",
+            "data-h":i,style:"cursor:grab;touch-action:none"}));
+          svg.appendChild(el("circle",{cx:p[0],cy:p[1],r:7,fill:SECTION_COLOR,
+            stroke:"#0d121d","stroke-width":3,"pointer-events":"none"}));
         });
       }
     }
 
-    function area(){
-      let a=0; for(let i=0;i<poly.length;i++){ const j=(i+1)%poly.length;
-        a += poly[i][0]*poly[j][1] - poly[j][0]*poly[i][1]; }
-      return Math.abs(a/2)*SCENE.ftPerUnit*SCENE.ftPerUnit;
-    }
-    function perim(){
-      let p=0; for(let i=0;i<poly.length;i++){ const j=(i+1)%poly.length;
-        p += Math.hypot(poly[j][0]-poly[i][0], poly[j][1]-poly[i][1]); }
-      return p*SCENE.ftPerUnit;
-    }
-    const lineFt = l => Math.hypot(l.b.x-l.a.x, l.b.y-l.a.y)*SCENE.ftPerUnit;
-
+    /* ------------------------------- chrome ------------------------------ */
     function setStep(n,t,h,ok){
       stepEl.textContent = "STEP "+n;
       titleEl.textContent = t; helpEl.textContent = h;
       hud.className = "hud" + (ok ? " ok":"");
     }
+    function setTool(t){
+      tool = t;
+      $$("#measTools .mbtn").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.tool===t)));
+      if(t!=="line"){ draft=[]; ghost=null; }
+      stage.classList.toggle("crosshair", t==="line");
+      paintAct(); render();
+    }
+    function syncIcons(){ if(undoBtn) undoBtn.disabled = !past.length; }
 
-    function paintLineList(){
-      lineCount.textContent = lines.length + (lines.length===1?" line":" lines");
-      lineList.innerHTML = "";
-      lines.forEach((l,i)=>{
-        const row=document.createElement("div"); row.className="lrow";
-        const c = l.type ? LTYPES[l.type].c : "#6c7d9c";
-        row.innerHTML = '<span class="sw" style="background:'+c+'"></span>'+
-          '<span class="ln">Line '+(i+1)+'</span>'+
-          '<select data-i="'+i+'" aria-label="Line '+(i+1)+' type"><option value="">Unlabeled</option>'+
-          Object.keys(LTYPES).map(k=>'<option value="'+k+'"'+(l.type===k?" selected":"")+'>'+LTYPES[k].n+'</option>').join("")+
-          '</select><span class="lf"><span class="bl">'+lineFt(l).toFixed(1)+'</span> lf</span>';
-        row.addEventListener("mouseenter",()=>{hover=i;render();});
-        row.addEventListener("mouseleave",()=>{hover=null;render();});
-        lineList.appendChild(row);
-      });
-      $$("#measLineList select").forEach(sel=>sel.addEventListener("change",()=>{
-        lines[+sel.dataset.i].type = sel.value || null;
-        paintLineList(); render();
-        btn.disabled = lines.some(l=>!l.type);
-        btn.textContent = btn.disabled ? "Label every line to continue" : "See the measurements";
+    function paintAct(){
+      if(phase!=="edit"){ actEl.hidden = true; return; }
+      if(tool==="line"){
+        let ft=0; for(let i=0;i<draft.length-1;i++) ft+=segFt(draft[i],draft[i+1]);
+        actEl.hidden = false;
+        actEl.innerHTML =
+          '<button type="button" class="mbtn" id="mUndoPt"'+(draft.length?"":" disabled")+'>Undo point</button>'+
+          '<button type="button" class="mbtn" id="mFinish"'+(draft.length>1?"":" disabled")+'>Finish line ('+fmt(ft)+' LF)</button>'+
+          '<button type="button" class="mbtn" id="mDone">Done drawing</button>';
+        $("#mUndoPt").addEventListener("click",()=>{ draft=draft.slice(0,-1); paintAct(); render(); });
+        $("#mFinish").addEventListener("click", finishLine);
+        $("#mDone").addEventListener("click",()=>setTool("select"));
+      } else {
+        actEl.hidden = false;
+        actEl.innerHTML = '<span class="rp-actnote">'+(tool==="refine"
+          ? "Tap a run to drop a new corner into it"
+          : "Drag a corner to fix the outline &middot; tap a run to label it")+'</span>';
+      }
+    }
+    function finishLine(){
+      if(draft.length<2) return;
+      push();
+      plan.lines.push({ pts: draft.slice(), type:"ridge" });
+      draft=[]; ghost=null;
+      paintAct(); render(); paintChips(); paintTotals();
+      setStep(3,"Line added","Tap its chip to call it a hip, a valley, flashing — whatever it is.",true);
+    }
+
+    function paintPitchRow(){
+      pitchRow.innerHTML = PITCHES.map(p=>
+        '<button type="button" data-p="'+p+'"'+(p===plan.pitch?' aria-pressed="true"':'')+'>'+p+'</button>').join("");
+      $$("#measPitchRow button").forEach(b=>b.addEventListener("click",()=>{
+        push(); plan.pitch = b.dataset.p;
+        pitchBtn.textContent = "Pitch "+plan.pitch;
+        paintPitchRow(); paintTotals();
       }));
     }
 
-    /* A real report carries all of these whether or not the visitor drew
-       them. What they traced is measured; the rest is seeded off their
-       outline the way the report seeds it. Every length is blurred either
-       way — the roof area is the only figure the demo gives away. */
-    const REPORT_LINES = [
-      { k:"eave",    n:"Eaves",         c:"#3ce08a", ofP:0.58, runs:4 },
-      { k:"rake",    n:"Rakes",         c:"#7fd4ff", ofP:0.34, runs:4 },
-      { k:"ridge",   n:"Ridges",        c:"#ff6b5a", ofA:1/26, cap:0.34, runs:2 },
-      { k:"hip",     n:"Hips",          c:"#ffb020", ofA:1/34, cap:0.46, runs:4 },
-      { k:"valley",  n:"Valleys",       c:"#38e8ff", ofA:1/62, cap:0.22, runs:2 },
-      { k:"parapet", n:"Parapet",       c:"#c3d0e8", ofP:0,    runs:0 },
-      { k:"step",    n:"Step flashing", c:"#8fa2c2", ofP:0.09, runs:2 },
-      { k:"wall",    n:"Wall flashing", c:"#8fa2c2", ofP:0.06, runs:1 },
-      { k:"drip",    n:"Drip edge",     c:"#8fa2c2", ofP:1.00, runs:1 }
-    ];
-    const PITCHES = [4,6,8];
-    let pitch = 6;
-    const fmt = n => Math.round(n).toLocaleString("en-US");
-
-    function paintKpis(a,p){
-      const mult = Math.sqrt(1 + (pitch/12)*(pitch/12));
-      resultGrid.innerHTML =
-        '<div class="kpi open"><span class="k">Roof area &middot; pitch off</span>'+
-          '<span class="v">'+fmt(a)+'</span>'+
-          '<span class="d" style="color:var(--ink-4)">sq ft footprint</span></div>'+
-        '<div class="kpi open"><span class="k">Roof area &middot; pitch on</span>'+
-          '<span class="v">'+fmt(a*mult)+'</span>'+
-          '<span class="d"><span class="pitchrow" id="measPitch">'+
-          PITCHES.map(x=>'<button type="button" data-p="'+x+'" aria-pressed="'+(x===pitch)+'">'+x+':12</button>').join("")+
-          '</span></span></div>'+
-        '<div class="kpi"><span class="k">Perimeter</span>'+
-          '<span class="v bl">'+fmt(p)+'</span>'+
-          '<span class="d" style="color:var(--ink-4)">lf</span></div>'+
-        '<div class="kpi"><span class="k">Squares &middot; waste</span>'+
-          '<span class="v bl">'+(a*mult/100).toFixed(1)+'</span>'+
-          '<span class="d" style="color:var(--ink-4)">SQ @ <span class="bl">3%</span></span></div>';
-      $$("#measPitch button").forEach(b=>b.addEventListener("click",()=>{
-        pitch = +b.dataset.p; paintKpis(a,p);
-      }));
+    /* ------------------------------- quota ------------------------------- */
+    function refreshQuota(){
+      const n = qLeft("meas");
+      quotaEl.textContent = n===0 ? "No runs left" : n+(n===1?" demo run left":" demo runs left");
+      quotaEl.className = "quota" + (n===0 ? " out":"");
+      if(n===0 && phase!=="edit"){
+        lock.hidden = false;
+        setStep(1,"Out of demo runs","Three runs is enough to see how it works. The real tool has no limit.");
+        btn.disabled = true; btn.textContent = "No runs left";
+      }
     }
 
-    function paintTable(byType,countType,a,p){
-      $("#measTableBody").innerHTML = REPORT_LINES.map(r=>{
-        const traced = (byType[r.k]||0) > 0;
-        /* The area-derived lengths are capped against the perimeter so a
-           very large footprint cannot produce more ridge than roof edge. */
-        const ft = traced ? byType[r.k]
-                : (r.ofA ? Math.min(a*r.ofA, p*r.cap) : p*r.ofP);
-        if(!traced && ft < 1) return "";
-        const runs = traced ? countType[r.k] : r.runs;
-        return '<tr><td class="nm"><span class="sw" style="background:'+r.c+'"></span>'+r.n+'</td>'+
-               '<td><span class="bl">'+fmt(ft)+'</span> lf</td>'+
-               '<td><span class="bl">'+runs+'</span></td>'+
-               '<td style="color:var(--ink-4)">'+(traced?"Traced":"Estimated")+'</td></tr>';
-      }).join("");
-    }
-
-    function showResults(){
-      const byType={}, countType={};
-      lines.forEach(l=>{
-        byType[l.type]=(byType[l.type]||0)+lineFt(l);
-        countType[l.type]=(countType[l.type]||0)+1;
-      });
-      const a=area(), p=perim();
-      paintKpis(a,p);
-      paintTable(byType,countType,a,p);
-      resultsBox.hidden=false;
-      setStep(5,"The roof area is yours","Area with the pitch off and with it on. Every other number on the report is blurred in the demo.",true);
-      btn.textContent = qLeft("meas")>0 ? "Run it again" : "No runs left";
-      btn.disabled = qLeft("meas")===0;
-      state="results";
-    }
+    /* ------------------------------- flow -------------------------------- */
+    let pinAt = {x:0,y:0};
 
     function reset(hard){
-      state="pin"; pin=null; poly=null; lines=[]; pending=null; hover=null; drag=-1;
-      linesBox.hidden=true; resultsBox.hidden=true;
+      plan=null; phase="pin"; tool="select"; draft=[]; ghost=null; drag=-1; past=[];
+      closeLabel();
+      structEl.hidden=true; totEl.hidden=true; noteEl.hidden=true;
+      toolsEl.hidden=true; iconsEl.hidden=true; actEl.hidden=true;
       stage.classList.add("crosshair");
-      setStep(1,"Drop a pin on the roof","Click anywhere on the house. The detector reads the footprint out from your pin.");
+      setStep(1,"Drop a pin on the roof","Tap the house. The tracer reads the footprint out from your pin.");
       btn.disabled=true; btn.textContent="Waiting for a pin…";
       $("#measFoot").textContent = "Scale locked to the imagery · 1 unit ≈ "+SCENE.ftPerUnit.toFixed(2)+" ft";
-      render(); if(hard) refreshQuota();
+      chipsEl.innerHTML=""; totGrid.innerHTML="";
+      render(); syncIcons(); if(hard) refreshQuota();
     }
 
+    function trace(){
+      phase = "trace"; render();
+      setStep(1,"Tracing the roof…","Reading the edges out from your pin.");
+      btn.textContent = "Tracing…";
+      setTimeout(()=>{
+        let r=13; const jit=()=>{ r=(r*9301+49297)%233280; return (r/233280-.5)*17; };
+        const ring = SCENE.foot.map(pt=>[pt[0]+jit(), pt[1]+jit()]);
+        plan = { ring, edges: autoClassify(ring), pitch:"6/12", lines:[] };
+        phase = "edit"; setTool("select");
+        stage.classList.remove("crosshair");
+        toolsEl.hidden=false; iconsEl.hidden=false;
+        structEl.hidden=false; totEl.hidden=false; noteEl.hidden=false;
+        pitchBtn.textContent = "Pitch "+plan.pitch;
+        paintPitchRow(); paintChips(); paintTotals(); render(); syncIcons();
+        setStep(2,"Fix the corners, then draw your lines",
+          "The trace gets you close. Drag any corner onto the real edge — the totals move while you drag.", true);
+        btn.disabled=false; btn.textContent="Finish the measurement";
+      }, reduced?0:1100);
+    }
+
+    /* ------------------------------ pointers ----------------------------- */
     svg.addEventListener("pointerdown",e=>{
-      if(state==="shape"){
-        const i = e.target.getAttribute && e.target.getAttribute("data-i");
-        if(i!==null && i!==undefined){ drag=+i; svg.setPointerCapture(e.pointerId); }
-        return;
-      }
-      if(state==="pin"){
+      if(phase==="pin"){
         if(qLeft("meas")===0){ lock.hidden=false; return; }
         qUse("meas"); refreshQuota();
-        pin = loc(e); render();
-        stage.classList.remove("crosshair");
-        setStep(1,"Detecting the footprint…","Reading the roof edges out from your pin.");
-        btn.textContent="Detecting…";
-        setTimeout(()=>{
-          let r=13; const jit=()=>{ r=(r*9301+49297)%233280; return (r/233280-.5)*17; };
-          poly = SCENE.foot.map(pt=>[pt[0]+jit(),pt[1]+jit()]);
-          state="shape"; render();
-          setStep(2,"Drag the corners onto the roof edges","The detector gets you close. Pull each handle until the outline sits on the real edge — good enough is good enough.");
-          btn.disabled=false; btn.textContent="Footprint looks good";
-        }, reduced?0:1100);
+        pinAt = loc(e);
+        trace();
         return;
       }
-      if(state==="draw"){
+      if(phase!=="edit") return;
+
+      if(tool==="line"){
+        closeLabel();
         const p = loc(e);
-        if(!pending){ pending=p; }
-        else { lines.push({a:pending,b:p,type:null}); pending=null;
-               btn.disabled=false; btn.textContent="Done drawing ("+lines.length+")"; }
-        render();
+        draft.push([p.x,p.y]); ghost=null;
+        paintAct(); render();
+        return;
       }
+
+      const h = e.target.getAttribute && e.target.getAttribute("data-h");
+      if(h!==null && h!==undefined){
+        push(); drag=+h; closeLabel();
+        svg.setPointerCapture(e.pointerId);
+        return;
+      }
+      const ei = e.target.getAttribute && e.target.getAttribute("data-edge");
+      if(ei!==null && ei!==undefined){
+        if(tool==="refine"){
+          /* Same as the app: tapping a run drops a new corner into it. */
+          push();
+          const i=+ei, p=loc(e);
+          plan.ring.splice(i+1, 0, [p.x,p.y]);
+          plan.edges.splice(i+1, 0, plan.edges[i]);
+          render(); paintChips(); paintTotals();
+          return;
+        }
+        openLabel("edge", +ei, null); return;
+      }
+      const li = e.target.getAttribute && e.target.getAttribute("data-line");
+      if(li!==null && li!==undefined){
+        const chip = document.querySelector('#measChips .rp-chip[data-kind="line"][data-i="'+li+'"]');
+        openLabel("line", +li, chip); return;
+      }
+      closeLabel();
     });
+
     svg.addEventListener("pointermove",e=>{
-      if(state==="shape" && drag>=0){ const p=loc(e); poly[drag]=[p.x,p.y]; render(); return; }
-      if(state==="draw" && pending){ hover=loc(e); render(); }
+      if(phase!=="edit") return;
+      if(drag>=0){ const p=loc(e); plan.ring[drag]=[p.x,p.y]; render(); paintChips(); paintTotals(); return; }
+      if(tool==="line" && draft.length){ ghost=loc(e); render(); paintAct(); return; }
+      const ei = e.target.getAttribute && e.target.getAttribute("data-edge");
+      const next = (ei===null||ei===undefined) ? -1 : +ei;
+      if(next!==hoverEdge){ hoverEdge=next; render(); }
     });
-    svg.addEventListener("pointerup",()=>{ drag=-1; });
-    svg.addEventListener("pointerleave",()=>{ drag=-1; });
+    const endDrag = () => { if(drag>=0){ drag=-1; } };
+    svg.addEventListener("pointerup", endDrag);
+    svg.addEventListener("pointercancel", endDrag);
+    svg.addEventListener("pointerleave",()=>{ endDrag(); if(hoverEdge!==-1){ hoverEdge=-1; render(); } });
+
+    /* ------------------------------ controls ----------------------------- */
+    $$("#measTools .mbtn").forEach(b=>b.addEventListener("click",()=>{
+      closeLabel();
+      setTool(b.dataset.tool);
+      if(b.dataset.tool==="line")
+        setStep(3,"Draw a line","Tap each end of a ridge, hip or valley, then Finish line. Draw as many as you like.");
+      else if(b.dataset.tool==="refine")
+        setStep(2,"Add a corner","Tap anywhere along a run and a new corner drops in there.",true);
+      else
+        setStep(2,"Fix the corners","Drag any corner onto the real edge, or tap a run to relabel it.",true);
+    }));
+    lineBtn.addEventListener("click",()=>{
+      setTool("line");
+      setStep(3,"Draw a line","Tap each end of a ridge, hip or valley, then Finish line. Draw as many as you like.");
+    });
+    pitchBtn.addEventListener("click",()=>{ pitchRow.hidden = !pitchRow.hidden; });
+    undoBtn.addEventListener("click",()=>{
+      if(!past.length) return;
+      plan = past.pop(); draft=[]; ghost=null; closeLabel();
+      pitchBtn.textContent = "Pitch "+plan.pitch;
+      paintPitchRow(); render(); paintChips(); paintTotals(); paintAct(); syncIcons();
+    });
+    redrawBtn.addEventListener("click",()=>reset(true));
+    restart.addEventListener("click",()=>reset(true));
 
     btn.addEventListener("click",()=>{
-      if(state==="shape"){
-        state="draw"; pending=null; hover=null; render();
-        stage.classList.add("crosshair");
-        setStep(3,"Draw the roof lines","Click one end of a ridge, hip or valley, then the other. Draw as many as you like, then hit Done drawing.");
-        btn.disabled=true; btn.textContent="Draw at least one line";
+      if(phase==="edit"){
+        phase="done"; setTool("select"); closeLabel();
+        setStep(4,"Measurement complete",
+          "Area and squares are yours. The run lengths come with the report.",true);
+        btn.textContent = qLeft("meas")>0 ? "Run it again" : "No runs left";
+        btn.disabled = qLeft("meas")===0;
         return;
       }
-      if(state==="draw"){
-        if(!lines.length) return;
-        state="label"; pending=null; hover=null; render();
-        stage.classList.remove("crosshair");
-        setStep(4,"Label what you drew","Ridge, hip, valley, eave, rake or parapet. The label is what turns a line into a material quantity.");
-        linesBox.hidden=false; paintLineList();
-        btn.disabled=true; btn.textContent="Label every line to continue";
-        return;
-      }
-      if(state==="label"){ showResults(); return; }
-      if(state==="results"){ reset(true); }
+      if(phase==="done"){ reset(true); }
     });
-    restart.addEventListener("click",()=>reset(true));
 
     reset(true);
 
