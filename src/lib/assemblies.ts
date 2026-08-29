@@ -7,6 +7,8 @@ export type AssetType =
   | "tile_roof"
   | "metal_roof"
   | "flat_roof"
+  | "commercial_coating"
+  | "spray_foam"
   // Add-ons (features)
   | "chimney"
   | "skylight"
@@ -30,6 +32,8 @@ export const ASSET_TYPES: Array<{
   { value: "tile_roof",      label: "Tile Roof",                group: "base",  defaultIsAddon: false },
   { value: "metal_roof",     label: "Metal Roof",               group: "base",  defaultIsAddon: false },
   { value: "flat_roof",      label: "Flat / Low-Slope Roof",    group: "base",  defaultIsAddon: false },
+  { value: "commercial_coating", label: "Commercial Roof Coating",  group: "base", defaultIsAddon: false },
+  { value: "spray_foam",     label: "Commercial Spray Foam (SPF)", group: "base", defaultIsAddon: false },
   { value: "chimney",        label: "Chimney",                  group: "addon", defaultIsAddon: true  },
   { value: "skylight",       label: "Skylight",                 group: "addon", defaultIsAddon: true  },
   { value: "valley",         label: "Valley",                   group: "addon", defaultIsAddon: true  },
