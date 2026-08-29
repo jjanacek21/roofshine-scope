@@ -2209,7 +2209,10 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
       const n = qLeft("meas");
       quotaEl.textContent = n===0 ? "No runs left" : n+(n===1?" demo run left":" demo runs left");
       quotaEl.className = "quota" + (n===0 ? " out":"");
-      if(n===0 && phase!=="edit"){
+      /* Only bar the door on the way IN. Spending the third run has to leave
+         that run playable — dropping the lock over the trace a visitor just
+         paid for is how the demo ends on a wall instead of a measurement. */
+      if(n===0 && phase==="pin"){
         lock.hidden = false;
         setStep(1,"Out of demo runs","Three runs is enough to see how it works. The real tool has no limit.");
         btn.disabled = true; btn.textContent = "No runs left";
@@ -2256,9 +2259,10 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
     svg.addEventListener("pointerdown",e=>{
       if(phase==="pin"){
         if(qLeft("meas")===0){ lock.hidden=false; return; }
-        qUse("meas"); refreshQuota();
+        qUse("meas");
         pinAt = loc(e);
         trace();
+        refreshQuota();
         return;
       }
       if(phase!=="edit") return;
