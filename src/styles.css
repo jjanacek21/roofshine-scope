@@ -522,18 +522,33 @@
   color: var(--text) !important;
 }
 
-/* ---- Carrier-style estimate report (print) ---- */
+/* ---- Print: isolate the one document being printed ----
+   `body * { visibility: hidden }` blanks the whole app so a single document
+   prints alone. Every printable document therefore has to opt back in here, or
+   it prints as an empty page — which is exactly what the order form's Pre-Cap,
+   Crew Work Order and Supplier Order did, because this list only ever named the
+   carrier-style estimate. */
 @media print {
   body * {
     visibility: hidden;
   }
   .xr-root,
-  .xr-root * {
+  .xr-root *,
+  .print-doc,
+  .print-doc * {
     visibility: visible;
   }
   .xr-root {
     position: absolute;
     inset: 0;
+  }
+  /* No `bottom: 0` here: an order-form document is as tall as its tables and
+     must be allowed to run past the first page rather than being clipped. */
+  .print-doc {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
   }
   .xr-page {
     box-shadow: none !important;
