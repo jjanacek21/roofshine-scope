@@ -120,6 +120,8 @@ export interface CompanyCredential {
   bucket: string;
   storage_path: string | null;
   file_name: string | null;
+  mime_type: string | null;
+  file_size: number | null;
   is_primary: boolean;
 }
 
