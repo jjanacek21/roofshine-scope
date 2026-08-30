@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Hammer, Calculator, FileText, Package, Printer, Save, History, Lock, Wand2 } from "lucide-react";
+import { Hammer, Calculator, FileText, Package, Printer, Save, History, Lock, Wand2, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { deriveOrderFormInputs } from "@/lib/assistant.functions";
@@ -21,6 +21,7 @@ import {
 import { useCompany } from "@/hooks/useCompany";
 import { calcQty, fmtMoney, fmtNum, INPUT_LABELS, computeOrderTotals } from "@/lib/order-form-calc";
 import { VersionsTab } from "@/components/order-form/VersionsTab";
+import { saveOrderFormPdf, orderFormDocTitle, type OrderFormDoc } from "@/lib/order-form-pdf";
 
 export const Route = createFileRoute("/_app/jobs/$id/order-form")({
   component: OrderFormPage,
@@ -39,6 +40,10 @@ const SUB_TABS: { id: SubTab; label: string; icon: typeof Hammer }[] = [
 function OrderFormPage() {
   const { id: jobId } = Route.useParams();
   const [tab, setTab] = useState<SubTab>("build");
+  /* The printed card itself, so it can be turned into a PDF. One ref for all
+     three documents — only one is ever mounted at a time. */
+  const docRef = useRef<HTMLDivElement>(null);
+  const [saving, setSaving] = useState(false);
 
   const { data: job } = useQuery({
     queryKey: ["job", jobId],
@@ -238,6 +243,41 @@ function OrderFormPage() {
   const supplier = suppliers[0] ?? null;
   const customer = { name: client?.name ?? "—", phone: client?.phone ?? "", email: client?.email ?? "", address: job?.property_address ?? client?.address ?? "" };
 
+  /* Save the document being viewed as a PDF: it downloads, and it lands in the
+     job's Documents tab so the crew or the office can find it again without
+     rebuilding the order. */
+  const saveAsPdf = async () => {
+    const el = docRef.current;
+    if (!el) return;
+    if (tab === "build" || tab === "versions") return;
+    if (!company?.id) {
+      toast.error("We could not tell which company this job belongs to, so the PDF was not saved.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const doc = tab as OrderFormDoc;
+      const res = await saveOrderFormPdf({
+        el,
+        doc,
+        jobId,
+        companyId: company.id,
+        jobLabel: job?.job_number ?? job?.name ?? null,
+        sourceTable: "job_order_drafts",
+        sourceId: draft?.id ?? null,
+      });
+      if (res.filed) {
+        toast.success(`${orderFormDocTitle(doc)} downloaded and added to the Documents tab`);
+      } else {
+        toast.warning(`${orderFormDocTitle(doc)} downloaded, but it could not be added to the Documents tab`);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "The PDF could not be created.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* No-print toolbar */}
@@ -275,10 +315,21 @@ function OrderFormPage() {
           <button onClick={saveSnapshot} className="inline-flex items-center gap-2 rounded-lg bg-foreground px-3 py-2 text-[13px] font-semibold text-background hover:opacity-90">
             <Save className="h-4 w-4" /> Save Snapshot
           </button>
-          {tab !== "build" && (
-            <button onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-semibold" style={{ borderColor: "var(--border)" }}>
-              <Printer className="h-4 w-4" /> Print / PDF
-            </button>
+          {tab !== "build" && tab !== "versions" && (
+            <>
+              <button
+                onClick={saveAsPdf}
+                disabled={saving}
+                title="Download this document and add it to the job's Documents tab"
+                className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-semibold hover:bg-[var(--surface-hover)] disabled:opacity-50"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <FileDown className="h-4 w-4" /> {saving ? "Saving…" : "Save PDF to Documents"}
+              </button>
+              <button onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-semibold" style={{ borderColor: "var(--border)" }}>
+                <Printer className="h-4 w-4" /> Print
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -313,7 +364,7 @@ function OrderFormPage() {
       )}
 
       {tab === "precap" && (
-        <PrintDoc>
+        <PrintDoc cardRef={docRef}>
           <PrecapView
             company={company} job={job} customer={customer}
             template={activeTemplate} inputs={inputs}
@@ -323,13 +374,13 @@ function OrderFormPage() {
       )}
 
       {tab === "crew" && (
-        <PrintDoc>
+        <PrintDoc cardRef={docRef}>
           <CrewView company={company} job={job} customer={customer} template={activeTemplate} materialRows={materialRows.filter((r) => !r.excluded)} laborRows={laborRows.filter((r) => !r.excluded)} />
         </PrintDoc>
       )}
 
       {tab === "supplier" && (
-        <PrintDoc>
+        <PrintDoc cardRef={docRef}>
           <SupplierView
             company={company} job={job} customer={customer}
             supplier={supplier} categories={categories}
@@ -657,7 +708,7 @@ function SummaryCard({ label, value, highlight, success }: { label: string; valu
 }
 
 /* ===================== PRINT DOCS ===================== */
-function PrintDoc({ children }: { children: React.ReactNode }) {
+function PrintDoc({ children, cardRef }: { children: React.ReactNode; cardRef?: React.Ref<HTMLDivElement> }) {
   return (
     <div className="print-doc">
       <style>{`
@@ -670,7 +721,9 @@ function PrintDoc({ children }: { children: React.ReactNode }) {
           .print-doc .invert { background: black !important; color: white !important; }
         }
       `}</style>
-      <div className="rounded-xl bg-white p-8 text-black shadow-lg">
+      {/* order-doc-card is what the PDF generator captures, and what it strips
+          the shadow and rounding from in its clone. */}
+      <div ref={cardRef} className="order-doc-card rounded-xl bg-white p-8 text-black shadow-lg">
         {children}
       </div>
     </div>
