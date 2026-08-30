@@ -9,6 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { currentCompanyId, fileJobDocument } from "@/lib/jobDocuments";
 import { parseContractFilename } from "@/lib/contract-config";
 import type { Tenant, TenantUser } from "@/hooks/useTenant";
 import { Loader2, UploadCloud } from "lucide-react";
@@ -70,29 +71,23 @@ export function UploadSignedContractDialog({
       } as any).select("id").single();
       if (insErr) throw insErr;
 
-      // Mirror into job_documents so it shows in the Documents tab.
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        const { data: prof } = u.user
-          ? await supabase.from("profiles").select("company_id").eq("id", u.user.id).maybeSingle()
-          : { data: null };
-        if (prof?.company_id) {
-          await supabase.from("job_documents").insert({
-            job_id: jobId,
-            company_id: prof.company_id,
-            kind: parsed.contractType === "insurance" ? "contingency" : "contract",
-            title: `${parsed.documentId}.pdf`,
-            bucket: "contracts",
-            storage_path: path,
-            mime_type: "application/pdf",
-            file_size: file.size,
-            source_table: "contracts",
-            source_id: inserted?.id ?? null,
-            created_by: u.user?.id ?? null,
-          });
-        }
-      } catch (e) {
-        console.warn("Contract saved, but failed to mirror into job_documents:", e);
+      /* File it into the job's Documents tab, through the same helper every
+         other producer uses so the tab shows the whole job rather than
+         whichever pieces happened to remember to write a row. */
+      const companyId = await currentCompanyId();
+      if (companyId) {
+        await fileJobDocument({
+          jobId,
+          companyId,
+          kind: parsed.contractType === "insurance" ? "contingency" : "contract",
+          title: `${parsed.documentId}.pdf`,
+          bucket: "contracts",
+          storagePath: path,
+          mimeType: "application/pdf",
+          fileSize: file.size,
+          sourceTable: "contracts",
+          sourceId: inserted?.id ?? null,
+        });
       }
     },
     onSuccess: () => {
