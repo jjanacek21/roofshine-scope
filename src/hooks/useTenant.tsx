@@ -37,13 +37,39 @@ export function useTenant() {
     queryKey: ["my-tenant", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data: tu, error } = await supabase
-        .from("tenant_users")
-        .select("*, tenants(*)")
-        .eq("user_id", user!.id)
-        .eq("is_active", true)
-        .maybeSingle();
+      const read = async () =>
+        await supabase
+          .from("tenant_users")
+          .select("*, tenants(*)")
+          .eq("user_id", user!.id)
+          .eq("is_active", true)
+          .order("created_at")
+          .limit(1)
+          .maybeSingle();
+
+      let { data: tu, error } = await read();
       if (error) throw error;
+
+      /* A contract belongs to a tenant, and until now a tenant could only be
+         created by a super admin — so most people, including company owners,
+         hit "Contracts not enabled" and could never sign anything. A tenant is
+         just the contract-facing face of a company, so provision one from the
+         company this user already belongs to and read again. */
+      if (!tu) {
+        /* Cast because types.ts is generated and does not know this function;
+           hand-editing it would be undone on the next regeneration. */
+        const rpc = supabase.rpc as unknown as (
+          fn: string,
+        ) => Promise<{ error: unknown }>;
+        const { error: rpcErr } = await rpc("ensure_contract_tenant");
+        if (!rpcErr) {
+          const retry = await read();
+          if (!retry.error) tu = retry.data;
+        } else {
+          console.warn("could not provision a contract tenant", rpcErr);
+        }
+      }
+
       if (!tu) return { tenant: null as Tenant | null, tenantUser: null as TenantUser | null };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { tenants, ...tenantUser } = tu as any;
