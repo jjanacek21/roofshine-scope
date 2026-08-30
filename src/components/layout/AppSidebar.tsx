@@ -13,6 +13,7 @@ import {
   IdCard,
   Receipt,
   BookOpenText,
+  FolderLock,
   ChevronLeft,
   ChevronRight,
   DoorOpen,
@@ -46,6 +47,7 @@ const WORKSPACE_NAV = [
 
 const RESOURCES_NAV = [
   { to: "/survival-guide", label: "Survival Guide", icon: BookOpenText },
+  { to: "/company-documents", label: "Company Documents", icon: FolderLock },
 ] as const;
 
 export function AppSidebar() {

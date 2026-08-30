@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Building2,
   BookOpenText,
+  FolderLock,
 } from "lucide-react";
 import {
   Sheet,
@@ -49,6 +50,7 @@ const WORKSPACE_NAV = [
 
 const RESOURCES_NAV = [
   { to: "/survival-guide", label: "Survival Guide", icon: BookOpenText },
+  { to: "/company-documents", label: "Company Documents", icon: FolderLock },
 ] as const;
 
 const ADMIN_NAV = [
