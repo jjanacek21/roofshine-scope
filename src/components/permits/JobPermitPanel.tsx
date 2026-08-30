@@ -14,6 +14,7 @@ import {
 import { useJobPermit } from "@/hooks/useJobPermit";
 import { downloadForm, fillApplication } from "@/lib/permits/fill";
 import { approvalLabel, jobPermitDocuments } from "@/lib/permits/db";
+import { fileJobDocument } from "@/lib/jobDocuments";
 import { supabase } from "@/integrations/supabase/client";
 import type { Requirement } from "@/lib/permits/checklist";
 
@@ -95,6 +96,18 @@ export function JobPermitPanel({ jobId }: { jobId: string }) {
         notes: "Filled from the job. Print, sign, and upload the executed copy.",
       });
 
+      /* Everything produced for a job belongs in its Documents tab too. */
+      await fileJobDocument({
+        jobId,
+        companyId: context.companyId,
+        kind: "permit",
+        title: `${filled.template.form_name} (unsigned)`,
+        bucket: "job-documents",
+        storagePath: path,
+        mimeType: "application/pdf",
+        sourceTable: "job_permit_documents",
+      });
+
       if (filled.blanks.length) {
         toast.warning(`Filled ${filled.template.form_name}. Still blank: ${filled.blanks.join(", ")}`);
       } else {
@@ -137,7 +150,20 @@ export function JobPermitPanel({ jobId }: { jobId: string }) {
         file_size: file.size,
         status: "provided",
       });
-      toast.success(`${file.name} added to the packet`);
+
+      await fileJobDocument({
+        jobId,
+        companyId: context.companyId,
+        kind: "permit",
+        title: file.name,
+        bucket: "job-documents",
+        storagePath: path,
+        mimeType: file.type,
+        fileSize: file.size,
+        sourceTable: "job_permit_documents",
+      });
+
+      toast.success(`${file.name} added to the packet and the Documents tab`);
       await reload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
