@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CbButton, CbCard, CbBadge, CbEmptyState, CbLoading } from "@/components/cb/primitives";
 import { CB_DOC_BUCKET } from "@/lib/cbPdf";
 import { cbPhotoSignedUrl } from "@/lib/cbPhotos";
-import { cbResolveCatalogItems } from "@/lib/cbEstimate";
+import { cbResolveCatalogItems, refreshEstimateTotals } from "@/lib/cbEstimate";
 import { resolveCodeRules } from "@/lib/cbCodeRules";
 import {
   cbGapsFrom,
@@ -371,7 +371,11 @@ export function CbSupplementTab({
         toast.error(error.message);
         return false;
       }
+      /* These lines went straight into the estimate, so its stored totals — and
+         the carrier document that reads them back — are now behind. */
+      await refreshEstimateTotals(estimateId);
       qc.invalidateQueries({ queryKey: ["cb-lead-estimate", jobId] });
+      qc.invalidateQueries({ queryKey: ["cb-estimate-inputs", jobId] });
       return true;
     },
     [estimateId, jobId, qc],
