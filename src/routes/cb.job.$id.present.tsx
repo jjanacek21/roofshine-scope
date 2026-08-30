@@ -142,8 +142,19 @@ function CbPresentPage() {
     staleTime: Infinity,
   });
 
+  /*
+   * The carrier document prints the SAVED estimate. An unsaved or empty one
+   * used to render as a complete, correctly branded document with no line
+   * items and $0.00 totals — the sort of thing that gets emailed to an
+   * adjuster before anyone notices. Hold it back instead.
+   */
+  const carrierLines = estimateInputs?.existing?.lines?.filter((l) => l.name.trim()) ?? [];
+
   const exportPanel = useCallback(async () => {
-    if (!docRef.current) return;
+    if (!docRef.current) {
+      toast.error("There is nothing to print yet — save the estimate first");
+      return;
+    }
     setExporting(true);
     try {
       await generateEstimatePdf(docRef.current, `${panel ?? "document"}-claim-buddy.pdf`);
@@ -385,19 +396,39 @@ function CbPresentPage() {
         downloading={exporting}
       >
         {panel === "carrier" ? (
-          /* Letter-size document, scaled to fit the screen but never re-laid out. */
-          <XrFit ref={docRef}>
-            {estimateInputs ? (
+          !estimateInputs ? (
+            <CbLoading label="Building the carrier report…" />
+          ) : carrierLines.length === 0 ? (
+            <CbCard style={{ padding: 24 }}>
+              <h3 className="text-[15px] font-extrabold">No saved estimate on this job yet</h3>
+              <p
+                className="mt-2 text-[13px] leading-relaxed"
+                style={{ color: "var(--cb-text-muted)" }}
+              >
+                This document prints what the estimate builder has saved. Scope the roof there and
+                save it, and the carrier report fills in. Sending it as it stands would put a $0.00
+                estimate in front of the adjuster.
+              </p>
+              <CbButton
+                variant="primary"
+                size="md"
+                style={{ marginTop: 14 }}
+                onClick={() => navigate({ to: "/cb/job/$id/estimate", params: { id } })}
+              >
+                Open the estimate builder
+              </CbButton>
+            </CbCard>
+          ) : (
+            /* Letter-size document, scaled to fit the screen but never re-laid out. */
+            <XrFit ref={docRef}>
               <CbCarrierReport
-                lines={estimateInputs.existing?.lines ?? []}
+                lines={carrierLines}
                 percents={estimateInputs.percents}
                 company={data.company}
                 job={data.job as never}
               />
-            ) : (
-              <CbLoading label="Building the carrier report…" />
-            )}
-          </XrFit>
+            </XrFit>
+          )
         ) : (
           <div ref={docRef}>
             {panel === "measure" ? (

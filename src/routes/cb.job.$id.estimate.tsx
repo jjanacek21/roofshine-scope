@@ -130,6 +130,14 @@ function CbEstimatePage() {
     try {
       const { lines: built, bookName: book, provenance: prov } = await buildCbDraft(inputs, next);
       setLines(mergeCbDraft(keep, built, removed));
+      /*
+       * A derived scope is a change against what is stored — on a new job there
+       * is no estimate row at all yet. Without marking it dirty the autosave
+       * below saw a clean screen and never wrote, so the carrier report (which
+       * renders the SAVED estimate) came out as a fully formed document with no
+       * line items and $0.00 totals.
+       */
+      markDirty();
       setBookName(book);
       setProvenance(prov);
       if (prov.error) toast.error(prov.error);
