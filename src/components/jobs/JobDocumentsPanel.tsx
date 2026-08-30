@@ -14,6 +14,7 @@ import {
   Trash2,
   Loader2,
   File as FileIcon,
+  Stamp,
 } from "lucide-react";
 
 type Kind =
@@ -22,6 +23,7 @@ type Kind =
   | "contract"
   | "contingency"
   | "completed_report"
+  | "permit"
   | "upload"
   | "other";
 
@@ -46,6 +48,7 @@ const SECTIONS: { kind: Kind; label: string; icon: React.ComponentType<{ classNa
   { kind: "contract", label: "Contracts", icon: FileSignature },
   { kind: "contingency", label: "Contingencies", icon: FileSignature },
   { kind: "completed_report", label: "Completed Reports", icon: FileBadge },
+  { kind: "permit", label: "Permits", icon: Stamp },
   { kind: "upload", label: "Uploads", icon: FileText },
   { kind: "other", label: "Other", icon: FileIcon },
 ];
