@@ -1159,8 +1159,16 @@ export async function buildCbDraft(
     const rules = await resolveCodeRules({ state: inputs.job.state, county: inputs.job.county });
     provenance.codeRuleSetName = rules.set?.name ?? null;
     const codeLines = await applyCodeRules(inputs, prices, codeAssembly, rules.items, rules.set);
-    provenance.codeRulesApplied = codeLines.length;
-    lines.push(...codeLines);
+    /*
+     * A code rule naming an item the assembly already carries is the same work
+     * billed twice — the photo lines above dedupe for the same reason. Xactimate
+     * codes are what an adjuster reconciles against, so a repeated one reads as
+     * padding and gets the whole estimate second-guessed.
+     */
+    const already = new Set(lines.map((l) => l.line_item_id).filter(Boolean));
+    const freshCode = codeLines.filter((l) => !l.line_item_id || !already.has(l.line_item_id));
+    provenance.codeRulesApplied = freshCode.length;
+    lines.push(...freshCode);
   }
 
   provenance.priceBookName = prices.bookName;
@@ -1171,7 +1179,10 @@ export async function buildCbDraft(
 /* totals                                                              */
 /* ------------------------------------------------------------------ */
 
-export function computeTotals(lines: CbDraftLine[], pct: CbEstimatePercents): CbEstimateTotals {
+export function computeTotals(
+  lines: { qty: number; unit_price: number }[],
+  pct: CbEstimatePercents,
+): CbEstimateTotals {
   const subtotal = lines.reduce((s, l) => s + l.qty * l.unit_price, 0);
   const markup = subtotal * (pct.markup_pct / 100);
   const overhead = subtotal * (pct.overhead_pct / 100);
@@ -1186,6 +1197,40 @@ export function computeTotals(lines: CbDraftLine[], pct: CbEstimatePercents): Cb
     tax: r2(tax),
     total: r2(beforeTax + tax),
   };
+}
+
+/**
+ * Recompute an estimate's stored totals from the lines actually on it.
+ *
+ * The supplement writes into estimate_line_items directly rather than going
+ * back through the estimate builder, so without this the header total the rep
+ * reads on the lead screen — and the number the job list shows — stayed at
+ * whatever the builder last wrote, missing everything the supplement added.
+ */
+export async function refreshEstimateTotals(estimateId: string): Promise<void> {
+  const [{ data: est }, { data: rows }] = await Promise.all([
+    supabase
+      .from("estimates")
+      .select("markup_pct, overhead_pct, profit_pct, tax_pct, use_manual_total")
+      .eq("id", estimateId)
+      .maybeSingle(),
+    supabase.from("estimate_line_items").select("qty, unit_price").eq("estimate_id", estimateId),
+  ]);
+  /* Per-square estimates carry a hand-entered total — recomputing would erase it. */
+  if (!est || est.use_manual_total) return;
+  const totals = computeTotals(
+    (rows ?? []).map((r) => ({ qty: n(r.qty), unit_price: n(r.unit_price) })),
+    {
+      markup_pct: n(est.markup_pct),
+      overhead_pct: n(est.overhead_pct),
+      profit_pct: n(est.profit_pct),
+      tax_pct: n(est.tax_pct),
+    },
+  );
+  await supabase
+    .from("estimates")
+    .update({ subtotal: totals.subtotal, tax: totals.tax, total: totals.total })
+    .eq("id", estimateId);
 }
 
 export interface PerSquareMath {
