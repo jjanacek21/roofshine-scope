@@ -144,6 +144,7 @@ import { Route as AppJobsIdEstimateRouteImport } from './routes/_app.jobs.$id.es
 import { Route as AppJobsIdInvoicesRouteImport } from './routes/_app.jobs.$id.invoices'
 import { Route as AppJobsIdMeasureRouteImport } from './routes/_app.jobs.$id.measure'
 import { Route as AppJobsIdOrderFormRouteImport } from './routes/_app.jobs.$id.order-form'
+import { Route as AppJobsIdPermitsRouteImport } from './routes/_app.jobs.$id.permits'
 import { Route as AppJobsIdPhotosRouteImport } from './routes/_app.jobs.$id.photos'
 import { Route as AppJobsIdReportRouteImport } from './routes/_app.jobs.$id.report'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -839,6 +840,11 @@ const AppJobsIdOrderFormRoute = AppJobsIdOrderFormRouteImport.update({
   path: '/order-form',
   getParentRoute: () => AppJobsIdRoute,
 } as any)
+const AppJobsIdPermitsRoute = AppJobsIdPermitsRouteImport.update({
+  id: '/permits',
+  path: '/permits',
+  getParentRoute: () => AppJobsIdRoute,
+} as any)
 const AppJobsIdPhotosRoute = AppJobsIdPhotosRouteImport.update({
   id: '/photos',
   path: '/photos',
@@ -1060,6 +1066,7 @@ export interface FileRoutesByFullPath {
   '/jobs/$id/invoices': typeof AppJobsIdInvoicesRoute
   '/jobs/$id/measure': typeof AppJobsIdMeasureRoute
   '/jobs/$id/order-form': typeof AppJobsIdOrderFormRoute
+  '/jobs/$id/permits': typeof AppJobsIdPermitsRoute
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -1205,6 +1212,7 @@ export interface FileRoutesByTo {
   '/jobs/$id/invoices': typeof AppJobsIdInvoicesRoute
   '/jobs/$id/measure': typeof AppJobsIdMeasureRoute
   '/jobs/$id/order-form': typeof AppJobsIdOrderFormRoute
+  '/jobs/$id/permits': typeof AppJobsIdPermitsRoute
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -1360,6 +1368,7 @@ export interface FileRoutesById {
   '/_app/jobs/$id/invoices': typeof AppJobsIdInvoicesRoute
   '/_app/jobs/$id/measure': typeof AppJobsIdMeasureRoute
   '/_app/jobs/$id/order-form': typeof AppJobsIdOrderFormRoute
+  '/_app/jobs/$id/permits': typeof AppJobsIdPermitsRoute
   '/_app/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/_app/jobs/$id/report': typeof AppJobsIdReportRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -1515,6 +1524,7 @@ export interface FileRouteTypes {
     | '/jobs/$id/invoices'
     | '/jobs/$id/measure'
     | '/jobs/$id/order-form'
+    | '/jobs/$id/permits'
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
     | '/api/public/payments/webhook'
@@ -1660,6 +1670,7 @@ export interface FileRouteTypes {
     | '/jobs/$id/invoices'
     | '/jobs/$id/measure'
     | '/jobs/$id/order-form'
+    | '/jobs/$id/permits'
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
     | '/api/public/payments/webhook'
@@ -1814,6 +1825,7 @@ export interface FileRouteTypes {
     | '/_app/jobs/$id/invoices'
     | '/_app/jobs/$id/measure'
     | '/_app/jobs/$id/order-form'
+    | '/_app/jobs/$id/permits'
     | '/_app/jobs/$id/photos'
     | '/_app/jobs/$id/report'
     | '/api/public/payments/webhook'
@@ -2850,6 +2862,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJobsIdOrderFormRouteImport
       parentRoute: typeof AppJobsIdRoute
     }
+    '/_app/jobs/$id/permits': {
+      id: '/_app/jobs/$id/permits'
+      path: '/permits'
+      fullPath: '/jobs/$id/permits'
+      preLoaderRoute: typeof AppJobsIdPermitsRouteImport
+      parentRoute: typeof AppJobsIdRoute
+    }
     '/_app/jobs/$id/photos': {
       id: '/_app/jobs/$id/photos'
       path: '/photos'
@@ -3096,6 +3115,7 @@ interface AppJobsIdRouteChildren {
   AppJobsIdInvoicesRoute: typeof AppJobsIdInvoicesRoute
   AppJobsIdMeasureRoute: typeof AppJobsIdMeasureRoute
   AppJobsIdOrderFormRoute: typeof AppJobsIdOrderFormRoute
+  AppJobsIdPermitsRoute: typeof AppJobsIdPermitsRoute
   AppJobsIdPhotosRoute: typeof AppJobsIdPhotosRoute
   AppJobsIdReportRoute: typeof AppJobsIdReportRoute
   AppJobsIdIndexRoute: typeof AppJobsIdIndexRoute
@@ -3108,6 +3128,7 @@ const AppJobsIdRouteChildren: AppJobsIdRouteChildren = {
   AppJobsIdInvoicesRoute: AppJobsIdInvoicesRoute,
   AppJobsIdMeasureRoute: AppJobsIdMeasureRoute,
   AppJobsIdOrderFormRoute: AppJobsIdOrderFormRoute,
+  AppJobsIdPermitsRoute: AppJobsIdPermitsRoute,
   AppJobsIdPhotosRoute: AppJobsIdPhotosRoute,
   AppJobsIdReportRoute: AppJobsIdReportRoute,
   AppJobsIdIndexRoute: AppJobsIdIndexRoute,
