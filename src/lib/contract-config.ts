@@ -15,7 +15,14 @@ export const SIGN_BASE_URL = `https://project--${LOVABLE_PROJECT_ID}-dev.lovable
 
 // Filenames produced by the signing app, e.g. GCN-RC-260101-X4Y7.pdf
 // (RC = residential construction, IC = insurance contingency)
-export const DOCUMENT_ID_RE = /^(GCN-(RC|IC)-\d{6}-[A-Z0-9]+)\.pdf$/i;
+//
+// The signing app actually names its download `${docId}_${CustomerName}.pdf`,
+// and a browser that has seen the name before appends " (1)". This pattern used
+// to demand `.pdf` immediately after the id, so every real download was
+// rejected, the upload button stayed permanently disabled, and no contract
+// could ever be saved. Everything after the id is now ignored — only the id
+// itself has to be there, because that is the part we key the record on.
+export const DOCUMENT_ID_RE = /^(GCN-(RC|IC)-\d{6}-[A-Z0-9]+)(?:[_\-\s(].*)?\.pdf$/i;
 
 export function parseContractFilename(filename: string): {
   documentId: string;
