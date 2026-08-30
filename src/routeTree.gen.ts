@@ -30,6 +30,7 @@ import { Route as AppCardRouteImport } from './routes/_app.card'
 import { Route as AppClaimBuddyRouteImport } from './routes/_app.claim-buddy'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCommercialRouteImport } from './routes/_app.commercial'
+import { Route as AppCompanyDocumentsRouteImport } from './routes/_app.company-documents'
 import { Route as AppDoorToDoorRouteImport } from './routes/_app.door-to-door'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppPriceBooksRouteImport } from './routes/_app.price-books'
@@ -265,6 +266,11 @@ const AppClientsRoute = AppClientsRouteImport.update({
 const AppCommercialRoute = AppCommercialRouteImport.update({
   id: '/commercial',
   path: '/commercial',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCompanyDocumentsRoute = AppCompanyDocumentsRouteImport.update({
+  id: '/company-documents',
+  path: '/company-documents',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDoorToDoorRoute = AppDoorToDoorRouteImport.update({
@@ -953,6 +959,7 @@ export interface FileRoutesByFullPath {
   '/claim-buddy': typeof AppClaimBuddyRoute
   '/clients': typeof AppClientsRouteWithChildren
   '/commercial': typeof AppCommercialRouteWithChildren
+  '/company-documents': typeof AppCompanyDocumentsRoute
   '/door-to-door': typeof AppDoorToDoorRouteWithChildren
   '/leads': typeof AppLeadsRouteWithChildren
   '/price-books': typeof AppPriceBooksRouteWithChildren
@@ -1104,6 +1111,7 @@ export interface FileRoutesByTo {
   '/card': typeof AppCardRoute
   '/claim-buddy': typeof AppClaimBuddyRoute
   '/clients': typeof AppClientsRouteWithChildren
+  '/company-documents': typeof AppCompanyDocumentsRoute
   '/price-books': typeof AppPriceBooksRouteWithChildren
   '/settings': typeof AppSettingsRoute
   '/storm-intelligence': typeof AppStormIntelligenceRoute
@@ -1254,6 +1262,7 @@ export interface FileRoutesById {
   '/_app/claim-buddy': typeof AppClaimBuddyRoute
   '/_app/clients': typeof AppClientsRouteWithChildren
   '/_app/commercial': typeof AppCommercialRouteWithChildren
+  '/_app/company-documents': typeof AppCompanyDocumentsRoute
   '/_app/door-to-door': typeof AppDoorToDoorRouteWithChildren
   '/_app/leads': typeof AppLeadsRouteWithChildren
   '/_app/price-books': typeof AppPriceBooksRouteWithChildren
@@ -1411,6 +1420,7 @@ export interface FileRouteTypes {
     | '/claim-buddy'
     | '/clients'
     | '/commercial'
+    | '/company-documents'
     | '/door-to-door'
     | '/leads'
     | '/price-books'
@@ -1562,6 +1572,7 @@ export interface FileRouteTypes {
     | '/card'
     | '/claim-buddy'
     | '/clients'
+    | '/company-documents'
     | '/price-books'
     | '/settings'
     | '/storm-intelligence'
@@ -1711,6 +1722,7 @@ export interface FileRouteTypes {
     | '/_app/claim-buddy'
     | '/_app/clients'
     | '/_app/commercial'
+    | '/_app/company-documents'
     | '/_app/door-to-door'
     | '/_app/leads'
     | '/_app/price-books'
@@ -2062,6 +2074,13 @@ declare module '@tanstack/react-router' {
       path: '/commercial'
       fullPath: '/commercial'
       preLoaderRoute: typeof AppCommercialRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/company-documents': {
+      id: '/_app/company-documents'
+      path: '/company-documents'
+      fullPath: '/company-documents'
+      preLoaderRoute: typeof AppCompanyDocumentsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/door-to-door': {
@@ -3143,6 +3162,7 @@ interface AppRouteChildren {
   AppClaimBuddyRoute: typeof AppClaimBuddyRoute
   AppClientsRoute: typeof AppClientsRouteWithChildren
   AppCommercialRoute: typeof AppCommercialRouteWithChildren
+  AppCompanyDocumentsRoute: typeof AppCompanyDocumentsRoute
   AppDoorToDoorRoute: typeof AppDoorToDoorRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
   AppPriceBooksRoute: typeof AppPriceBooksRouteWithChildren
@@ -3166,6 +3186,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppClaimBuddyRoute: AppClaimBuddyRoute,
   AppClientsRoute: AppClientsRouteWithChildren,
   AppCommercialRoute: AppCommercialRouteWithChildren,
+  AppCompanyDocumentsRoute: AppCompanyDocumentsRoute,
   AppDoorToDoorRoute: AppDoorToDoorRouteWithChildren,
   AppLeadsRoute: AppLeadsRouteWithChildren,
   AppPriceBooksRoute: AppPriceBooksRouteWithChildren,
