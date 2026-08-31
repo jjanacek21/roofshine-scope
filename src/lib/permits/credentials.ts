@@ -122,6 +122,27 @@ export function expiryOf(c: Pick<CompanyCredential, "expires_on">): Expiry {
   };
 }
 
+/**
+ * Supabase rejections are plain objects, not Error instances, so a `catch` that
+ * tests `e instanceof Error` shows the caller a generic message and throws the
+ * real reason away. Everything here re-throws a real Error carrying the text the
+ * database actually sent, and says plainly what a permission refusal means.
+ */
+function fail(e: unknown, doing: string): never {
+  const err = e as { message?: string; code?: string; error?: string; statusCode?: string } | null;
+  const code = err?.code ?? err?.statusCode ?? "";
+  const raw = err?.message ?? err?.error ?? "";
+
+  // 42501 is Postgres "insufficient privilege"; PGRST301/RLS refusals and the
+  // storage API's 403 all mean the same thing to the person at the screen.
+  if (code === "42501" || /row-level security|not authorized|permission denied|Unauthorized/i.test(raw)) {
+    throw new Error(
+      `Your account is not allowed to ${doing}. Company documents can only be changed by an owner or admin of the company.`,
+    );
+  }
+  throw new Error(raw ? `${doing} failed: ${raw}` : `Could not ${doing}.`);
+}
+
 export async function listCredentials(companyId: string): Promise<CompanyCredential[]> {
   const { data, error } = await companyCredentials()
     .select("*")
@@ -162,7 +183,7 @@ export async function saveCredential(
     const safe = file.name.replace(/[^\w.\-]+/g, "_");
     const path = `${companyId}/credentials/${draft.kind}/${Date.now()}-${safe}`;
     const { error: upErr } = await supabase.storage.from("company-assets").upload(path, file);
-    if (upErr) throw upErr;
+    if (upErr) fail(upErr, "upload that file");
     storagePath = path;
     fileName = file.name;
     mime = file.type;
@@ -188,7 +209,7 @@ export async function saveCredential(
 
   if (existing) {
     const { error } = await companyCredentials().update(row).eq("id", existing.id);
-    if (error) throw error;
+    if (error) fail(error, "save that document");
     return;
   }
 
@@ -202,12 +223,12 @@ export async function saveCredential(
   const priorId = ((prior ?? [])[0] as { id: string } | undefined)?.id;
   if (priorId) {
     const { error } = await companyCredentials().update(row).eq("id", priorId);
-    if (error) throw error;
+    if (error) fail(error, "save that document");
     return;
   }
 
   const { error } = await companyCredentials().insert({ ...row, is_primary: true });
-  if (error) throw error;
+  if (error) fail(error, "save that document");
 }
 
 export async function removeCredential(c: CompanyCredential): Promise<void> {
@@ -215,7 +236,7 @@ export async function removeCredential(c: CompanyCredential): Promise<void> {
     await supabase.storage.from(c.bucket || "company-assets").remove([c.storage_path]);
   }
   const { error } = await companyCredentials().delete().eq("id", c.id);
-  if (error) throw error;
+  if (error) fail(error, "remove that document");
 }
 
 /** A short-lived link, because the bucket is private on purpose. */
