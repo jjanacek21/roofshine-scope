@@ -593,6 +593,60 @@ export type Database = {
           },
         ]
       }
+      cb_assignments: {
+        Row: {
+          audience: string
+          course_id: string
+          created_at: string
+          created_by: string | null
+          due_at: string | null
+          id: string
+          role: string | null
+          updated_at: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          audience?: string
+          course_id: string
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          audience?: string
+          course_id?: string
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_assignments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "cb_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_assignments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cb_audit_log: {
         Row: {
           action: string
@@ -893,6 +947,72 @@ export type Database = {
           },
         ]
       }
+      cb_courses: {
+        Row: {
+          archived_at: string | null
+          category: string | null
+          cover_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          estimated_minutes: number | null
+          id: string
+          prerequisite_course_id: string | null
+          sort_order: number
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          prerequisite_course_id?: string | null
+          sort_order?: number
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          prerequisite_course_id?: string | null
+          sort_order?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_courses_prerequisite_course_id_fkey"
+            columns: ["prerequisite_course_id"]
+            isOneToOne: false
+            referencedRelation: "cb_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_courses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cb_demo_requests: {
         Row: {
           company: string | null
@@ -964,6 +1084,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      cb_google_connections: {
+        Row: {
+          access_token: string | null
+          connected_by: string | null
+          created_at: string
+          expires_at: string | null
+          google_email: string | null
+          refresh_token: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          connected_by?: string | null
+          created_at?: string
+          expires_at?: string | null
+          google_email?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          access_token?: string | null
+          connected_by?: string | null
+          created_at?: string
+          expires_at?: string | null
+          google_email?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_google_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cb_invites: {
         Row: {
@@ -1239,6 +1400,202 @@ export type Database = {
           },
         ]
       }
+      cb_lessons: {
+        Row: {
+          body: string | null
+          course_id: string
+          created_at: string
+          document_path: string | null
+          duration_seconds: number | null
+          id: string
+          kind: string
+          module_id: string
+          required_percent: number
+          sort_order: number
+          title: string
+          transcript: string | null
+          updated_at: string
+          video_path: string | null
+          video_provider: string | null
+          video_url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          body?: string | null
+          course_id: string
+          created_at?: string
+          document_path?: string | null
+          duration_seconds?: number | null
+          id?: string
+          kind?: string
+          module_id: string
+          required_percent?: number
+          sort_order?: number
+          title: string
+          transcript?: string | null
+          updated_at?: string
+          video_path?: string | null
+          video_provider?: string | null
+          video_url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          body?: string | null
+          course_id?: string
+          created_at?: string
+          document_path?: string | null
+          duration_seconds?: number | null
+          id?: string
+          kind?: string
+          module_id?: string
+          required_percent?: number
+          sort_order?: number
+          title?: string
+          transcript?: string | null
+          updated_at?: string
+          video_path?: string | null
+          video_provider?: string | null
+          video_url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_lessons_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "cb_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "cb_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_lessons_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_live_attendance: {
+        Row: {
+          created_at: string
+          id: string
+          minutes: number
+          session_id: string
+          status: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          minutes?: number
+          session_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          minutes?: number
+          session_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_live_attendance_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "cb_live_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_live_attendance_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_live_sessions: {
+        Row: {
+          counts_toward_hours: boolean
+          course_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string | null
+          google_event_id: string | null
+          id: string
+          meet_url: string | null
+          recurrence: string | null
+          starts_at: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          counts_toward_hours?: boolean
+          course_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          google_event_id?: string | null
+          id?: string
+          meet_url?: string | null
+          recurrence?: string | null
+          starts_at: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          counts_toward_hours?: boolean
+          course_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          google_event_id?: string | null
+          id?: string
+          meet_url?: string | null
+          recurrence?: string | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_live_sessions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "cb_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_live_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cb_measurements: {
         Row: {
           created_at: string
@@ -1338,6 +1695,54 @@ export type Database = {
           },
         ]
       }
+      cb_modules: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          sort_order: number
+          summary: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          summary?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_modules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "cb_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_modules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cb_photos: {
         Row: {
           caption: string | null
@@ -1430,6 +1835,257 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      cb_progress: {
+        Row: {
+          checkpoint_answers: Json
+          completed_at: string | null
+          course_id: string
+          created_at: string
+          id: string
+          last_position_seconds: number
+          lesson_id: string
+          percent: number
+          ranges: Json
+          updated_at: string
+          user_id: string
+          watched_seconds: number
+          workspace_id: string
+        }
+        Insert: {
+          checkpoint_answers?: Json
+          completed_at?: string | null
+          course_id: string
+          created_at?: string
+          id?: string
+          last_position_seconds?: number
+          lesson_id: string
+          percent?: number
+          ranges?: Json
+          updated_at?: string
+          user_id: string
+          watched_seconds?: number
+          workspace_id: string
+        }
+        Update: {
+          checkpoint_answers?: Json
+          completed_at?: string | null
+          course_id?: string
+          created_at?: string
+          id?: string
+          last_position_seconds?: number
+          lesson_id?: string
+          percent?: number
+          ranges?: Json
+          updated_at?: string
+          user_id?: string
+          watched_seconds?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_progress_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "cb_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "cb_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_progress_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_quiz_attempts: {
+        Row: {
+          answers: Json
+          created_at: string
+          feedback: Json
+          id: string
+          passed: boolean | null
+          quiz_id: string
+          score_percent: number | null
+          started_at: string
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          feedback?: Json
+          id?: string
+          passed?: boolean | null
+          quiz_id: string
+          score_percent?: number | null
+          started_at?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          feedback?: Json
+          id?: string
+          passed?: boolean | null
+          quiz_id?: string
+          score_percent?: number | null
+          started_at?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_quiz_attempts_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "cb_quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_quiz_attempts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_quiz_questions: {
+        Row: {
+          correct_index: number | null
+          created_at: string
+          id: string
+          kind: string
+          model_answer: string | null
+          options: Json
+          points: number
+          prompt: string
+          quiz_id: string
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          correct_index?: number | null
+          created_at?: string
+          id?: string
+          kind?: string
+          model_answer?: string | null
+          options?: Json
+          points?: number
+          prompt: string
+          quiz_id: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          correct_index?: number | null
+          created_at?: string
+          id?: string
+          kind?: string
+          model_answer?: string | null
+          options?: Json
+          points?: number
+          prompt?: string
+          quiz_id?: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_quiz_questions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "cb_quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_quiz_questions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_quizzes: {
+        Row: {
+          course_id: string | null
+          created_at: string
+          id: string
+          instructions: string | null
+          lesson_id: string | null
+          mode: string
+          pass_percent: number
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          lesson_id?: string | null
+          mode?: string
+          pass_percent?: number
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          lesson_id?: string | null
+          mode?: string
+          pass_percent?: number
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_quizzes_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "cb_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_quizzes_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "cb_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_quizzes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cb_reports: {
         Row: {
@@ -1822,6 +2478,245 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: true
             referencedRelation: "cb_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_training_badges: {
+        Row: {
+          awarded_at: string
+          code: string
+          id: string
+          label: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          code: string
+          id?: string
+          label: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          awarded_at?: string
+          code?: string
+          id?: string
+          label?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_training_badges_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_training_events: {
+        Row: {
+          course_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          lesson_id: string | null
+          meta: Json
+          seconds: number
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          lesson_id?: string | null
+          meta?: Json
+          seconds?: number
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          lesson_id?: string | null
+          meta?: Json
+          seconds?: number
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_training_events_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "cb_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_training_events_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "cb_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_training_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_training_points: {
+        Row: {
+          created_at: string
+          id: string
+          points: number
+          reason: string
+          ref_id: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          points?: number
+          reason: string
+          ref_id?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          points?: number
+          reason?: string
+          ref_id?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_training_points_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_training_rules: {
+        Row: {
+          created_at: string
+          id: string
+          period: string
+          required_minutes: number
+          role: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          period?: string
+          required_minutes?: number
+          role?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          period?: string
+          required_minutes?: number
+          role?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_training_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cb_video_checkpoints: {
+        Row: {
+          at_seconds: number
+          branch_lesson_id: string | null
+          branch_seconds: number | null
+          correct_index: number | null
+          created_at: string
+          explanation: string | null
+          id: string
+          lesson_id: string
+          options: Json
+          question: string
+          required: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          at_seconds: number
+          branch_lesson_id?: string | null
+          branch_seconds?: number | null
+          correct_index?: number | null
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          lesson_id: string
+          options?: Json
+          question: string
+          required?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          at_seconds?: number
+          branch_lesson_id?: string | null
+          branch_seconds?: number | null
+          correct_index?: number | null
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          lesson_id?: string
+          options?: Json
+          question?: string
+          required?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cb_video_checkpoints_branch_lesson_id_fkey"
+            columns: ["branch_lesson_id"]
+            isOneToOne: false
+            referencedRelation: "cb_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_video_checkpoints_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "cb_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_video_checkpoints_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cb_workspaces"
             referencedColumns: ["id"]
           },
         ]
