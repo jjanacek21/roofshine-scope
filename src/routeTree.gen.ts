@@ -139,6 +139,7 @@ import { Route as CbAdminSeatsRouteImport } from './routes/cb.admin.seats'
 import { Route as CbAdminTeamRouteImport } from './routes/cb.admin.team'
 import { Route as CbLeadIdRouteImport } from './routes/cb.lead.$id'
 import { Route as CbTrainingIndexRouteImport } from './routes/cb.training.index'
+import { Route as CbTrainingLiveRouteImport } from './routes/cb.training.live'
 import { Route as CbTrainingScoreboardRouteImport } from './routes/cb.training.scoreboard'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
 import { Route as AppJobsIdContractRouteImport } from './routes/_app.jobs.$id.contract'
@@ -820,6 +821,11 @@ const CbTrainingIndexRoute = CbTrainingIndexRouteImport.update({
   path: '/cb/training/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbTrainingLiveRoute = CbTrainingLiveRouteImport.update({
+  id: '/cb/training/live',
+  path: '/cb/training/live',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CbTrainingScoreboardRoute = CbTrainingScoreboardRouteImport.update({
   id: '/cb/training/scoreboard',
   path: '/cb/training/scoreboard',
@@ -1082,6 +1088,7 @@ export interface FileRoutesByFullPath {
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
+  '/cb/training/live': typeof CbTrainingLiveRoute
   '/cb/training/scoreboard': typeof CbTrainingScoreboardRoute
   '/commercial/': typeof AppCommercialIndexRoute
   '/door-to-door/': typeof AppDoorToDoorIndexRoute
@@ -1233,6 +1240,7 @@ export interface FileRoutesByTo {
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
+  '/cb/training/live': typeof CbTrainingLiveRoute
   '/cb/training/scoreboard': typeof CbTrainingScoreboardRoute
   '/commercial': typeof AppCommercialIndexRoute
   '/door-to-door': typeof AppDoorToDoorIndexRoute
@@ -1394,6 +1402,7 @@ export interface FileRoutesById {
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
+  '/cb/training/live': typeof CbTrainingLiveRoute
   '/cb/training/scoreboard': typeof CbTrainingScoreboardRoute
   '/_app/commercial/': typeof AppCommercialIndexRoute
   '/_app/door-to-door/': typeof AppDoorToDoorIndexRoute
@@ -1555,6 +1564,7 @@ export interface FileRouteTypes {
     | '/cb/admin/seats'
     | '/cb/admin/team'
     | '/cb/lead/$id'
+    | '/cb/training/live'
     | '/cb/training/scoreboard'
     | '/commercial/'
     | '/door-to-door/'
@@ -1706,6 +1716,7 @@ export interface FileRouteTypes {
     | '/cb/admin/seats'
     | '/cb/admin/team'
     | '/cb/lead/$id'
+    | '/cb/training/live'
     | '/cb/training/scoreboard'
     | '/commercial'
     | '/door-to-door'
@@ -1866,6 +1877,7 @@ export interface FileRouteTypes {
     | '/cb/admin/seats'
     | '/cb/admin/team'
     | '/cb/lead/$id'
+    | '/cb/training/live'
     | '/cb/training/scoreboard'
     | '/_app/commercial/'
     | '/_app/door-to-door/'
@@ -1958,6 +1970,7 @@ export interface RootRouteChildren {
   ApiPublicCbShareRoute: typeof ApiPublicCbShareRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
   CbLeadIdRoute: typeof CbLeadIdRoute
+  CbTrainingLiveRoute: typeof CbTrainingLiveRoute
   CbTrainingScoreboardRoute: typeof CbTrainingScoreboardRoute
   CbTrainingIndexRoute: typeof CbTrainingIndexRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
@@ -2891,6 +2904,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbTrainingIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/training/live': {
+      id: '/cb/training/live'
+      path: '/cb/training/live'
+      fullPath: '/cb/training/live'
+      preLoaderRoute: typeof CbTrainingLiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cb/training/scoreboard': {
       id: '/cb/training/scoreboard'
       path: '/cb/training/scoreboard'
@@ -3432,6 +3452,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCbShareRoute: ApiPublicCbShareRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
   CbLeadIdRoute: CbLeadIdRoute,
+  CbTrainingLiveRoute: CbTrainingLiveRoute,
   CbTrainingScoreboardRoute: CbTrainingScoreboardRoute,
   CbTrainingIndexRoute: CbTrainingIndexRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
