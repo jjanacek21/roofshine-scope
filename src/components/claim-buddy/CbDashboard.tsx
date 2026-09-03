@@ -22,6 +22,8 @@ import {
   Map as MapIcon,
   BookOpenText,
   ListFilter,
+  GraduationCap,
+
 } from "lucide-react";
 import { toast } from "sonner";
 
