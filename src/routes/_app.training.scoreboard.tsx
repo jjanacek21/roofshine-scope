@@ -7,7 +7,7 @@ import { CbReveal } from "@/components/cb/motion";
 import { useScoreboard } from "@/hooks/useCbTraining";
 import { formatMinutes } from "@/lib/cbTraining";
 
-export const Route = createFileRoute("/cb/training/scoreboard")({
+export const Route = createFileRoute("/_app/training/scoreboard")({
   head: () => ({
     meta: [
       { title: "Training scoreboard — Claim Buddy" },
@@ -39,7 +39,7 @@ function ScoreboardPage() {
           <CbReveal>
             <button
               type="button"
-              onClick={() => navigate({ to: "/cb/training" })}
+              onClick={() => navigate({ to: "/training" })}
               className="mb-4 inline-flex items-center gap-1 text-[13px]"
               style={{ color: "var(--cb-text-muted)" }}
             >

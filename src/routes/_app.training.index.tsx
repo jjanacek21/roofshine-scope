@@ -17,7 +17,7 @@ import { formatMinutes } from "@/lib/cbTraining";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
-export const Route = createFileRoute("/cb/training/")({
+export const Route = createFileRoute("/_app/training/")({
   head: () => ({
     meta: [
       { title: "Company Training — Claim Buddy" },
@@ -96,7 +96,7 @@ function TrainingHome() {
           <CbReveal>
             <button
               type="button"
-              onClick={() => navigate({ to: "/cb" })}
+              onClick={() => navigate({ to: "/" })}
               className="mb-4 inline-flex items-center gap-1 text-[13px]"
               style={{ color: "var(--cb-text-muted)" }}
             >
@@ -113,18 +113,18 @@ function TrainingHome() {
 
           <CbReveal delay={60}>
             <div className="mt-5 flex flex-wrap gap-2">
-              <CbButton size="md" variant="secondary" onClick={() => navigate({ to: "/cb/training/scoreboard" })}>
+              <CbButton size="md" variant="secondary" onClick={() => navigate({ to: "/training/scoreboard" })}>
                 <span className="inline-flex items-center gap-1.5">
                   <Trophy className="h-4 w-4" /> Scoreboard
                 </span>
               </CbButton>
-              <CbButton size="md" variant="secondary" onClick={() => navigate({ to: "/cb/training/live" })}>
+              <CbButton size="md" variant="secondary" onClick={() => navigate({ to: "/training/live" })}>
                 <span className="inline-flex items-center gap-1.5">
                   <Video className="h-4 w-4" /> Live coaching
                 </span>
               </CbButton>
               {isAdmin ? (
-                <CbButton size="md" variant="secondary" onClick={() => navigate({ to: "/cb/admin/training" })}>
+                <CbButton size="md" variant="secondary" onClick={() => navigate({ to: "/training/manage" })}>
                   <span className="inline-flex items-center gap-1.5">
                     <Settings className="h-4 w-4" /> Manage
                   </span>
@@ -172,7 +172,7 @@ function TrainingHome() {
                   {new Date(nextLive.starts_at).toLocaleString()}
                 </p>
                 <div className="mt-3">
-                  <CbButton size="md" variant="secondary" onClick={() => navigate({ to: "/cb/training/live" })}>
+                  <CbButton size="md" variant="secondary" onClick={() => navigate({ to: "/training/live" })}>
                     Details
                   </CbButton>
                 </div>
@@ -194,7 +194,7 @@ function TrainingHome() {
                 }
                 action={
                   isAdmin ? (
-                    <CbButton size="md" onClick={() => navigate({ to: "/cb/admin/training" })}>
+                    <CbButton size="md" onClick={() => navigate({ to: "/training/manage" })}>
                       Create a course
                     </CbButton>
                   ) : undefined
@@ -211,7 +211,7 @@ function TrainingHome() {
                       key={c.id}
                       elevation="card"
                       style={{ padding: 18, cursor: "pointer" }}
-                      onClick={() => navigate({ to: "/cb/training/course/$id", params: { id: c.id } })}
+                      onClick={() => navigate({ to: "/training/course/$id", params: { id: c.id } })}
                     >
                       <div className="flex items-start gap-3">
                         <div

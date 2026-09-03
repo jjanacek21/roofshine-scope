@@ -11,7 +11,7 @@ import { CbQuizRunner } from "@/components/claim-buddy/training/CbQuizRunner";
 import { CbTutor } from "@/components/claim-buddy/training/CbTutor";
 import { awardPoints, logEvent, useCbCourse, useCbLesson, useMyProgress, useTrainingScope } from "@/hooks/useCbTraining";
 
-export const Route = createFileRoute("/cb/training/lesson/$id")({
+export const Route = createFileRoute("/_app/training/lesson/$id")({
   head: () => ({
     meta: [
       { title: "Lesson — Company Training" },
@@ -113,8 +113,8 @@ function LessonPage() {
               type="button"
               onClick={() =>
                 lesson
-                  ? navigate({ to: "/cb/training/course/$id", params: { id: lesson.course_id } })
-                  : navigate({ to: "/cb/training" })
+                  ? navigate({ to: "/training/course/$id", params: { id: lesson.course_id } })
+                  : navigate({ to: "/training" })
               }
               className="mb-4 inline-flex items-center gap-1 text-[13px]"
               style={{ color: "var(--cb-text-muted)" }}
@@ -142,7 +142,7 @@ function LessonPage() {
                     lesson={lesson}
                     checkpoints={data?.checkpoints ?? []}
                     onComplete={onCourseCheck}
-                    onBranchLesson={(lid) => navigate({ to: "/cb/training/lesson/$id", params: { id: lid } })}
+                    onBranchLesson={(lid) => navigate({ to: "/training/lesson/$id", params: { id: lid } })}
                   />
                 ) : null}
 
@@ -191,7 +191,7 @@ function LessonPage() {
                   <CbButton
                     block
                     variant="secondary"
-                    onClick={() => navigate({ to: "/cb/training/lesson/$id", params: { id: next.id } })}
+                    onClick={() => navigate({ to: "/training/lesson/$id", params: { id: next.id } })}
                   >
                     <span className="inline-flex items-center gap-1.5">
                       Next lesson <ChevronRight className="h-4 w-4" />

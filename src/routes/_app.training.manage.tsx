@@ -20,7 +20,7 @@ import {
 import { cbGenerateCourseOutline, cbSaveGeneratedCourse } from "@/lib/cb-training.functions";
 import { formatMinutes, startOfMonth } from "@/lib/cbTraining";
 
-export const Route = createFileRoute("/cb/admin/training")({
+export const Route = createFileRoute("/_app/training/manage")({
   head: () => ({
     meta: [
       { title: "Training — Claim Buddy admin" },
