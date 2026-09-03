@@ -116,8 +116,8 @@ function LivePage() {
 
   return (
     <CbSurface>
-      <div className="min-h-screen" style={{ background: "var(--cb-bg)" }}>
-        <div className="mx-auto w-full max-w-[840px] px-5 pb-28 pt-8">
+      <div>
+        <div className="mx-auto w-full max-w-[840px]">
           <CbReveal>
             <button
               type="button"

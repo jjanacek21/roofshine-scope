@@ -23,12 +23,12 @@ import { formatMinutes, startOfMonth } from "@/lib/cbTraining";
 export const Route = createFileRoute("/_app/training/manage")({
   head: () => ({
     meta: [
-      { title: "Training — Claim Buddy admin" },
+      { title: "Training — Global Contractor" },
       {
         name: "description",
         content: "Build courses, set required training hours, assign them to roles and track who is actually training.",
       },
-      { property: "og:title", content: "Training — Claim Buddy admin" },
+      { property: "og:title", content: "Training — Global Contractor" },
       { property: "og:description", content: "Company training courses, requirements and accountability." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

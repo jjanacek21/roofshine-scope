@@ -10,9 +10,9 @@ import { formatMinutes } from "@/lib/cbTraining";
 export const Route = createFileRoute("/_app/training/scoreboard")({
   head: () => ({
     meta: [
-      { title: "Training scoreboard — Claim Buddy" },
+      { title: "Training scoreboard — Global Contractor" },
       { name: "description", content: "See how your team ranks on training points and hours this week and month." },
-      { property: "og:title", content: "Training scoreboard — Claim Buddy" },
+      { property: "og:title", content: "Training scoreboard — Global Contractor" },
       { property: "og:description", content: "Team ranking on training points and hours." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -34,8 +34,8 @@ function ScoreboardPage() {
 
   return (
     <CbSurface>
-      <div className="min-h-screen" style={{ background: "var(--cb-bg)" }}>
-        <div className="mx-auto w-full max-w-[840px] px-5 pb-28 pt-8">
+      <div>
+        <div className="mx-auto w-full max-w-[840px]">
           <CbReveal>
             <button
               type="button"

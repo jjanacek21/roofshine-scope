@@ -20,13 +20,13 @@ import { useQuery } from "@tanstack/react-query";
 export const Route = createFileRoute("/_app/training/")({
   head: () => ({
     meta: [
-      { title: "Company Training — Claim Buddy" },
+      { title: "Company Training — Global Contractor" },
       {
         name: "description",
         content:
           "Your company's own training classroom: courses, videos, quizzes, live coaching calls and a team scoreboard.",
       },
-      { property: "og:title", content: "Company Training — Claim Buddy" },
+      { property: "og:title", content: "Company Training — Global Contractor" },
       { property: "og:description", content: "Courses, quizzes and live coaching built by your own company." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -91,8 +91,8 @@ function TrainingHome() {
 
   return (
     <CbSurface>
-      <div className="min-h-screen" style={{ background: "var(--cb-bg)" }}>
-        <div className="mx-auto w-full max-w-[840px] px-5 pb-28 pt-8">
+      <div>
+        <div className="mx-auto w-full max-w-[840px]">
           <CbReveal>
             <button
               type="button"
