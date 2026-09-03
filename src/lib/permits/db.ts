@@ -14,6 +14,8 @@ interface Filterable<T> extends PromiseLike<{ data: T[] | null; error: unknown }
   eq(col: string, val: unknown): Filterable<T>;
   in(col: string, vals: unknown[]): Filterable<T>;
   is(col: string, val: unknown): Filterable<T>;
+  /** PostgREST's OR filter, e.g. `a.ilike.%x%,b.ilike.%x%`. */
+  or(filters: string): Filterable<T>;
   order(col: string, opts?: { ascending?: boolean }): Filterable<T>;
   limit(n: number): Filterable<T>;
   maybeSingle(): PromiseLike<{ data: T | null; error: unknown }>;

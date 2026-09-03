@@ -243,7 +243,20 @@ export async function buildPacketState(
   const licence = credentialFor("qualifier_license");
   const liability = credentialFor("general_liability");
   const comp = credentialFor("workers_comp") ?? credentialFor("workers_comp_exemption");
-  const hasProducts = ctx.products.length > 0;
+  /* A product approval only satisfies the requirement if it is still current
+     and, inside the HVHZ, actually HVHZ-approved. One attached row used to
+     satisfy every product requirement on the packet regardless of either. */
+  const hvhz = !!ctx.department?.is_hvhz;
+  const usableProducts = ctx.products.filter((p) => {
+    if (hvhz && !p.hvhz_approved) return false;
+    if (!p.expiration_date) return true;
+    return new Date(p.expiration_date).getTime() >= new Date(new Date().toDateString()).getTime();
+  });
+  const lapsedProducts = ctx.products.length - usableProducts.length;
+  /* The counter wants the covering and what goes under it at minimum. */
+  const roles = new Set(usableProducts.map((p) => p.role));
+  const hasProducts = usableProducts.length > 0;
+  const coversRoof = roles.has("roof_covering");
 
   const seen = new Set<string>();
   const requirements: Requirement[] = [];
@@ -295,6 +308,15 @@ export async function buildPacketState(
           if (hasProducts) {
             satisfied = true;
             satisfiedBy = "the product approval library";
+            if (!coversRoof) {
+              warning =
+                "No roof covering approval attached — the counter will look for the shingle, tile or panel itself.";
+            } else if (lapsedProducts > 0) {
+              warning =
+                hvhz && ctx.products.some((p) => !p.hvhz_approved)
+                  ? `${lapsedProducts} attached approval${lapsedProducts === 1 ? " is" : "s are"} lapsed or not HVHZ-approved.`
+                  : `${lapsedProducts} attached approval${lapsedProducts === 1 ? " has" : "s have"} expired.`;
+            }
           }
           break;
         default:
