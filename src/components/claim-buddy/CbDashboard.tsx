@@ -163,13 +163,18 @@ export function CbDashboard() {
               {repName}
             </p>
           </div>
-          {/* On a phone this chip squeezed the company name down to "G.." — the
-              banner right below already says the same thing. */}
-          {surface === "platform" ? (
-            <span className="hidden sm:inline-flex">
-              <CbChip>Inside GlobalContractor</CbChip>
-            </span>
-          ) : null}
+          {/* Back to the Global Contractor app. Accounts without GCN access get
+              the upgrade / request-a-demo page instead of a dead end. */}
+          <button
+            type="button"
+            onClick={() => navigate({ to: hasGcAccess ? "/" : "/gcn-app" })}
+            className="hidden h-11 shrink-0 items-center gap-1.5 rounded-[12px] px-3 text-[13px] font-semibold sm:inline-flex"
+            style={{ border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))" }}
+          >
+            <LayoutGrid className="h-4 w-4" />
+            GCN App
+          </button>
+
           <button
             type="button"
             aria-label="Settings"
