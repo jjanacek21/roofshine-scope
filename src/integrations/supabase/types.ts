@@ -2370,6 +2370,80 @@ export type Database = {
         }
         Relationships: []
       }
+      company_credentials: {
+        Row: {
+          bucket: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          expires_on: string | null
+          file_name: string | null
+          file_size: number | null
+          holder_name: string | null
+          id: string
+          is_primary: boolean
+          issued_on: string | null
+          issuer: string | null
+          kind: string
+          label: string | null
+          mime_type: string | null
+          notes: string | null
+          number: string | null
+          storage_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          bucket?: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          expires_on?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          holder_name?: string | null
+          id?: string
+          is_primary?: boolean
+          issued_on?: string | null
+          issuer?: string | null
+          kind: string
+          label?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          number?: string | null
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bucket?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          expires_on?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          holder_name?: string | null
+          id?: string
+          is_primary?: boolean
+          issued_on?: string | null
+          issuer?: string | null
+          kind?: string
+          label?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          number?: string | null
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_credentials_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_documents: {
         Row: {
           category: string
@@ -4084,6 +4158,229 @@ export type Database = {
           },
         ]
       }
+      job_permit_documents: {
+        Row: {
+          bucket: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          doc_key: string
+          file_name: string | null
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          notes: string | null
+          origin: string
+          permit_id: string
+          status: string
+          storage_path: string
+          title: string | null
+        }
+        Insert: {
+          bucket?: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          doc_key: string
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          origin?: string
+          permit_id: string
+          status?: string
+          storage_path: string
+          title?: string | null
+        }
+        Update: {
+          bucket?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          doc_key?: string
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          origin?: string
+          permit_id?: string
+          status?: string
+          storage_path?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_permit_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_permit_documents_permit_id_fkey"
+            columns: ["permit_id"]
+            isOneToOne: false
+            referencedRelation: "job_permits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_permit_products: {
+        Row: {
+          created_at: string
+          id: string
+          permit_id: string
+          product_approval_id: string
+          role: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permit_id: string
+          product_approval_id: string
+          role?: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permit_id?: string
+          product_approval_id?: string
+          role?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_permit_products_permit_id_fkey"
+            columns: ["permit_id"]
+            isOneToOne: false
+            referencedRelation: "job_permits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_permit_products_product_approval_id_fkey"
+            columns: ["product_approval_id"]
+            isOneToOne: false
+            referencedRelation: "product_approvals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_permits: {
+        Row: {
+          bond_amount: number | null
+          building_dept_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          folio_number: string | null
+          id: string
+          issued_at: string | null
+          job_id: string
+          legal_description: string | null
+          lender_address: string | null
+          lender_name: string | null
+          notes: string | null
+          owner_address: string | null
+          owner_city: string | null
+          owner_email: string | null
+          owner_name: string | null
+          owner_phone: string | null
+          owner_state: string | null
+          owner_zip: string | null
+          permit_number: string | null
+          status: string
+          submitted_at: string | null
+          surety_name: string | null
+          updated_at: string
+          valuation: number | null
+          work_type: string | null
+        }
+        Insert: {
+          bond_amount?: number | null
+          building_dept_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          folio_number?: string | null
+          id?: string
+          issued_at?: string | null
+          job_id: string
+          legal_description?: string | null
+          lender_address?: string | null
+          lender_name?: string | null
+          notes?: string | null
+          owner_address?: string | null
+          owner_city?: string | null
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          owner_state?: string | null
+          owner_zip?: string | null
+          permit_number?: string | null
+          status?: string
+          submitted_at?: string | null
+          surety_name?: string | null
+          updated_at?: string
+          valuation?: number | null
+          work_type?: string | null
+        }
+        Update: {
+          bond_amount?: number | null
+          building_dept_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          folio_number?: string | null
+          id?: string
+          issued_at?: string | null
+          job_id?: string
+          legal_description?: string | null
+          lender_address?: string | null
+          lender_name?: string | null
+          notes?: string | null
+          owner_address?: string | null
+          owner_city?: string | null
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          owner_state?: string | null
+          owner_zip?: string | null
+          permit_number?: string | null
+          status?: string
+          submitted_at?: string | null
+          surety_name?: string | null
+          updated_at?: string
+          valuation?: number | null
+          work_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_permits_building_dept_id_fkey"
+            columns: ["building_dept_id"]
+            isOneToOne: false
+            referencedRelation: "permit_building_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_permits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_permits_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_photos: {
         Row: {
           ai_analysis: Json
@@ -4623,6 +4920,50 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_acceptances: {
+        Row: {
+          accepted_at: string
+          company_id: string | null
+          content_sha256: string
+          id: string
+          ip: string | null
+          kind: string
+          user_agent: string | null
+          user_id: string
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          company_id?: string | null
+          content_sha256: string
+          id?: string
+          ip?: string | null
+          kind: string
+          user_agent?: string | null
+          user_id: string
+          version: string
+        }
+        Update: {
+          accepted_at?: string
+          company_id?: string | null
+          content_sha256?: string
+          id?: string
+          ip?: string | null
+          kind?: string
+          user_agent?: string | null
+          user_id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_acceptances_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       line_item_master: {
         Row: {
           category: string | null
@@ -4899,6 +5240,13 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          pack_gallons: number | null
+          price_commercial: number | null
+          price_factory: number | null
+          price_preferred: number | null
+          price_retail: number | null
+          product_code: string | null
+          ship_weight_lbs: number | null
           slug: string | null
           supplier_id: string | null
           unit_price: number
@@ -4918,6 +5266,13 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          pack_gallons?: number | null
+          price_commercial?: number | null
+          price_factory?: number | null
+          price_preferred?: number | null
+          price_retail?: number | null
+          product_code?: string | null
+          ship_weight_lbs?: number | null
           slug?: string | null
           supplier_id?: string | null
           unit_price?: number
@@ -4937,6 +5292,13 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          pack_gallons?: number | null
+          price_commercial?: number | null
+          price_factory?: number | null
+          price_preferred?: number | null
+          price_retail?: number | null
+          product_code?: string | null
+          ship_weight_lbs?: number | null
           slug?: string | null
           supplier_id?: string | null
           unit_price?: number
@@ -5092,6 +5454,202 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permit_building_departments: {
+        Row: {
+          address: string | null
+          city: string | null
+          county: string | null
+          created_at: string
+          email: string | null
+          fax: string | null
+          hours: string | null
+          id: string
+          is_hvhz: boolean
+          jurisdiction_type: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          portal_url: string | null
+          processing_time: string | null
+          submission_method: string | null
+          updated_at: string
+          website: string | null
+          zip_codes: string[] | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          county?: string | null
+          created_at?: string
+          email?: string | null
+          fax?: string | null
+          hours?: string | null
+          id?: string
+          is_hvhz?: boolean
+          jurisdiction_type?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          portal_url?: string | null
+          processing_time?: string | null
+          submission_method?: string | null
+          updated_at?: string
+          website?: string | null
+          zip_codes?: string[] | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          county?: string | null
+          created_at?: string
+          email?: string | null
+          fax?: string | null
+          hours?: string | null
+          id?: string
+          is_hvhz?: boolean
+          jurisdiction_type?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          portal_url?: string | null
+          processing_time?: string | null
+          submission_method?: string | null
+          updated_at?: string
+          website?: string | null
+          zip_codes?: string[] | null
+        }
+        Relationships: []
+      }
+      permit_form_templates: {
+        Row: {
+          building_dept_id: string | null
+          city: string | null
+          county: string | null
+          created_at: string
+          field_count: number | null
+          field_mapping: Json
+          file_path: string
+          fill_method: string
+          form_name: string
+          form_type: string
+          form_version: string | null
+          hvhz_only: boolean
+          id: string
+          instructions: string | null
+          is_fillable: boolean
+          jurisdiction_name: string | null
+          notary_threshold: number | null
+          notes: string | null
+          page_count: number | null
+          requires_notary: boolean
+          requires_signature: boolean
+          trade_types: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          building_dept_id?: string | null
+          city?: string | null
+          county?: string | null
+          created_at?: string
+          field_count?: number | null
+          field_mapping?: Json
+          file_path: string
+          fill_method?: string
+          form_name: string
+          form_type: string
+          form_version?: string | null
+          hvhz_only?: boolean
+          id?: string
+          instructions?: string | null
+          is_fillable?: boolean
+          jurisdiction_name?: string | null
+          notary_threshold?: number | null
+          notes?: string | null
+          page_count?: number | null
+          requires_notary?: boolean
+          requires_signature?: boolean
+          trade_types?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          building_dept_id?: string | null
+          city?: string | null
+          county?: string | null
+          created_at?: string
+          field_count?: number | null
+          field_mapping?: Json
+          file_path?: string
+          fill_method?: string
+          form_name?: string
+          form_type?: string
+          form_version?: string | null
+          hvhz_only?: boolean
+          id?: string
+          instructions?: string | null
+          is_fillable?: boolean
+          jurisdiction_name?: string | null
+          notary_threshold?: number | null
+          notes?: string | null
+          page_count?: number | null
+          requires_notary?: boolean
+          requires_signature?: boolean
+          trade_types?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permit_form_templates_building_dept_id_fkey"
+            columns: ["building_dept_id"]
+            isOneToOne: false
+            referencedRelation: "permit_building_departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permit_required_documents: {
+        Row: {
+          building_dept_id: string
+          created_at: string
+          document_name: string
+          document_url: string | null
+          id: string
+          is_required: boolean
+          notes: string | null
+          sort_order: number
+          trade_type: string
+        }
+        Insert: {
+          building_dept_id: string
+          created_at?: string
+          document_name: string
+          document_url?: string | null
+          id?: string
+          is_required?: boolean
+          notes?: string | null
+          sort_order?: number
+          trade_type?: string
+        }
+        Update: {
+          building_dept_id?: string
+          created_at?: string
+          document_name?: string
+          document_url?: string | null
+          id?: string
+          is_required?: boolean
+          notes?: string | null
+          sort_order?: number
+          trade_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permit_required_documents_building_dept_id_fkey"
+            columns: ["building_dept_id"]
+            isOneToOne: false
+            referencedRelation: "permit_building_departments"
             referencedColumns: ["id"]
           },
         ]
@@ -5388,6 +5946,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      product_approvals: {
+        Row: {
+          applicable_trades: string[] | null
+          approval_date: string | null
+          created_at: string
+          expiration_date: string | null
+          file_url: string | null
+          fl_approval_pdf_url: string | null
+          fl_product_approval: string | null
+          hvhz_approved: boolean
+          id: string
+          is_active: boolean
+          manufacturer: string | null
+          noa_number: string | null
+          noa_pdf_url: string | null
+          product_category: string | null
+          product_line: string | null
+          product_name: string | null
+          updated_at: string
+          wind_speed_rating: number | null
+        }
+        Insert: {
+          applicable_trades?: string[] | null
+          approval_date?: string | null
+          created_at?: string
+          expiration_date?: string | null
+          file_url?: string | null
+          fl_approval_pdf_url?: string | null
+          fl_product_approval?: string | null
+          hvhz_approved?: boolean
+          id?: string
+          is_active?: boolean
+          manufacturer?: string | null
+          noa_number?: string | null
+          noa_pdf_url?: string | null
+          product_category?: string | null
+          product_line?: string | null
+          product_name?: string | null
+          updated_at?: string
+          wind_speed_rating?: number | null
+        }
+        Update: {
+          applicable_trades?: string[] | null
+          approval_date?: string | null
+          created_at?: string
+          expiration_date?: string | null
+          file_url?: string | null
+          fl_approval_pdf_url?: string | null
+          fl_product_approval?: string | null
+          hvhz_approved?: boolean
+          id?: string
+          is_active?: boolean
+          manufacturer?: string | null
+          noa_number?: string | null
+          noa_pdf_url?: string | null
+          product_category?: string | null
+          product_line?: string | null
+          product_name?: string | null
+          updated_at?: string
+          wind_speed_rating?: number | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -7089,13 +7710,15 @@ export type Database = {
       spf_products: {
         Row: {
           active: boolean
-          company_id: string
+          company_id: string | null
           cost_per_gal: number
           created_at: string
           default_method: string
           default_mils: number
           id: string
           name: string
+          notes: string | null
+          product_code: string | null
           role: string
           solids_pct: number
           sort_order: number
@@ -7103,13 +7726,15 @@ export type Database = {
         }
         Insert: {
           active?: boolean
-          company_id?: string
+          company_id?: string | null
           cost_per_gal: number
           created_at?: string
           default_method: string
           default_mils: number
           id?: string
           name: string
+          notes?: string | null
+          product_code?: string | null
           role: string
           solids_pct: number
           sort_order?: number
@@ -7117,13 +7742,15 @@ export type Database = {
         }
         Update: {
           active?: boolean
-          company_id?: string
+          company_id?: string | null
           cost_per_gal?: number
           created_at?: string
           default_method?: string
           default_mils?: number
           id?: string
           name?: string
+          notes?: string | null
+          product_code?: string | null
           role?: string
           solids_pct?: number
           sort_order?: number
@@ -8033,6 +8660,198 @@ export type Database = {
         }
         Relationships: []
       }
+      zz_backup_cb_item_mappings_20260828: {
+        Row: {
+          catalog_item_id: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          line_item_id: string | null
+          note: string | null
+          qty_factor: number | null
+          qty_mode: string | null
+          roof_system: string | null
+          sort_order: number | null
+          updated_at: string | null
+          version_id: string | null
+          waste_pct: number | null
+        }
+        Insert: {
+          catalog_item_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          line_item_id?: string | null
+          note?: string | null
+          qty_factor?: number | null
+          qty_mode?: string | null
+          roof_system?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          version_id?: string | null
+          waste_pct?: number | null
+        }
+        Update: {
+          catalog_item_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          line_item_id?: string | null
+          note?: string | null
+          qty_factor?: number | null
+          qty_mode?: string | null
+          roof_system?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          version_id?: string | null
+          waste_pct?: number | null
+        }
+        Relationships: []
+      }
+      zz_backup_line_item_master_20260828: {
+        Row: {
+          category: string | null
+          code: string | null
+          company_id: string | null
+          created_at: string | null
+          default_price: number | null
+          description: string | null
+          domain: string | null
+          hours: number | null
+          id: string | null
+          material_cost: number | null
+          name: string | null
+          price_book_code: string | null
+          remove_price: number | null
+          replace_price: number | null
+          status: Database["public"]["Enums"]["catalog_status"] | null
+          subgroup: string | null
+          tags: string[] | null
+          trade: Database["public"]["Enums"]["trade_type"] | null
+          trade_name: string | null
+          unit: string | null
+          updated_at: string | null
+          waste_pct: number | null
+          xactimate_prefix: string | null
+        }
+        Insert: {
+          category?: string | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          default_price?: number | null
+          description?: string | null
+          domain?: string | null
+          hours?: number | null
+          id?: string | null
+          material_cost?: number | null
+          name?: string | null
+          price_book_code?: string | null
+          remove_price?: number | null
+          replace_price?: number | null
+          status?: Database["public"]["Enums"]["catalog_status"] | null
+          subgroup?: string | null
+          tags?: string[] | null
+          trade?: Database["public"]["Enums"]["trade_type"] | null
+          trade_name?: string | null
+          unit?: string | null
+          updated_at?: string | null
+          waste_pct?: number | null
+          xactimate_prefix?: string | null
+        }
+        Update: {
+          category?: string | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          default_price?: number | null
+          description?: string | null
+          domain?: string | null
+          hours?: number | null
+          id?: string | null
+          material_cost?: number | null
+          name?: string | null
+          price_book_code?: string | null
+          remove_price?: number | null
+          replace_price?: number | null
+          status?: Database["public"]["Enums"]["catalog_status"] | null
+          subgroup?: string | null
+          tags?: string[] | null
+          trade?: Database["public"]["Enums"]["trade_type"] | null
+          trade_name?: string | null
+          unit?: string | null
+          updated_at?: string | null
+          waste_pct?: number | null
+          xactimate_prefix?: string | null
+        }
+        Relationships: []
+      }
+      zz_backup_line_item_prices_20260828: {
+        Row: {
+          created_at: string | null
+          equipment_cost: number | null
+          equipment_pct: number | null
+          id: string | null
+          labor_cost: number | null
+          labor_pct: number | null
+          line_item_master_id: string | null
+          material_cost: number | null
+          material_pct: number | null
+          misc_cost: number | null
+          overhead_pct: number | null
+          price_book_id: string | null
+          remove_price: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          equipment_cost?: number | null
+          equipment_pct?: number | null
+          id?: string | null
+          labor_cost?: number | null
+          labor_pct?: number | null
+          line_item_master_id?: string | null
+          material_cost?: number | null
+          material_pct?: number | null
+          misc_cost?: number | null
+          overhead_pct?: number | null
+          price_book_id?: string | null
+          remove_price?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          equipment_cost?: number | null
+          equipment_pct?: number | null
+          id?: string | null
+          labor_cost?: number | null
+          labor_pct?: number | null
+          line_item_master_id?: string | null
+          material_cost?: number | null
+          material_pct?: number | null
+          misc_cost?: number | null
+          overhead_pct?: number | null
+          price_book_id?: string | null
+          remove_price?: number | null
+          unit_price?: number | null
+        }
+        Relationships: []
+      }
+      zz_merge_map_20260828: {
+        Row: {
+          keeper_id: string | null
+          loser_id: string | null
+        }
+        Insert: {
+          keeper_id?: string | null
+          loser_id?: string | null
+        }
+        Update: {
+          keeper_id?: string | null
+          loser_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       geography_columns: {
@@ -8404,6 +9223,7 @@ export type Database = {
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
+      ensure_contract_tenant: { Args: never; Returns: Json }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       export_storm_dispositions: {
         Args: { p_only_storm_map?: boolean }
@@ -8426,6 +9246,10 @@ export type Database = {
           updated_at: string
           wind_dates: string
         }[]
+      }
+      gcn_addr_key: {
+        Args: { _addr: string; _city: string; _zip: string }
+        Returns: string
       }
       generate_storm_swaths: {
         Args: { p_event_date: string; p_product?: string; p_simplify?: number }
@@ -9524,12 +10348,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -9553,11 +10377,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -9578,11 +10402,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -9603,11 +10427,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -9620,11 +10444,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
