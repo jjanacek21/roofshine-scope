@@ -17,6 +17,7 @@ import { Route as DemoRouteImport } from './routes/demo'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as GcnAppRouteImport } from './routes/gcn-app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PricingRouteImport } from './routes/pricing'
@@ -210,6 +211,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const GalleryRoute = GalleryRouteImport.update({
   id: '/gallery',
   path: '/gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GcnAppRoute = GcnAppRouteImport.update({
+  id: '/gcn-app',
+  path: '/gcn-app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -1001,6 +1007,7 @@ export interface FileRoutesByFullPath {
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
+  '/gcn-app': typeof GcnAppRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
@@ -1163,6 +1170,7 @@ export interface FileRoutesByTo {
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
+  '/gcn-app': typeof GcnAppRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
@@ -1322,6 +1330,7 @@ export interface FileRoutesById {
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
+  '/gcn-app': typeof GcnAppRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
@@ -1489,6 +1498,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/forgot-password'
     | '/gallery'
+    | '/gcn-app'
     | '/login'
     | '/onboarding'
     | '/pricing'
@@ -1651,6 +1661,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/forgot-password'
     | '/gallery'
+    | '/gcn-app'
     | '/login'
     | '/onboarding'
     | '/pricing'
@@ -1809,6 +1820,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/forgot-password'
     | '/gallery'
+    | '/gcn-app'
     | '/login'
     | '/onboarding'
     | '/pricing'
@@ -1975,6 +1987,7 @@ export interface RootRouteChildren {
   FaqRoute: typeof FaqRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   GalleryRoute: typeof GalleryRoute
+  GcnAppRoute: typeof GcnAppRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   PricingRoute: typeof PricingRoute
@@ -2093,6 +2106,13 @@ declare module '@tanstack/react-router' {
       path: '/gallery'
       fullPath: '/gallery'
       preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gcn-app': {
+      id: '/gcn-app'
+      path: '/gcn-app'
+      fullPath: '/gcn-app'
+      preLoaderRoute: typeof GcnAppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -3496,6 +3516,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaqRoute: FaqRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   GalleryRoute: GalleryRoute,
+  GcnAppRoute: GcnAppRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   PricingRoute: PricingRoute,
