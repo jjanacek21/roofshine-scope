@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { Plus, Sparkles, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { CbAdminShell } from "@/components/cb/CbAdminShell";
+import { CbSurface } from "@/components/cb/CbSurface";
+import { Link } from "@tanstack/react-router";
 import { CbCard, CbButton, CbBadge, CbLoading, CbEmptyState } from "@/components/cb/primitives";
 import { CbCourseBuilder } from "@/components/claim-buddy/training/CbCourseBuilder";
 import {
@@ -50,10 +51,22 @@ function AdminTraining() {
   const { isAdmin } = useTrainingScope();
 
   return (
-    <CbAdminShell
-      title="Company Training"
-      subtitle="Your own classroom — courses, requirements and a scoreboard for your crew."
-    >
+    <CbSurface>
+      <div className="mx-auto w-full max-w-[840px]">
+        <Link
+          to="/training"
+          className="mb-3 inline-flex items-center gap-1 text-[13px]"
+          style={{ color: "var(--cb-text-muted)" }}
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Training
+        </Link>
+        <h1 className="cb-display" style={{ fontSize: 26, lineHeight: 1.15 }}>
+          Company Training
+        </h1>
+        <p className="mb-5 mt-1 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
+          Your own classroom — courses, requirements and a scoreboard for your crew.
+        </p>
       {!isAdmin ? (
         <CbEmptyState headline="Owners and admins only" body="Ask your company owner for access." />
       ) : (
@@ -77,7 +90,8 @@ function AdminTraining() {
           {tab === "Accountability" ? <AccountabilityTab /> : null}
         </>
       )}
-    </CbAdminShell>
+      </div>
+    </CbSurface>
   );
 }
 
