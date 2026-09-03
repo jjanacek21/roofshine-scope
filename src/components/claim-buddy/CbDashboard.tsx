@@ -22,6 +22,7 @@ import {
   Map as MapIcon,
   BookOpenText,
   ListFilter,
+  LayoutGrid,
   
 
 } from "lucide-react";
@@ -39,7 +40,7 @@ interface CbJobRow {
 export function CbDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { workspace, surface, loading: sessionLoading } = useCbSession();
+  const { workspace, surface, hasGcAccess, loading: sessionLoading } = useCbSession();
   const featureGuard = useCbFeatureGuard();
   const guideAllowed = useCbFeature("survival_guide").allowed;
   const { company, loading: companyLoading } = useCbCompany();
@@ -168,11 +169,11 @@ export function CbDashboard() {
           <button
             type="button"
             onClick={() => navigate({ to: hasGcAccess ? "/" : "/gcn-app" })}
-            className="hidden h-11 shrink-0 items-center gap-1.5 rounded-[12px] px-3 text-[13px] font-semibold sm:inline-flex"
+            className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-[12px] px-3 text-[13px] font-semibold"
             style={{ border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))" }}
           >
             <LayoutGrid className="h-4 w-4" />
-            GCN App
+            <span className="hidden sm:inline">GCN App</span>
           </button>
 
           <button
