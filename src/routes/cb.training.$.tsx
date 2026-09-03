@@ -7,7 +7,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 export const Route = createFileRoute("/cb/training/$")({
   beforeLoad: ({ params }) => {
     const rest = (params as { _splat?: string })._splat ?? "";
-    throw redirect({ to: rest ? `/training/${rest}` : "/training", replace: true });
+    throw redirect({ href: rest ? `/training/${rest}` : "/training", replace: true });
   },
   component: () => null,
 });
