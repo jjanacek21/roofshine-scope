@@ -141,7 +141,10 @@ import { Route as CbAdminBrandingRouteImport } from './routes/cb.admin.branding'
 import { Route as CbAdminPricingRouteImport } from './routes/cb.admin.pricing'
 import { Route as CbAdminSeatsRouteImport } from './routes/cb.admin.seats'
 import { Route as CbAdminTeamRouteImport } from './routes/cb.admin.team'
+import { Route as CbAdminTrainingRouteImport } from './routes/cb.admin.training'
 import { Route as CbLeadIdRouteImport } from './routes/cb.lead.$id'
+import { Route as CbTrainingIndexRouteImport } from './routes/cb.training.index'
+import { Route as CbTrainingSplatRouteImport } from './routes/cb.training.$'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
 import { Route as AppJobsIdContractRouteImport } from './routes/_app.jobs.$id.contract'
 import { Route as AppJobsIdDocumentsRouteImport } from './routes/_app.jobs.$id.documents'
@@ -832,9 +835,24 @@ const CbAdminTeamRoute = CbAdminTeamRouteImport.update({
   path: '/team',
   getParentRoute: () => CbAdminRoute,
 } as any)
+const CbAdminTrainingRoute = CbAdminTrainingRouteImport.update({
+  id: '/training',
+  path: '/training',
+  getParentRoute: () => CbAdminRoute,
+} as any)
 const CbLeadIdRoute = CbLeadIdRouteImport.update({
   id: '/cb/lead/$id',
   path: '/cb/lead/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbTrainingIndexRoute = CbTrainingIndexRouteImport.update({
+  id: '/cb/training/',
+  path: '/cb/training/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbTrainingSplatRoute = CbTrainingSplatRouteImport.update({
+  id: '/cb/training/$',
+  path: '/cb/training/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppJobsIdIndexRoute = AppJobsIdIndexRouteImport.update({
@@ -1096,7 +1114,9 @@ export interface FileRoutesByFullPath {
   '/cb/admin/pricing': typeof CbAdminPricingRoute
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
+  '/cb/admin/training': typeof CbAdminTrainingRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
+  '/cb/training/$': typeof CbTrainingSplatRoute
   '/commercial/': typeof AppCommercialIndexRoute
   '/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
@@ -1107,6 +1127,7 @@ export interface FileRoutesByFullPath {
   '/training/': typeof AppTrainingIndexRoute
   '/admin/companies/': typeof AdminCompaniesIndexRoute
   '/cb/admin/': typeof CbAdminIndexRoute
+  '/cb/training/': typeof CbTrainingIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -1249,7 +1270,9 @@ export interface FileRoutesByTo {
   '/cb/admin/pricing': typeof CbAdminPricingRoute
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
+  '/cb/admin/training': typeof CbAdminTrainingRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
+  '/cb/training/$': typeof CbTrainingSplatRoute
   '/commercial': typeof AppCommercialIndexRoute
   '/door-to-door': typeof AppDoorToDoorIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
@@ -1260,6 +1283,7 @@ export interface FileRoutesByTo {
   '/training': typeof AppTrainingIndexRoute
   '/admin/companies': typeof AdminCompaniesIndexRoute
   '/cb/admin': typeof CbAdminIndexRoute
+  '/cb/training': typeof CbTrainingIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -1412,7 +1436,9 @@ export interface FileRoutesById {
   '/cb/admin/pricing': typeof CbAdminPricingRoute
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
+  '/cb/admin/training': typeof CbAdminTrainingRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
+  '/cb/training/$': typeof CbTrainingSplatRoute
   '/_app/commercial/': typeof AppCommercialIndexRoute
   '/_app/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
@@ -1423,6 +1449,7 @@ export interface FileRoutesById {
   '/_app/training/': typeof AppTrainingIndexRoute
   '/admin/companies/': typeof AdminCompaniesIndexRoute
   '/cb/admin/': typeof CbAdminIndexRoute
+  '/cb/training/': typeof CbTrainingIndexRoute
   '/_app/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/_app/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/_app/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -1575,7 +1602,9 @@ export interface FileRouteTypes {
     | '/cb/admin/pricing'
     | '/cb/admin/seats'
     | '/cb/admin/team'
+    | '/cb/admin/training'
     | '/cb/lead/$id'
+    | '/cb/training/$'
     | '/commercial/'
     | '/door-to-door/'
     | '/invoices/'
@@ -1586,6 +1615,7 @@ export interface FileRouteTypes {
     | '/training/'
     | '/admin/companies/'
     | '/cb/admin/'
+    | '/cb/training/'
     | '/jobs/$id/contract'
     | '/jobs/$id/documents'
     | '/jobs/$id/estimate'
@@ -1728,7 +1758,9 @@ export interface FileRouteTypes {
     | '/cb/admin/pricing'
     | '/cb/admin/seats'
     | '/cb/admin/team'
+    | '/cb/admin/training'
     | '/cb/lead/$id'
+    | '/cb/training/$'
     | '/commercial'
     | '/door-to-door'
     | '/invoices'
@@ -1739,6 +1771,7 @@ export interface FileRouteTypes {
     | '/training'
     | '/admin/companies'
     | '/cb/admin'
+    | '/cb/training'
     | '/jobs/$id/contract'
     | '/jobs/$id/documents'
     | '/jobs/$id/estimate'
@@ -1890,7 +1923,9 @@ export interface FileRouteTypes {
     | '/cb/admin/pricing'
     | '/cb/admin/seats'
     | '/cb/admin/team'
+    | '/cb/admin/training'
     | '/cb/lead/$id'
+    | '/cb/training/$'
     | '/_app/commercial/'
     | '/_app/door-to-door/'
     | '/_app/invoices/'
@@ -1901,6 +1936,7 @@ export interface FileRouteTypes {
     | '/_app/training/'
     | '/admin/companies/'
     | '/cb/admin/'
+    | '/cb/training/'
     | '/_app/jobs/$id/contract'
     | '/_app/jobs/$id/documents'
     | '/_app/jobs/$id/estimate'
@@ -1982,6 +2018,8 @@ export interface RootRouteChildren {
   ApiPublicCbShareRoute: typeof ApiPublicCbShareRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
   CbLeadIdRoute: typeof CbLeadIdRoute
+  CbTrainingSplatRoute: typeof CbTrainingSplatRoute
+  CbTrainingIndexRoute: typeof CbTrainingIndexRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   CbJobIdContractRoute: typeof CbJobIdContractRoute
   CbJobIdCoverRoute: typeof CbJobIdCoverRoute
@@ -2925,11 +2963,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbAdminTeamRouteImport
       parentRoute: typeof CbAdminRoute
     }
+    '/cb/admin/training': {
+      id: '/cb/admin/training'
+      path: '/training'
+      fullPath: '/cb/admin/training'
+      preLoaderRoute: typeof CbAdminTrainingRouteImport
+      parentRoute: typeof CbAdminRoute
+    }
     '/cb/lead/$id': {
       id: '/cb/lead/$id'
       path: '/cb/lead/$id'
       fullPath: '/cb/lead/$id'
       preLoaderRoute: typeof CbLeadIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/training/': {
+      id: '/cb/training/'
+      path: '/cb/training'
+      fullPath: '/cb/training/'
+      preLoaderRoute: typeof CbTrainingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cb/training/$': {
+      id: '/cb/training/$'
+      path: '/cb/training/$'
+      fullPath: '/cb/training/$'
+      preLoaderRoute: typeof CbTrainingSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/jobs/$id/': {
@@ -3412,6 +3471,7 @@ interface CbAdminRouteChildren {
   CbAdminPricingRoute: typeof CbAdminPricingRoute
   CbAdminSeatsRoute: typeof CbAdminSeatsRoute
   CbAdminTeamRoute: typeof CbAdminTeamRoute
+  CbAdminTrainingRoute: typeof CbAdminTrainingRoute
   CbAdminIndexRoute: typeof CbAdminIndexRoute
 }
 
@@ -3420,6 +3480,7 @@ const CbAdminRouteChildren: CbAdminRouteChildren = {
   CbAdminPricingRoute: CbAdminPricingRoute,
   CbAdminSeatsRoute: CbAdminSeatsRoute,
   CbAdminTeamRoute: CbAdminTeamRoute,
+  CbAdminTrainingRoute: CbAdminTrainingRoute,
   CbAdminIndexRoute: CbAdminIndexRoute,
 }
 
@@ -3478,6 +3539,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCbShareRoute: ApiPublicCbShareRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
   CbLeadIdRoute: CbLeadIdRoute,
+  CbTrainingSplatRoute: CbTrainingSplatRoute,
+  CbTrainingIndexRoute: CbTrainingIndexRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   CbJobIdContractRoute: CbJobIdContractRoute,
   CbJobIdCoverRoute: CbJobIdCoverRoute,
