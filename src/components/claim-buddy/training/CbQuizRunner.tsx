@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { CbButton, CbCard, CbBadge } from "@/components/cb/primitives";
 import { cbGradeAnswers } from "@/lib/cb-training.functions";
@@ -113,8 +114,8 @@ export function CbQuizRunner({
         quiz_id: quiz.id,
         workspace_id: workspaceId,
         user_id: user.id,
-        answers,
-        feedback: notes,
+        answers: answers as Json,
+        feedback: notes as unknown as Json,
         score_percent: percent,
         passed,
         submitted_at: new Date().toISOString(),

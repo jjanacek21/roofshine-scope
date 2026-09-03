@@ -137,6 +137,7 @@ import { Route as CbAdminBrandingRouteImport } from './routes/cb.admin.branding'
 import { Route as CbAdminPricingRouteImport } from './routes/cb.admin.pricing'
 import { Route as CbAdminSeatsRouteImport } from './routes/cb.admin.seats'
 import { Route as CbAdminTeamRouteImport } from './routes/cb.admin.team'
+import { Route as CbAdminTrainingRouteImport } from './routes/cb.admin.training'
 import { Route as CbLeadIdRouteImport } from './routes/cb.lead.$id'
 import { Route as CbTrainingIndexRouteImport } from './routes/cb.training.index'
 import { Route as CbTrainingLiveRouteImport } from './routes/cb.training.live'
@@ -811,6 +812,11 @@ const CbAdminTeamRoute = CbAdminTeamRouteImport.update({
   path: '/team',
   getParentRoute: () => CbAdminRoute,
 } as any)
+const CbAdminTrainingRoute = CbAdminTrainingRouteImport.update({
+  id: '/training',
+  path: '/training',
+  getParentRoute: () => CbAdminRoute,
+} as any)
 const CbLeadIdRoute = CbLeadIdRouteImport.update({
   id: '/cb/lead/$id',
   path: '/cb/lead/$id',
@@ -1087,6 +1093,7 @@ export interface FileRoutesByFullPath {
   '/cb/admin/pricing': typeof CbAdminPricingRoute
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
+  '/cb/admin/training': typeof CbAdminTrainingRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
   '/cb/training/live': typeof CbTrainingLiveRoute
   '/cb/training/scoreboard': typeof CbTrainingScoreboardRoute
@@ -1239,6 +1246,7 @@ export interface FileRoutesByTo {
   '/cb/admin/pricing': typeof CbAdminPricingRoute
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
+  '/cb/admin/training': typeof CbAdminTrainingRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
   '/cb/training/live': typeof CbTrainingLiveRoute
   '/cb/training/scoreboard': typeof CbTrainingScoreboardRoute
@@ -1401,6 +1409,7 @@ export interface FileRoutesById {
   '/cb/admin/pricing': typeof CbAdminPricingRoute
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
+  '/cb/admin/training': typeof CbAdminTrainingRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
   '/cb/training/live': typeof CbTrainingLiveRoute
   '/cb/training/scoreboard': typeof CbTrainingScoreboardRoute
@@ -1563,6 +1572,7 @@ export interface FileRouteTypes {
     | '/cb/admin/pricing'
     | '/cb/admin/seats'
     | '/cb/admin/team'
+    | '/cb/admin/training'
     | '/cb/lead/$id'
     | '/cb/training/live'
     | '/cb/training/scoreboard'
@@ -1715,6 +1725,7 @@ export interface FileRouteTypes {
     | '/cb/admin/pricing'
     | '/cb/admin/seats'
     | '/cb/admin/team'
+    | '/cb/admin/training'
     | '/cb/lead/$id'
     | '/cb/training/live'
     | '/cb/training/scoreboard'
@@ -1876,6 +1887,7 @@ export interface FileRouteTypes {
     | '/cb/admin/pricing'
     | '/cb/admin/seats'
     | '/cb/admin/team'
+    | '/cb/admin/training'
     | '/cb/lead/$id'
     | '/cb/training/live'
     | '/cb/training/scoreboard'
@@ -2890,6 +2902,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbAdminTeamRouteImport
       parentRoute: typeof CbAdminRoute
     }
+    '/cb/admin/training': {
+      id: '/cb/admin/training'
+      path: '/training'
+      fullPath: '/cb/admin/training'
+      preLoaderRoute: typeof CbAdminTrainingRouteImport
+      parentRoute: typeof CbAdminRoute
+    }
     '/cb/lead/$id': {
       id: '/cb/lead/$id'
       path: '/cb/lead/$id'
@@ -3386,6 +3405,7 @@ interface CbAdminRouteChildren {
   CbAdminPricingRoute: typeof CbAdminPricingRoute
   CbAdminSeatsRoute: typeof CbAdminSeatsRoute
   CbAdminTeamRoute: typeof CbAdminTeamRoute
+  CbAdminTrainingRoute: typeof CbAdminTrainingRoute
   CbAdminIndexRoute: typeof CbAdminIndexRoute
 }
 
@@ -3394,6 +3414,7 @@ const CbAdminRouteChildren: CbAdminRouteChildren = {
   CbAdminPricingRoute: CbAdminPricingRoute,
   CbAdminSeatsRoute: CbAdminSeatsRoute,
   CbAdminTeamRoute: CbAdminTeamRoute,
+  CbAdminTrainingRoute: CbAdminTrainingRoute,
   CbAdminIndexRoute: CbAdminIndexRoute,
 }
 

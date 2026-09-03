@@ -22,6 +22,8 @@ import {
   Map as MapIcon,
   BookOpenText,
   ListFilter,
+  GraduationCap,
+
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -218,11 +220,17 @@ export function CbDashboard() {
               {guideAllowed ? null : <CbLockChip feature="survival_guide" />}
             </span>
           </CbButton>
+          <CbButton block variant="secondary" onClick={() => navigate({ to: "/cb/training" })}>
+            <span className="inline-flex items-center gap-2">
+              <GraduationCap className="h-4 w-4" /> Company Training
+            </span>
+          </CbButton>
           <CbButton block variant="secondary" onClick={() => navigate({ to: "/cb/map" })}>
             <span className="inline-flex items-center gap-2">
               <MapIcon className="h-4 w-4" /> Door to Door mode
             </span>
           </CbButton>
+
           {/* The lead tracker: same jobs, filterable by stage, one file each. */}
           <CbButton block variant="secondary" onClick={() => navigate({ to: "/cb/leads" })}>
             <span className="inline-flex items-center gap-2">

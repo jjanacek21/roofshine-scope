@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useCbSession } from "@/components/auth/CbSessionProvider";
 import {
@@ -131,14 +132,14 @@ export async function awardPoints(
   reason: CbPointReason,
   refId: string | null,
 ) {
-  const { data: existing } = await supabase
+  let dedupe = supabase
     .from("cb_training_points")
     .select("id")
     .eq("workspace_id", workspaceId)
     .eq("user_id", userId)
-    .eq("reason", reason)
-    .eq("ref_id", refId)
-    .maybeSingle();
+    .eq("reason", reason);
+  dedupe = refId === null ? dedupe.is("ref_id", null) : dedupe.eq("ref_id", refId);
+  const { data: existing } = await dedupe.maybeSingle();
   if (existing) return;
   await supabase.from("cb_training_points").insert({
     workspace_id: workspaceId,
@@ -165,7 +166,7 @@ export async function logEvent(input: {
     course_id: input.courseId ?? null,
     lesson_id: input.lessonId ?? null,
     seconds: input.seconds ?? 0,
-    meta: input.meta ?? {},
+    meta: (input.meta ?? {}) as Json,
   });
 }
 
@@ -195,15 +196,18 @@ export function useTrainingTeam() {
       if (!ids.length) return [] as TeamMemberRow[];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, full_name, email")
+        .select("id, first_name, last_name, email")
         .in("id", ids);
       const byId = new Map((profiles ?? []).map((p) => [p.id as string, p]));
       return (data ?? []).map((m) => {
-        const p = byId.get(m.user_id as string) as { full_name?: string; email?: string } | undefined;
+        const p = byId.get(m.user_id as string) as
+          | { first_name?: string | null; last_name?: string | null; email?: string | null }
+          | undefined;
+        const fullName = [p?.first_name, p?.last_name].filter(Boolean).join(" ").trim();
         return {
           user_id: m.user_id as string,
           role: (m.role as string) ?? "rep",
-          name: p?.full_name || p?.email || "Team member",
+          name: fullName || p?.email || "Team member",
           email: p?.email ?? null,
         };
       }) as TeamMemberRow[];
