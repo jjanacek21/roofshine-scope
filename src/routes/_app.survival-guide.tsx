@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { BookOpenText } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { BookOpenText, GraduationCap } from "lucide-react";
 
 export const Route = createFileRoute("/_app/survival-guide")({
   head: () => ({
@@ -31,6 +31,14 @@ function SurvivalGuidePage() {
             Blue collar sales playbook — scripts, rebuttals, insurance, and trainer cheat sheets.
           </p>
         </div>
+        <Link
+          to="/claim-buddy"
+          className="ml-auto inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border px-4 text-sm font-semibold"
+          style={{ borderColor: "var(--border)", color: "var(--primary)" }}
+        >
+          <GraduationCap className="h-4 w-4" />
+          Company Training
+        </Link>
       </header>
 
       <div
