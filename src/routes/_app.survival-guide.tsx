@@ -31,14 +31,23 @@ function SurvivalGuidePage() {
             Blue collar sales playbook — scripts, rebuttals, insurance, and trainer cheat sheets.
           </p>
         </div>
-        <Link
-          to="/claim-buddy"
-          className="ml-auto inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border px-4 text-sm font-semibold"
-          style={{ borderColor: "var(--border)", color: "var(--primary)" }}
-        >
-          <GraduationCap className="h-4 w-4" />
-          Company Training
-        </Link>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <Link
+            to="/cb/admin/training"
+            className="inline-flex h-10 items-center gap-2 rounded-lg border px-4 text-sm font-semibold"
+            style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+          >
+            Manage courses
+          </Link>
+          <Link
+            to="/cb/training"
+            className="inline-flex h-10 items-center gap-2 rounded-lg border px-4 text-sm font-semibold"
+            style={{ borderColor: "var(--border)", color: "var(--primary)" }}
+          >
+            <GraduationCap className="h-4 w-4" />
+            Company Training
+          </Link>
+        </div>
       </header>
 
       <div
