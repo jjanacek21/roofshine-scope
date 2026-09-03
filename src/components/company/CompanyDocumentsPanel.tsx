@@ -22,6 +22,7 @@ import {
   type CredentialKind,
 } from "@/lib/permits/credentials";
 import type { CompanyCredential } from "@/lib/permits/db";
+import { CityFormLearner } from "@/components/company/CityFormLearner";
 
 /**
  * Company documents.
@@ -244,6 +245,23 @@ export function CompanyDocumentsPanel() {
         <p className="text-[12px] text-muted-foreground">
           You can see these documents, but only a company admin can change them.
         </p>
+      )}
+
+      {/* City documents — the same page, but scoped to a market rather than to
+          this company. A form mapped here fills for everyone working that
+          jurisdiction, which is how coverage grows past the counties we
+          happen to have done by hand. */}
+      {isAdmin && (
+        <div className="rounded-xl border p-4" style={card}>
+          <div className="mb-3">
+            <h2 className="text-[15px] font-semibold text-foreground">City documents</h2>
+            <p className="mt-1 text-[12.5px] text-muted-foreground">
+              Add a permit form for a market you work in and the app learns to fill it. Mapped once, by
+              anyone — every company filing in that jurisdiction gets the filled form afterwards.
+            </p>
+          </div>
+          <CityFormLearner />
+        </div>
       )}
     </div>
   );
