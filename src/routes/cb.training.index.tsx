@@ -185,7 +185,8 @@ function TrainingHome() {
               <CbLoading label="Loading courses…" />
             ) : list.length === 0 ? (
               <CbEmptyState
-                title="No courses yet"
+                headline="No courses yet"
+
                 body={
                   isAdmin
                     ? "Build your first course — write it yourself or let AI draft it from a topic."
