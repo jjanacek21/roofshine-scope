@@ -18,11 +18,10 @@ async function assertAdmin(
   if (data !== true) throw new Error("Only company owners and admins can do that.");
 }
 
-async function assertMember(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }> },
-  workspaceId: string,
-) {
-  const { data } = await supabase.rpc("cb_role", { _ws: workspaceId });
+type RpcClient = { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }> };
+
+async function assertMember(client: unknown, workspaceId: string) {
+  const { data } = await (client as RpcClient).rpc("cb_role", { _ws: workspaceId });
   if (!data) throw new Error("You are not a member of this company.");
 }
 
