@@ -48,7 +48,7 @@ const WORKSPACE_NAV = [
 
 const RESOURCES_NAV = [
   { to: "/survival-guide", label: "Survival Guide", icon: BookOpenText },
-  { to: "/cb/training", label: "Company Training", icon: GraduationCap },
+  { to: "/training", label: "Company Training", icon: GraduationCap },
   { to: "/company-documents", label: "Company Documents", icon: FolderLock },
 ] as const;
 

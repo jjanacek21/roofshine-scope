@@ -12,7 +12,7 @@ import {
   useCbFeature,
   useCbFeatureGuard,
 } from "@/components/claim-buddy/CbFeatureGate";
-import { CbCard, CbTile, CbButton, CbChip, CbLoading } from "@/components/cb/primitives";
+import { CbCard, CbTile, CbButton, CbLoading } from "@/components/cb/primitives";
 import { CbReveal, CbStagger } from "@/components/cb/motion";
 import {
   ChevronRight,
@@ -22,6 +22,7 @@ import {
   Map as MapIcon,
   BookOpenText,
   ListFilter,
+  LayoutGrid,
   
 
 } from "lucide-react";
@@ -39,7 +40,7 @@ interface CbJobRow {
 export function CbDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { workspace, surface, loading: sessionLoading } = useCbSession();
+  const { workspace, surface, hasGcAccess, loading: sessionLoading } = useCbSession();
   const featureGuard = useCbFeatureGuard();
   const guideAllowed = useCbFeature("survival_guide").allowed;
   const { company, loading: companyLoading } = useCbCompany();
@@ -163,13 +164,18 @@ export function CbDashboard() {
               {repName}
             </p>
           </div>
-          {/* On a phone this chip squeezed the company name down to "G.." — the
-              banner right below already says the same thing. */}
-          {surface === "platform" ? (
-            <span className="hidden sm:inline-flex">
-              <CbChip>Inside GlobalContractor</CbChip>
-            </span>
-          ) : null}
+          {/* Back to the Global Contractor app. Accounts without GCN access get
+              the upgrade / request-a-demo page instead of a dead end. */}
+          <button
+            type="button"
+            onClick={() => navigate({ to: hasGcAccess ? "/" : "/gcn-app" })}
+            className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-[12px] px-3 text-[13px] font-semibold"
+            style={{ border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))" }}
+          >
+            <LayoutGrid className="h-4 w-4" />
+            <span className="hidden sm:inline">GCN App</span>
+          </button>
+
           <button
             type="button"
             aria-label="Settings"

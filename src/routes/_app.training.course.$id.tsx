@@ -8,7 +8,7 @@ import { CbTutor } from "@/components/claim-buddy/training/CbTutor";
 import { useCbCourse, useMyProgress } from "@/hooks/useCbTraining";
 import { formatDuration, type CbLessonKind } from "@/lib/cbTraining";
 
-export const Route = createFileRoute("/cb/training/course/$id")({
+export const Route = createFileRoute("/_app/training/course/$id")({
   head: () => ({
     meta: [
       { title: "Course — Company Training" },
@@ -46,12 +46,12 @@ function CoursePage() {
 
   return (
     <CbSurface>
-      <div className="min-h-screen" style={{ background: "var(--cb-bg)" }}>
-        <div className="mx-auto w-full max-w-[840px] px-5 pb-28 pt-8">
+      <div>
+        <div className="mx-auto w-full max-w-[840px]">
           <CbReveal>
             <button
               type="button"
-              onClick={() => navigate({ to: "/cb/training" })}
+              onClick={() => navigate({ to: "/training" })}
               className="mb-4 inline-flex items-center gap-1 text-[13px]"
               style={{ color: "var(--cb-text-muted)" }}
             >
@@ -82,7 +82,7 @@ function CoursePage() {
                   <div className="mt-4">
                     <CbButton
                       block
-                      onClick={() => navigate({ to: "/cb/training/lesson/$id", params: { id: nextLesson.id } })}
+                      onClick={() => navigate({ to: "/training/lesson/$id", params: { id: nextLesson.id } })}
                     >
                       {doneIds.has(nextLesson.id) ? "Review the course" : "Continue where you left off"}
                     </CbButton>
@@ -110,7 +110,7 @@ function CoursePage() {
                               key={l.id}
                               elevation="card"
                               style={{ padding: 14, cursor: "pointer" }}
-                              onClick={() => navigate({ to: "/cb/training/lesson/$id", params: { id: l.id } })}
+                              onClick={() => navigate({ to: "/training/lesson/$id", params: { id: l.id } })}
                             >
                               <div className="flex items-center gap-3">
                                 {done ? (

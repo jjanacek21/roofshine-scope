@@ -57,8 +57,10 @@ export function isClaimBuddyPath(pathname: string): boolean {
     pathname === "/cb" ||
     pathname.startsWith("/cb/") ||
     pathname.startsWith("/r/") ||
-    pathname === "/accept-invite"
+    pathname === "/accept-invite" ||
+    pathname === "/gcn-app"
   );
+
 }
 
 /** Public marketing pages available on the standalone (gcn.claims) surface. */

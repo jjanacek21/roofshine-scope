@@ -9,7 +9,7 @@ import { CbCard, CbButton, CbBadge, CbLoading, CbEmptyState } from "@/components
 import { CbReveal } from "@/components/cb/motion";
 import { awardPoints, logEvent, useLiveSessions, useTrainingScope } from "@/hooks/useCbTraining";
 
-export const Route = createFileRoute("/cb/training/live")({
+export const Route = createFileRoute("/_app/training/live")({
   head: () => ({
     meta: [
       { title: "Live coaching — Company Training" },
@@ -116,12 +116,12 @@ function LivePage() {
 
   return (
     <CbSurface>
-      <div className="min-h-screen" style={{ background: "var(--cb-bg)" }}>
-        <div className="mx-auto w-full max-w-[840px] px-5 pb-28 pt-8">
+      <div>
+        <div className="mx-auto w-full max-w-[840px]">
           <CbReveal>
             <button
               type="button"
-              onClick={() => navigate({ to: "/cb/training" })}
+              onClick={() => navigate({ to: "/training" })}
               className="mb-4 inline-flex items-center gap-1 text-[13px]"
               style={{ color: "var(--cb-text-muted)" }}
             >
