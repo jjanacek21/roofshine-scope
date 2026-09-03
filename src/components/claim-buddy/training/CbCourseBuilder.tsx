@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Trash2, Upload, Sparkles, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { CbCard, CbButton, CbBadge } from "@/components/cb/primitives";
 import { cbGenerateQuiz } from "@/lib/cb-training.functions";
 import { useCbCourse, useInvalidateTraining, useTrainingScope } from "@/hooks/useCbTraining";
@@ -11,6 +12,21 @@ const input = {
   border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))",
   background: "transparent",
 } as const;
+
+type CoursePatch = {
+  title?: string;
+  description?: string;
+  status?: string;
+  archived_at?: string | null;
+};
+
+type CheckpointPatch = {
+  at_seconds?: number;
+  question?: string;
+  options?: Json;
+  correct_index?: number | null;
+  branch_seconds?: number | null;
+};
 
 const KINDS: { key: CbLessonKind; label: string }[] = [
   { key: "video", label: "Video" },
@@ -39,7 +55,7 @@ export function CbCourseBuilder({ courseId, onClose }: { courseId: string; onClo
     }
   }, [course?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function saveCourse(patch: Record<string, unknown>) {
+  async function saveCourse(patch: CoursePatch) {
     const { error } = await supabase.from("cb_courses").update(patch).eq("id", courseId);
     if (error) toast.error(error.message);
     else {
@@ -400,7 +416,7 @@ function CheckpointEditor({ lesson }: { lesson: CbLesson }) {
     void load();
   }
 
-  async function patch(id: string, values: Record<string, unknown>) {
+  async function patch(id: string, values: CheckpointPatch) {
     await supabase.from("cb_video_checkpoints").update(values).eq("id", id);
     void load();
   }
