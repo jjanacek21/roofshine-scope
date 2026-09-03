@@ -3,7 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Map as MapIcon, FileText, Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
+import { Map as MapIcon, FileText, Sparkles, CheckCircle2, ArrowRight, FileDown } from "lucide-react";
+import { saveMeasurementPdf } from "@/lib/measurement-pdf";
+import { currentCompanyId } from "@/lib/jobDocuments";
 import { RoofPlanTab } from "./RoofPlanTab";
 import { PropertyLocationPicker } from "./PropertyLocationPicker";
 import { ConditionAITab } from "./ConditionAITab";
@@ -68,6 +70,68 @@ export function RoofMeasurementPanel({
 
   const params = useParams({ strict: false }) as { id?: string };
   const jobId = params.id;
+  const [savingPdf, setSavingPdf] = useState(false);
+
+  /* The job, the customer and the address the measurement belongs to — only so
+     the PDF has a header. Skipped entirely when this panel is opened from a
+     client rather than a job. */
+  const { data: jobCtx } = useQuery({
+    queryKey: ["measurement-pdf-context", jobId, propertyId],
+    enabled: !!jobId,
+    queryFn: async () => {
+      const { data: job } = await supabase
+        .from("jobs")
+        .select("id, name, job_number, client_id, property_address")
+        .eq("id", jobId!)
+        .maybeSingle();
+      let clientName: string | null = null;
+      if (job?.client_id) {
+        const { data: c } = await supabase
+          .from("clients").select("name").eq("id", job.client_id).maybeSingle();
+        clientName = (c as { name?: string } | null)?.name ?? null;
+      }
+      const { data: prop } = await supabase
+        .from("properties").select("address").eq("id", propertyId).maybeSingle();
+      return {
+        label: job?.job_number ?? job?.name ?? null,
+        clientName,
+        address: (prop as { address?: string } | null)?.address ?? job?.property_address ?? null,
+      };
+    },
+  });
+
+  /* Turn the saved measurement into a page, and file it on the job so the
+     Documents tab and any permit packet can reach it. */
+  const saveAsPdf = async () => {
+    if (!existing || !jobId) return;
+    setSavingPdf(true);
+    try {
+      const companyId =
+        (existing as { company_id?: string }).company_id ?? (await currentCompanyId());
+      if (!companyId) {
+        toast.error("We could not tell which company this job belongs to, so the PDF was not saved.");
+        return;
+      }
+      const res = await saveMeasurementPdf({
+        measurement: existing,
+        jobId,
+        companyId,
+        jobLabel: jobCtx?.label ?? null,
+        customerName: jobCtx?.clientName ?? null,
+        propertyAddress: jobCtx?.address ?? null,
+      });
+      if (res.filed) {
+        toast.success("Measurement downloaded and added to the Documents tab");
+        qc.invalidateQueries({ queryKey: ["job-documents", jobId] });
+      } else {
+        toast.warning("Measurement downloaded, but it could not be added to the Documents tab");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "The measurement PDF could not be created.");
+    } finally {
+      setSavingPdf(false);
+    }
+  };
 
   const sourceLabel: Record<string, string> = {
     manual: "Manual Entry",
@@ -114,6 +178,19 @@ export function RoofMeasurementPanel({
               </div>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+          {jobId && (
+            <button
+              onClick={saveAsPdf}
+              disabled={savingPdf}
+              title="Download this measurement and add it to the job's Documents tab"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold text-foreground hover:bg-[var(--surface-hover)] disabled:opacity-50"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              {savingPdf ? "Saving\u2026" : "Save PDF to Documents"}
+            </button>
+          )}
           {jobId && (
             <Link
               to="/jobs/$id/report"
@@ -125,6 +202,7 @@ export function RoofMeasurementPanel({
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           )}
+          </div>
         </div>
       )}
 
