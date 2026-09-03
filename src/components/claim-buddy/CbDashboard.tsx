@@ -12,7 +12,7 @@ import {
   useCbFeature,
   useCbFeatureGuard,
 } from "@/components/claim-buddy/CbFeatureGate";
-import { CbCard, CbTile, CbButton, CbChip, CbLoading } from "@/components/cb/primitives";
+import { CbCard, CbTile, CbButton, CbLoading } from "@/components/cb/primitives";
 import { CbReveal, CbStagger } from "@/components/cb/motion";
 import {
   ChevronRight,
