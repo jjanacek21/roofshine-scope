@@ -138,6 +138,7 @@ import { Route as CbAdminPricingRouteImport } from './routes/cb.admin.pricing'
 import { Route as CbAdminSeatsRouteImport } from './routes/cb.admin.seats'
 import { Route as CbAdminTeamRouteImport } from './routes/cb.admin.team'
 import { Route as CbLeadIdRouteImport } from './routes/cb.lead.$id'
+import { Route as CbTrainingIndexRouteImport } from './routes/cb.training.index'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
 import { Route as AppJobsIdContractRouteImport } from './routes/_app.jobs.$id.contract'
 import { Route as AppJobsIdDocumentsRouteImport } from './routes/_app.jobs.$id.documents'
@@ -811,6 +812,11 @@ const CbLeadIdRoute = CbLeadIdRouteImport.update({
   path: '/cb/lead/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbTrainingIndexRoute = CbTrainingIndexRouteImport.update({
+  id: '/cb/training/',
+  path: '/cb/training/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppJobsIdIndexRoute = AppJobsIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -1067,6 +1073,7 @@ export interface FileRoutesByFullPath {
   '/team/': typeof AppTeamIndexRoute
   '/admin/companies/': typeof AdminCompaniesIndexRoute
   '/cb/admin/': typeof CbAdminIndexRoute
+  '/cb/training/': typeof CbTrainingIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -1214,6 +1221,7 @@ export interface FileRoutesByTo {
   '/team': typeof AppTeamIndexRoute
   '/admin/companies': typeof AdminCompaniesIndexRoute
   '/cb/admin': typeof CbAdminIndexRoute
+  '/cb/training': typeof CbTrainingIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -1371,6 +1379,7 @@ export interface FileRoutesById {
   '/_app/team/': typeof AppTeamIndexRoute
   '/admin/companies/': typeof AdminCompaniesIndexRoute
   '/cb/admin/': typeof CbAdminIndexRoute
+  '/cb/training/': typeof CbTrainingIndexRoute
   '/_app/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/_app/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/_app/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -1528,6 +1537,7 @@ export interface FileRouteTypes {
     | '/team/'
     | '/admin/companies/'
     | '/cb/admin/'
+    | '/cb/training/'
     | '/jobs/$id/contract'
     | '/jobs/$id/documents'
     | '/jobs/$id/estimate'
@@ -1675,6 +1685,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/admin/companies'
     | '/cb/admin'
+    | '/cb/training'
     | '/jobs/$id/contract'
     | '/jobs/$id/documents'
     | '/jobs/$id/estimate'
@@ -1831,6 +1842,7 @@ export interface FileRouteTypes {
     | '/_app/team/'
     | '/admin/companies/'
     | '/cb/admin/'
+    | '/cb/training/'
     | '/_app/jobs/$id/contract'
     | '/_app/jobs/$id/documents'
     | '/_app/jobs/$id/estimate'
@@ -1910,6 +1922,7 @@ export interface RootRouteChildren {
   ApiPublicCbShareRoute: typeof ApiPublicCbShareRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
   CbLeadIdRoute: typeof CbLeadIdRoute
+  CbTrainingIndexRoute: typeof CbTrainingIndexRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   CbJobIdContractRoute: typeof CbJobIdContractRoute
   CbJobIdCoverRoute: typeof CbJobIdCoverRoute
@@ -2832,6 +2845,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbLeadIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/training/': {
+      id: '/cb/training/'
+      path: '/cb/training'
+      fullPath: '/cb/training/'
+      preLoaderRoute: typeof CbTrainingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/jobs/$id/': {
       id: '/_app/jobs/$id/'
       path: '/'
@@ -3352,6 +3372,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCbShareRoute: ApiPublicCbShareRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
   CbLeadIdRoute: CbLeadIdRoute,
+  CbTrainingIndexRoute: CbTrainingIndexRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   CbJobIdContractRoute: CbJobIdContractRoute,
   CbJobIdCoverRoute: CbJobIdCoverRoute,
