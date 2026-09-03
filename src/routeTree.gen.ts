@@ -165,6 +165,7 @@ import { Route as CbJobIdRoofRouteImport } from './routes/cb.job.$id.roof'
 import { Route as CbJobIdScopeRouteImport } from './routes/cb.job.$id.scope'
 import { Route as CbJobIdTakeoffRouteImport } from './routes/cb.job.$id.takeoff'
 import { Route as CbTrainingCourseIdRouteImport } from './routes/cb.training.course.$id'
+import { Route as CbTrainingLessonIdRouteImport } from './routes/cb.training.lesson.$id'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -949,6 +950,11 @@ const CbTrainingCourseIdRoute = CbTrainingCourseIdRouteImport.update({
   path: '/cb/training/course/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CbTrainingLessonIdRoute = CbTrainingLessonIdRouteImport.update({
+  id: '/cb/training/lesson/$id',
+  path: '/cb/training/lesson/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -1105,6 +1111,7 @@ export interface FileRoutesByFullPath {
   '/cb/job/$id/scope': typeof CbJobIdScopeRoute
   '/cb/job/$id/takeoff': typeof CbJobIdTakeoffRoute
   '/cb/training/course/$id': typeof CbTrainingCourseIdRoute
+  '/cb/training/lesson/$id': typeof CbTrainingLessonIdRoute
   '/jobs/$id/': typeof AppJobsIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -1254,6 +1261,7 @@ export interface FileRoutesByTo {
   '/cb/job/$id/scope': typeof CbJobIdScopeRoute
   '/cb/job/$id/takeoff': typeof CbJobIdTakeoffRoute
   '/cb/training/course/$id': typeof CbTrainingCourseIdRoute
+  '/cb/training/lesson/$id': typeof CbTrainingLessonIdRoute
   '/jobs/$id': typeof AppJobsIdIndexRoute
 }
 export interface FileRoutesById {
@@ -1413,6 +1421,7 @@ export interface FileRoutesById {
   '/cb/job/$id/scope': typeof CbJobIdScopeRoute
   '/cb/job/$id/takeoff': typeof CbJobIdTakeoffRoute
   '/cb/training/course/$id': typeof CbTrainingCourseIdRoute
+  '/cb/training/lesson/$id': typeof CbTrainingLessonIdRoute
   '/_app/jobs/$id/': typeof AppJobsIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -1572,6 +1581,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/scope'
     | '/cb/job/$id/takeoff'
     | '/cb/training/course/$id'
+    | '/cb/training/lesson/$id'
     | '/jobs/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1721,6 +1731,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/scope'
     | '/cb/job/$id/takeoff'
     | '/cb/training/course/$id'
+    | '/cb/training/lesson/$id'
     | '/jobs/$id'
   id:
     | '__root__'
@@ -1879,6 +1890,7 @@ export interface FileRouteTypes {
     | '/cb/job/$id/scope'
     | '/cb/job/$id/takeoff'
     | '/cb/training/course/$id'
+    | '/cb/training/lesson/$id'
     | '/_app/jobs/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -1951,6 +1963,7 @@ export interface RootRouteChildren {
   CbJobIdScopeRoute: typeof CbJobIdScopeRoute
   CbJobIdTakeoffRoute: typeof CbJobIdTakeoffRoute
   CbTrainingCourseIdRoute: typeof CbTrainingCourseIdRoute
+  CbTrainingLessonIdRoute: typeof CbTrainingLessonIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -3047,6 +3060,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbTrainingCourseIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cb/training/lesson/$id': {
+      id: '/cb/training/lesson/$id'
+      path: '/cb/training/lesson/$id'
+      fullPath: '/cb/training/lesson/$id'
+      preLoaderRoute: typeof CbTrainingLessonIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -3409,6 +3429,7 @@ const rootRouteChildren: RootRouteChildren = {
   CbJobIdScopeRoute: CbJobIdScopeRoute,
   CbJobIdTakeoffRoute: CbJobIdTakeoffRoute,
   CbTrainingCourseIdRoute: CbTrainingCourseIdRoute,
+  CbTrainingLessonIdRoute: CbTrainingLessonIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
