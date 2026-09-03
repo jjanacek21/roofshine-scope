@@ -12,8 +12,9 @@ import {
   UploadCloud,
 } from "lucide-react";
 import { useJobPermit } from "@/hooks/useJobPermit";
+import { ProductApprovalPicker } from "@/components/permits/ProductApprovalPicker";
 import { downloadForm, fillApplication } from "@/lib/permits/fill";
-import { approvalLabel, jobPermitDocuments } from "@/lib/permits/db";
+import { jobPermitDocuments } from "@/lib/permits/db";
 import { fileJobDocument } from "@/lib/jobDocuments";
 import { supabase } from "@/integrations/supabase/client";
 import type { Requirement } from "@/lib/permits/checklist";
@@ -352,22 +353,16 @@ export function JobPermitPanel({ jobId }: { jobId: string }) {
       <section className="rounded-xl border p-4" style={card}>
         <h3 className="mb-1 text-[13px] font-semibold text-foreground">Product approvals</h3>
         <p className="mb-3 text-[12px] text-muted-foreground">
-          Pulled from the approval library and attached to the packet automatically.
+          Every product going on the roof needs the document that proves it is approved here.
+          Suggested from the order form, confirmed by you.
         </p>
-        {context?.products.length ? (
-          <ul className="space-y-1.5">
-            {context.products.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-3 text-[12px]">
-                <span className="truncate text-foreground">{approvalLabel(p)}</span>
-                <span className="shrink-0 text-[11px] text-muted-foreground">{p.role.replace(/_/g, " ")}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-[12px] text-muted-foreground">
-            None selected yet. Pick the products on the Order Form and they will appear here.
-          </p>
-        )}
+        <ProductApprovalPicker
+          permitId={permit?.id ?? null}
+          jobId={jobId}
+          hvhz={!!dept?.is_hvhz}
+          attached={context?.products ?? []}
+          onChanged={() => void reload()}
+        />
       </section>
 
       {/* ── the one thing we can hand back ready to sign ── */}
