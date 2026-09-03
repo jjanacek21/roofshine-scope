@@ -115,7 +115,7 @@ export function CbQuizRunner({
         workspace_id: workspaceId,
         user_id: user.id,
         answers: answers as Json,
-        feedback: notes as Json,
+        feedback: notes as unknown as Json,
         score_percent: percent,
         passed,
         submitted_at: new Date().toISOString(),
