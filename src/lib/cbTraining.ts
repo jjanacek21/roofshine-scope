@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 /**
  * Company Training — shared types and pure helpers.
  *
@@ -5,12 +7,52 @@
  * actually played, so seeking to the end can never mark a lesson complete.
  */
 
+/** What PostgREST hands back on a failure, which callers read for the toast. */
+export interface CbDbError {
+  message: string;
+  code?: string;
+  details?: string | null;
+  hint?: string | null;
+}
+
+/**
+ * A narrow typed door onto the training tables.
+ *
+ * src/integrations/supabase/types.ts is generated and Lovable rewrites it, so
+ * teaching it about company_id by hand would be undone without warning — the
+ * same reason the permit tables go through src/lib/permits/db.ts. Every
+ * training query goes through here instead, and the cast happens once. A wrong
+ * column name is then wrong in one place rather than forty.
+ */
+interface TrainingQuery<T> extends PromiseLike<{ data: T[] | null; error: CbDbError | null }> {
+  select(cols?: string, opts?: { count?: "exact"; head?: boolean }): TrainingQuery<T>;
+  insert(rows: unknown): TrainingQuery<T>;
+  update(patch: unknown): TrainingQuery<T>;
+  upsert(rows: unknown, opts?: { onConflict?: string }): TrainingQuery<T>;
+  delete(): TrainingQuery<T>;
+  eq(col: string, val: unknown): TrainingQuery<T>;
+  neq(col: string, val: unknown): TrainingQuery<T>;
+  in(col: string, vals: unknown[]): TrainingQuery<T>;
+  is(col: string, val: unknown): TrainingQuery<T>;
+  gte(col: string, val: unknown): TrainingQuery<T>;
+  lte(col: string, val: unknown): TrainingQuery<T>;
+  order(col: string, opts?: { ascending?: boolean }): TrainingQuery<T>;
+  limit(n: number): TrainingQuery<T>;
+  maybeSingle(): PromiseLike<{ data: T | null; error: CbDbError | null }>;
+  single(): PromiseLike<{ data: T | null; error: CbDbError | null }>;
+}
+
+/** Query a training table. See the note above on why the cast is here. */
+export function cbTable<T = Record<string, unknown>>(name: string): TrainingQuery<T> {
+  return (supabase as unknown as { from(t: string): TrainingQuery<T> }).from(name);
+}
+
 export type CbLessonKind = "video" | "article" | "document" | "quiz" | "live";
 export type CbCourseStatus = "draft" | "published";
 
 export interface CbCourse {
   id: string;
-  workspace_id: string;
+  company_id: string;
   title: string;
   description: string | null;
   cover_url: string | null;
@@ -27,7 +69,7 @@ export interface CbCourse {
 export interface CbModule {
   id: string;
   course_id: string;
-  workspace_id: string;
+  company_id: string;
   title: string;
   summary: string | null;
   sort_order: number;
@@ -37,7 +79,7 @@ export interface CbLesson {
   id: string;
   module_id: string;
   course_id: string;
-  workspace_id: string;
+  company_id: string;
   title: string;
   kind: CbLessonKind;
   body: string | null;
@@ -54,7 +96,7 @@ export interface CbLesson {
 export interface CbCheckpoint {
   id: string;
   lesson_id: string;
-  workspace_id: string;
+  company_id: string;
   at_seconds: number;
   question: string;
   options: string[];
@@ -67,7 +109,7 @@ export interface CbCheckpoint {
 
 export interface CbQuiz {
   id: string;
-  workspace_id: string;
+  company_id: string;
   lesson_id: string | null;
   course_id: string | null;
   title: string;
@@ -79,7 +121,7 @@ export interface CbQuiz {
 export interface CbQuizQuestion {
   id: string;
   quiz_id: string;
-  workspace_id: string;
+  company_id: string;
   prompt: string;
   kind: "choice" | "text";
   options: string[];
@@ -91,7 +133,7 @@ export interface CbQuizQuestion {
 
 export interface CbProgress {
   id: string;
-  workspace_id: string;
+  company_id: string;
   lesson_id: string;
   course_id: string;
   user_id: string;
@@ -105,7 +147,7 @@ export interface CbProgress {
 
 export interface CbAssignment {
   id: string;
-  workspace_id: string;
+  company_id: string;
   course_id: string;
   audience: "all" | "role" | "user";
   role: string | null;
@@ -115,7 +157,7 @@ export interface CbAssignment {
 
 export interface CbLiveSession {
   id: string;
-  workspace_id: string;
+  company_id: string;
   course_id: string | null;
   title: string;
   description: string | null;
@@ -129,7 +171,7 @@ export interface CbLiveSession {
 
 export interface CbTrainingRule {
   id: string;
-  workspace_id: string;
+  company_id: string;
   role: string;
   period: "week" | "month";
   required_minutes: number;
@@ -142,7 +184,13 @@ export interface CbTrainingRule {
 /** Merges overlapping/adjacent [start, end] second ranges. */
 export function mergeRanges(input: [number, number][]): [number, number][] {
   const clean = input
-    .map(([a, b]) => [Math.max(0, Math.floor(Math.min(a, b))), Math.max(0, Math.ceil(Math.max(a, b)))] as [number, number])
+    .map(
+      ([a, b]) =>
+        [Math.max(0, Math.floor(Math.min(a, b))), Math.max(0, Math.ceil(Math.max(a, b)))] as [
+          number,
+          number,
+        ],
+    )
     .filter(([a, b]) => b > a)
     .sort((x, y) => x[0] - y[0]);
   const out: [number, number][] = [];
@@ -158,7 +206,10 @@ export function rangeSeconds(ranges: [number, number][]): number {
   return ranges.reduce((sum, [a, b]) => sum + (b - a), 0);
 }
 
-export function watchPercent(ranges: [number, number][], duration: number | null | undefined): number {
+export function watchPercent(
+  ranges: [number, number][],
+  duration: number | null | undefined,
+): number {
   if (!duration || duration <= 0) return 0;
   return Math.min(100, Math.round((rangeSeconds(ranges) / duration) * 100));
 }
