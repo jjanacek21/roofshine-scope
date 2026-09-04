@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useJobPermit } from "@/hooks/useJobPermit";
 import { ProductApprovalPicker } from "@/components/permits/ProductApprovalPicker";
+import { PermitJurisdictionIntel } from "@/components/permits/PermitJurisdictionIntel";
 import { PacketBuilder } from "@/components/permits/PacketBuilder";
 import { downloadForm, fillApplication } from "@/lib/permits/fill";
 import { jobPermitDocuments } from "@/lib/permits/db";
