@@ -8,6 +8,7 @@
 
 import { M, TABS, STEPS, CATS, CATMAP, VIDS, RAMP, POSTS, QUEUE, SEQ, BANDS } from "./refData";
 import { mountLumaLogo } from "./logoVideo";
+import { getSurface } from "@/lib/cbMode";
 
 export type MountOptions = {
   /** key -> resolved image URL (CMS first, repo fallback). */
@@ -80,6 +81,17 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
   function playLogo() {
     const el = $<HTMLImageElement>("#logoAnim");
     if (!el) return;
+    // Platform surface (globalcontractor.app): move the mark into the header so
+    // it bleeds over the hero. Standalone (gcn.claims) keeps it in the hero.
+    if (getSurface() === "platform") {
+      const slot = $<HTMLElement>(".nav-logo");
+      const hdr = $<HTMLElement>("#hdr");
+      if (slot && hdr) {
+        slot.appendChild(el);
+        hdr.classList.add("logo-in-header");
+        root.classList.add("logo-in-header");
+      }
+    }
     const still = () => {
       el.src = opts.brand.still;
     };
