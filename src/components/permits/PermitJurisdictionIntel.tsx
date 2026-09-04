@@ -60,9 +60,37 @@ export function PermitJurisdictionIntel({
     ])
       .then(([r, f, fs, insp]) => {
         if (!alive) return;
-        setRules(r);
+
+        const filteredRules = (r as RefDepartmentRule[]).filter(
+          (rule) => rule.county !== "Pending Detection",
+        );
+        const sortedRules = [...filteredRules].sort((a, b) => {
+          const aLocal =
+            a.city && city && a.city.toLowerCase() === city.toLowerCase() ? 1 : 0;
+          const bLocal =
+            b.city && city && b.city.toLowerCase() === city.toLowerCase() ? 1 : 0;
+          if (aLocal !== bLocal) return bLocal - aLocal;
+          return (a.priority ?? Infinity) - (b.priority ?? Infinity);
+        });
+
+        const filteredFasteners: FasteningSchedule = {
+          corner: fs.corner.filter(
+            (p) => p.jurisdiction_county !== "Pending Detection",
+          ),
+          perimeter: fs.perimeter.filter(
+            (p) => p.jurisdiction_county !== "Pending Detection",
+          ),
+          field: fs.field.filter(
+            (p) => p.jurisdiction_county !== "Pending Detection",
+          ),
+          general: fs.general.filter(
+            (p) => p.jurisdiction_county !== "Pending Detection",
+          ),
+        };
+
+        setRules(sortedRules);
         setForms(f);
-        setFasteners(fs);
+        setFasteners(filteredFasteners);
         setInspections(insp);
       })
       .catch((e: unknown) => {
