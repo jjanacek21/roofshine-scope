@@ -18,7 +18,7 @@ import { createClient } from "@supabase/supabase-js";
  * 18,688 words in one JSON file — so the server never has to load or index it.
  */
 
-const ANTHROPIC_MODEL = process.env["ANTHROPIC_MODEL"] ?? "claude-sonnet-4-5-20250929";
+const TRAINER_MODEL = process.env["TRAINER_MODEL"] ?? "google/gemini-2.5-flash";
 
 type Turn = { role: "user" | "assistant"; content: string };
 
@@ -100,12 +100,12 @@ export const Route = createFileRoute("/api/training-chat")({
 
         const SUPABASE_URL = process.env.SUPABASE_URL;
         const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
-        const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+        const AI_KEY = process.env.LOVABLE_API_KEY;
         if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
           return new Response("Server misconfigured", { status: 500 });
         }
-        if (!ANTHROPIC_KEY) {
-          return Response.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
+        if (!AI_KEY) {
+          return Response.json({ error: "AI is not configured" }, { status: 500 });
         }
 
         // Signed in is enough: the guide is network-visible training material,
@@ -172,8 +172,8 @@ export const Route = createFileRoute("/api/training-chat")({
             ];
           }
 
-          const text = await callClaude({
-            apiKey: ANTHROPIC_KEY,
+          const text = await callModel({
+            apiKey: AI_KEY,
             system,
             messages,
             maxTokens: mode === "score" ? 1100 : 800,
