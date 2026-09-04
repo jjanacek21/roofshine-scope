@@ -62,36 +62,33 @@ const SCORE_SYSTEM = `You are scoring a roleplayed door conversation against a r
 
 Judge only against the GUIDE passages supplied. For each criterion say whether the rep did it, in plain words, and name the lesson it comes from. Be honest — a soft score teaches nothing. Finish with the single most useful thing to fix next time.`;
 
-async function callClaude(opts: {
+async function callModel(opts: {
   apiKey: string;
   system: string;
   messages: Turn[];
   maxTokens?: number;
   temperature?: number;
 }): Promise<string> {
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
+  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
-      "x-api-key": opts.apiKey,
-      "anthropic-version": "2023-06-01",
+      Authorization: `Bearer ${opts.apiKey}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: ANTHROPIC_MODEL,
+      model: TRAINER_MODEL,
       max_tokens: opts.maxTokens ?? 900,
       temperature: opts.temperature ?? 0.7,
-      system: opts.system,
-      messages: opts.messages,
+      messages: [{ role: "system", content: opts.system }, ...opts.messages],
     }),
   });
-  if (!r.ok) throw new Error(`Anthropic error ${r.status}: ${await r.text()}`);
-  const json = (await r.json()) as { content?: Array<{ type: string; text?: string }> };
-  return (json.content ?? [])
-    .filter((c) => c.type === "text")
-    .map((c) => c.text ?? "")
-    .join("\n")
-    .trim();
+  if (!r.ok) throw new Error(`AI error ${r.status}: ${await r.text()}`);
+  const json = (await r.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  return (json.choices?.[0]?.message?.content ?? "").trim();
 }
+
 
 export const Route = createFileRoute("/api/training-chat")({
   server: {
