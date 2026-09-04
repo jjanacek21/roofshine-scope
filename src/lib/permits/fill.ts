@@ -46,11 +46,23 @@ export async function findApplicationTemplate(dept: {
   id?: string | null;
   county?: string | null;
 }): Promise<PermitFormTemplate | null> {
+  return findTemplate(dept, "permit_application");
+}
+
+const TEMPLATE_COLS =
+  "id, building_dept_id, jurisdiction_name, county, form_type, form_name, file_path, field_mapping, fill_method, is_fillable, requires_notary, instructions, notes";
+
+/**
+ * The same resolution for any form type, so the packet can ask for the pieces
+ * the manifest names rather than only the application.
+ */
+export async function findTemplate(
+  dept: { id?: string | null; county?: string | null },
+  formType: string,
+): Promise<PermitFormTemplate | null> {
   const { data, error } = await permitFormTemplates()
-    .select(
-      "id, building_dept_id, jurisdiction_name, county, form_type, form_name, file_path, field_mapping, fill_method, is_fillable, requires_notary, instructions, notes",
-    )
-    .eq("form_type", "permit_application");
+    .select(TEMPLATE_COLS)
+    .eq("form_type", formType);
   if (error) throw error;
 
   const mapped = (data ?? []).filter(
@@ -61,6 +73,39 @@ export async function findApplicationTemplate(dept: {
     mapped.find((t) => dept.county && t.county === dept.county) ??
     null
   );
+}
+
+/**
+ * Whether a mapped form exists for each of these types in this jurisdiction.
+ *
+ * The packet planner needs to distinguish "this county wants a Section 1524
+ * disclosure and we can fill it" from "this county wants one and we have never
+ * seen the form". Both look like a missing document to a checklist; only the
+ * second is something the contractor has to go and solve.
+ *
+ * One query for the whole set, because the planner asks about a dozen types at
+ * once and a round trip each would show as a stutter on the panel.
+ */
+export async function fillableTypes(
+  dept: { id?: string | null; county?: string | null },
+  formTypes: string[],
+): Promise<Map<string, PermitFormTemplate>> {
+  const out = new Map<string, PermitFormTemplate>();
+  if (formTypes.length === 0) return out;
+  const { data, error } = await permitFormTemplates().select(TEMPLATE_COLS).in("form_type", formTypes);
+  if (error) return out;
+
+  const mapped = (data ?? []).filter(
+    (t) => t.fill_method === "acroform" && t.field_mapping && t.field_mapping.text,
+  );
+  for (const type of formTypes) {
+    const forType = mapped.filter((t) => t.form_type === type);
+    const hit =
+      forType.find((t) => dept.id && t.building_dept_id === dept.id) ??
+      forType.find((t) => dept.county && t.county === dept.county);
+    if (hit) out.set(type, hit);
+  }
+  return out;
 }
 
 /**
