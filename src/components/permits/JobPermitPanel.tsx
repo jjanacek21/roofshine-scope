@@ -377,6 +377,8 @@ export function JobPermitPanel({ jobId }: { jobId: string }) {
         material={materialType}
       />
 
+      <PermitJurisdictionIntel department={dept} hvhz={!!dept?.is_hvhz} />
+
       {/* ── product approvals ── */}
       <section className="rounded-xl border p-4" style={card}>
         <h3 className="mb-1 text-[13px] font-semibold text-foreground">Product approvals</h3>
