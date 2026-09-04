@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { CbButton, CbCard, CbBadge } from "@/components/cb/primitives";
 import {
+  cbTable,
   embedUrl,
   formatDuration,
   isDirectVideo,
@@ -78,8 +79,7 @@ export function CbLessonPlayer({
   useEffect(() => {
     if (!workspaceId || !user?.id) return;
     let cancelled = false;
-    void supabase
-      .from("cb_progress")
+    void cbTable("cb_progress")
       .select("*")
       .eq("lesson_id", lesson.id)
       .eq("user_id", user.id)
@@ -101,14 +101,18 @@ export function CbLessonPlayer({
   }, [lesson.id, user?.id, workspaceId]);
 
   const save = useCallback(
-    async (next: [number, number][], position: number, answers?: CbProgress["checkpoint_answers"]) => {
+    async (
+      next: [number, number][],
+      position: number,
+      answers?: CbProgress["checkpoint_answers"],
+    ) => {
       if (!workspaceId || !user?.id) return;
       const watched = rangeSeconds(next);
       const pct = watchPercent(next, duration || lesson.duration_seconds);
       const isDone = pct >= required;
 
       const payload = {
-        workspace_id: workspaceId,
+        company_id: workspaceId,
         lesson_id: lesson.id,
         course_id: lesson.course_id,
         user_id: user.id,
@@ -120,8 +124,7 @@ export function CbLessonPlayer({
         ...(isDone && !completed ? { completed_at: new Date().toISOString() } : {}),
       };
 
-      const { data, error } = await supabase
-        .from("cb_progress")
+      const { data, error } = await cbTable("cb_progress")
         .upsert(payload, { onConflict: "lesson_id,user_id" })
         .select("id")
         .maybeSingle();
@@ -292,7 +295,10 @@ export function CbLessonPlayer({
       </CbCard>
 
       <div className="flex items-center gap-3">
-        <div className="h-2 flex-1 overflow-hidden rounded-full" style={{ background: "rgba(0,0,0,.08)" }}>
+        <div
+          className="h-2 flex-1 overflow-hidden rounded-full"
+          style={{ background: "rgba(0,0,0,.08)" }}
+        >
           <div
             className="h-full rounded-full transition-[width]"
             style={{ width: `${pct}%`, background: "var(--cb-accent)" }}
@@ -327,7 +333,10 @@ export function CbLessonPlayer({
                   className="w-full rounded-[12px] px-3 py-3 text-left text-[14px]"
                   style={{
                     border: `1px solid ${picked === i ? "var(--cb-accent)" : "var(--cb-hairline, rgba(0,0,0,.12))"}`,
-                    background: picked === i ? "color-mix(in oklab, var(--cb-accent) 12%, transparent)" : "transparent",
+                    background:
+                      picked === i
+                        ? "color-mix(in oklab, var(--cb-accent) 12%, transparent)"
+                        : "transparent",
                   }}
                 >
                   {opt}
@@ -340,7 +349,11 @@ export function CbLessonPlayer({
               </p>
             ) : null}
             <div className="mt-4">
-              <CbButton block disabled={picked === null && (active.options ?? []).length > 0} onClick={submitCheckpoint}>
+              <CbButton
+                block
+                disabled={picked === null && (active.options ?? []).length > 0}
+                onClick={submitCheckpoint}
+              >
                 Continue
               </CbButton>
             </div>

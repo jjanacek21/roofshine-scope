@@ -7,6 +7,7 @@ import { CbButton, CbCard, CbBadge } from "@/components/cb/primitives";
 import { cbGradeAnswers } from "@/lib/cb-training.functions";
 import { awardPoints, logEvent, useTrainingScope } from "@/hooks/useCbTraining";
 import type { CbQuiz, CbQuizQuestion } from "@/lib/cbTraining";
+import { cbTable } from "@/lib/cbTraining";
 
 interface GradeFeedback {
   index: number;
@@ -33,14 +34,17 @@ export function CbQuizRunner({
   const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ percent: number; passed: boolean; notes: GradeFeedback[] } | null>(null);
+  const [result, setResult] = useState<{
+    percent: number;
+    passed: boolean;
+    notes: GradeFeedback[];
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const { data: q } = await supabase
-        .from("cb_quizzes")
+      const { data: q } = await cbTable("cb_quizzes")
         .select("*")
         .eq("lesson_id", lessonId)
         .maybeSingle();
@@ -48,8 +52,7 @@ export function CbQuizRunner({
       const quizRow = (q ?? null) as unknown as CbQuiz | null;
       setQuiz(quizRow);
       if (quizRow) {
-        const { data: qs } = await supabase
-          .from("cb_quiz_questions")
+        const { data: qs } = await cbTable("cb_quiz_questions")
           .select("*")
           .eq("quiz_id", quizRow.id)
           .order("sort_order");
@@ -110,9 +113,9 @@ export function CbQuizRunner({
       const percent = Math.round((earned / totalPoints) * 100);
       const passed = percent >= (quiz.pass_percent ?? 70);
 
-      await supabase.from("cb_quiz_attempts").insert({
+      await cbTable("cb_quiz_attempts").insert({
         quiz_id: quiz.id,
-        workspace_id: workspaceId,
+        company_id: workspaceId,
         user_id: user.id,
         answers: answers as Json,
         feedback: notes as unknown as Json,
@@ -122,10 +125,15 @@ export function CbQuizRunner({
       });
 
       if (passed) {
-        await awardPoints(workspaceId, user.id, percent === 100 ? "quiz_perfect" : "quiz_pass", quiz.id);
-        await supabase.from("cb_progress").upsert(
+        await awardPoints(
+          workspaceId,
+          user.id,
+          percent === 100 ? "quiz_perfect" : "quiz_pass",
+          quiz.id,
+        );
+        await cbTable("cb_progress").upsert(
           {
-            workspace_id: workspaceId,
+            company_id: workspaceId,
             lesson_id: lessonId,
             course_id: courseId,
             user_id: user.id,
@@ -153,7 +161,12 @@ export function CbQuizRunner({
     }
   }
 
-  if (loading) return <p className="text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>Loading quiz…</p>;
+  if (loading)
+    return (
+      <p className="text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
+        Loading quiz…
+      </p>
+    );
   if (!quiz)
     return (
       <CbCard elevation="card" style={{ padding: 18 }}>
@@ -224,7 +237,10 @@ export function CbQuizRunner({
                 placeholder="Type your answer…"
                 value={(answers[q.id] as string) ?? ""}
                 onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                style={{ border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))", background: "transparent" }}
+                style={{
+                  border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))",
+                  background: "transparent",
+                }}
               />
             )}
             {note ? (
@@ -248,7 +264,9 @@ export function CbQuizRunner({
         <CbCard elevation="raised" style={{ padding: 18 }}>
           <div className="flex items-center justify-between">
             <p className="text-[17px] font-semibold">{result.percent}%</p>
-            <CbBadge tone={result.passed ? "success" : "danger"}>{result.passed ? "Passed" : "Not yet"}</CbBadge>
+            <CbBadge tone={result.passed ? "success" : "danger"}>
+              {result.passed ? "Passed" : "Not yet"}
+            </CbBadge>
           </div>
           {!result.passed ? (
             <div className="mt-3">

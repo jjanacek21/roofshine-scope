@@ -7,6 +7,7 @@ import { CbCard, CbButton, CbBadge } from "@/components/cb/primitives";
 import { cbGenerateQuiz } from "@/lib/cb-training.functions";
 import { useCbCourse, useInvalidateTraining, useTrainingScope } from "@/hooks/useCbTraining";
 import type { CbCheckpoint, CbLesson, CbLessonKind } from "@/lib/cbTraining";
+import { cbTable } from "@/lib/cbTraining";
 
 const input = {
   border: "1px solid var(--cb-hairline, rgba(0,0,0,.12))",
@@ -56,7 +57,7 @@ export function CbCourseBuilder({ courseId, onClose }: { courseId: string; onClo
   }, [course?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function saveCourse(patch: CoursePatch) {
-    const { error } = await supabase.from("cb_courses").update(patch).eq("id", courseId);
+    const { error } = await cbTable("cb_courses").update(patch).eq("id", courseId);
     if (error) toast.error(error.message);
     else {
       await refetch();
@@ -67,8 +68,8 @@ export function CbCourseBuilder({ courseId, onClose }: { courseId: string; onClo
   async function addModule() {
     if (!workspaceId) return;
     setBusy(true);
-    const { error } = await supabase.from("cb_modules").insert({
-      workspace_id: workspaceId,
+    const { error } = await cbTable("cb_modules").insert({
+      company_id: workspaceId,
       course_id: courseId,
       title: `Module ${(data?.modules?.length ?? 0) + 1}`,
       sort_order: data?.modules?.length ?? 0,
@@ -80,8 +81,8 @@ export function CbCourseBuilder({ courseId, onClose }: { courseId: string; onClo
 
   async function addLesson(moduleId: string, count: number) {
     if (!workspaceId) return;
-    const { error } = await supabase.from("cb_lessons").insert({
-      workspace_id: workspaceId,
+    const { error } = await cbTable("cb_lessons").insert({
+      company_id: workspaceId,
       course_id: courseId,
       module_id: moduleId,
       title: `Lesson ${count + 1}`,
@@ -104,8 +105,8 @@ export function CbCourseBuilder({ courseId, onClose }: { courseId: string; onClo
     const j = i + dir;
     if (j < 0 || j >= siblings.length) return;
     await Promise.all([
-      supabase.from("cb_lessons").update({ sort_order: j }).eq("id", lesson.id),
-      supabase.from("cb_lessons").update({ sort_order: i }).eq("id", siblings[j].id),
+      cbTable("cb_lessons").update({ sort_order: j }).eq("id", lesson.id),
+      cbTable("cb_lessons").update({ sort_order: i }).eq("id", siblings[j].id),
     ]);
     void refetch();
   }
@@ -139,7 +140,9 @@ export function CbCourseBuilder({ courseId, onClose }: { courseId: string; onClo
               placeholder="What will they learn?"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              onBlur={() => description !== (course.description ?? "") && saveCourse({ description })}
+              onBlur={() =>
+                description !== (course.description ?? "") && saveCourse({ description })
+              }
             />
           </div>
           <CbBadge tone={course.status === "published" ? "success" : "warning"}>
@@ -151,7 +154,9 @@ export function CbCourseBuilder({ courseId, onClose }: { courseId: string; onClo
           <CbButton
             size="md"
             variant={course.status === "published" ? "secondary" : "primary"}
-            onClick={() => saveCourse({ status: course.status === "published" ? "draft" : "published" })}
+            onClick={() =>
+              saveCourse({ status: course.status === "published" ? "draft" : "published" })
+            }
           >
             {course.status === "published" ? "Unpublish" : "Publish to the team"}
           </CbButton>
@@ -183,10 +188,17 @@ export function CbCourseBuilder({ courseId, onClose }: { courseId: string; onClo
                 style={input}
                 defaultValue={mod.title}
                 onBlur={(e) =>
-                  supabase.from("cb_modules").update({ title: e.target.value }).eq("id", mod.id).then(() => refetch())
+                  cbTable("cb_modules")
+                    .update({ title: e.target.value })
+                    .eq("id", mod.id)
+                    .then(() => refetch())
                 }
               />
-              <button type="button" onClick={() => removeRow("cb_modules", mod.id)} aria-label="Delete module">
+              <button
+                type="button"
+                onClick={() => removeRow("cb_modules", mod.id)}
+                aria-label="Delete module"
+              >
                 <Trash2 className="h-4 w-4" style={{ color: "var(--cb-text-muted)" }} />
               </button>
             </div>
@@ -198,7 +210,9 @@ export function CbCourseBuilder({ courseId, onClose }: { courseId: string; onClo
                     <button
                       type="button"
                       className="min-w-0 flex-1 truncate rounded-[10px] px-2 py-2 text-left text-[14px]"
-                      style={{ background: openLesson === l.id ? "rgba(0,0,0,.04)" : "transparent" }}
+                      style={{
+                        background: openLesson === l.id ? "rgba(0,0,0,.04)" : "transparent",
+                      }}
                       onClick={() => setOpenLesson(openLesson === l.id ? null : l.id)}
                     >
                       {l.title} <span style={{ color: "var(--cb-text-muted)" }}>· {l.kind}</span>
@@ -209,14 +223,24 @@ export function CbCourseBuilder({ courseId, onClose }: { courseId: string; onClo
                     <button type="button" onClick={() => moveLesson(l, 1)} aria-label="Move down">
                       <ChevronDown className="h-4 w-4" style={{ color: "var(--cb-text-muted)" }} />
                     </button>
-                    <button type="button" onClick={() => removeRow("cb_lessons", l.id)} aria-label="Delete lesson">
+                    <button
+                      type="button"
+                      onClick={() => removeRow("cb_lessons", l.id)}
+                      aria-label="Delete lesson"
+                    >
                       <Trash2 className="h-4 w-4" style={{ color: "var(--cb-text-muted)" }} />
                     </button>
                   </div>
-                  {openLesson === l.id ? <LessonEditor lesson={l} onSaved={() => refetch()} /> : null}
+                  {openLesson === l.id ? (
+                    <LessonEditor lesson={l} onSaved={() => refetch()} />
+                  ) : null}
                 </div>
               ))}
-              <CbButton size="md" variant="secondary" onClick={() => addLesson(mod.id, lessons.length)}>
+              <CbButton
+                size="md"
+                variant="secondary"
+                onClick={() => addLesson(mod.id, lessons.length)}
+              >
                 <span className="inline-flex items-center gap-1.5">
                   <Plus className="h-4 w-4" /> Add lesson
                 </span>
@@ -243,8 +267,7 @@ function LessonEditor({ lesson, onSaved }: { lesson: CbLesson; onSaved: () => vo
 
   async function save() {
     setSaving(true);
-    const { error } = await supabase
-      .from("cb_lessons")
+    const { error } = await cbTable("cb_lessons")
       .update({
         title: draft.title,
         kind: draft.kind,
@@ -269,13 +292,17 @@ function LessonEditor({ lesson, onSaved }: { lesson: CbLesson; onSaved: () => vo
     if (!workspaceId) return;
     setUploading(true);
     const path = `${workspaceId}/${lesson.course_id}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, "_")}`;
-    const { error } = await supabase.storage.from("cb-training").upload(path, file, { upsert: false });
+    const { error } = await supabase.storage
+      .from("cb-training")
+      .upload(path, file, { upsert: false });
     setUploading(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    setDraft((d) => (kind === "video" ? { ...d, video_path: path, kind: "video" } : { ...d, document_path: path }));
+    setDraft((d) =>
+      kind === "video" ? { ...d, video_path: path, kind: "video" } : { ...d, document_path: path },
+    );
     toast.success("Uploaded — remember to save the lesson.");
   }
 
@@ -296,7 +323,11 @@ function LessonEditor({ lesson, onSaved }: { lesson: CbLesson; onSaved: () => vo
             className="cb-chip"
             onClick={() => setDraft({ ...draft, kind: k.key })}
             aria-pressed={draft.kind === k.key}
-            style={draft.kind === k.key ? { background: "var(--cb-accent)", color: "#fff", borderColor: "transparent" } : undefined}
+            style={
+              draft.kind === k.key
+                ? { background: "var(--cb-accent)", color: "#fff", borderColor: "transparent" }
+                : undefined
+            }
           >
             {k.label}
           </button>
@@ -320,7 +351,12 @@ function LessonEditor({ lesson, onSaved }: { lesson: CbLesson; onSaved: () => vo
               hidden
               onChange={(e) => e.target.files?.[0] && upload(e.target.files[0], "video")}
             />
-            <CbButton size="md" variant="secondary" loading={uploading} onClick={() => fileRef.current?.click()}>
+            <CbButton
+              size="md"
+              variant="secondary"
+              loading={uploading}
+              onClick={() => fileRef.current?.click()}
+            >
               <span className="inline-flex items-center gap-1.5">
                 <Upload className="h-4 w-4" /> Upload video
               </span>
@@ -332,7 +368,9 @@ function LessonEditor({ lesson, onSaved }: { lesson: CbLesson; onSaved: () => vo
               style={input}
               placeholder="Seconds"
               value={draft.duration_seconds ?? ""}
-              onChange={(e) => setDraft({ ...draft, duration_seconds: Number(e.target.value) || null })}
+              onChange={(e) =>
+                setDraft({ ...draft, duration_seconds: Number(e.target.value) || null })
+              }
             />
             <input
               type="number"
@@ -340,7 +378,9 @@ function LessonEditor({ lesson, onSaved }: { lesson: CbLesson; onSaved: () => vo
               style={input}
               placeholder="% required"
               value={draft.required_percent ?? 80}
-              onChange={(e) => setDraft({ ...draft, required_percent: Number(e.target.value) || 80 })}
+              onChange={(e) =>
+                setDraft({ ...draft, required_percent: Number(e.target.value) || 80 })
+              }
             />
           </div>
           <CheckpointEditor lesson={lesson} />
@@ -356,7 +396,12 @@ function LessonEditor({ lesson, onSaved }: { lesson: CbLesson; onSaved: () => vo
             hidden
             onChange={(e) => e.target.files?.[0] && upload(e.target.files[0], "doc")}
           />
-          <CbButton size="md" variant="secondary" loading={uploading} onClick={() => docRef.current?.click()}>
+          <CbButton
+            size="md"
+            variant="secondary"
+            loading={uploading}
+            onClick={() => docRef.current?.click()}
+          >
             <span className="inline-flex items-center gap-1.5">
               <Upload className="h-4 w-4" /> Upload document
             </span>
@@ -371,7 +416,11 @@ function LessonEditor({ lesson, onSaved }: { lesson: CbLesson; onSaved: () => vo
         className="w-full rounded-[10px] px-3 py-2 text-[14px]"
         style={input}
         rows={6}
-        placeholder={draft.kind === "video" ? "Notes or transcript shown under the video" : "Lesson text (markdown ok)"}
+        placeholder={
+          draft.kind === "video"
+            ? "Notes or transcript shown under the video"
+            : "Lesson text (markdown ok)"
+        }
         value={draft.body ?? ""}
         onChange={(e) => setDraft({ ...draft, body: e.target.value })}
       />
@@ -390,8 +439,7 @@ function CheckpointEditor({ lesson }: { lesson: CbLesson }) {
   const [rows, setRows] = useState<CbCheckpoint[]>([]);
 
   async function load() {
-    const { data } = await supabase
-      .from("cb_video_checkpoints")
+    const { data } = await cbTable("cb_video_checkpoints")
       .select("*")
       .eq("lesson_id", lesson.id)
       .order("at_seconds");
@@ -404,8 +452,8 @@ function CheckpointEditor({ lesson }: { lesson: CbLesson }) {
 
   async function add() {
     if (!workspaceId) return;
-    await supabase.from("cb_video_checkpoints").insert({
-      workspace_id: workspaceId,
+    await cbTable("cb_video_checkpoints").insert({
+      company_id: workspaceId,
       lesson_id: lesson.id,
       at_seconds: 30,
       question: "What was the key point?",
@@ -417,7 +465,7 @@ function CheckpointEditor({ lesson }: { lesson: CbLesson }) {
   }
 
   async function patch(id: string, values: CheckpointPatch) {
-    await supabase.from("cb_video_checkpoints").update(values).eq("id", id);
+    await cbTable("cb_video_checkpoints").update(values).eq("id", id);
     void load();
   }
 
@@ -425,7 +473,11 @@ function CheckpointEditor({ lesson }: { lesson: CbLesson }) {
     <div className="space-y-2">
       <p className="cb-microlabel">Checkpoints</p>
       {rows.map((c) => (
-        <div key={c.id} className="space-y-2 rounded-[10px] p-2" style={{ background: "rgba(0,0,0,.03)" }}>
+        <div
+          key={c.id}
+          className="space-y-2 rounded-[10px] p-2"
+          style={{ background: "rgba(0,0,0,.03)" }}
+        >
           <div className="flex gap-2">
             <input
               type="number"
@@ -443,7 +495,7 @@ function CheckpointEditor({ lesson }: { lesson: CbLesson }) {
             <button
               type="button"
               onClick={async () => {
-                await supabase.from("cb_video_checkpoints").delete().eq("id", c.id);
+                await cbTable("cb_video_checkpoints").delete().eq("id", c.id);
                 void load();
               }}
               aria-label="Delete checkpoint"
@@ -457,7 +509,12 @@ function CheckpointEditor({ lesson }: { lesson: CbLesson }) {
             defaultValue={(c.options ?? []).join(" | ")}
             placeholder="Options separated by |"
             onBlur={(e) =>
-              patch(c.id, { options: e.target.value.split("|").map((s) => s.trim()).filter(Boolean) })
+              patch(c.id, {
+                options: e.target.value
+                  .split("|")
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+              })
             }
           />
           <div className="flex flex-wrap gap-2">
@@ -475,7 +532,11 @@ function CheckpointEditor({ lesson }: { lesson: CbLesson }) {
               style={input}
               defaultValue={c.branch_seconds ?? ""}
               placeholder="Rewind to (sec)"
-              onBlur={(e) => patch(c.id, { branch_seconds: e.target.value === "" ? null : Number(e.target.value) })}
+              onBlur={(e) =>
+                patch(c.id, {
+                  branch_seconds: e.target.value === "" ? null : Number(e.target.value),
+                })
+              }
             />
           </div>
         </div>
@@ -494,18 +555,22 @@ function CheckpointEditor({ lesson }: { lesson: CbLesson }) {
 function QuizEditor({ lesson }: { lesson: CbLesson }) {
   const { workspaceId } = useTrainingScope();
   const [quizId, setQuizId] = useState<string | null>(null);
-  const [questions, setQuestions] = useState<{ id: string; prompt: string; kind: string; options: string[]; correct_index: number | null }[]>([]);
+  const [questions, setQuestions] = useState<
+    { id: string; prompt: string; kind: string; options: string[]; correct_index: number | null }[]
+  >([]);
   const [generating, setGenerating] = useState(false);
   const [material, setMaterial] = useState("");
 
   async function load() {
     if (!workspaceId) return;
-    let { data: quiz } = await supabase.from("cb_quizzes").select("*").eq("lesson_id", lesson.id).maybeSingle();
+    let { data: quiz } = await cbTable("cb_quizzes")
+      .select("*")
+      .eq("lesson_id", lesson.id)
+      .maybeSingle();
     if (!quiz) {
-      const { data: created } = await supabase
-        .from("cb_quizzes")
+      const { data: created } = await cbTable("cb_quizzes")
         .insert({
-          workspace_id: workspaceId,
+          company_id: workspaceId,
           lesson_id: lesson.id,
           course_id: lesson.course_id,
           title: lesson.title,
@@ -517,8 +582,7 @@ function QuizEditor({ lesson }: { lesson: CbLesson }) {
     }
     if (!quiz) return;
     setQuizId(quiz.id as string);
-    const { data: qs } = await supabase
-      .from("cb_quiz_questions")
+    const { data: qs } = await cbTable("cb_quiz_questions")
       .select("id, prompt, kind, options, correct_index")
       .eq("quiz_id", quiz.id)
       .order("sort_order");
@@ -546,14 +610,16 @@ function QuizEditor({ lesson }: { lesson: CbLesson }) {
     }
     setGenerating(true);
     try {
-      const res = await cbGenerateQuiz({ data: { workspaceId, material: source, count: 6, includeText: true } });
+      const res = await cbGenerateQuiz({
+        data: { workspaceId, material: source, count: 6, includeText: true },
+      });
       if (!res.ok) {
         toast.error(res.error);
         return;
       }
       const rows = res.questions.map((q, i) => ({
         quiz_id: quizId,
-        workspace_id: workspaceId,
+        company_id: workspaceId,
         prompt: q.prompt,
         kind: q.kind,
         options: q.options ?? [],
@@ -562,7 +628,7 @@ function QuizEditor({ lesson }: { lesson: CbLesson }) {
         points: 1,
         sort_order: questions.length + i,
       }));
-      const { error } = await supabase.from("cb_quiz_questions").insert(rows);
+      const { error } = await cbTable("cb_quiz_questions").insert(rows);
       if (error) toast.error(error.message);
       else {
         toast.success(`Added ${rows.length} questions`);
@@ -584,7 +650,7 @@ function QuizEditor({ lesson }: { lesson: CbLesson }) {
           <button
             type="button"
             onClick={async () => {
-              await supabase.from("cb_quiz_questions").delete().eq("id", q.id);
+              await cbTable("cb_quiz_questions").delete().eq("id", q.id);
               void load();
             }}
             aria-label="Delete question"
@@ -601,7 +667,13 @@ function QuizEditor({ lesson }: { lesson: CbLesson }) {
         value={material}
         onChange={(e) => setMaterial(e.target.value)}
       />
-      <CbButton size="md" variant="secondary" loading={generating} loadingText="Writing questions…" onClick={generate}>
+      <CbButton
+        size="md"
+        variant="secondary"
+        loading={generating}
+        loadingText="Writing questions…"
+        onClick={generate}
+      >
         <span className="inline-flex items-center gap-1.5">
           <Sparkles className="h-4 w-4" /> Generate questions with AI
         </span>
