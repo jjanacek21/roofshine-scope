@@ -9267,6 +9267,62 @@ export type Database = {
         }
         Relationships: []
       }
+      training_courses: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          estimated_minutes: number | null
+          id: string
+          price_cents: number
+          slug: string | null
+          source: string | null
+          status: string
+          subtitle: string | null
+          title: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          price_cents?: number
+          slug?: string | null
+          source?: string | null
+          status?: string
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          price_cents?: number
+          slug?: string | null
+          source?: string | null
+          status?: string
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_courses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_examples: {
         Row: {
           address: string
@@ -9314,6 +9370,101 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      training_lessons: {
+        Row: {
+          body: string | null
+          course_id: string
+          created_at: string
+          facts: Json
+          fts: unknown
+          id: string
+          module_id: string
+          scripts: Json
+          sort_order: number
+          title: string
+          word_count: number
+        }
+        Insert: {
+          body?: string | null
+          course_id: string
+          created_at?: string
+          facts?: Json
+          fts?: unknown
+          id?: string
+          module_id: string
+          scripts?: Json
+          sort_order?: number
+          title: string
+          word_count?: number
+        }
+        Update: {
+          body?: string | null
+          course_id?: string
+          created_at?: string
+          facts?: Json
+          fts?: unknown
+          id?: string
+          module_id?: string
+          scripts?: Json
+          sort_order?: number
+          title?: string
+          word_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_lessons_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "training_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_modules: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          sort_order: number
+          source_anchor: string | null
+          subtitle: string | null
+          title: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          source_anchor?: string | null
+          subtitle?: string | null
+          title: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          source_anchor?: string | null
+          subtitle?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_modules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_badges: {
         Row: {
@@ -9744,6 +9895,69 @@ export type Database = {
         Update: {
           keeper_id?: string | null
           loser_id?: string | null
+        }
+        Relationships: []
+      }
+      zz_product_approvals_backup_20260903: {
+        Row: {
+          applicable_trades: string[] | null
+          approval_date: string | null
+          created_at: string | null
+          expiration_date: string | null
+          file_url: string | null
+          fl_approval_pdf_url: string | null
+          fl_product_approval: string | null
+          hvhz_approved: boolean | null
+          id: string | null
+          is_active: boolean | null
+          manufacturer: string | null
+          noa_number: string | null
+          noa_pdf_url: string | null
+          product_category: string | null
+          product_line: string | null
+          product_name: string | null
+          updated_at: string | null
+          wind_speed_rating: number | null
+        }
+        Insert: {
+          applicable_trades?: string[] | null
+          approval_date?: string | null
+          created_at?: string | null
+          expiration_date?: string | null
+          file_url?: string | null
+          fl_approval_pdf_url?: string | null
+          fl_product_approval?: string | null
+          hvhz_approved?: boolean | null
+          id?: string | null
+          is_active?: boolean | null
+          manufacturer?: string | null
+          noa_number?: string | null
+          noa_pdf_url?: string | null
+          product_category?: string | null
+          product_line?: string | null
+          product_name?: string | null
+          updated_at?: string | null
+          wind_speed_rating?: number | null
+        }
+        Update: {
+          applicable_trades?: string[] | null
+          approval_date?: string | null
+          created_at?: string | null
+          expiration_date?: string | null
+          file_url?: string | null
+          fl_approval_pdf_url?: string | null
+          fl_product_approval?: string | null
+          hvhz_approved?: boolean | null
+          id?: string | null
+          is_active?: boolean | null
+          manufacturer?: string | null
+          noa_number?: string | null
+          noa_pdf_url?: string | null
+          product_category?: string | null
+          product_line?: string | null
+          product_name?: string | null
+          updated_at?: string | null
+          wind_speed_rating?: number | null
         }
         Relationships: []
       }
