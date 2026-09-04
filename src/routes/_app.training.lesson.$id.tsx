@@ -9,13 +9,24 @@ import { CbReveal } from "@/components/cb/motion";
 import { CbLessonPlayer } from "@/components/claim-buddy/training/CbLessonPlayer";
 import { CbQuizRunner } from "@/components/claim-buddy/training/CbQuizRunner";
 import { CbTutor } from "@/components/claim-buddy/training/CbTutor";
-import { awardPoints, logEvent, useCbCourse, useCbLesson, useMyProgress, useTrainingScope } from "@/hooks/useCbTraining";
+import {
+  awardPoints,
+  logEvent,
+  useCbCourse,
+  useCbLesson,
+  useMyProgress,
+  useTrainingScope,
+} from "@/hooks/useCbTraining";
+import { cbTable } from "@/lib/cbTraining";
 
 export const Route = createFileRoute("/_app/training/lesson/$id")({
   head: () => ({
     meta: [
       { title: "Lesson — Company Training" },
-      { name: "description", content: "Watch, read and answer the checkpoints in this training lesson." },
+      {
+        name: "description",
+        content: "Watch, read and answer the checkpoints in this training lesson.",
+      },
       { property: "og:title", content: "Lesson — Company Training" },
       { property: "og:description", content: "A lesson in your company's training program." },
       { property: "og:type", content: "article" },
@@ -64,9 +75,9 @@ function LessonPage() {
 
   async function markRead() {
     if (!workspaceId || !user?.id || !lesson) return;
-    await supabase.from("cb_progress").upsert(
+    await cbTable("cb_progress").upsert(
       {
-        workspace_id: workspaceId,
+        company_id: workspaceId,
         lesson_id: lesson.id,
         course_id: lesson.course_id,
         user_id: user.id,
@@ -90,7 +101,9 @@ function LessonPage() {
   async function onCourseCheck() {
     if (!workspaceId || !user?.id || !lesson) return;
     const remaining = siblings.filter(
-      (l) => !(progress.data ?? []).some((p) => p.lesson_id === l.id && p.completed_at) && l.id !== lesson.id,
+      (l) =>
+        !(progress.data ?? []).some((p) => p.lesson_id === l.id && p.completed_at) &&
+        l.id !== lesson.id,
     );
     if (remaining.length === 0) {
       await awardPoints(workspaceId, user.id, "course_complete", lesson.course_id);
@@ -142,7 +155,9 @@ function LessonPage() {
                     lesson={lesson}
                     checkpoints={data?.checkpoints ?? []}
                     onComplete={onCourseCheck}
-                    onBranchLesson={(lid) => navigate({ to: "/training/lesson/$id", params: { id: lid } })}
+                    onBranchLesson={(lid) =>
+                      navigate({ to: "/training/lesson/$id", params: { id: lid } })
+                    }
                   />
                 ) : null}
 
@@ -156,7 +171,9 @@ function LessonPage() {
 
                 {lesson.body ? (
                   <CbCard elevation="card" style={{ padding: 18 }}>
-                    <div className="cb-prose whitespace-pre-wrap text-[14.5px] leading-[1.6]">{lesson.body}</div>
+                    <div className="cb-prose whitespace-pre-wrap text-[14.5px] leading-[1.6]">
+                      {lesson.body}
+                    </div>
                   </CbCard>
                 ) : null}
 
@@ -191,7 +208,9 @@ function LessonPage() {
                   <CbButton
                     block
                     variant="secondary"
-                    onClick={() => navigate({ to: "/training/lesson/$id", params: { id: next.id } })}
+                    onClick={() =>
+                      navigate({ to: "/training/lesson/$id", params: { id: next.id } })
+                    }
                   >
                     <span className="inline-flex items-center gap-1.5">
                       Next lesson <ChevronRight className="h-4 w-4" />

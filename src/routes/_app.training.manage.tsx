@@ -18,7 +18,7 @@ import {
   useScoreboard,
 } from "@/hooks/useCbTraining";
 import { cbGenerateCourseOutline, cbSaveGeneratedCourse } from "@/lib/cb-training.functions";
-import { formatMinutes, startOfMonth } from "@/lib/cbTraining";
+import { cbTable, formatMinutes, startOfMonth } from "@/lib/cbTraining";
 
 export const Route = createFileRoute("/_app/training/manage")({
   head: () => ({
@@ -26,10 +26,14 @@ export const Route = createFileRoute("/_app/training/manage")({
       { title: "Training — Global Contractor" },
       {
         name: "description",
-        content: "Build courses, set required training hours, assign them to roles and track who is actually training.",
+        content:
+          "Build courses, set required training hours, assign them to roles and track who is actually training.",
       },
       { property: "og:title", content: "Training — Global Contractor" },
-      { property: "og:description", content: "Company training courses, requirements and accountability." },
+      {
+        property: "og:description",
+        content: "Company training courses, requirements and accountability.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -66,29 +70,40 @@ function AdminTraining() {
         <p className="mb-5 mt-1 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
           Your own classroom — courses, requirements and a scoreboard for your crew.
         </p>
-      {!isAdmin ? (
-        <CbEmptyState headline="Owners and admins only" body="Ask your company owner for access." />
-      ) : (
-        <>
-          <div className="mb-4 flex flex-wrap gap-2">
-            {TABS.map((t) => (
-              <button
-                key={t}
-                type="button"
-                className="cb-chip"
-                onClick={() => setTab(t)}
-                aria-pressed={tab === t}
-                style={tab === t ? { background: "var(--cb-accent)", color: "#fff", borderColor: "transparent" } : undefined}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-          {tab === "Courses" ? <CoursesTab /> : null}
-          {tab === "Requirements" ? <RequirementsTab /> : null}
-          {tab === "Accountability" ? <AccountabilityTab /> : null}
-        </>
-      )}
+        {!isAdmin ? (
+          <CbEmptyState
+            headline="Owners and admins only"
+            body="Ask your company owner for access."
+          />
+        ) : (
+          <>
+            <div className="mb-4 flex flex-wrap gap-2">
+              {TABS.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className="cb-chip"
+                  onClick={() => setTab(t)}
+                  aria-pressed={tab === t}
+                  style={
+                    tab === t
+                      ? {
+                          background: "var(--cb-accent)",
+                          color: "#fff",
+                          borderColor: "transparent",
+                        }
+                      : undefined
+                  }
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            {tab === "Courses" ? <CoursesTab /> : null}
+            {tab === "Requirements" ? <RequirementsTab /> : null}
+            {tab === "Accountability" ? <AccountabilityTab /> : null}
+          </>
+        )}
       </div>
     </CbSurface>
   );
@@ -109,10 +124,9 @@ function CoursesTab() {
 
   async function createBlank() {
     if (!workspaceId || !user?.id) return;
-    const { data, error } = await supabase
-      .from("cb_courses")
+    const { data, error } = await cbTable<{ id: string }>("cb_courses")
       .insert({
-        workspace_id: workspaceId,
+        company_id: workspaceId,
         title: "New course",
         status: "draft",
         created_by: user.id,
@@ -197,7 +211,12 @@ function CoursesTab() {
               value={source}
               onChange={(e) => setSource(e.target.value)}
             />
-            <CbButton size="md" loading={generating} loadingText="Writing the course…" onClick={generate}>
+            <CbButton
+              size="md"
+              loading={generating}
+              loadingText="Writing the course…"
+              onClick={generate}
+            >
               Generate draft
             </CbButton>
           </div>
@@ -207,7 +226,10 @@ function CoursesTab() {
       {courses.isLoading ? (
         <CbLoading label="Loading courses…" />
       ) : (courses.data ?? []).length === 0 ? (
-        <CbEmptyState headline="No courses yet" body="Create one from scratch or let AI draft the first one." />
+        <CbEmptyState
+          headline="No courses yet"
+          body="Create one from scratch or let AI draft the first one."
+        />
       ) : (
         <div className="space-y-2">
           {(courses.data ?? []).map((c) => (
@@ -216,7 +238,10 @@ function CoursesTab() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-semibold">{c.title}</p>
                   {c.description ? (
-                    <p className="line-clamp-1 text-[12.5px]" style={{ color: "var(--cb-text-muted)" }}>
+                    <p
+                      className="line-clamp-1 text-[12.5px]"
+                      style={{ color: "var(--cb-text-muted)" }}
+                    >
                       {c.description}
                     </p>
                   ) : null}
@@ -251,12 +276,10 @@ function RequirementsTab() {
 
   async function saveRule() {
     if (!workspaceId) return;
-    const { error } = await supabase
-      .from("cb_training_rules")
-      .upsert(
-        { workspace_id: workspaceId, role, period, required_minutes: minutes },
-        { onConflict: "workspace_id,role" },
-      );
+    const { error } = await cbTable("cb_training_rules").upsert(
+      { company_id: workspaceId, role, period, required_minutes: minutes },
+      { onConflict: "workspace_id,role" },
+    );
     if (error) toast.error(error.message);
     else {
       toast.success("Requirement saved");
@@ -266,8 +289,8 @@ function RequirementsTab() {
 
   async function assign(courseId: string, audience: "all" | "role", value?: string) {
     if (!workspaceId) return;
-    const { error } = await supabase.from("cb_assignments").insert({
-      workspace_id: workspaceId,
+    const { error } = await cbTable("cb_assignments").insert({
+      company_id: workspaceId,
       course_id: courseId,
       audience,
       role: audience === "role" ? (value ?? null) : null,
@@ -321,7 +344,8 @@ function RequirementsTab() {
         <div className="mt-3 space-y-1">
           {(rules.data ?? []).map((r) => (
             <p key={r.id} className="text-[13px]" style={{ color: "var(--cb-text-muted)" }}>
-              {r.role === "all" ? "Everyone" : r.role} — {formatMinutes(r.required_minutes)} per {r.period}
+              {r.role === "all" ? "Everyone" : r.role} — {formatMinutes(r.required_minutes)} per{" "}
+              {r.period}
             </p>
           ))}
         </div>
@@ -366,10 +390,9 @@ function AccountabilityTab() {
     queryKey: ["cb-training-activity", workspaceId],
     enabled: !!workspaceId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cb_training_events")
+      const { data, error } = await cbTable("cb_training_events")
         .select("user_id, kind, seconds, created_at")
-        .eq("workspace_id", workspaceId!)
+        .eq("company_id", workspaceId!)
         .gte("created_at", startOfMonth().toISOString())
         .order("created_at", { ascending: false })
         .limit(200);
@@ -426,7 +449,8 @@ function AccountabilityTab() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[14.5px] font-semibold">{r.name}</p>
                     <p className="text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
-                      {r.role} · last activity {seen ? new Date(seen).toLocaleDateString() : "none this month"}
+                      {r.role} · last activity{" "}
+                      {seen ? new Date(seen).toLocaleDateString() : "none this month"}
                     </p>
                   </div>
                   <CbBadge tone="neutral">{formatMinutes(r.minutes)}</CbBadge>

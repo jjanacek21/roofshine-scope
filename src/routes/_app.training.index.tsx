@@ -13,7 +13,7 @@ import {
   useLiveSessions,
   useAssignments,
 } from "@/hooks/useCbTraining";
-import { formatMinutes } from "@/lib/cbTraining";
+import { cbTable, formatMinutes } from "@/lib/cbTraining";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -27,7 +27,10 @@ export const Route = createFileRoute("/_app/training/")({
           "Your company's own training classroom: courses, videos, quizzes, live coaching calls and a team scoreboard.",
       },
       { property: "og:title", content: "Company Training — Global Contractor" },
-      { property: "og:description", content: "Courses, quizzes and live coaching built by your own company." },
+      {
+        property: "og:description",
+        content: "Courses, quizzes and live coaching built by your own company.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -50,13 +53,13 @@ function TrainingHome() {
     queryKey: ["cb-lesson-counts", workspaceId],
     enabled: !!workspaceId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cb_lessons")
+      const { data, error } = await cbTable("cb_lessons")
         .select("id, course_id")
-        .eq("workspace_id", workspaceId!);
+        .eq("company_id", workspaceId!);
       if (error) throw error;
       const map = new Map<string, number>();
-      for (const l of data ?? []) map.set(l.course_id as string, (map.get(l.course_id as string) ?? 0) + 1);
+      for (const l of data ?? [])
+        map.set(l.course_id as string, (map.get(l.course_id as string) ?? 0) + 1);
       return map;
     },
   });
@@ -70,7 +73,9 @@ function TrainingHome() {
   }, [progress.data]);
 
   const myRule = useMemo(
-    () => (rules.data ?? []).find((r) => r.role === role) ?? (rules.data ?? []).find((r) => r.role === "all"),
+    () =>
+      (rules.data ?? []).find((r) => r.role === role) ??
+      (rules.data ?? []).find((r) => r.role === "all"),
     [rules.data, role],
   );
 
@@ -83,7 +88,9 @@ function TrainingHome() {
   }, [assignments.data, role]);
 
   const nextLive = useMemo(
-    () => (live.data ?? []).find((s) => new Date(s.starts_at).getTime() > Date.now() - 30 * 60000) ?? null,
+    () =>
+      (live.data ?? []).find((s) => new Date(s.starts_at).getTime() > Date.now() - 30 * 60000) ??
+      null,
     [live.data],
   );
 
@@ -113,18 +120,30 @@ function TrainingHome() {
 
           <CbReveal delay={60}>
             <div className="mt-5 flex flex-wrap gap-2">
-              <CbButton size="md" variant="secondary" onClick={() => navigate({ to: "/training/scoreboard" })}>
+              <CbButton
+                size="md"
+                variant="secondary"
+                onClick={() => navigate({ to: "/training/scoreboard" })}
+              >
                 <span className="inline-flex items-center gap-1.5">
                   <Trophy className="h-4 w-4" /> Scoreboard
                 </span>
               </CbButton>
-              <CbButton size="md" variant="secondary" onClick={() => navigate({ to: "/training/live" })}>
+              <CbButton
+                size="md"
+                variant="secondary"
+                onClick={() => navigate({ to: "/training/live" })}
+              >
                 <span className="inline-flex items-center gap-1.5">
                   <Video className="h-4 w-4" /> Live coaching
                 </span>
               </CbButton>
               {isAdmin ? (
-                <CbButton size="md" variant="secondary" onClick={() => navigate({ to: "/training/manage" })}>
+                <CbButton
+                  size="md"
+                  variant="secondary"
+                  onClick={() => navigate({ to: "/training/manage" })}
+                >
                   <span className="inline-flex items-center gap-1.5">
                     <Settings className="h-4 w-4" /> Manage
                   </span>
@@ -138,14 +157,19 @@ function TrainingHome() {
               <CbCard elevation="raised" className="mt-5" style={{ padding: 18 }}>
                 <p className="cb-microlabel">This {myRule.period}</p>
                 <div className="mt-2 flex items-center gap-3">
-                  <div className="h-2 flex-1 overflow-hidden rounded-full" style={{ background: "rgba(0,0,0,.08)" }}>
+                  <div
+                    className="h-2 flex-1 overflow-hidden rounded-full"
+                    style={{ background: "rgba(0,0,0,.08)" }}
+                  >
                     <div
                       className="h-full rounded-full"
                       style={{
                         width: `${Math.min(
                           100,
                           Math.round(
-                            (((myRule.period === "week" ? minutes.data?.week : minutes.data?.month) ?? 0) /
+                            (((myRule.period === "week"
+                              ? minutes.data?.week
+                              : minutes.data?.month) ?? 0) /
                               Math.max(1, myRule.required_minutes)) *
                               100,
                           ),
@@ -155,8 +179,10 @@ function TrainingHome() {
                     />
                   </div>
                   <span className="text-[12.5px]" style={{ color: "var(--cb-text-muted)" }}>
-                    {formatMinutes((myRule.period === "week" ? minutes.data?.week : minutes.data?.month) ?? 0)} of{" "}
-                    {formatMinutes(myRule.required_minutes)}
+                    {formatMinutes(
+                      (myRule.period === "week" ? minutes.data?.week : minutes.data?.month) ?? 0,
+                    )}{" "}
+                    of {formatMinutes(myRule.required_minutes)}
                   </span>
                 </div>
               </CbCard>
@@ -172,7 +198,11 @@ function TrainingHome() {
                   {new Date(nextLive.starts_at).toLocaleString()}
                 </p>
                 <div className="mt-3">
-                  <CbButton size="md" variant="secondary" onClick={() => navigate({ to: "/training/live" })}>
+                  <CbButton
+                    size="md"
+                    variant="secondary"
+                    onClick={() => navigate({ to: "/training/live" })}
+                  >
                     Details
                   </CbButton>
                 </div>
@@ -186,7 +216,6 @@ function TrainingHome() {
             ) : list.length === 0 ? (
               <CbEmptyState
                 headline="No courses yet"
-
                 body={
                   isAdmin
                     ? "Build your first course — write it yourself or let AI draft it from a topic."
@@ -216,7 +245,9 @@ function TrainingHome() {
                       <div className="flex items-start gap-3">
                         <div
                           className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px]"
-                          style={{ background: "color-mix(in oklab, var(--cb-accent) 14%, transparent)" }}
+                          style={{
+                            background: "color-mix(in oklab, var(--cb-accent) 14%, transparent)",
+                          }}
                         >
                           <GraduationCap className="h-5 w-5" />
                         </div>
@@ -228,7 +259,10 @@ function TrainingHome() {
                             {pct === 100 ? <CbBadge tone="success">Done</CbBadge> : null}
                           </div>
                           {c.description ? (
-                            <p className="mt-1 line-clamp-2 text-[13.5px]" style={{ color: "var(--cb-text-muted)" }}>
+                            <p
+                              className="mt-1 line-clamp-2 text-[13.5px]"
+                              style={{ color: "var(--cb-text-muted)" }}
+                            >
                               {c.description}
                             </p>
                           ) : null}
@@ -237,7 +271,10 @@ function TrainingHome() {
                               className="h-1.5 flex-1 overflow-hidden rounded-full"
                               style={{ background: "rgba(0,0,0,.08)" }}
                             >
-                              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--cb-accent)" }} />
+                              <div
+                                className="h-full rounded-full"
+                                style={{ width: `${pct}%`, background: "var(--cb-accent)" }}
+                              />
                             </div>
                             <span className="text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
                               {done}/{total} lessons

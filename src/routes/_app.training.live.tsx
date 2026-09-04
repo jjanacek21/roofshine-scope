@@ -8,12 +8,16 @@ import { CbSurface } from "@/components/cb/CbSurface";
 import { CbCard, CbButton, CbBadge, CbLoading, CbEmptyState } from "@/components/cb/primitives";
 import { CbReveal } from "@/components/cb/motion";
 import { awardPoints, logEvent, useLiveSessions, useTrainingScope } from "@/hooks/useCbTraining";
+import { cbTable } from "@/lib/cbTraining";
 
 export const Route = createFileRoute("/_app/training/live")({
   head: () => ({
     meta: [
       { title: "Live coaching — Company Training" },
-      { name: "description", content: "Join your company's live coaching calls and get credit for attending." },
+      {
+        name: "description",
+        content: "Join your company's live coaching calls and get credit for attending.",
+      },
       { property: "og:title", content: "Live coaching — Company Training" },
       { property: "og:description", content: "Scheduled live coaching sessions for your crew." },
       { property: "og:type", content: "website" },
@@ -35,7 +39,13 @@ function LivePage() {
   const sessions = useLiveSessions();
 
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ title: "", startsAt: "", minutes: 45, meetUrl: "", description: "" });
+  const [form, setForm] = useState({
+    title: "",
+    startsAt: "",
+    minutes: 45,
+    meetUrl: "",
+    description: "",
+  });
   const [saving, setSaving] = useState(false);
 
   const { upcoming, past } = useMemo(() => {
@@ -55,8 +65,8 @@ function LivePage() {
     }
     setSaving(true);
     const starts = new Date(form.startsAt);
-    const { error } = await supabase.from("cb_live_sessions").insert({
-      workspace_id: workspaceId,
+    const { error } = await cbTable("cb_live_sessions").insert({
+      company_id: workspaceId,
       title: form.title.trim(),
       description: form.description.trim() || null,
       starts_at: starts.toISOString(),
@@ -78,10 +88,10 @@ function LivePage() {
 
   async function join(sessionId: string, url: string | null, minutes: number) {
     if (!workspaceId || !user?.id) return;
-    await supabase.from("cb_live_attendance").upsert(
+    await cbTable("cb_live_attendance").upsert(
       {
         session_id: sessionId,
-        workspace_id: workspaceId,
+        company_id: workspaceId,
         user_id: user.id,
         status: "attended",
         minutes,
@@ -111,7 +121,11 @@ function LivePage() {
       details: form.description || "Company training session",
       dates: `${fmt(start)}/${fmt(end)}`,
     });
-    window.open(`https://calendar.google.com/calendar/render?${params.toString()}`, "_blank", "noopener");
+    window.open(
+      `https://calendar.google.com/calendar/render?${params.toString()}`,
+      "_blank",
+      "noopener",
+    );
   }
 
   return (
@@ -196,8 +210,8 @@ function LivePage() {
                       </CbButton>
                     </div>
                     <p className="text-[12px]" style={{ color: "var(--cb-text-muted)" }}>
-                      Google Calendar opens with the details filled in — add the Meet link there, then paste it back
-                      here so the crew can join in one tap.
+                      Google Calendar opens with the details filled in — add the Meet link there,
+                      then paste it back here so the crew can join in one tap.
                     </p>
                   </div>
                 </CbCard>
@@ -215,7 +229,10 @@ function LivePage() {
             {sessions.isLoading ? (
               <CbLoading label="Loading sessions…" />
             ) : upcoming.length === 0 ? (
-              <CbEmptyState headline="Nothing scheduled" body="Live coaching calls will show up here." />
+              <CbEmptyState
+                headline="Nothing scheduled"
+                body="Live coaching calls will show up here."
+              />
             ) : (
               upcoming.map((s) => (
                 <CbCard key={s.id} elevation="card" style={{ padding: 16 }}>
@@ -239,7 +256,11 @@ function LivePage() {
                               s.id,
                               s.meet_url,
                               s.ends_at
-                                ? Math.round((new Date(s.ends_at).getTime() - new Date(s.starts_at).getTime()) / 60000)
+                                ? Math.round(
+                                    (new Date(s.ends_at).getTime() -
+                                      new Date(s.starts_at).getTime()) /
+                                      60000,
+                                  )
                                 : 45,
                             )
                           }
