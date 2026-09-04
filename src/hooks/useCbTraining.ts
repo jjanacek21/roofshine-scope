@@ -4,7 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useCbSession } from "@/components/auth/CbSessionProvider";
+import { useProfile } from "@/hooks/useProfile";
+import { useCompany } from "@/hooks/useCompany";
 import {
+  cbTable,
   CB_POINTS,
   startOfMonth,
   startOfWeek,
@@ -19,15 +22,31 @@ import {
   type CbTrainingRule,
 } from "@/lib/cbTraining";
 
-/** Active workspace id + whether the signed-in user can manage training. */
+/**
+ * Whose classroom this is, and whether the signed-in user can change it.
+ *
+ * This used to read the Claim Buddy workspace, which meant Company Training
+ * was only reachable by someone who happened to have one. There are ten
+ * companies and seven workspaces, so a user at a company without one opened
+ * the classroom and found an empty room — not an error, just nothing, because
+ * every query below is gated on an id that was null for them.
+ *
+ * It is the company's training. It follows the company.
+ *
+ * `workspaceId` keeps its name because a hundred call sites read it, but what
+ * it carries is the company id, which is what the tables are now keyed on.
+ */
 export function useTrainingScope() {
-  const { workspace, surface } = useCbSession();
-  const role = workspace?.role ?? "rep";
+  const { data: profile } = useProfile();
+  const { data: company } = useCompany();
+  const { surface } = useCbSession();
+  const role = profile?.role ?? "rep";
   return {
-    workspaceId: workspace?.id ?? null,
+    workspaceId: profile?.company_id ?? null,
     role,
-    isAdmin: role === "owner" || role === "admin" || surface === "platform",
-    workspaceName: workspace?.name ?? "your company",
+    isAdmin:
+      role === "owner" || role === "admin" || role === "super_admin" || surface === "platform",
+    workspaceName: company?.name ?? "your company",
   };
 }
 
@@ -41,10 +60,9 @@ export function useCbCourses(includeDrafts = false) {
     queryKey: ["cb-courses", workspaceId, includeDrafts],
     enabled: !!workspaceId,
     queryFn: async () => {
-      let q = supabase
-        .from("cb_courses")
+      let q = cbTable("cb_courses")
         .select("*")
-        .eq("workspace_id", workspaceId!)
+        .eq("company_id", workspaceId!)
         .is("archived_at", null)
         .order("sort_order")
         .order("created_at");
@@ -62,12 +80,15 @@ export function useCbCourse(courseId: string | null) {
     queryKey: ["cb-course", courseId],
     enabled: !!courseId && !!workspaceId,
     queryFn: async () => {
-      const [{ data: course, error: e1 }, { data: modules, error: e2 }, { data: lessons, error: e3 }] =
-        await Promise.all([
-          supabase.from("cb_courses").select("*").eq("id", courseId!).maybeSingle(),
-          supabase.from("cb_modules").select("*").eq("course_id", courseId!).order("sort_order"),
-          supabase.from("cb_lessons").select("*").eq("course_id", courseId!).order("sort_order"),
-        ]);
+      const [
+        { data: course, error: e1 },
+        { data: modules, error: e2 },
+        { data: lessons, error: e3 },
+      ] = await Promise.all([
+        cbTable("cb_courses").select("*").eq("id", courseId!).maybeSingle(),
+        cbTable("cb_modules").select("*").eq("course_id", courseId!).order("sort_order"),
+        cbTable("cb_lessons").select("*").eq("course_id", courseId!).order("sort_order"),
+      ]);
       if (e1) throw e1;
       if (e2) throw e2;
       if (e3) throw e3;
@@ -86,12 +107,8 @@ export function useCbLesson(lessonId: string | null) {
     enabled: !!lessonId,
     queryFn: async () => {
       const [{ data: lesson, error: e1 }, { data: checkpoints, error: e2 }] = await Promise.all([
-        supabase.from("cb_lessons").select("*").eq("id", lessonId!).maybeSingle(),
-        supabase
-          .from("cb_video_checkpoints")
-          .select("*")
-          .eq("lesson_id", lessonId!)
-          .order("at_seconds"),
+        cbTable("cb_lessons").select("*").eq("id", lessonId!).maybeSingle(),
+        cbTable("cb_video_checkpoints").select("*").eq("lesson_id", lessonId!).order("at_seconds"),
       ]);
       if (e1) throw e1;
       if (e2) throw e2;
@@ -114,10 +131,9 @@ export function useMyProgress() {
     queryKey: ["cb-progress", workspaceId, user?.id],
     enabled: !!workspaceId && !!user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cb_progress")
+      const { data, error } = await cbTable("cb_progress")
         .select("*")
-        .eq("workspace_id", workspaceId!)
+        .eq("company_id", workspaceId!)
         .eq("user_id", user!.id);
       if (error) throw error;
       return (data ?? []) as unknown as CbProgress[];
@@ -132,17 +148,16 @@ export async function awardPoints(
   reason: CbPointReason,
   refId: string | null,
 ) {
-  let dedupe = supabase
-    .from("cb_training_points")
+  let dedupe = cbTable("cb_training_points")
     .select("id")
-    .eq("workspace_id", workspaceId)
+    .eq("company_id", workspaceId)
     .eq("user_id", userId)
     .eq("reason", reason);
   dedupe = refId === null ? dedupe.is("ref_id", null) : dedupe.eq("ref_id", refId);
   const { data: existing } = await dedupe.maybeSingle();
   if (existing) return;
-  await supabase.from("cb_training_points").insert({
-    workspace_id: workspaceId,
+  await cbTable("cb_training_points").insert({
+    company_id: workspaceId,
     user_id: userId,
     reason,
     ref_id: refId,
@@ -159,8 +174,8 @@ export async function logEvent(input: {
   seconds?: number;
   meta?: Record<string, unknown>;
 }) {
-  await supabase.from("cb_training_events").insert({
-    workspace_id: input.workspaceId,
+  await cbTable("cb_training_events").insert({
+    company_id: input.workspaceId,
     user_id: input.userId,
     kind: input.kind,
     course_id: input.courseId ?? null,
@@ -181,34 +196,32 @@ export interface TeamMemberRow {
   role: string;
 }
 
+/**
+ * Who is on the scoreboard.
+ *
+ * The roster is the company's people, read straight from profiles. It used to
+ * be the Claim Buddy workspace's members, which meant a rep could complete a
+ * course and still not appear on their own company's board — they were never
+ * on the list to begin with.
+ */
 export function useTrainingTeam() {
-  const { workspaceId } = useTrainingScope();
+  const { workspaceId: companyId } = useTrainingScope();
   return useQuery({
-    queryKey: ["cb-training-team", workspaceId],
-    enabled: !!workspaceId,
+    queryKey: ["cb-training-team", companyId],
+    enabled: !!companyId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("cb_workspace_members")
-        .select("user_id, role")
-        .eq("workspace_id", workspaceId!);
-      if (error) throw error;
-      const ids = (data ?? []).map((m) => m.user_id as string);
-      if (!ids.length) return [] as TeamMemberRow[];
-      const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, email")
-        .in("id", ids);
-      const byId = new Map((profiles ?? []).map((p) => [p.id as string, p]));
-      return (data ?? []).map((m) => {
-        const p = byId.get(m.user_id as string) as
-          | { first_name?: string | null; last_name?: string | null; email?: string | null }
-          | undefined;
-        const fullName = [p?.first_name, p?.last_name].filter(Boolean).join(" ").trim();
+        .select("id, first_name, last_name, email, role")
+        .eq("company_id", companyId!);
+      if (error) throw error;
+      return (data ?? []).map((p) => {
+        const fullName = [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
         return {
-          user_id: m.user_id as string,
-          role: (m.role as string) ?? "rep",
-          name: fullName || p?.email || "Team member",
-          email: p?.email ?? null,
+          user_id: p.id as string,
+          role: (p.role as string) ?? "rep",
+          name: fullName || p.email || "Team member",
+          email: p.email ?? null,
         };
       }) as TeamMemberRow[];
     },
@@ -229,14 +242,12 @@ export function useScoreboard(period: "week" | "month" | "all" = "month") {
     queryKey: ["cb-scoreboard", workspaceId, period],
     enabled: !!workspaceId,
     queryFn: async () => {
-      let pq = supabase
-        .from("cb_training_points")
+      let pq = cbTable("cb_training_points")
         .select("user_id, points, created_at")
-        .eq("workspace_id", workspaceId!);
-      let eq = supabase
-        .from("cb_training_events")
+        .eq("company_id", workspaceId!);
+      let eq = cbTable("cb_training_events")
         .select("user_id, seconds, kind, created_at")
-        .eq("workspace_id", workspaceId!);
+        .eq("company_id", workspaceId!);
       if (since) {
         pq = pq.gte("created_at", since);
         eq = eq.gte("created_at", since);
@@ -252,9 +263,15 @@ export function useScoreboard(period: "week" | "month" | "all" = "month") {
     const points = new Map<string, number>();
     const seconds = new Map<string, number>();
     for (const p of query.data?.pts ?? [])
-      points.set(p.user_id as string, (points.get(p.user_id as string) ?? 0) + (p.points as number));
+      points.set(
+        p.user_id as string,
+        (points.get(p.user_id as string) ?? 0) + (p.points as number),
+      );
     for (const e of query.data?.evts ?? [])
-      seconds.set(e.user_id as string, (seconds.get(e.user_id as string) ?? 0) + ((e.seconds as number) ?? 0));
+      seconds.set(
+        e.user_id as string,
+        (seconds.get(e.user_id as string) ?? 0) + ((e.seconds as number) ?? 0),
+      );
     return (team.data ?? [])
       .map((m) => ({
         ...m,
@@ -273,10 +290,9 @@ export function useTrainingRules() {
     queryKey: ["cb-training-rules", workspaceId],
     enabled: !!workspaceId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cb_training_rules")
+      const { data, error } = await cbTable("cb_training_rules")
         .select("*")
-        .eq("workspace_id", workspaceId!);
+        .eq("company_id", workspaceId!);
       if (error) throw error;
       return (data ?? []) as unknown as CbTrainingRule[];
     },
@@ -289,10 +305,9 @@ export function useAssignments() {
     queryKey: ["cb-assignments", workspaceId],
     enabled: !!workspaceId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cb_assignments")
+      const { data, error } = await cbTable("cb_assignments")
         .select("*")
-        .eq("workspace_id", workspaceId!);
+        .eq("company_id", workspaceId!);
       if (error) throw error;
       return (data ?? []) as unknown as CbAssignment[];
     },
@@ -305,10 +320,9 @@ export function useLiveSessions() {
     queryKey: ["cb-live-sessions", workspaceId],
     enabled: !!workspaceId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cb_live_sessions")
+      const { data, error } = await cbTable("cb_live_sessions")
         .select("*")
-        .eq("workspace_id", workspaceId!)
+        .eq("company_id", workspaceId!)
         .order("starts_at");
       if (error) throw error;
       return (data ?? []) as unknown as CbLiveSession[];
@@ -324,10 +338,9 @@ export function useMyTrainingMinutes() {
     queryKey: ["cb-my-minutes", workspaceId, user?.id],
     enabled: !!workspaceId && !!user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cb_training_events")
+      const { data, error } = await cbTable("cb_training_events")
         .select("seconds, created_at")
-        .eq("workspace_id", workspaceId!)
+        .eq("company_id", workspaceId!)
         .eq("user_id", user!.id)
         .gte("created_at", startOfMonth().toISOString());
       if (error) throw error;
