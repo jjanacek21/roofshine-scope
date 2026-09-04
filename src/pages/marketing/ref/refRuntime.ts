@@ -84,6 +84,7 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
     // Platform surface (globalcontractor.app): move the mark into the header so
     // it bleeds over the hero. Standalone (gcn.claims) keeps it in the hero.
     if (getSurface() === "platform") {
+      el.alt = "Global Contractor Network";
       const slot = $<HTMLElement>(".nav-logo");
       const hdr = $<HTMLElement>("#hdr");
       if (slot && hdr) {

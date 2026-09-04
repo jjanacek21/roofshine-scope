@@ -16,10 +16,15 @@ import { SHOTS_DEFAULT } from "./refData";
 import {
   createImageResolver,
   BRAND_IMAGES,
-  BRAND_LOGO_VIDEO,
-  BRAND_LOGO_VIDEO_WEBM,
+  CB_LOGO_VIDEO,
+  CB_LOGO_VIDEO_WEBM,
+  CB_LOGO_STILL,
+  APP_LOGO_VIDEO,
+  APP_LOGO_VIDEO_WEBM,
+  APP_LOGO_STILL,
   hasRepoScreen,
 } from "@/lib/site-images";
+import { getSurface } from "@/lib/cbMode";
 import { mediaKeyOf } from "@/lib/site-content.types";
 import { makeTextRewriter } from "./refCms";
 import type { SiteContent } from "@/lib/site-content.types";
