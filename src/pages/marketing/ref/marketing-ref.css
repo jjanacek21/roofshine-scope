@@ -238,8 +238,8 @@
 
 }
 .mkt-ref .hero{position:relative;background:var(--plot);color:var(--plot-ink);overflow:hidden;isolation:isolate;
-  background-image:linear-gradient(180deg,color-mix(in srgb,var(--bg) 62%,transparent),
-    color-mix(in srgb,var(--bg) 12%,transparent) 46%,transparent 88px)}
+  background-image:linear-gradient(180deg,color-mix(in srgb,var(--bg) 42%,transparent) 0,
+    color-mix(in srgb,var(--bg) 10%,transparent) 42px,transparent 96px)}
 .mkt-ref .hero::before{content:"";position:absolute;inset:0;z-index:-2;
   background-image:linear-gradient(var(--plot-line) 1px,transparent 1px),linear-gradient(90deg,var(--plot-line) 1px,transparent 1px);
   background-size:46px 46px;mask-image:radial-gradient(ellipse 90% 70% at 50% 32%,#000 40%,transparent 100%)}
