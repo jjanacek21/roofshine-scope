@@ -111,15 +111,22 @@ export default function MarketingRefView({
 
   const brand = (() => {
     const resolver = createImageResolver(content);
+    // The marketing site renders for both surfaces: gcn.claims (Claim Buddy)
+    // and globalcontractor.app (GCN App). Each serves its own logo; a CMS row
+    // in cb_site_media still overrides the fallback exactly as before.
+    const platform = getSurface() === "platform";
+    const fallbackVideo = platform ? APP_LOGO_VIDEO : CB_LOGO_VIDEO;
+    const fallbackWebm = platform ? APP_LOGO_VIDEO_WEBM : CB_LOGO_VIDEO_WEBM;
+    const fallbackAnimated = platform ? APP_LOGO_STILL : CB_LOGO_STILL;
     return {
-      animated: resolver.img("claimbuddy_logo_animated", BRAND_IMAGES.claimbuddy_logo_animated),
+      animated: resolver.img("claimbuddy_logo_animated", fallbackAnimated),
       // A CMS row may override the clip, but only with an actual video file —
       // an image row can no longer silently revert the hero to a static logo.
       video: (() => {
         const row = resolver.img("claimbuddy_logo_video", "");
-        return /\.(mp4|webm|mov)(\?|$)/i.test(row) ? row : BRAND_LOGO_VIDEO;
+        return /\.(mp4|webm|mov)(\?|$)/i.test(row) ? row : fallbackVideo;
       })(),
-      videoWebm: BRAND_LOGO_VIDEO_WEBM,
+      videoWebm: fallbackWebm,
       still: resolver.img("claimbuddy_logo", BRAND_IMAGES.claimbuddy_logo),
       mark: resolver.img("claimbuddy_mark", BRAND_IMAGES.claimbuddy_mark),
     };
