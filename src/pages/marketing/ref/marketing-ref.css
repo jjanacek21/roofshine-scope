@@ -154,8 +154,9 @@
 .mkt-ref .nav-logo:hover{transform:translateY(-1px)}
 .mkt-ref .nav-logo::after{content:"";position:absolute;inset:-46% -26% -76%;z-index:-1;pointer-events:none;
   background:radial-gradient(ellipse at 46% 46%,rgba(var(--accent-rgb),.30),transparent 66%);filter:blur(26px)}
-.mkt-ref .nav-logo .logo-anim{width:clamp(150px,17vw,230px);margin-bottom:clamp(-64px,-6vw,-30px)}
-.mkt-ref header.nav.stuck .nav-logo .logo-anim{width:clamp(132px,14vw,196px);margin-bottom:clamp(-46px,-4.2vw,-22px)}
+.mkt-ref .nav-logo .logo-anim{width:clamp(128px,13vw,186px);margin-bottom:clamp(-52px,-4.6vw,-26px)}
+.mkt-ref header.nav.stuck .nav-logo .logo-anim{width:clamp(116px,11vw,160px);margin-bottom:clamp(-40px,-3.4vw,-20px)}
+.mkt-ref nav.links button{white-space:nowrap}
 /* Nothing may cut across the artwork where it crosses the boundary. */
 .mkt-ref header.nav.stuck{border-bottom-color:transparent;
   box-shadow:0 6px 24px -18px rgba(15,23,42,.5),0 1px 0 0 var(--hairline)}
