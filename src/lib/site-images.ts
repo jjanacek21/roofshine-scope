@@ -43,17 +43,34 @@ const REPO_JPG_SCREENS = new Set([
 ]);
 
 /**
- * The animated brand logo, as an MP4 on a black plate. It is luma-keyed at
- * runtime (see logoVideo.ts), so the plate never shows.
+ * Two brand marks, one per surface. The marketing site is rendered for both
+ * gcn.claims (Claim Buddy, standalone) and globalcontractor.app (GCN App,
+ * platform) — each must serve its own logo. Videos play on a black plate and
+ * are luma-keyed at runtime (see logoVideo.ts), so the plate never shows.
  */
-export const BRAND_LOGO_VIDEO = "/__l5e/assets-v1/6176e700-2e36-43cb-96f7-1cbf8e29d55c/gcn-app-logo-anim.mp4";
+
+/* Claim Buddy (gcn.claims) — the standalone surface. */
+export const CB_LOGO_VIDEO = "/__l5e/assets-v1/ef3dbae8-c0a5-4184-9e8a-fc1199bfd251/claimbuddy-logo-anim.mp4";
+export const CB_LOGO_VIDEO_WEBM = "/__l5e/assets-v1/0409f07a-c27c-4628-ae91-7daddca549ef/claimbuddy-logo-anim.webm";
+export const CB_LOGO_STILL = "/marketing/logo/claimbuddy-logo-animated.webp";
+
+/* GCN App (globalcontractor.app) — the platform surface. */
+export const APP_LOGO_VIDEO = "/__l5e/assets-v1/6176e700-2e36-43cb-96f7-1cbf8e29d55c/gcn-app-logo-anim.mp4";
+export const APP_LOGO_VIDEO_WEBM = "/__l5e/assets-v1/7897fd6e-ebe7-4396-8fc7-c22d4e25d6cc/gcn-app-logo-anim.webm";
+export const APP_LOGO_STILL = "/__l5e/assets-v1/a30f1f91-b864-4f0f-bc45-572e20eb49ef/gcn-app-logo-still.webp";
+
+/**
+ * Legacy aliases kept pointing at the Claim Buddy values, so any consumer not
+ * yet surface-aware falls back to the pre-existing, correct behaviour.
+ */
+export const BRAND_LOGO_VIDEO = CB_LOGO_VIDEO;
 /** VP9 copy, tried first — smaller, and it plays where H.264 is unavailable. */
-export const BRAND_LOGO_VIDEO_WEBM = "/__l5e/assets-v1/7897fd6e-ebe7-4396-8fc7-c22d4e25d6cc/gcn-app-logo-anim.webm";
+export const BRAND_LOGO_VIDEO_WEBM = CB_LOGO_VIDEO_WEBM;
 
 /** Brand stills. Used for reduced motion and as the fallback if the video fails. */
 export const BRAND_IMAGES: Record<string, string> = {
-  /* Pre-keyed transparent still from the same clip as BRAND_LOGO_VIDEO. */
-  claimbuddy_logo_animated: "/__l5e/assets-v1/a30f1f91-b864-4f0f-bc45-572e20eb49ef/gcn-app-logo-still.webp",
+  /* Pre-keyed transparent still from the same clip as CB_LOGO_VIDEO. */
+  claimbuddy_logo_animated: CB_LOGO_STILL,
   claimbuddy_logo: "/marketing/logo/claimbuddy-logo.png",
   claimbuddy_mark: "/marketing/logo/claimbuddy-mark.png",
 };
