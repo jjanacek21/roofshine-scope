@@ -123,7 +123,7 @@ export function PermitJurisdictionIntel({
         setRules(sortedRules);
         setForms(f);
         setFasteners(filteredFasteners);
-        setInspections(insp);
+        setInspections(dedupeInspections(insp));
       })
       .catch((e: unknown) => {
         if (!alive) return;
