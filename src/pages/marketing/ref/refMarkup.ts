@@ -603,6 +603,10 @@ export type RefViewKey = keyof typeof REF_VIEWS;
 export const REF_HEADER = `
 <header class="nav" id="hdr">
   <div class="wrap nav-in">
+    <button class="nav-logo" data-v="home" aria-label="Global Contractor Network — home">
+      <img class="logo-anim" id="logoAnim"
+        alt="Claim Buddy — powered by Global Contractor Network">
+    </button>
     <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false"><i></i></button>
     <nav class="links" id="nav">
       <button data-v="home" aria-current="page">Home</button>
