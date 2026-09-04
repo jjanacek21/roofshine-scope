@@ -201,7 +201,11 @@
 .mkt-ref .nav-signin-m,.mkt-ref .nav-signin-item{display:none}
 @media(max-width:960px){
 .mkt-ref .nav-in{gap:10px}
-.mkt-ref .menu-btn{display:flex}
+.mkt-ref .menu-btn{display:flex;order:2}
+.mkt-ref .nav-logo{order:1;margin-right:auto}
+.mkt-ref .nav-logo .logo-anim,.mkt-ref header.nav.stuck .nav-logo .logo-anim{width:min(132px,38vw);margin-bottom:-22px}
+.mkt-ref .nav-logo::after{inset:-30% -18% -50%}
+.mkt-ref .nav-cta{order:3}
 .mkt-ref .nav-cta .btn-s,.mkt-ref .themer{display:none}
 .mkt-ref .nav-signin-m{display:inline-flex;align-items:center;height:40px;padding:0 12px;border-radius:10px;
     border:1px solid var(--hairline);background:var(--surface);color:var(--text);font:inherit;font-size:13px;
