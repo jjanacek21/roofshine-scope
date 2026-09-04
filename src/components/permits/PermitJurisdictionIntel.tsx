@@ -24,6 +24,12 @@ const card = { borderColor: "var(--border)", background: "var(--bg-card)" };
 
 const EMPTY: FasteningSchedule = { corner: [], perimeter: [], field: [], general: [] };
 
+function ruleJurisdictionLabel(rule: RefDepartmentRule): string | null {
+  if (rule.city) return rule.city;
+  if (rule.county) return `${rule.county} County`;
+  return null;
+}
+
 export function PermitJurisdictionIntel({
   department,
   roofMaterial,
