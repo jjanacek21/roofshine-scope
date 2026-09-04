@@ -17,7 +17,6 @@ import { Route as DemoRouteImport } from './routes/demo'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as GalleryRouteImport } from './routes/gallery'
-import { Route as GcnAppRouteImport } from './routes/gcn-app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PricingRouteImport } from './routes/pricing'
@@ -39,6 +38,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppStormIntelligenceRouteImport } from './routes/_app.storm-intelligence'
 import { Route as AppSurvivalGuideRouteImport } from './routes/_app.survival-guide'
 import { Route as AppTeamRouteImport } from './routes/_app.team'
+import { Route as AppTrainerRouteImport } from './routes/_app.trainer'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminAnnouncementsRouteImport } from './routes/admin.announcements'
@@ -74,6 +74,7 @@ import { Route as ApiReportAiRouteImport } from './routes/api.report-ai'
 import { Route as ApiRkAiRouteImport } from './routes/api.rk-ai'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
+import { Route as ApiTrainingChatRouteImport } from './routes/api.training-chat'
 import { Route as BookKindRouteImport } from './routes/book.$kind'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as CbIndexRouteImport } from './routes/cb.index'
@@ -127,10 +128,6 @@ import { Route as AppRoofkingSplatRouteImport } from './routes/_app.roofking.$'
 import { Route as AppTeamIndexRouteImport } from './routes/_app.team.index'
 import { Route as AppTeamInvitesRouteImport } from './routes/_app.team.invites'
 import { Route as AppTeamRequestsRouteImport } from './routes/_app.team.requests'
-import { Route as AppTrainingIndexRouteImport } from './routes/_app.training.index'
-import { Route as AppTrainingLiveRouteImport } from './routes/_app.training.live'
-import { Route as AppTrainingManageRouteImport } from './routes/_app.training.manage'
-import { Route as AppTrainingScoreboardRouteImport } from './routes/_app.training.scoreboard'
 import { Route as AdminAssembliesImportRouteImport } from './routes/admin.assemblies.import'
 import { Route as AdminCompaniesIndexRouteImport } from './routes/admin.companies.index'
 import { Route as AdminCompaniesIdRouteImport } from './routes/admin.companies.$id'
@@ -142,10 +139,7 @@ import { Route as CbAdminBrandingRouteImport } from './routes/cb.admin.branding'
 import { Route as CbAdminPricingRouteImport } from './routes/cb.admin.pricing'
 import { Route as CbAdminSeatsRouteImport } from './routes/cb.admin.seats'
 import { Route as CbAdminTeamRouteImport } from './routes/cb.admin.team'
-import { Route as CbAdminTrainingRouteImport } from './routes/cb.admin.training'
 import { Route as CbLeadIdRouteImport } from './routes/cb.lead.$id'
-import { Route as CbTrainingIndexRouteImport } from './routes/cb.training.index'
-import { Route as CbTrainingSplatRouteImport } from './routes/cb.training.$'
 import { Route as AppJobsIdIndexRouteImport } from './routes/_app.jobs.$id.index'
 import { Route as AppJobsIdContractRouteImport } from './routes/_app.jobs.$id.contract'
 import { Route as AppJobsIdDocumentsRouteImport } from './routes/_app.jobs.$id.documents'
@@ -156,8 +150,6 @@ import { Route as AppJobsIdOrderFormRouteImport } from './routes/_app.jobs.$id.o
 import { Route as AppJobsIdPermitsRouteImport } from './routes/_app.jobs.$id.permits'
 import { Route as AppJobsIdPhotosRouteImport } from './routes/_app.jobs.$id.photos'
 import { Route as AppJobsIdReportRouteImport } from './routes/_app.jobs.$id.report'
-import { Route as AppTrainingCourseIdRouteImport } from './routes/_app.training.course.$id'
-import { Route as AppTrainingLessonIdRouteImport } from './routes/_app.training.lesson.$id'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as CbJobIdContractRouteImport } from './routes/cb.job.$id.contract'
 import { Route as CbJobIdCoverRouteImport } from './routes/cb.job.$id.cover'
@@ -211,11 +203,6 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const GalleryRoute = GalleryRouteImport.update({
   id: '/gallery',
   path: '/gallery',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GcnAppRoute = GcnAppRouteImport.update({
-  id: '/gcn-app',
-  path: '/gcn-app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -321,6 +308,11 @@ const AppSurvivalGuideRoute = AppSurvivalGuideRouteImport.update({
 const AppTeamRoute = AppTeamRouteImport.update({
   id: '/team',
   path: '/team',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTrainerRoute = AppTrainerRouteImport.update({
+  id: '/trainer',
+  path: '/trainer',
   getParentRoute: () => AppRoute,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -497,6 +489,11 @@ const ApiSolarRoofExtractRoute = ApiSolarRoofExtractRouteImport.update({
 const ApiTrainFromPdfRoute = ApiTrainFromPdfRouteImport.update({
   id: '/api/train-from-pdf',
   path: '/api/train-from-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrainingChatRoute = ApiTrainingChatRouteImport.update({
+  id: '/api/training-chat',
+  path: '/api/training-chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookKindRoute = BookKindRouteImport.update({
@@ -766,26 +763,6 @@ const AppTeamRequestsRoute = AppTeamRequestsRouteImport.update({
   path: '/requests',
   getParentRoute: () => AppTeamRoute,
 } as any)
-const AppTrainingIndexRoute = AppTrainingIndexRouteImport.update({
-  id: '/training/',
-  path: '/training/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppTrainingLiveRoute = AppTrainingLiveRouteImport.update({
-  id: '/training/live',
-  path: '/training/live',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppTrainingManageRoute = AppTrainingManageRouteImport.update({
-  id: '/training/manage',
-  path: '/training/manage',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppTrainingScoreboardRoute = AppTrainingScoreboardRouteImport.update({
-  id: '/training/scoreboard',
-  path: '/training/scoreboard',
-  getParentRoute: () => AppRoute,
-} as any)
 const AdminAssembliesImportRoute = AdminAssembliesImportRouteImport.update({
   id: '/assemblies/import',
   path: '/assemblies/import',
@@ -841,24 +818,9 @@ const CbAdminTeamRoute = CbAdminTeamRouteImport.update({
   path: '/team',
   getParentRoute: () => CbAdminRoute,
 } as any)
-const CbAdminTrainingRoute = CbAdminTrainingRouteImport.update({
-  id: '/training',
-  path: '/training',
-  getParentRoute: () => CbAdminRoute,
-} as any)
 const CbLeadIdRoute = CbLeadIdRouteImport.update({
   id: '/cb/lead/$id',
   path: '/cb/lead/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbTrainingIndexRoute = CbTrainingIndexRouteImport.update({
-  id: '/cb/training/',
-  path: '/cb/training/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CbTrainingSplatRoute = CbTrainingSplatRouteImport.update({
-  id: '/cb/training/$',
-  path: '/cb/training/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppJobsIdIndexRoute = AppJobsIdIndexRouteImport.update({
@@ -910,16 +872,6 @@ const AppJobsIdReportRoute = AppJobsIdReportRouteImport.update({
   id: '/report',
   path: '/report',
   getParentRoute: () => AppJobsIdRoute,
-} as any)
-const AppTrainingCourseIdRoute = AppTrainingCourseIdRouteImport.update({
-  id: '/training/course/$id',
-  path: '/training/course/$id',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppTrainingLessonIdRoute = AppTrainingLessonIdRouteImport.update({
-  id: '/training/lesson/$id',
-  path: '/training/lesson/$id',
-  getParentRoute: () => AppRoute,
 } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
@@ -1007,7 +959,6 @@ export interface FileRoutesByFullPath {
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
-  '/gcn-app': typeof GcnAppRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
@@ -1028,6 +979,7 @@ export interface FileRoutesByFullPath {
   '/storm-intelligence': typeof AppStormIntelligenceRoute
   '/survival-guide': typeof AppSurvivalGuideRoute
   '/team': typeof AppTeamRouteWithChildren
+  '/trainer': typeof AppTrainerRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
@@ -1062,6 +1014,7 @@ export interface FileRoutesByFullPath {
   '/api/rk-ai': typeof ApiRkAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
+  '/api/training-chat': typeof ApiTrainingChatRoute
   '/book/$kind': typeof BookKindRoute
   '/c/$slug': typeof CSlugRoute
   '/cb/accept': typeof CbAcceptRoute
@@ -1109,9 +1062,6 @@ export interface FileRoutesByFullPath {
   '/roofking/$': typeof AppRoofkingSplatRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/team/requests': typeof AppTeamRequestsRoute
-  '/training/live': typeof AppTrainingLiveRoute
-  '/training/manage': typeof AppTrainingManageRoute
-  '/training/scoreboard': typeof AppTrainingScoreboardRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
@@ -1121,9 +1071,7 @@ export interface FileRoutesByFullPath {
   '/cb/admin/pricing': typeof CbAdminPricingRoute
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
-  '/cb/admin/training': typeof CbAdminTrainingRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
-  '/cb/training/$': typeof CbTrainingSplatRoute
   '/commercial/': typeof AppCommercialIndexRoute
   '/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/invoices/': typeof AppInvoicesIndexRoute
@@ -1131,10 +1079,8 @@ export interface FileRoutesByFullPath {
   '/leads/': typeof AppLeadsIndexRoute
   '/roofking/': typeof AppRoofkingIndexRoute
   '/team/': typeof AppTeamIndexRoute
-  '/training/': typeof AppTrainingIndexRoute
   '/admin/companies/': typeof AdminCompaniesIndexRoute
   '/cb/admin/': typeof CbAdminIndexRoute
-  '/cb/training/': typeof CbTrainingIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -1144,8 +1090,6 @@ export interface FileRoutesByFullPath {
   '/jobs/$id/permits': typeof AppJobsIdPermitsRoute
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
-  '/training/course/$id': typeof AppTrainingCourseIdRoute
-  '/training/lesson/$id': typeof AppTrainingLessonIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/cb/job/$id/contract': typeof CbJobIdContractRoute
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
@@ -1170,7 +1114,6 @@ export interface FileRoutesByTo {
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
-  '/gcn-app': typeof GcnAppRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
@@ -1187,6 +1130,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/storm-intelligence': typeof AppStormIntelligenceRoute
   '/survival-guide': typeof AppSurvivalGuideRoute
+  '/trainer': typeof AppTrainerRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
@@ -1220,6 +1164,7 @@ export interface FileRoutesByTo {
   '/api/rk-ai': typeof ApiRkAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
+  '/api/training-chat': typeof ApiTrainingChatRoute
   '/book/$kind': typeof BookKindRoute
   '/c/$slug': typeof CSlugRoute
   '/cb/accept': typeof CbAcceptRoute
@@ -1266,9 +1211,6 @@ export interface FileRoutesByTo {
   '/roofking/$': typeof AppRoofkingSplatRoute
   '/team/invites': typeof AppTeamInvitesRoute
   '/team/requests': typeof AppTeamRequestsRoute
-  '/training/live': typeof AppTrainingLiveRoute
-  '/training/manage': typeof AppTrainingManageRoute
-  '/training/scoreboard': typeof AppTrainingScoreboardRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
@@ -1278,9 +1220,7 @@ export interface FileRoutesByTo {
   '/cb/admin/pricing': typeof CbAdminPricingRoute
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
-  '/cb/admin/training': typeof CbAdminTrainingRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
-  '/cb/training/$': typeof CbTrainingSplatRoute
   '/commercial': typeof AppCommercialIndexRoute
   '/door-to-door': typeof AppDoorToDoorIndexRoute
   '/invoices': typeof AppInvoicesIndexRoute
@@ -1288,10 +1228,8 @@ export interface FileRoutesByTo {
   '/leads': typeof AppLeadsIndexRoute
   '/roofking': typeof AppRoofkingIndexRoute
   '/team': typeof AppTeamIndexRoute
-  '/training': typeof AppTrainingIndexRoute
   '/admin/companies': typeof AdminCompaniesIndexRoute
   '/cb/admin': typeof CbAdminIndexRoute
-  '/cb/training': typeof CbTrainingIndexRoute
   '/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -1301,8 +1239,6 @@ export interface FileRoutesByTo {
   '/jobs/$id/permits': typeof AppJobsIdPermitsRoute
   '/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/jobs/$id/report': typeof AppJobsIdReportRoute
-  '/training/course/$id': typeof AppTrainingCourseIdRoute
-  '/training/lesson/$id': typeof AppTrainingLessonIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/cb/job/$id/contract': typeof CbJobIdContractRoute
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
@@ -1330,7 +1266,6 @@ export interface FileRoutesById {
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
-  '/gcn-app': typeof GcnAppRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
@@ -1351,6 +1286,7 @@ export interface FileRoutesById {
   '/_app/storm-intelligence': typeof AppStormIntelligenceRoute
   '/_app/survival-guide': typeof AppSurvivalGuideRoute
   '/_app/team': typeof AppTeamRouteWithChildren
+  '/_app/trainer': typeof AppTrainerRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/announcements': typeof AdminAnnouncementsRoute
   '/admin/audit': typeof AdminAuditRoute
@@ -1385,6 +1321,7 @@ export interface FileRoutesById {
   '/api/rk-ai': typeof ApiRkAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
+  '/api/training-chat': typeof ApiTrainingChatRoute
   '/book/$kind': typeof BookKindRoute
   '/c/$slug': typeof CSlugRoute
   '/cb/accept': typeof CbAcceptRoute
@@ -1433,9 +1370,6 @@ export interface FileRoutesById {
   '/_app/roofking/$': typeof AppRoofkingSplatRoute
   '/_app/team/invites': typeof AppTeamInvitesRoute
   '/_app/team/requests': typeof AppTeamRequestsRoute
-  '/_app/training/live': typeof AppTrainingLiveRoute
-  '/_app/training/manage': typeof AppTrainingManageRoute
-  '/_app/training/scoreboard': typeof AppTrainingScoreboardRoute
   '/admin/assemblies/import': typeof AdminAssembliesImportRoute
   '/admin/companies/$id': typeof AdminCompaniesIdRoute
   '/admin/price-books/new': typeof AdminPriceBooksNewRoute
@@ -1445,9 +1379,7 @@ export interface FileRoutesById {
   '/cb/admin/pricing': typeof CbAdminPricingRoute
   '/cb/admin/seats': typeof CbAdminSeatsRoute
   '/cb/admin/team': typeof CbAdminTeamRoute
-  '/cb/admin/training': typeof CbAdminTrainingRoute
   '/cb/lead/$id': typeof CbLeadIdRoute
-  '/cb/training/$': typeof CbTrainingSplatRoute
   '/_app/commercial/': typeof AppCommercialIndexRoute
   '/_app/door-to-door/': typeof AppDoorToDoorIndexRoute
   '/_app/invoices/': typeof AppInvoicesIndexRoute
@@ -1455,10 +1387,8 @@ export interface FileRoutesById {
   '/_app/leads/': typeof AppLeadsIndexRoute
   '/_app/roofking/': typeof AppRoofkingIndexRoute
   '/_app/team/': typeof AppTeamIndexRoute
-  '/_app/training/': typeof AppTrainingIndexRoute
   '/admin/companies/': typeof AdminCompaniesIndexRoute
   '/cb/admin/': typeof CbAdminIndexRoute
-  '/cb/training/': typeof CbTrainingIndexRoute
   '/_app/jobs/$id/contract': typeof AppJobsIdContractRoute
   '/_app/jobs/$id/documents': typeof AppJobsIdDocumentsRoute
   '/_app/jobs/$id/estimate': typeof AppJobsIdEstimateRoute
@@ -1468,8 +1398,6 @@ export interface FileRoutesById {
   '/_app/jobs/$id/permits': typeof AppJobsIdPermitsRoute
   '/_app/jobs/$id/photos': typeof AppJobsIdPhotosRoute
   '/_app/jobs/$id/report': typeof AppJobsIdReportRoute
-  '/_app/training/course/$id': typeof AppTrainingCourseIdRoute
-  '/_app/training/lesson/$id': typeof AppTrainingLessonIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/cb/job/$id/contract': typeof CbJobIdContractRoute
   '/cb/job/$id/cover': typeof CbJobIdCoverRoute
@@ -1498,7 +1426,6 @@ export interface FileRouteTypes {
     | '/faq'
     | '/forgot-password'
     | '/gallery'
-    | '/gcn-app'
     | '/login'
     | '/onboarding'
     | '/pricing'
@@ -1519,6 +1446,7 @@ export interface FileRouteTypes {
     | '/storm-intelligence'
     | '/survival-guide'
     | '/team'
+    | '/trainer'
     | '/admin/analytics'
     | '/admin/announcements'
     | '/admin/audit'
@@ -1553,6 +1481,7 @@ export interface FileRouteTypes {
     | '/api/rk-ai'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
+    | '/api/training-chat'
     | '/book/$kind'
     | '/c/$slug'
     | '/cb/accept'
@@ -1600,9 +1529,6 @@ export interface FileRouteTypes {
     | '/roofking/$'
     | '/team/invites'
     | '/team/requests'
-    | '/training/live'
-    | '/training/manage'
-    | '/training/scoreboard'
     | '/admin/assemblies/import'
     | '/admin/companies/$id'
     | '/admin/price-books/new'
@@ -1612,9 +1538,7 @@ export interface FileRouteTypes {
     | '/cb/admin/pricing'
     | '/cb/admin/seats'
     | '/cb/admin/team'
-    | '/cb/admin/training'
     | '/cb/lead/$id'
-    | '/cb/training/$'
     | '/commercial/'
     | '/door-to-door/'
     | '/invoices/'
@@ -1622,10 +1546,8 @@ export interface FileRouteTypes {
     | '/leads/'
     | '/roofking/'
     | '/team/'
-    | '/training/'
     | '/admin/companies/'
     | '/cb/admin/'
-    | '/cb/training/'
     | '/jobs/$id/contract'
     | '/jobs/$id/documents'
     | '/jobs/$id/estimate'
@@ -1635,8 +1557,6 @@ export interface FileRouteTypes {
     | '/jobs/$id/permits'
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
-    | '/training/course/$id'
-    | '/training/lesson/$id'
     | '/api/public/payments/webhook'
     | '/cb/job/$id/contract'
     | '/cb/job/$id/cover'
@@ -1661,7 +1581,6 @@ export interface FileRouteTypes {
     | '/faq'
     | '/forgot-password'
     | '/gallery'
-    | '/gcn-app'
     | '/login'
     | '/onboarding'
     | '/pricing'
@@ -1678,6 +1597,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/storm-intelligence'
     | '/survival-guide'
+    | '/trainer'
     | '/admin/analytics'
     | '/admin/announcements'
     | '/admin/audit'
@@ -1711,6 +1631,7 @@ export interface FileRouteTypes {
     | '/api/rk-ai'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
+    | '/api/training-chat'
     | '/book/$kind'
     | '/c/$slug'
     | '/cb/accept'
@@ -1757,9 +1678,6 @@ export interface FileRouteTypes {
     | '/roofking/$'
     | '/team/invites'
     | '/team/requests'
-    | '/training/live'
-    | '/training/manage'
-    | '/training/scoreboard'
     | '/admin/assemblies/import'
     | '/admin/companies/$id'
     | '/admin/price-books/new'
@@ -1769,9 +1687,7 @@ export interface FileRouteTypes {
     | '/cb/admin/pricing'
     | '/cb/admin/seats'
     | '/cb/admin/team'
-    | '/cb/admin/training'
     | '/cb/lead/$id'
-    | '/cb/training/$'
     | '/commercial'
     | '/door-to-door'
     | '/invoices'
@@ -1779,10 +1695,8 @@ export interface FileRouteTypes {
     | '/leads'
     | '/roofking'
     | '/team'
-    | '/training'
     | '/admin/companies'
     | '/cb/admin'
-    | '/cb/training'
     | '/jobs/$id/contract'
     | '/jobs/$id/documents'
     | '/jobs/$id/estimate'
@@ -1792,8 +1706,6 @@ export interface FileRouteTypes {
     | '/jobs/$id/permits'
     | '/jobs/$id/photos'
     | '/jobs/$id/report'
-    | '/training/course/$id'
-    | '/training/lesson/$id'
     | '/api/public/payments/webhook'
     | '/cb/job/$id/contract'
     | '/cb/job/$id/cover'
@@ -1820,7 +1732,6 @@ export interface FileRouteTypes {
     | '/faq'
     | '/forgot-password'
     | '/gallery'
-    | '/gcn-app'
     | '/login'
     | '/onboarding'
     | '/pricing'
@@ -1841,6 +1752,7 @@ export interface FileRouteTypes {
     | '/_app/storm-intelligence'
     | '/_app/survival-guide'
     | '/_app/team'
+    | '/_app/trainer'
     | '/admin/analytics'
     | '/admin/announcements'
     | '/admin/audit'
@@ -1875,6 +1787,7 @@ export interface FileRouteTypes {
     | '/api/rk-ai'
     | '/api/solar-roof-extract'
     | '/api/train-from-pdf'
+    | '/api/training-chat'
     | '/book/$kind'
     | '/c/$slug'
     | '/cb/accept'
@@ -1923,9 +1836,6 @@ export interface FileRouteTypes {
     | '/_app/roofking/$'
     | '/_app/team/invites'
     | '/_app/team/requests'
-    | '/_app/training/live'
-    | '/_app/training/manage'
-    | '/_app/training/scoreboard'
     | '/admin/assemblies/import'
     | '/admin/companies/$id'
     | '/admin/price-books/new'
@@ -1935,9 +1845,7 @@ export interface FileRouteTypes {
     | '/cb/admin/pricing'
     | '/cb/admin/seats'
     | '/cb/admin/team'
-    | '/cb/admin/training'
     | '/cb/lead/$id'
-    | '/cb/training/$'
     | '/_app/commercial/'
     | '/_app/door-to-door/'
     | '/_app/invoices/'
@@ -1945,10 +1853,8 @@ export interface FileRouteTypes {
     | '/_app/leads/'
     | '/_app/roofking/'
     | '/_app/team/'
-    | '/_app/training/'
     | '/admin/companies/'
     | '/cb/admin/'
-    | '/cb/training/'
     | '/_app/jobs/$id/contract'
     | '/_app/jobs/$id/documents'
     | '/_app/jobs/$id/estimate'
@@ -1958,8 +1864,6 @@ export interface FileRouteTypes {
     | '/_app/jobs/$id/permits'
     | '/_app/jobs/$id/photos'
     | '/_app/jobs/$id/report'
-    | '/_app/training/course/$id'
-    | '/_app/training/lesson/$id'
     | '/api/public/payments/webhook'
     | '/cb/job/$id/contract'
     | '/cb/job/$id/cover'
@@ -1987,7 +1891,6 @@ export interface RootRouteChildren {
   FaqRoute: typeof FaqRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   GalleryRoute: typeof GalleryRoute
-  GcnAppRoute: typeof GcnAppRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   PricingRoute: typeof PricingRoute
@@ -2012,6 +1915,7 @@ export interface RootRouteChildren {
   ApiRkAiRoute: typeof ApiRkAiRoute
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
+  ApiTrainingChatRoute: typeof ApiTrainingChatRoute
   BookKindRoute: typeof BookKindRoute
   CSlugRoute: typeof CSlugRoute
   CbAcceptRoute: typeof CbAcceptRoute
@@ -2031,8 +1935,6 @@ export interface RootRouteChildren {
   ApiPublicCbShareRoute: typeof ApiPublicCbShareRoute
   ApiPublicSignRoute: typeof ApiPublicSignRoute
   CbLeadIdRoute: typeof CbLeadIdRoute
-  CbTrainingSplatRoute: typeof CbTrainingSplatRoute
-  CbTrainingIndexRoute: typeof CbTrainingIndexRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   CbJobIdContractRoute: typeof CbJobIdContractRoute
   CbJobIdCoverRoute: typeof CbJobIdCoverRoute
@@ -2106,13 +2008,6 @@ declare module '@tanstack/react-router' {
       path: '/gallery'
       fullPath: '/gallery'
       preLoaderRoute: typeof GalleryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/gcn-app': {
-      id: '/gcn-app'
-      path: '/gcn-app'
-      fullPath: '/gcn-app'
-      preLoaderRoute: typeof GcnAppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -2260,6 +2155,13 @@ declare module '@tanstack/react-router' {
       path: '/team'
       fullPath: '/team'
       preLoaderRoute: typeof AppTeamRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/trainer': {
+      id: '/_app/trainer'
+      path: '/trainer'
+      fullPath: '/trainer'
+      preLoaderRoute: typeof AppTrainerRouteImport
       parentRoute: typeof AppRoute
     }
     '/admin/': {
@@ -2505,6 +2407,13 @@ declare module '@tanstack/react-router' {
       path: '/api/train-from-pdf'
       fullPath: '/api/train-from-pdf'
       preLoaderRoute: typeof ApiTrainFromPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/training-chat': {
+      id: '/api/training-chat'
+      path: '/api/training-chat'
+      fullPath: '/api/training-chat'
+      preLoaderRoute: typeof ApiTrainingChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/book/$kind': {
@@ -2878,34 +2787,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTeamRequestsRouteImport
       parentRoute: typeof AppTeamRoute
     }
-    '/_app/training/': {
-      id: '/_app/training/'
-      path: '/training'
-      fullPath: '/training/'
-      preLoaderRoute: typeof AppTrainingIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/training/live': {
-      id: '/_app/training/live'
-      path: '/training/live'
-      fullPath: '/training/live'
-      preLoaderRoute: typeof AppTrainingLiveRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/training/manage': {
-      id: '/_app/training/manage'
-      path: '/training/manage'
-      fullPath: '/training/manage'
-      preLoaderRoute: typeof AppTrainingManageRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/training/scoreboard': {
-      id: '/_app/training/scoreboard'
-      path: '/training/scoreboard'
-      fullPath: '/training/scoreboard'
-      preLoaderRoute: typeof AppTrainingScoreboardRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/admin/assemblies/import': {
       id: '/admin/assemblies/import'
       path: '/assemblies/import'
@@ -2983,32 +2864,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CbAdminTeamRouteImport
       parentRoute: typeof CbAdminRoute
     }
-    '/cb/admin/training': {
-      id: '/cb/admin/training'
-      path: '/training'
-      fullPath: '/cb/admin/training'
-      preLoaderRoute: typeof CbAdminTrainingRouteImport
-      parentRoute: typeof CbAdminRoute
-    }
     '/cb/lead/$id': {
       id: '/cb/lead/$id'
       path: '/cb/lead/$id'
       fullPath: '/cb/lead/$id'
       preLoaderRoute: typeof CbLeadIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/training/': {
-      id: '/cb/training/'
-      path: '/cb/training'
-      fullPath: '/cb/training/'
-      preLoaderRoute: typeof CbTrainingIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cb/training/$': {
-      id: '/cb/training/$'
-      path: '/cb/training/$'
-      fullPath: '/cb/training/$'
-      preLoaderRoute: typeof CbTrainingSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/jobs/$id/': {
@@ -3080,20 +2940,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/jobs/$id/report'
       preLoaderRoute: typeof AppJobsIdReportRouteImport
       parentRoute: typeof AppJobsIdRoute
-    }
-    '/_app/training/course/$id': {
-      id: '/_app/training/course/$id'
-      path: '/training/course/$id'
-      fullPath: '/training/course/$id'
-      preLoaderRoute: typeof AppTrainingCourseIdRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/training/lesson/$id': {
-      id: '/_app/training/lesson/$id'
-      path: '/training/lesson/$id'
-      fullPath: '/training/lesson/$id'
-      preLoaderRoute: typeof AppTrainingLessonIdRouteImport
-      parentRoute: typeof AppRoute
     }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
@@ -3363,21 +3209,16 @@ interface AppRouteChildren {
   AppStormIntelligenceRoute: typeof AppStormIntelligenceRoute
   AppSurvivalGuideRoute: typeof AppSurvivalGuideRoute
   AppTeamRoute: typeof AppTeamRouteWithChildren
+  AppTrainerRoute: typeof AppTrainerRoute
   AppIndexRoute: typeof AppIndexRoute
   AppInvoicesIdRoute: typeof AppInvoicesIdRoute
   AppInvoicesNewRoute: typeof AppInvoicesNewRoute
   AppJobsIdRoute: typeof AppJobsIdRouteWithChildren
   AppJobsNewRoute: typeof AppJobsNewRoute
   AppRoofkingSplatRoute: typeof AppRoofkingSplatRoute
-  AppTrainingLiveRoute: typeof AppTrainingLiveRoute
-  AppTrainingManageRoute: typeof AppTrainingManageRoute
-  AppTrainingScoreboardRoute: typeof AppTrainingScoreboardRoute
   AppInvoicesIndexRoute: typeof AppInvoicesIndexRoute
   AppJobsIndexRoute: typeof AppJobsIndexRoute
   AppRoofkingIndexRoute: typeof AppRoofkingIndexRoute
-  AppTrainingIndexRoute: typeof AppTrainingIndexRoute
-  AppTrainingCourseIdRoute: typeof AppTrainingCourseIdRoute
-  AppTrainingLessonIdRoute: typeof AppTrainingLessonIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -3393,21 +3234,16 @@ const AppRouteChildren: AppRouteChildren = {
   AppStormIntelligenceRoute: AppStormIntelligenceRoute,
   AppSurvivalGuideRoute: AppSurvivalGuideRoute,
   AppTeamRoute: AppTeamRouteWithChildren,
+  AppTrainerRoute: AppTrainerRoute,
   AppIndexRoute: AppIndexRoute,
   AppInvoicesIdRoute: AppInvoicesIdRoute,
   AppInvoicesNewRoute: AppInvoicesNewRoute,
   AppJobsIdRoute: AppJobsIdRouteWithChildren,
   AppJobsNewRoute: AppJobsNewRoute,
   AppRoofkingSplatRoute: AppRoofkingSplatRoute,
-  AppTrainingLiveRoute: AppTrainingLiveRoute,
-  AppTrainingManageRoute: AppTrainingManageRoute,
-  AppTrainingScoreboardRoute: AppTrainingScoreboardRoute,
   AppInvoicesIndexRoute: AppInvoicesIndexRoute,
   AppJobsIndexRoute: AppJobsIndexRoute,
   AppRoofkingIndexRoute: AppRoofkingIndexRoute,
-  AppTrainingIndexRoute: AppTrainingIndexRoute,
-  AppTrainingCourseIdRoute: AppTrainingCourseIdRoute,
-  AppTrainingLessonIdRoute: AppTrainingLessonIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -3491,7 +3327,6 @@ interface CbAdminRouteChildren {
   CbAdminPricingRoute: typeof CbAdminPricingRoute
   CbAdminSeatsRoute: typeof CbAdminSeatsRoute
   CbAdminTeamRoute: typeof CbAdminTeamRoute
-  CbAdminTrainingRoute: typeof CbAdminTrainingRoute
   CbAdminIndexRoute: typeof CbAdminIndexRoute
 }
 
@@ -3500,7 +3335,6 @@ const CbAdminRouteChildren: CbAdminRouteChildren = {
   CbAdminPricingRoute: CbAdminPricingRoute,
   CbAdminSeatsRoute: CbAdminSeatsRoute,
   CbAdminTeamRoute: CbAdminTeamRoute,
-  CbAdminTrainingRoute: CbAdminTrainingRoute,
   CbAdminIndexRoute: CbAdminIndexRoute,
 }
 
@@ -3516,7 +3350,6 @@ const rootRouteChildren: RootRouteChildren = {
   FaqRoute: FaqRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   GalleryRoute: GalleryRoute,
-  GcnAppRoute: GcnAppRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   PricingRoute: PricingRoute,
@@ -3541,6 +3374,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiRkAiRoute: ApiRkAiRoute,
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
+  ApiTrainingChatRoute: ApiTrainingChatRoute,
   BookKindRoute: BookKindRoute,
   CSlugRoute: CSlugRoute,
   CbAcceptRoute: CbAcceptRoute,
@@ -3560,8 +3394,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCbShareRoute: ApiPublicCbShareRoute,
   ApiPublicSignRoute: ApiPublicSignRoute,
   CbLeadIdRoute: CbLeadIdRoute,
-  CbTrainingSplatRoute: CbTrainingSplatRoute,
-  CbTrainingIndexRoute: CbTrainingIndexRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   CbJobIdContractRoute: CbJobIdContractRoute,
   CbJobIdCoverRoute: CbJobIdCoverRoute,
