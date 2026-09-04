@@ -63,6 +63,40 @@ export async function findApplicationTemplate(dept: {
   );
 }
 
+/**
+ * Set a dropdown or option list, if that is what this field turns out to be.
+ *
+ * Returns false when the field is not a list, so the caller falls through to
+ * the ordinary text path. A value the list does not offer is also false rather
+ * than an error: "Florida" where the list wants "FL" is a mapping problem to
+ * see in the console, not a reason to fail the form.
+ */
+function selectOption(
+  form: ReturnType<PDFDocument["getForm"]>,
+  pdfField: string,
+  value: string,
+): boolean {
+  for (const get of ["getDropdown", "getOptionList"] as const) {
+    let field: { getOptions(): string[]; select(v: string): void } | null = null;
+    try {
+      field = form[get](pdfField);
+    } catch {
+      continue;
+    }
+    const options = field.getOptions();
+    const match =
+      options.find((o) => o === value) ??
+      options.find((o) => o.toLowerCase() === value.toLowerCase());
+    if (!match) {
+      console.warn(`permit form: "${value}" is not an option for "${pdfField}"`);
+      return true; /* It is a list; there is nothing the text path could do. */
+    }
+    field.select(match);
+    return true;
+  }
+  return false;
+}
+
 export async function fillApplication(ctx: PermitContext): Promise<FilledForm> {
   if (!ctx.department) {
     throw new Error("Pick the building department for this job first.");
@@ -108,6 +142,13 @@ export async function fillApplication(ctx: PermitContext): Promise<FilledForm> {
       continue;
     }
     try {
+      /* Some answers are a list, not a box. Miami-Dade's state fields are
+         option lists of the fifty states, and the old filler asked for a text
+         field, got an error, and logged "no text field State: Contractor
+         Information" for a field that was sitting right there. Try the list
+         first when the value looks like a list entry. */
+      if (selectOption(form, pdfField, value)) continue;
+
       const spill = map.overflow?.[pdfField];
       if (spill && value.length > spill.chars) {
         /* Break on a space so a word is not cut in half on the printed form. */
