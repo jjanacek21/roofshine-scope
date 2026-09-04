@@ -90,7 +90,7 @@ function TrainingHome() {
   const list = courses.data ?? [];
 
   return (
-    <CbSurface>
+    <CbSurface skin="app">
       <div>
         <div className="mx-auto w-full max-w-[840px]">
           <CbReveal>

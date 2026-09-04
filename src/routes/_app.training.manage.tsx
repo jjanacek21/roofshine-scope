@@ -50,7 +50,7 @@ function AdminTraining() {
   const { isAdmin } = useTrainingScope();
 
   return (
-    <CbSurface>
+    <CbSurface skin="app">
       <div className="mx-auto w-full max-w-[840px]">
         <Link
           to="/training"

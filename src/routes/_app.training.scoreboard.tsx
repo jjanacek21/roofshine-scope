@@ -33,7 +33,7 @@ function ScoreboardPage() {
   const { rows, loading } = useScoreboard(period);
 
   return (
-    <CbSurface>
+    <CbSurface skin="app">
       <div>
         <div className="mx-auto w-full max-w-[840px]">
           <CbReveal>

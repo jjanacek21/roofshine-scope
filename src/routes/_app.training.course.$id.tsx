@@ -45,7 +45,7 @@ function CoursePage() {
   const nextLesson = lessons.find((l) => !doneIds.has(l.id)) ?? lessons[0] ?? null;
 
   return (
-    <CbSurface>
+    <CbSurface skin="app">
       <div>
         <div className="mx-auto w-full max-w-[840px]">
           <CbReveal>
