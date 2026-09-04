@@ -495,6 +495,51 @@ export type Database = {
         }
         Relationships: []
       }
+      building_department_rules: {
+        Row: {
+          city: string | null
+          county: string
+          created_at: string
+          document_required: string | null
+          id: string
+          is_active: boolean
+          permit_types: string[]
+          priority: number
+          rule_action: string | null
+          rule_description: string
+          rule_type: string
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          county: string
+          created_at?: string
+          document_required?: string | null
+          id?: string
+          is_active?: boolean
+          permit_types?: string[]
+          priority?: number
+          rule_action?: string | null
+          rule_description: string
+          rule_type?: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          county?: string
+          created_at?: string
+          document_required?: string | null
+          id?: string
+          is_active?: boolean
+          permit_types?: string[]
+          priority?: number
+          rule_action?: string | null
+          rule_description?: string
+          rule_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cb_assemblies: {
         Row: {
           created_at: string

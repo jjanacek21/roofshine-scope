@@ -6,6 +6,8 @@ export const REF_VIEWS: Record<string, string> = {
     <div class="wrap">
       <div class="hero-grid">
         <div class="stack g28">
+          <div class="logo-wrap rv"><img class="logo-anim" id="logoAnim"
+            alt="Claim Buddy — powered by Global Contractor Network"></div>
           <span class="micro rv">Insurance restoration · roof, exterior &amp; interior</span>
           <h1 id="heroH">Measure the roof before you knock on the door.</h1>
           <p class="lead rv">Type an address and the roof traces itself. Then walk it — roof, all four
@@ -601,10 +603,10 @@ export type RefViewKey = keyof typeof REF_VIEWS;
 export const REF_HEADER = `
 <header class="nav" id="hdr">
   <div class="wrap nav-in">
-    <button class="nav-logo" data-v="home" aria-label="Global Contractor Network — home">
-      <img class="logo-anim" id="logoAnim"
-        alt="Claim Buddy — powered by Global Contractor Network">
-    </button>
+    <!-- Empty slot: hidden by default. On the platform surface (globalcontractor.app)
+         the runtime moves the hero logo here so it bleeds from the header into the
+         hero. On gcn.claims the header stays logo-free and the logo stays in the hero. -->
+    <button class="nav-logo" data-v="home" aria-label="Global Contractor Network — home"></button>
     <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false"><i></i></button>
     <nav class="links" id="nav">
       <button data-v="home" aria-current="page">Home</button>
