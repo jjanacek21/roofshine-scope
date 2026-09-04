@@ -596,6 +596,7 @@ export type Database = {
       cb_assignments: {
         Row: {
           audience: string
+          company_id: string | null
           course_id: string
           created_at: string
           created_by: string | null
@@ -608,6 +609,7 @@ export type Database = {
         }
         Insert: {
           audience?: string
+          company_id?: string | null
           course_id: string
           created_at?: string
           created_by?: string | null
@@ -620,6 +622,7 @@ export type Database = {
         }
         Update: {
           audience?: string
+          company_id?: string | null
           course_id?: string
           created_at?: string
           created_by?: string | null
@@ -631,6 +634,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_assignments_course_id_fkey"
             columns: ["course_id"]
@@ -951,6 +961,7 @@ export type Database = {
         Row: {
           archived_at: string | null
           category: string | null
+          company_id: string | null
           cover_url: string | null
           created_at: string
           created_by: string | null
@@ -967,6 +978,7 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           category?: string | null
+          company_id?: string | null
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -983,6 +995,7 @@ export type Database = {
         Update: {
           archived_at?: string | null
           category?: string | null
+          company_id?: string | null
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -997,6 +1010,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_courses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_courses_prerequisite_course_id_fkey"
             columns: ["prerequisite_course_id"]
@@ -1403,6 +1423,7 @@ export type Database = {
       cb_lessons: {
         Row: {
           body: string | null
+          company_id: string | null
           course_id: string
           created_at: string
           document_path: string | null
@@ -1422,6 +1443,7 @@ export type Database = {
         }
         Insert: {
           body?: string | null
+          company_id?: string | null
           course_id: string
           created_at?: string
           document_path?: string | null
@@ -1441,6 +1463,7 @@ export type Database = {
         }
         Update: {
           body?: string | null
+          company_id?: string | null
           course_id?: string
           created_at?: string
           document_path?: string | null
@@ -1459,6 +1482,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_lessons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_lessons_course_id_fkey"
             columns: ["course_id"]
@@ -1484,6 +1514,7 @@ export type Database = {
       }
       cb_live_attendance: {
         Row: {
+          company_id: string | null
           created_at: string
           id: string
           minutes: number
@@ -1494,6 +1525,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           id?: string
           minutes?: number
@@ -1504,6 +1536,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           id?: string
           minutes?: number
@@ -1514,6 +1547,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_live_attendance_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_live_attendance_session_id_fkey"
             columns: ["session_id"]
@@ -1532,6 +1572,7 @@ export type Database = {
       }
       cb_live_sessions: {
         Row: {
+          company_id: string | null
           counts_toward_hours: boolean
           course_id: string | null
           created_at: string
@@ -1548,6 +1589,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          company_id?: string | null
           counts_toward_hours?: boolean
           course_id?: string | null
           created_at?: string
@@ -1564,6 +1606,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          company_id?: string | null
           counts_toward_hours?: boolean
           course_id?: string | null
           created_at?: string
@@ -1580,6 +1623,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_live_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_live_sessions_course_id_fkey"
             columns: ["course_id"]
@@ -1697,6 +1747,7 @@ export type Database = {
       }
       cb_modules: {
         Row: {
+          company_id: string | null
           course_id: string
           created_at: string
           id: string
@@ -1707,6 +1758,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          company_id?: string | null
           course_id: string
           created_at?: string
           id?: string
@@ -1717,6 +1769,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          company_id?: string | null
           course_id?: string
           created_at?: string
           id?: string
@@ -1727,6 +1780,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_modules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_modules_course_id_fkey"
             columns: ["course_id"]
@@ -1839,6 +1899,7 @@ export type Database = {
       cb_progress: {
         Row: {
           checkpoint_answers: Json
+          company_id: string | null
           completed_at: string | null
           course_id: string
           created_at: string
@@ -1854,6 +1915,7 @@ export type Database = {
         }
         Insert: {
           checkpoint_answers?: Json
+          company_id?: string | null
           completed_at?: string | null
           course_id: string
           created_at?: string
@@ -1869,6 +1931,7 @@ export type Database = {
         }
         Update: {
           checkpoint_answers?: Json
+          company_id?: string | null
           completed_at?: string | null
           course_id?: string
           created_at?: string
@@ -1883,6 +1946,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_progress_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_progress_course_id_fkey"
             columns: ["course_id"]
@@ -1909,6 +1979,7 @@ export type Database = {
       cb_quiz_attempts: {
         Row: {
           answers: Json
+          company_id: string | null
           created_at: string
           feedback: Json
           id: string
@@ -1923,6 +1994,7 @@ export type Database = {
         }
         Insert: {
           answers?: Json
+          company_id?: string | null
           created_at?: string
           feedback?: Json
           id?: string
@@ -1937,6 +2009,7 @@ export type Database = {
         }
         Update: {
           answers?: Json
+          company_id?: string | null
           created_at?: string
           feedback?: Json
           id?: string
@@ -1950,6 +2023,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_quiz_attempts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_quiz_attempts_quiz_id_fkey"
             columns: ["quiz_id"]
@@ -1968,6 +2048,7 @@ export type Database = {
       }
       cb_quiz_questions: {
         Row: {
+          company_id: string | null
           correct_index: number | null
           created_at: string
           id: string
@@ -1982,6 +2063,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          company_id?: string | null
           correct_index?: number | null
           created_at?: string
           id?: string
@@ -1996,6 +2078,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          company_id?: string | null
           correct_index?: number | null
           created_at?: string
           id?: string
@@ -2010,6 +2093,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_quiz_questions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_quiz_questions_quiz_id_fkey"
             columns: ["quiz_id"]
@@ -2028,6 +2118,7 @@ export type Database = {
       }
       cb_quizzes: {
         Row: {
+          company_id: string | null
           course_id: string | null
           created_at: string
           id: string
@@ -2040,6 +2131,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          company_id?: string | null
           course_id?: string | null
           created_at?: string
           id?: string
@@ -2052,6 +2144,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          company_id?: string | null
           course_id?: string | null
           created_at?: string
           id?: string
@@ -2064,6 +2157,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_quizzes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_quizzes_course_id_fkey"
             columns: ["course_id"]
@@ -2486,6 +2586,7 @@ export type Database = {
         Row: {
           awarded_at: string
           code: string
+          company_id: string | null
           id: string
           label: string
           user_id: string
@@ -2494,6 +2595,7 @@ export type Database = {
         Insert: {
           awarded_at?: string
           code: string
+          company_id?: string | null
           id?: string
           label: string
           user_id: string
@@ -2502,12 +2604,20 @@ export type Database = {
         Update: {
           awarded_at?: string
           code?: string
+          company_id?: string | null
           id?: string
           label?: string
           user_id?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_training_badges_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_training_badges_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -2519,6 +2629,7 @@ export type Database = {
       }
       cb_training_events: {
         Row: {
+          company_id: string | null
           course_id: string | null
           created_at: string
           id: string
@@ -2530,6 +2641,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          company_id?: string | null
           course_id?: string | null
           created_at?: string
           id?: string
@@ -2541,6 +2653,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          company_id?: string | null
           course_id?: string | null
           created_at?: string
           id?: string
@@ -2552,6 +2665,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_training_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_training_events_course_id_fkey"
             columns: ["course_id"]
@@ -2577,6 +2697,7 @@ export type Database = {
       }
       cb_training_points: {
         Row: {
+          company_id: string | null
           created_at: string
           id: string
           points: number
@@ -2586,6 +2707,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           id?: string
           points?: number
@@ -2595,6 +2717,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           id?: string
           points?: number
@@ -2604,6 +2727,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_training_points_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_training_points_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -2615,6 +2745,7 @@ export type Database = {
       }
       cb_training_rules: {
         Row: {
+          company_id: string | null
           created_at: string
           id: string
           period: string
@@ -2624,6 +2755,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           id?: string
           period?: string
@@ -2633,6 +2765,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           id?: string
           period?: string
@@ -2642,6 +2775,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cb_training_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cb_training_rules_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -2656,6 +2796,7 @@ export type Database = {
           at_seconds: number
           branch_lesson_id: string | null
           branch_seconds: number | null
+          company_id: string | null
           correct_index: number | null
           created_at: string
           explanation: string | null
@@ -2671,6 +2812,7 @@ export type Database = {
           at_seconds: number
           branch_lesson_id?: string | null
           branch_seconds?: number | null
+          company_id?: string | null
           correct_index?: number | null
           created_at?: string
           explanation?: string | null
@@ -2686,6 +2828,7 @@ export type Database = {
           at_seconds?: number
           branch_lesson_id?: string | null
           branch_seconds?: number | null
+          company_id?: string | null
           correct_index?: number | null
           created_at?: string
           explanation?: string | null
@@ -2703,6 +2846,13 @@ export type Database = {
             columns: ["branch_lesson_id"]
             isOneToOne: false
             referencedRelation: "cb_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cb_video_checkpoints_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -6504,6 +6654,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      permit_packet_structures: {
+        Row: {
+          city: string | null
+          conditional_documents: Json | null
+          county: string
+          created_at: string
+          document_structure: Json
+          id: string
+          is_active: boolean
+          is_hvhz: boolean
+          material_type: string | null
+          notes: string | null
+          recording_requirements: Json | null
+          signature_requirements: Json | null
+          trade_type: string
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          conditional_documents?: Json | null
+          county: string
+          created_at?: string
+          document_structure: Json
+          id?: string
+          is_active?: boolean
+          is_hvhz?: boolean
+          material_type?: string | null
+          notes?: string | null
+          recording_requirements?: Json | null
+          signature_requirements?: Json | null
+          trade_type?: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          conditional_documents?: Json | null
+          county?: string
+          created_at?: string
+          document_structure?: Json
+          id?: string
+          is_active?: boolean
+          is_hvhz?: boolean
+          material_type?: string | null
+          notes?: string | null
+          recording_requirements?: Json | null
+          signature_requirements?: Json | null
+          trade_type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       permit_required_documents: {
         Row: {
