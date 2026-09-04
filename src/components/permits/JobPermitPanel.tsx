@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useJobPermit } from "@/hooks/useJobPermit";
 import { ProductApprovalPicker } from "@/components/permits/ProductApprovalPicker";
+import { PacketBuilder } from "@/components/permits/PacketBuilder";
 import { downloadForm, fillApplication } from "@/lib/permits/fill";
 import { jobPermitDocuments } from "@/lib/permits/db";
 import { fileJobDocument } from "@/lib/jobDocuments";
@@ -63,6 +64,24 @@ export function JobPermitPanel({ jobId }: { jobId: string }) {
     return (Object.keys(context.values) as (keyof typeof context.values)[])
       .filter((k) => k !== "today" && context.values[k])
       .map((k) => ({ key: k, value: context.values[k]!, origin: context.origins[k] }));
+  }, [context]);
+
+  /**
+   * Which roof is going on, read off the approval already attached.
+   *
+   * Palm Beach files a shingle re-roof and a metal re-roof under different
+   * packet layouts, so the material decides the manifest. Asking the user for
+   * it again would be asking a question the job has already answered: the roof
+   * covering approval they picked names the product.
+   */
+  const materialType = useMemo(() => {
+    const covering = context?.products.find((p) => p.role === "roof_covering");
+    if (!covering) return null;
+    const text = `${covering.product_category ?? ""} ${covering.product_name ?? ""}`.toLowerCase();
+    if (/metal|standing seam|5-?v|panel/.test(text)) return "metal";
+    if (/\btile\b|concrete|clay/.test(text)) return "tile";
+    if (/shingle|laminate|asphalt/.test(text)) return "shingle";
+    return null;
   }, [context]);
 
   async function handleFill() {
@@ -348,6 +367,14 @@ export function JobPermitPanel({ jobId }: { jobId: string }) {
           </p>
         </section>
       )}
+
+      {/* ── the ordered packet, alongside the checklist ── */}
+      <PacketBuilder
+        context={context}
+        documents={documents}
+        permitId={permit?.id ?? null}
+        material={materialType}
+      />
 
       {/* ── product approvals ── */}
       <section className="rounded-xl border p-4" style={card}>
