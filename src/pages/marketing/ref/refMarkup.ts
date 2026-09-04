@@ -6,8 +6,6 @@ export const REF_VIEWS: Record<string, string> = {
     <div class="wrap">
       <div class="hero-grid">
         <div class="stack g28">
-          <div class="logo-wrap rv"><img class="logo-anim" id="logoAnim"
-            alt="Claim Buddy — powered by Global Contractor Network"></div>
           <span class="micro rv">Insurance restoration · roof, exterior &amp; interior</span>
           <h1 id="heroH">Measure the roof before you knock on the door.</h1>
           <p class="lead rv">Type an address and the roof traces itself. Then walk it — roof, all four
