@@ -174,7 +174,23 @@ export interface JobPermitDocument {
   created_at: string;
 }
 
+/** One jurisdiction's ordered manifest. The shape lives in structures.ts. */
+export interface PacketStructureRow {
+  id: string;
+  county: string;
+  city: string | null;
+  trade_type: string;
+  material_type: string | null;
+  is_hvhz: boolean;
+  document_structure: unknown;
+  conditional_documents: unknown;
+  signature_requirements: Record<string, string | string[]> | null;
+  recording_requirements: Record<string, string> | null;
+  notes: string | null;
+}
+
 export const permitDepartments = () => table<PermitDepartment>("permit_building_departments");
+export const packetStructures = () => table<PacketStructureRow>("permit_packet_structures");
 export const permitRequiredDocs = () => table<PermitRequiredDoc>("permit_required_documents");
 export const permitFormTemplates = () => table<PermitFormTemplate>("permit_form_templates");
 export const productApprovals = () => table<ProductApproval>("product_approvals");
