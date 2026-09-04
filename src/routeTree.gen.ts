@@ -71,6 +71,7 @@ import { Route as ApiDemoAerialRouteImport } from './routes/api.demo-aerial'
 import { Route as ApiImportAssemblyPdfRouteImport } from './routes/api.import-assembly-pdf'
 import { Route as ApiMapboxTokenRouteImport } from './routes/api.mapbox-token'
 import { Route as ApiParseXactimatePdfRouteImport } from './routes/api.parse-xactimate-pdf'
+import { Route as ApiPermitReferenceRouteImport } from './routes/api.permit-reference'
 import { Route as ApiReportAiRouteImport } from './routes/api.report-ai'
 import { Route as ApiRkAiRouteImport } from './routes/api.rk-ai'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
@@ -484,6 +485,11 @@ const ApiMapboxTokenRoute = ApiMapboxTokenRouteImport.update({
 const ApiParseXactimatePdfRoute = ApiParseXactimatePdfRouteImport.update({
   id: '/api/parse-xactimate-pdf',
   path: '/api/parse-xactimate-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPermitReferenceRoute = ApiPermitReferenceRouteImport.update({
+  id: '/api/permit-reference',
+  path: '/api/permit-reference',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiReportAiRoute = ApiReportAiRouteImport.update({
@@ -1071,6 +1077,7 @@ export interface FileRoutesByFullPath {
   '/api/import-assembly-pdf': typeof ApiImportAssemblyPdfRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
+  '/api/permit-reference': typeof ApiPermitReferenceRoute
   '/api/report-ai': typeof ApiReportAiRoute
   '/api/rk-ai': typeof ApiRkAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
@@ -1231,6 +1238,7 @@ export interface FileRoutesByTo {
   '/api/import-assembly-pdf': typeof ApiImportAssemblyPdfRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
+  '/api/permit-reference': typeof ApiPermitReferenceRoute
   '/api/report-ai': typeof ApiReportAiRoute
   '/api/rk-ai': typeof ApiRkAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
@@ -1398,6 +1406,7 @@ export interface FileRoutesById {
   '/api/import-assembly-pdf': typeof ApiImportAssemblyPdfRoute
   '/api/mapbox-token': typeof ApiMapboxTokenRoute
   '/api/parse-xactimate-pdf': typeof ApiParseXactimatePdfRoute
+  '/api/permit-reference': typeof ApiPermitReferenceRoute
   '/api/report-ai': typeof ApiReportAiRoute
   '/api/rk-ai': typeof ApiRkAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
@@ -1568,6 +1577,7 @@ export interface FileRouteTypes {
     | '/api/import-assembly-pdf'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
+    | '/api/permit-reference'
     | '/api/report-ai'
     | '/api/rk-ai'
     | '/api/solar-roof-extract'
@@ -1728,6 +1738,7 @@ export interface FileRouteTypes {
     | '/api/import-assembly-pdf'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
+    | '/api/permit-reference'
     | '/api/report-ai'
     | '/api/rk-ai'
     | '/api/solar-roof-extract'
@@ -1894,6 +1905,7 @@ export interface FileRouteTypes {
     | '/api/import-assembly-pdf'
     | '/api/mapbox-token'
     | '/api/parse-xactimate-pdf'
+    | '/api/permit-reference'
     | '/api/report-ai'
     | '/api/rk-ai'
     | '/api/solar-roof-extract'
@@ -2032,6 +2044,7 @@ export interface RootRouteChildren {
   ApiImportAssemblyPdfRoute: typeof ApiImportAssemblyPdfRoute
   ApiMapboxTokenRoute: typeof ApiMapboxTokenRoute
   ApiParseXactimatePdfRoute: typeof ApiParseXactimatePdfRoute
+  ApiPermitReferenceRoute: typeof ApiPermitReferenceRoute
   ApiReportAiRoute: typeof ApiReportAiRoute
   ApiRkAiRoute: typeof ApiRkAiRoute
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
@@ -2509,6 +2522,13 @@ declare module '@tanstack/react-router' {
       path: '/api/parse-xactimate-pdf'
       fullPath: '/api/parse-xactimate-pdf'
       preLoaderRoute: typeof ApiParseXactimatePdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/permit-reference': {
+      id: '/api/permit-reference'
+      path: '/api/permit-reference'
+      fullPath: '/api/permit-reference'
+      preLoaderRoute: typeof ApiPermitReferenceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/report-ai': {
@@ -3578,6 +3598,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiImportAssemblyPdfRoute: ApiImportAssemblyPdfRoute,
   ApiMapboxTokenRoute: ApiMapboxTokenRoute,
   ApiParseXactimatePdfRoute: ApiParseXactimatePdfRoute,
+  ApiPermitReferenceRoute: ApiPermitReferenceRoute,
   ApiReportAiRoute: ApiReportAiRoute,
   ApiRkAiRoute: ApiRkAiRoute,
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
