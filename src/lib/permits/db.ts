@@ -189,8 +189,26 @@ export interface PacketStructureRow {
   notes: string | null;
 }
 
+/**
+ * A thing this counter will hand a packet back for that no form field asks
+ * about — Weston wanting uplift testing on every re-roof, Riviera Beach not
+ * letting a roofing licence install new straps at all.
+ */
+export interface DepartmentRule {
+  id: string;
+  county: string;
+  city: string | null;
+  rule_type: "requirement" | "gotcha" | "exception" | string;
+  permit_types: string[];
+  rule_description: string;
+  rule_action: string | null;
+  document_required: string | null;
+  priority: number;
+}
+
 export const permitDepartments = () => table<PermitDepartment>("permit_building_departments");
 export const packetStructures = () => table<PacketStructureRow>("permit_packet_structures");
+export const departmentRules = () => table<DepartmentRule>("building_department_rules");
 export const permitRequiredDocs = () => table<PermitRequiredDoc>("permit_required_documents");
 export const permitFormTemplates = () => table<PermitFormTemplate>("permit_form_templates");
 export const productApprovals = () => table<ProductApproval>("product_approvals");
