@@ -361,7 +361,7 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
     nav?.classList.remove("open");
     menuBtn?.setAttribute("aria-expanded", "false");
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-    if (v === "home") playLogo();
+    // The logo now lives in the header, so it is mounted once and survives view switches.
     requestAnimationFrame(observe);
     if (notify) opts.onView?.(v);
   }
