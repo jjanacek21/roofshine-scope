@@ -30,6 +30,32 @@ function ruleJurisdictionLabel(rule: RefDepartmentRule): string | null {
   return null;
 }
 
+function dedupeInspections(rows: RefInspectionStep[]): RefInspectionStep[] {
+  const groups = new Map<string, RefInspectionStep[]>();
+  for (const row of rows) {
+    const key = row.inspection_type.toLowerCase();
+    const existing = groups.get(key);
+    if (existing) existing.push(row);
+    else groups.set(key, [row]);
+  }
+
+  const picked = Array.from(groups.values()).map((group) =>
+    group.reduce((best, current) => {
+      const score = (r: RefInspectionStep) =>
+        (r.description ? 2 : 0) + (r.inspection_code ? 1 : 0);
+      const bestScore = score(best);
+      const currentScore = score(current);
+      if (currentScore > bestScore) return current;
+      if (currentScore === bestScore && (current.order_in_sequence ?? Infinity) < (best.order_in_sequence ?? Infinity)) {
+        return current;
+      }
+      return best;
+    }),
+  );
+
+  return picked.sort((a, b) => (a.order_in_sequence ?? Infinity) - (b.order_in_sequence ?? Infinity));
+}
+
 export function PermitJurisdictionIntel({
   department,
   roofMaterial,
