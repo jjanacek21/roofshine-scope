@@ -691,6 +691,45 @@
 }
 [data-cb] .cb-btn-md { min-height: 44px; padding: 0 16px; }
 [data-cb] .cb-btn-lg { min-height: 52px; padding: 0 20px; font-size: 15px; }
+
+/* ============================================================
+   The app skin for Claim Buddy components.
+
+   Company Training is built out of the Cb primitives but lives in the main
+   app, and it was reading as a different product sitting inside this one:
+   18px corners, lifted shadows, an 800-weight display face and 44px buttons
+   against the app's own flat 12px cards and hairline borders.
+
+   The palette was never the problem -- [data-cb] already aliases --brand,
+   --bg and --text -- so this changes only the recipe, not the colours. Set
+   `skin="app"` on CbSurface to get it. Claim Buddy proper does not, and is
+   untouched.
+   ============================================================ */
+[data-cb][data-cb-skin="app"] {
+  --cb-radius: 12px;
+  --cb-top-highlight: none;
+  --cb-bottom-inset: none;
+  --cb-shadow-card: none;
+  --cb-shadow-raised: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --cb-shadow-floating: 0 12px 32px -14px rgba(15, 23, 42, 0.28);
+}
+[data-cb][data-cb-skin="app"] .cb-surface { padding: 16px; }
+[data-cb][data-cb-skin="app"] .cb-elev-card { box-shadow: none; }
+[data-cb][data-cb-skin="app"] .cb-display {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+[data-cb][data-cb-skin="app"] .cb-btn {
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+[data-cb][data-cb-skin="app"] .cb-btn-md { min-height: 36px; padding: 0 14px; }
+[data-cb][data-cb-skin="app"] .cb-btn-lg { min-height: 42px; padding: 0 18px; font-size: 14px; }
+/* The accent glow behind a stat number and the pointer tilt are Claim Buddy's
+   signature, not this app's. */
+[data-cb][data-cb-skin="app"] .cb-tile::before { display: none; }
+[data-cb][data-cb-skin="app"] .cb-tilt { transform: none !important; }
 [data-cb] .cb-btn-block { width: 100%; }
 [data-cb] .cb-btn:disabled { opacity: .55; cursor: not-allowed; }
 [data-cb] .cb-btn-label { position: relative; z-index: 1; }
