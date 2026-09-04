@@ -18,7 +18,15 @@ import { createClient } from "@supabase/supabase-js";
  * 18,688 words in one JSON file — so the server never has to load or index it.
  */
 
-const TRAINER_MODEL = process.env["TRAINER_MODEL"] ?? "google/gemini-2.5-flash";
+const ANTHROPIC_MODEL = process.env["ANTHROPIC_MODEL"] ?? "claude-sonnet-4-5-20250929";
+
+/* The Lovable gateway carries Google and OpenAI models but not Anthropic, so it
+   is a fallback rather than an equal: if an Anthropic key is set the trainer
+   uses Claude, and if it is not it still works on the key this project already
+   has. A trainer that refuses to answer because a secret is missing teaches
+   nobody anything. */
+const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const GATEWAY_MODEL = process.env["TRAINING_MODEL"] ?? "google/gemini-2.5-flash";
 
 type Turn = { role: "user" | "assistant"; content: string };
 
@@ -62,33 +70,59 @@ const SCORE_SYSTEM = `You are scoring a roleplayed door conversation against a r
 
 Judge only against the GUIDE passages supplied. For each criterion say whether the rep did it, in plain words, and name the lesson it comes from. Be honest — a soft score teaches nothing. Finish with the single most useful thing to fix next time.`;
 
-async function callModel(opts: {
+async function callAnthropic(opts: {
   apiKey: string;
   system: string;
   messages: Turn[];
   maxTokens?: number;
   temperature?: number;
 }): Promise<string> {
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${opts.apiKey}`,
+      "x-api-key": opts.apiKey,
+      "anthropic-version": "2023-06-01",
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: TRAINER_MODEL,
+      model: ANTHROPIC_MODEL,
+      max_tokens: opts.maxTokens ?? 900,
+      temperature: opts.temperature ?? 0.7,
+      system: opts.system,
+      messages: opts.messages,
+    }),
+  });
+  if (!r.ok) throw new Error(`Anthropic error ${r.status}: ${await r.text()}`);
+  const json = (await r.json()) as { content?: Array<{ type: string; text?: string }> };
+  return (json.content ?? [])
+    .filter((c) => c.type === "text")
+    .map((c) => c.text ?? "")
+    .join("\n")
+    .trim();
+}
+
+/** The gateway speaks the OpenAI shape, so the system prompt is turn zero. */
+async function callGateway(opts: {
+  apiKey: string;
+  system: string;
+  messages: Turn[];
+  maxTokens?: number;
+  temperature?: number;
+}): Promise<string> {
+  const r = await fetch(GATEWAY, {
+    method: "POST",
+    headers: { "content-type": "application/json", Authorization: `Bearer ${opts.apiKey}` },
+    body: JSON.stringify({
+      model: GATEWAY_MODEL,
       max_tokens: opts.maxTokens ?? 900,
       temperature: opts.temperature ?? 0.7,
       messages: [{ role: "system", content: opts.system }, ...opts.messages],
     }),
   });
-  if (!r.ok) throw new Error(`AI error ${r.status}: ${await r.text()}`);
-  const json = (await r.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
+  if (!r.ok) throw new Error(`AI gateway error ${r.status}: ${await r.text()}`);
+  const json = (await r.json()) as { choices?: Array<{ message?: { content?: string } }> };
   return (json.choices?.[0]?.message?.content ?? "").trim();
 }
-
 
 export const Route = createFileRoute("/api/training-chat")({
   server: {
@@ -100,12 +134,19 @@ export const Route = createFileRoute("/api/training-chat")({
 
         const SUPABASE_URL = process.env.SUPABASE_URL;
         const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
-        const AI_KEY = process.env.LOVABLE_API_KEY;
+        const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+        const GATEWAY_KEY = process.env.LOVABLE_API_KEY;
         if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
           return new Response("Server misconfigured", { status: 500 });
         }
-        if (!AI_KEY) {
-          return Response.json({ error: "AI is not configured" }, { status: 500 });
+        if (!ANTHROPIC_KEY && !GATEWAY_KEY) {
+          return Response.json(
+            {
+              error:
+                "The trainer has no model to talk to. Add ANTHROPIC_API_KEY in secrets for Claude, or LOVABLE_API_KEY to use the gateway.",
+            },
+            { status: 500 },
+          );
         }
 
         // Signed in is enough: the guide is network-visible training material,
@@ -172,13 +213,29 @@ export const Route = createFileRoute("/api/training-chat")({
             ];
           }
 
-          const text = await callModel({
-            apiKey: AI_KEY,
+          const args = {
             system,
             messages,
             maxTokens: mode === "score" ? 1100 : 800,
             temperature: mode === "roleplay" ? 0.9 : 0.5,
-          });
+          };
+          let text: string;
+          let via: "claude" | "gateway";
+          if (ANTHROPIC_KEY) {
+            try {
+              text = await callAnthropic({ apiKey: ANTHROPIC_KEY, ...args });
+              via = "claude";
+            } catch (e) {
+              // A dead Anthropic key should degrade, not take the feature down.
+              if (!GATEWAY_KEY) throw e;
+              console.warn("trainer falling back to the gateway", e);
+              text = await callGateway({ apiKey: GATEWAY_KEY, ...args });
+              via = "gateway";
+            }
+          } else {
+            text = await callGateway({ apiKey: GATEWAY_KEY!, ...args });
+            via = "gateway";
+          }
 
           /* Kept so a manager can see what their reps are stuck on, and so the
              guide can be improved where it keeps coming up short. */
@@ -193,6 +250,7 @@ export const Route = createFileRoute("/api/training-chat")({
                 difficulty: body.difficulty ?? null,
                 cited: body.cited ?? [],
                 grounded: !!guide,
+                via,
               },
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any);
@@ -200,7 +258,7 @@ export const Route = createFileRoute("/api/training-chat")({
             /* Logging is not worth failing the reply over. */
           }
 
-          return Response.json({ reply: text, cited: body.cited ?? [], grounded: !!guide });
+          return Response.json({ reply: text, cited: body.cited ?? [], grounded: !!guide, via });
         } catch (e) {
           return Response.json(
             { error: e instanceof Error ? e.message : "The trainer could not answer." },
