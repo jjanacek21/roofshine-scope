@@ -605,7 +605,7 @@ export type Database = {
           role: string | null
           updated_at: string
           user_id: string | null
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           audience?: string
@@ -618,7 +618,7 @@ export type Database = {
           role?: string | null
           updated_at?: string
           user_id?: string | null
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           audience?: string
@@ -631,7 +631,7 @@ export type Database = {
           role?: string | null
           updated_at?: string
           user_id?: string | null
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -973,7 +973,7 @@ export type Database = {
           status: string
           title: string
           updated_at: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -990,7 +990,7 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -1007,7 +1007,7 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1439,7 +1439,7 @@ export type Database = {
           video_path: string | null
           video_provider: string | null
           video_url: string | null
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           body?: string | null
@@ -1459,7 +1459,7 @@ export type Database = {
           video_path?: string | null
           video_provider?: string | null
           video_url?: string | null
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           body?: string | null
@@ -1479,7 +1479,7 @@ export type Database = {
           video_path?: string | null
           video_provider?: string | null
           video_url?: string | null
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1522,7 +1522,7 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           company_id?: string | null
@@ -1533,7 +1533,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           company_id?: string | null
@@ -1544,7 +1544,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1586,7 +1586,7 @@ export type Database = {
           starts_at: string
           title: string
           updated_at: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           company_id?: string | null
@@ -1603,7 +1603,7 @@ export type Database = {
           starts_at: string
           title: string
           updated_at?: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           company_id?: string | null
@@ -1620,7 +1620,7 @@ export type Database = {
           starts_at?: string
           title?: string
           updated_at?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1755,7 +1755,7 @@ export type Database = {
           summary: string | null
           title: string
           updated_at: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           company_id?: string | null
@@ -1766,7 +1766,7 @@ export type Database = {
           summary?: string | null
           title: string
           updated_at?: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           company_id?: string | null
@@ -1777,7 +1777,7 @@ export type Database = {
           summary?: string | null
           title?: string
           updated_at?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1911,7 +1911,7 @@ export type Database = {
           updated_at: string
           user_id: string
           watched_seconds: number
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           checkpoint_answers?: Json
@@ -1927,7 +1927,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           watched_seconds?: number
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           checkpoint_answers?: Json
@@ -1943,7 +1943,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           watched_seconds?: number
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1990,7 +1990,7 @@ export type Database = {
           submitted_at: string | null
           updated_at: string
           user_id: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           answers?: Json
@@ -2005,7 +2005,7 @@ export type Database = {
           submitted_at?: string | null
           updated_at?: string
           user_id: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           answers?: Json
@@ -2020,7 +2020,7 @@ export type Database = {
           submitted_at?: string | null
           updated_at?: string
           user_id?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2060,7 +2060,7 @@ export type Database = {
           quiz_id: string
           sort_order: number
           updated_at: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           company_id?: string | null
@@ -2075,7 +2075,7 @@ export type Database = {
           quiz_id: string
           sort_order?: number
           updated_at?: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           company_id?: string | null
@@ -2090,7 +2090,7 @@ export type Database = {
           quiz_id?: string
           sort_order?: number
           updated_at?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2128,7 +2128,7 @@ export type Database = {
           pass_percent: number
           title: string
           updated_at: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           company_id?: string | null
@@ -2141,7 +2141,7 @@ export type Database = {
           pass_percent?: number
           title: string
           updated_at?: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           company_id?: string | null
@@ -2154,7 +2154,7 @@ export type Database = {
           pass_percent?: number
           title?: string
           updated_at?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2590,7 +2590,7 @@ export type Database = {
           id: string
           label: string
           user_id: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           awarded_at?: string
@@ -2599,7 +2599,7 @@ export type Database = {
           id?: string
           label: string
           user_id: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           awarded_at?: string
@@ -2608,7 +2608,7 @@ export type Database = {
           id?: string
           label?: string
           user_id?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2638,7 +2638,7 @@ export type Database = {
           meta: Json
           seconds: number
           user_id: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           company_id?: string | null
@@ -2650,7 +2650,7 @@ export type Database = {
           meta?: Json
           seconds?: number
           user_id: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           company_id?: string | null
@@ -2662,7 +2662,7 @@ export type Database = {
           meta?: Json
           seconds?: number
           user_id?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2704,7 +2704,7 @@ export type Database = {
           reason: string
           ref_id: string | null
           user_id: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           company_id?: string | null
@@ -2714,7 +2714,7 @@ export type Database = {
           reason: string
           ref_id?: string | null
           user_id: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           company_id?: string | null
@@ -2724,7 +2724,7 @@ export type Database = {
           reason?: string
           ref_id?: string | null
           user_id?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2752,7 +2752,7 @@ export type Database = {
           required_minutes: number
           role: string
           updated_at: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           company_id?: string | null
@@ -2762,7 +2762,7 @@ export type Database = {
           required_minutes?: number
           role?: string
           updated_at?: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           company_id?: string | null
@@ -2772,7 +2772,7 @@ export type Database = {
           required_minutes?: number
           role?: string
           updated_at?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2806,7 +2806,7 @@ export type Database = {
           question: string
           required: boolean
           updated_at: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           at_seconds: number
@@ -2822,7 +2822,7 @@ export type Database = {
           question: string
           required?: boolean
           updated_at?: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           at_seconds?: number
@@ -2838,7 +2838,7 @@ export type Database = {
           question?: string
           required?: boolean
           updated_at?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
