@@ -174,6 +174,7 @@ export function PermitJurisdictionIntel({
                   <p className="text-[12px] text-foreground">{r.rule_description}</p>
                   <p className="text-[11px] text-muted-foreground">
                     {[
+                      ruleJurisdictionLabel(r),
                       r.rule_type?.replace(/_/g, " "),
                       r.rule_action,
                       r.document_required ? `needs ${r.document_required}` : null,
