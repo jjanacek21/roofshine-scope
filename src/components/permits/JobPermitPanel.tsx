@@ -13,8 +13,8 @@ import {
 } from "lucide-react";
 import { useJobPermit } from "@/hooks/useJobPermit";
 import { ProductApprovalPicker } from "@/components/permits/ProductApprovalPicker";
-import { PermitJurisdictionIntel } from "@/components/permits/PermitJurisdictionIntel";
 import { PacketBuilder } from "@/components/permits/PacketBuilder";
+import { JurisdictionNotes } from "@/components/permits/JurisdictionNotes";
 import { downloadForm, fillApplication } from "@/lib/permits/fill";
 import { jobPermitDocuments } from "@/lib/permits/db";
 import { fileJobDocument } from "@/lib/jobDocuments";
@@ -369,6 +369,9 @@ export function JobPermitPanel({ jobId }: { jobId: string }) {
         </section>
       )}
 
+      {/* ── what this counter is fussy about ── */}
+      <JurisdictionNotes county={dept?.county} city={dept?.city} />
+
       {/* ── the ordered packet, alongside the checklist ── */}
       <PacketBuilder
         context={context}
@@ -376,8 +379,6 @@ export function JobPermitPanel({ jobId }: { jobId: string }) {
         permitId={permit?.id ?? null}
         material={materialType}
       />
-
-      <PermitJurisdictionIntel department={dept} hvhz={!!dept?.is_hvhz} />
 
       {/* ── product approvals ── */}
       <section className="rounded-xl border p-4" style={card}>
