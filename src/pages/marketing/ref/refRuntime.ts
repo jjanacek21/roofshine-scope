@@ -8,7 +8,6 @@
 
 import { M, TABS, STEPS, CATS, CATMAP, VIDS, RAMP, POSTS, QUEUE, SEQ, BANDS } from "./refData";
 import { mountLumaLogo } from "./logoVideo";
-import { getSurface } from "@/lib/cbMode";
 
 export type MountOptions = {
   /** key -> resolved image URL (CMS first, repo fallback). */
@@ -78,21 +77,11 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
     typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   /* ---------- brand logo ---------- */
+  // The mark always lives in the hero on this site, on both surfaces. The
+  // header-bleed treatment belongs to the GCN App landing page only.
   function playLogo() {
     const el = $<HTMLImageElement>("#logoAnim");
     if (!el) return;
-    // Platform surface (globalcontractor.app): move the mark into the header so
-    // it bleeds over the hero. Standalone (gcn.claims) keeps it in the hero.
-    if (getSurface() === "platform") {
-      el.alt = "Global Contractor Network";
-      const slot = $<HTMLElement>(".nav-logo");
-      const hdr = $<HTMLElement>("#hdr");
-      if (slot && hdr) {
-        slot.appendChild(el);
-        hdr.classList.add("logo-in-header");
-        root.classList.add("logo-in-header");
-      }
-    }
     const still = () => {
       el.src = opts.brand.still;
     };
@@ -104,6 +93,9 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
     stops.push(mountLumaLogo(el, [opts.brand.videoWebm ?? "", opts.brand.video], still));
   }
   playLogo();
+
+
+
 
   $$<HTMLImageElement>("[data-shot]").forEach((im) => {
     const url = src(im.dataset.shot ?? "");
@@ -374,9 +366,10 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
     nav?.classList.remove("open");
     menuBtn?.setAttribute("aria-expanded", "false");
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-    // The logo is mounted once (hero on standalone, header on platform) and
-    // survives view switches either way.
+    // The logo is mounted once in the hero and survives view switches.
     requestAnimationFrame(observe);
+
+
     if (notify) opts.onView?.(v);
   }
   go(opts.initialView, false);

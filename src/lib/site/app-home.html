@@ -135,6 +135,18 @@ section{position:relative}
 .nav{position:sticky;top:0;z-index:50;background:rgba(5,7,14,.76);backdrop-filter:blur(16px);border-bottom:1px solid var(--line-soft)}
 .nav-in{max-width:var(--maxw);margin:0 auto;padding:0 22px;height:64px;display:flex;align-items:center;gap:26px}
 .brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+/* Animated mark: sits in the bar and hangs down over the hero. The clip is a
+   silver/neon logo on a black plate, so `screen` drops the plate against this
+   page's near-black background — no square edge, no halo. */
+.nav{overflow:visible}
+.brand{position:relative;z-index:3}
+.brand-logo{position:relative;display:block;line-height:0;flex:0 0 auto}
+.brand-logo::after{content:"";position:absolute;inset:-30% -14% -54%;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 48%,rgba(56,232,255,.20),rgba(45,226,150,.14) 40%,transparent 70%);filter:blur(24px)}
+.brand-logo-v{display:block;width:clamp(146px,14vw,208px);height:auto;
+  margin:0;margin-bottom:clamp(-58px,-5.2vw,-34px);pointer-events:none}
+@media(max-width:820px){.brand-logo-v{width:min(116px,32vw);margin-bottom:-24px}
+  .brand-logo::after{inset:-22% -10% -40%}}
 .brand-mark{
   width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
   background:linear-gradient(150deg,#22304f,#131b2e);
@@ -196,7 +208,7 @@ section{position:relative}
 }
 
 /* ---------- hero ---------- */
-.hero{padding:clamp(58px,7.5vw,104px) 0 clamp(52px,6.5vw,90px)}
+.hero{padding:clamp(74px,9vw,124px) 0 clamp(52px,6.5vw,90px)}
 .hero-in{display:grid;gap:46px}
 @media(min-width:1040px){.hero-in{grid-template-columns:1.02fr .98fr;align-items:center;gap:52px}}
 .hero-tag{display:inline-flex;align-items:center;gap:10px;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(19,26,41,.6);margin-bottom:24px}
@@ -613,9 +625,12 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
 
 <nav class="nav">
   <div class="nav-in">
-    <a class="brand" href="#top">
-      <span class="brand-mark"><span>G</span></span>
-      <span class="brand-w"><b>GCN App</b><em>Estimating OS for contractors</em></span>
+    <a class="brand" href="#top" aria-label="GCN App — home">
+      <span class="brand-logo">
+        <img class="brand-logo-v" id="brandLogo" alt="GCN App"
+          src="/__l5e/assets-v1/a30f1f91-b864-4f0f-bc45-572e20eb49ef/gcn-app-logo-still.webp">
+      </span>
+      <span class="brand-w"><em>Estimating OS for contractors</em></span>
     </a>
     <div class="nav-links">
       <a href="#stack">The 20-app problem</a>
@@ -2591,6 +2606,54 @@ body.has-cursor .cursor,body.has-cursor .cursor-ring{opacity:1}
     e.preventDefault();
     el.scrollIntoView({behavior: reduced ? "auto" : "smooth", block:"start"});
   }));
+})();
+</script>
+
+<script>
+/* Animated brand mark: the clip ships on a near-black plate, so each frame is
+   drawn to a canvas and low-luma pixels are turned into real transparency —
+   the mark blends into the bar and the hero with no box and no halo. */
+(function(){
+  var img=document.getElementById('brandLogo');
+  if(!img) return;
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var LO=0.13, HI=0.36, MAX_W=560;
+  var srcs=['/__l5e/assets-v1/7897fd6e-ebe7-4396-8fc7-c22d4e25d6cc/gcn-app-logo-anim.webm',
+            '/__l5e/assets-v1/6176e700-2e36-43cb-96f7-1cbf8e29d55c/gcn-app-logo-anim.mp4'];
+  var i=0, started=false;
+  var canvas=document.createElement('canvas');
+  canvas.className=img.className; canvas.setAttribute('role','img');
+  canvas.setAttribute('aria-label','GCN App');
+  var ctx=canvas.getContext('2d',{willReadFrequently:true});
+  var work=document.createElement('canvas');
+  var wctx=work.getContext('2d',{willReadFrequently:true});
+  if(!ctx||!wctx) return;
+  var v=document.createElement('video');
+  v.src=srcs[0]; v.muted=true; v.loop=true; v.playsInline=true; v.autoplay=true; v.preload='auto';
+  function frame(){
+    requestAnimationFrame(frame);
+    if(v.readyState<2||!work.width) return;
+    wctx.drawImage(v,0,0,work.width,work.height);
+    var d=wctx.getImageData(0,0,work.width,work.height), a=d.data;
+    for(var j=0;j<a.length;j+=4){
+      var r=a[j],g=a[j+1],b=a[j+2];
+      var luma=(0.2126*r+0.7152*g+0.0722*b)/255;
+      var al=(luma-LO)/(HI-LO); al=al<=0?0:(al>=1?1:al);
+      a[j+3]=Math.round(al*255);
+      if(al>0&&al<1){var inv=1/al;a[j]=Math.min(255,r*inv);a[j+1]=Math.min(255,g*inv);a[j+2]=Math.min(255,b*inv);}
+    }
+    ctx.putImageData(d,0,0);
+  }
+  v.addEventListener('loadeddata',function(){
+    if(started) return; started=true;
+    var vw=v.videoWidth||1280, vh=v.videoHeight||720;
+    var sc=Math.min(1,MAX_W/vw), w=Math.round(vw*sc), h=Math.round(vh*sc);
+    work.width=w; work.height=h; canvas.width=w; canvas.height=h;
+    img.replaceWith(canvas);
+    requestAnimationFrame(frame);
+  });
+  v.addEventListener('error',function(){ if(started) return; i++; if(i<srcs.length){v.src=srcs[i];v.load();v.play().catch(function(){});}});
+  v.play().catch(function(){});
 })();
 </script>
 
