@@ -8,7 +8,6 @@
 
 import { M, TABS, STEPS, CATS, CATMAP, VIDS, RAMP, POSTS, QUEUE, SEQ, BANDS } from "./refData";
 import { mountLumaLogo } from "./logoVideo";
-import { getSurface } from "@/lib/cbMode";
 
 export type MountOptions = {
   /** key -> resolved image URL (CMS first, repo fallback). */
