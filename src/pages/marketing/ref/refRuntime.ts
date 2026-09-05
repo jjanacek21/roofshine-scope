@@ -78,21 +78,33 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
     typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   /* ---------- brand logo ---------- */
+  // Platform surface (globalcontractor.app): the mark sits in the header and
+  // bleeds over the hero — but only on the landing page. Every other marketing
+  // page (and all of gcn.claims) keeps the plain header, logo in the hero.
+  const logoSlot = $<HTMLElement>(".nav-logo");
+  const logoHome = $<HTMLElement>(".logo-wrap");
+  const logoHdr = $<HTMLElement>("#hdr");
+  const bleeds = getSurface() === "platform" && Boolean(logoSlot && logoHdr && logoHome);
+
+  /** Node currently rendering the logo (the <img>, or the keyed canvas). */
+  const logoNode = () =>
+    (logoSlot?.firstElementChild as HTMLElement | null) ??
+    (logoHome?.firstElementChild as HTMLElement | null);
+
+  function placeLogo(view: string) {
+    if (!bleeds) return;
+    const node = logoNode();
+    if (!node) return;
+    const inHeader = view === "home";
+    (inHeader ? logoSlot : logoHome)?.appendChild(node);
+    logoHdr?.classList.toggle("logo-in-header", inHeader);
+    root.classList.toggle("logo-in-header", inHeader);
+  }
+
   function playLogo() {
     const el = $<HTMLImageElement>("#logoAnim");
     if (!el) return;
-    // Platform surface (globalcontractor.app): move the mark into the header so
-    // it bleeds over the hero. Standalone (gcn.claims) keeps it in the hero.
-    if (getSurface() === "platform") {
-      el.alt = "Global Contractor Network";
-      const slot = $<HTMLElement>(".nav-logo");
-      const hdr = $<HTMLElement>("#hdr");
-      if (slot && hdr) {
-        slot.appendChild(el);
-        hdr.classList.add("logo-in-header");
-        root.classList.add("logo-in-header");
-      }
-    }
+    if (bleeds) el.alt = "Global Contractor Network";
     const still = () => {
       el.src = opts.brand.still;
     };
@@ -104,6 +116,8 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
     stops.push(mountLumaLogo(el, [opts.brand.videoWebm ?? "", opts.brand.video], still));
   }
   playLogo();
+
+
 
   $$<HTMLImageElement>("[data-shot]").forEach((im) => {
     const url = src(im.dataset.shot ?? "");
