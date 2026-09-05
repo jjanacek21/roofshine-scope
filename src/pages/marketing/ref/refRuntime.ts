@@ -367,10 +367,9 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
     nav?.classList.remove("open");
     menuBtn?.setAttribute("aria-expanded", "false");
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-    // The logo is mounted once and moves between hero and header: it only
-    // bleeds out of the header on the platform landing page.
-    placeLogo(v);
+    // The logo is mounted once in the hero and survives view switches.
     requestAnimationFrame(observe);
+
 
     if (notify) opts.onView?.(v);
   }
