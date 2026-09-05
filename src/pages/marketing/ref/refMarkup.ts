@@ -22,7 +22,7 @@ export const REF_VIEWS: Record<string, string> = {
             <div class="s"><div class="v mono">4:12</div><div class="l">Pitch</div></div>
             <div class="s"><div class="v mono">18</div><div class="l">Scope items</div></div>
           </div>
-          <p class="tiny rv" style="color:#7f8f88">Runs in the phone browser at gcn.claims. No app store, no install.</p>
+          <p class="tiny rv" style="color:var(--text-muted)">Runs in the phone browser at gcn.claims. No app store, no install.</p>
         </div>
 
         <div class="stage rv">
@@ -499,7 +499,7 @@ export const REF_VIEWS: Record<string, string> = {
     <div class="wrap" style="max-width:440px">
       <div class="card elev-float rv-3d">
         <div class="stack g16" style="align-items:center;text-align:center">
-          <span class="mk" style="width:44px;height:44px;border-radius:13px;display:grid;place-items:center;color:#fff;
+          <span class="mk" style="width:44px;height:44px;border-radius:13px;display:grid;place-items:center;color:var(--on-accent);
             font-family:var(--font-mono);font-weight:800;font-size:.85rem;
             background:linear-gradient(160deg,var(--accent-bright),var(--accent-deep));box-shadow:var(--glow)">CB</span>
           <h2 style="font-size:1.6rem">Welcome back</h2>
