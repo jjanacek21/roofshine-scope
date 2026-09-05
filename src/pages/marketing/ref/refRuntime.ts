@@ -388,9 +388,11 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
     nav?.classList.remove("open");
     menuBtn?.setAttribute("aria-expanded", "false");
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-    // The logo is mounted once (hero on standalone, header on platform) and
-    // survives view switches either way.
+    // The logo is mounted once and moves between hero and header: it only
+    // bleeds out of the header on the platform landing page.
+    placeLogo(v);
     requestAnimationFrame(observe);
+
     if (notify) opts.onView?.(v);
   }
   go(opts.initialView, false);
