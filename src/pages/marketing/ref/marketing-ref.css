@@ -591,8 +591,8 @@ body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:210px}
 .mkt-ref.cb-standalone nav.links a:hover::after{transform:scaleX(1)}
 @media (prefers-reduced-motion:reduce){.mkt-ref.cb-standalone nav.links a::after{transition:none}}
 
-@media (max-width:1360px) and (min-width:901px){
-  .mkt-ref.cb-standalone header.nav .nav-in{padding-left:172px}
-  .mkt-ref.cb-standalone .cbh-navlogo{width:206px}
-  body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:168px}
+@media (max-width:1440px) and (min-width:901px){
+  .mkt-ref.cb-standalone header.nav .nav-in{padding-left:112px}
+  .mkt-ref.cb-standalone .cbh-navlogo{width:190px;left:-18px}
+  body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:156px}
 }
