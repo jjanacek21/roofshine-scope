@@ -10,7 +10,7 @@
 
 import { useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { REF_VIEWS, REF_HEADER, REF_FOOTER } from "./refMarkup";
+import { REF_VIEWS, REF_HEADER, REF_FOOTER, CB_HOME } from "./refMarkup";
 import { mountMarketingRef } from "./refRuntime";
 import { SHOTS_DEFAULT } from "./refData";
 import {
@@ -69,11 +69,13 @@ const titleCase = (s: string) =>
 const VIEW_ORDER = ["home", "product", "gallery", "pricing", "resources", "blog"];
 
 /** The active view is server-rendered with .on so crawlers and no-JS visitors see it. */
-function shellHtml(active: string, rewrite: (h: string) => string): string {
-  const views = VIEW_ORDER.map(
-    (k) =>
-      `<section class="view${k === active ? " on" : ""}" id="v-${k}">${REF_VIEWS[k] ?? ""}</section>`,
-  ).join("");
+function shellHtml(active: string, rewrite: (h: string) => string, standalone: boolean): string {
+  const views = VIEW_ORDER.map((k) => {
+    // gcn.claims gets its own home hero + first section; every other view, and
+    // every view on globalcontractor.app, renders exactly as before.
+    const body = k === "home" && standalone ? CB_HOME : (REF_VIEWS[k] ?? "");
+    return `<section class="view${k === active ? " on" : ""}" id="v-${k}">${body}</section>`;
+  }).join("");
   return rewrite(`${REF_HEADER}<main id="mkt-main">${views}</main>${REF_FOOTER}`);
 }
 
@@ -89,7 +91,8 @@ export default function MarketingRefView({
   // runtime owns its DOM after mount. View switches go through goRef instead.
   const htmlRef = useRef<string | null>(null);
   const rewrite = makeTextRewriter(content);
-  if (htmlRef.current === null) htmlRef.current = shellHtml(view, rewrite);
+  const standalone = getSurface() === "standalone";
+  if (htmlRef.current === null) htmlRef.current = shellHtml(view, rewrite, standalone);
   const goRef = useRef<((v: string, notify?: boolean) => void) | null>(null);
   const navigate = useNavigate();
 
@@ -172,6 +175,7 @@ export default function MarketingRefView({
         shots,
         brand,
         initialView: viewRef.current,
+        standalone,
         text: textRef.current,
         cats: catsRef.current,
         catByKey: catByKeyRef.current,
