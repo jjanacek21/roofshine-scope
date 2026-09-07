@@ -590,3 +590,9 @@ body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:210px}
   background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .28s cubic-bezier(.22,1,.36,1)}
 .mkt-ref.cb-standalone nav.links a:hover::after{transform:scaleX(1)}
 @media (prefers-reduced-motion:reduce){.mkt-ref.cb-standalone nav.links a::after{transition:none}}
+
+@media (max-width:1360px) and (min-width:901px){
+  .mkt-ref.cb-standalone header.nav .nav-in{padding-left:172px}
+  .mkt-ref.cb-standalone .cbh-navlogo{width:206px}
+  body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:168px}
+}
