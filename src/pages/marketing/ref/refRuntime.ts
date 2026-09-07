@@ -8,6 +8,7 @@
 
 import { M, TABS, STEPS, CATS, CATMAP, VIDS, RAMP, POSTS, QUEUE, SEQ, BANDS } from "./refData";
 import { mountLumaLogo } from "./logoVideo";
+import { mountCbHome } from "./cbHome";
 
 export type MountOptions = {
   /** key -> resolved image URL (CMS first, repo fallback). */
@@ -27,6 +28,8 @@ export type MountOptions = {
   cats?: string[][];
   /** media key -> category, from the CMS; overrides the built-in mapping. */
   catByKey?: Record<string, string>;
+  /** gcn.claims only: mount the Claim Buddy landing hero behaviour. */
+  standalone?: boolean;
   /** Receives the view switcher so React can drive it when the route changes. */
   exposeGo?: (go: (view: string, notify?: boolean) => void) => void;
 };
@@ -93,6 +96,9 @@ export function mountMarketingRef(root: HTMLElement, opts: MountOptions): () => 
     stops.push(mountLumaLogo(el, [opts.brand.videoWebm ?? "", opts.brand.video], still));
   }
   playLogo();
+
+  /* ---------- Claim Buddy standalone landing (gcn.claims only) ---------- */
+  if (opts.standalone) stops.push(mountCbHome(root));
 
 
 

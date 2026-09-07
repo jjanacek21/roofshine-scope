@@ -1,7 +1,17 @@
 /* Markup ported verbatim from gcn_landing_reference.html (header/footer excluded). */
 
-export const REF_VIEWS: Record<string, string> = {
-  home: `
+import cbLogoAsset from "@/assets/cb-logo.webp.asset.json";
+import cbStormAsset from "@/assets/cb-storm.webp.asset.json";
+import cbRoofAsset from "@/assets/cb-roof.webp.asset.json";
+import cbPriceBookAsset from "@/assets/cb-pricebook.mp4.asset.json";
+import cbPriceBookPosterAsset from "@/assets/cb-pricebook-poster.jpg.asset.json";
+import cbPresentationAsset from "@/assets/cb-presentation.webp.asset.json";
+
+/** Claim Buddy standalone landing assets. Never used by the platform surface. */
+export const CB_LANDING_LOGO = cbLogoAsset.url;
+
+const HOME_HERO = `
+
   <div class="hero">
     <div class="wrap">
       <div class="hero-grid">
@@ -36,15 +46,18 @@ export const REF_VIEWS: Record<string, string> = {
       </div>
     </div>
   </div>
+`;
 
+const HOME_MARQUEE = `
   <!-- marquee of real screens -->
   <div class="sec" style="padding-top:38px;padding-bottom:8px">
     <div class="wrap"><div class="dim rv"><span>Real screens · not mockups</span></div></div>
   </div>
-  <div class="marquee rv" id="marq"><div class="marquee-t" id="marqT"></div></div>
+  <div class="marquee rv" id="marq"><div class="marquee-t" id="marqT"></div></div>`;
 
-
+const HOME_REST = `
   <!-- watch it measure -->
+
   <div class="sec" style="padding-bottom:0">
     <div class="wrap stack g28">
       <div class="dim rv"><span>Address to labeled roof</span></div>
@@ -240,7 +253,122 @@ export const REF_VIEWS: Record<string, string> = {
         </div>
       </div>
     </div>
-  </div>`,
+  </div>`;
+
+/**
+ * The Claim Buddy (gcn.claims) hero + first section. Standalone surface only —
+ * the platform pages (/pricing, /gallery, /product, /blog on
+ * globalcontractor.app) keep HOME_HERO + HOME_MARQUEE untouched.
+ */
+const CB_HERO = `
+  <div class="cbh-hero" id="cbhHero">
+    <div class="cbh-grid" id="cbhGrid" aria-hidden="true"></div>
+    <div class="wrap cbh-hero-in">
+      <span class="cbh-eyebrow cbh-rv">Created by a contractor for himself</span>
+      <h1 class="cbh-h1 cbh-rv cbh-d1">Every rep gets a <span class="cbh-grad">15-year veteran</span> in their pocket.</h1>
+      <div class="cbh-rule cbh-rv cbh-d1"></div>
+      <div class="cbh-hero-row">
+        <p class="cbh-lead cbh-rv cbh-d2">Storm intel before the knock, a measured roof in seconds, your own
+          price book behind every number, and a branded report he can present at the kitchen table.
+          Everything the best rep on the crew knows, handed to the newest one on day one.</p>
+        <div class="cbh-hero-act cbh-rv cbh-d3">
+          <div class="cbh-btns">
+            <button class="btn btn-p btn-lg pulse" data-go="signup"><span>Book a demo</span><i class="spec"></i></button>
+            <button class="btn btn-s btn-lg" data-v="product"><span>See every screen</span><i class="spec"></i></button>
+          </div>
+          <p class="cbh-note">Runs in the phone browser at gcn.claims · No app store, no install</p>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+const CB_CARDS = `
+  <div class="sec cbh-sec">
+    <div class="wrap stack g28">
+      <div class="dim cbh-rv"><span>What the rep carries</span></div>
+      <h2 class="cbh-h2 cbh-rv cbh-d1">Four things that win the door.</h2>
+      <div class="cbh-cards">
+
+        <article class="fbox cbh-card tilt3d cbh-rv">
+          <span class="cbh-tag">Storm intel</span>
+          <h3 class="cbh-card-h">Hail swaths, before the knock</h3>
+          <div class="cbh-stage">
+            <img class="cbh-media cbh-kb" src="${cbStormAsset.url}" alt="Hail swath radar map across a storm track" loading="lazy">
+            <span class="cbh-radar" aria-hidden="true"></span>
+            <span class="cbh-vig" aria-hidden="true"></span>
+          </div>
+          <div class="cbh-rows">
+            <div class="cbh-row"><span>MESH peak</span><b class="mono">2.4″</b></div>
+            <div class="cbh-row"><span>Addresses in swath</span><b class="mono"><span class="cbh-count" data-to="1284" data-sep="1">0</span></b></div>
+          </div>
+          <p class="cbh-foot">Hail and wind history for the street he is standing on.</p>
+        </article>
+
+        <article class="fbox cbh-card tilt3d cbh-rv cbh-d1">
+          <span class="cbh-tag">Instant measurement</span>
+          <h3 class="cbh-card-h">Seven taps, and it's scanned</h3>
+          <div class="cbh-stage">
+            <img class="cbh-media" src="${cbRoofAsset.url}" alt="Roof being measured from satellite imagery inside Claim Buddy" loading="lazy">
+            <svg class="cbh-trace" viewBox="0 0 720 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+              <polygon points="210,200 516,176 540,300 540,402 470,416 470,492 276,500 210,392"></polygon>
+              <circle cx="210" cy="200" r="9" style="--i:0"></circle>
+              <circle cx="516" cy="176" r="9" style="--i:1"></circle>
+              <circle cx="540" cy="300" r="9" style="--i:2"></circle>
+              <circle cx="540" cy="402" r="9" style="--i:3"></circle>
+              <circle cx="470" cy="416" r="9" style="--i:4"></circle>
+              <circle cx="470" cy="492" r="9" style="--i:5"></circle>
+              <circle cx="276" cy="500" r="9" style="--i:6"></circle>
+              <circle cx="210" cy="392" r="9" style="--i:7"></circle>
+            </svg>
+            <span class="cbh-scan" aria-hidden="true"></span>
+          </div>
+          <div class="cbh-rows">
+            <div class="cbh-row"><span>Squares</span><b class="mono"><span class="cbh-count" data-to="41.6" data-dec="1">0</span></b></div>
+            <div class="cbh-row"><span>Pitch · waste</span><b class="mono">5/12 · 3%</b></div>
+          </div>
+          <p class="cbh-foot">Drag any corner onto the real one — the numbers follow.</p>
+        </article>
+
+        <article class="fbox cbh-card tilt3d cbh-rv">
+          <span class="cbh-tag">Custom price book</span>
+          <h3 class="cbh-card-h">Your numbers, not a template</h3>
+          <div class="cbh-stage">
+            <video class="cbh-media cbh-video" autoplay muted loop playsinline preload="metadata"
+              poster="${cbPriceBookPosterAsset.url}" aria-label="Contractor price book catalog animation">
+              <source src="${cbPriceBookAsset.url}" type="video/mp4">
+            </video>
+            <span class="cbh-vig" aria-hidden="true"></span>
+          </div>
+          <div class="cbh-rows">
+            <div class="cbh-row"><span>Line items</span><b class="mono"><span class="cbh-count" data-to="12000" data-sep="1">0</span></b></div>
+            <div class="cbh-row"><span>Sourced from</span><b class="mono">Your products &amp; wages</b></div>
+          </div>
+          <p class="cbh-foot">Every estimate prices off what you actually pay.</p>
+        </article>
+
+        <article class="fbox cbh-card tilt3d cbh-rv cbh-d1">
+          <span class="cbh-tag">Branded reports</span>
+          <h3 class="cbh-card-h">He presents it at the table</h3>
+          <div class="cbh-stage">
+            <img class="cbh-media cbh-float" src="${cbPresentationAsset.url}" alt="Branded Claim Buddy sales presentation running on a tablet" loading="lazy">
+            <span class="cbh-vig" aria-hidden="true"></span>
+          </div>
+          <div class="cbh-rows">
+            <div class="cbh-row"><span>Cover to signature</span><b class="mono">One document</b></div>
+            <div class="cbh-row"><span>Branding</span><b class="mono">Yours, not ours</b></div>
+          </div>
+          <p class="cbh-foot">Damage report, photos, priced scope and the agreement.</p>
+        </article>
+
+      </div>
+    </div>
+  </div>`;
+
+export const CB_HOME = CB_HERO + CB_CARDS + HOME_REST;
+
+export const REF_VIEWS: Record<string, string> = {
+  home: HOME_HERO + HOME_MARQUEE + HOME_REST,
+
   product: `  <div class="sec">
     <div class="wrap stack g28">
       <div class="stack g12 rv">
