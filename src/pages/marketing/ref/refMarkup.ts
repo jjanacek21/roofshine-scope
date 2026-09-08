@@ -310,13 +310,17 @@ const CB_CARDS = `
           <div class="cbh-stage cbh-stage-meas">
             <img class="cbh-media" src="${cbRoofAsset.url}" alt="Roof being measured from satellite imagery inside Claim Buddy" loading="lazy">
             <svg class="verts" viewBox="0 0 334 186" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-              <polygon points="96,14 257,14 258,158 124,168 124,92 96,76"/>
-              <circle class="vx" cx="96"  cy="14"  r="4.5" style="animation-delay:.5s"/>
-              <circle class="vx" cx="257" cy="14"  r="4.5" style="animation-delay:.85s"/>
-              <circle class="vx" cx="258" cy="158" r="4.5" style="animation-delay:1.2s"/>
-              <circle class="vx" cx="124" cy="168" r="4.5" style="animation-delay:1.55s"/>
-              <circle class="vx" cx="124" cy="92"  r="4.5" style="animation-delay:1.9s"/>
-              <circle class="vx" cx="96"  cy="76"  r="4.5" style="animation-delay:2.25s"/>
+              <polygon points="96,14 257,14 258,71 221,71 222,96 258,96 258,158 127,158 126,70 98,70"/>
+              <circle class="vx" cx="96"  cy="14"  r="4.5" style="animation-delay:.45s"/>
+              <circle class="vx" cx="257" cy="14"  r="4.5" style="animation-delay:.70s"/>
+              <circle class="vx" cx="258" cy="71"  r="4.5" style="animation-delay:.95s"/>
+              <circle class="vx" cx="221" cy="71"  r="4.5" style="animation-delay:1.20s"/>
+              <circle class="vx" cx="222" cy="96"  r="4.5" style="animation-delay:1.45s"/>
+              <circle class="vx" cx="258" cy="96"  r="4.5" style="animation-delay:1.70s"/>
+              <circle class="vx" cx="258" cy="158" r="4.5" style="animation-delay:1.95s"/>
+              <circle class="vx" cx="127" cy="158" r="4.5" style="animation-delay:2.20s"/>
+              <circle class="vx" cx="126" cy="70"  r="4.5" style="animation-delay:2.45s"/>
+              <circle class="vx" cx="98"  cy="70"  r="4.5" style="animation-delay:2.70s"/>
             </svg>
             <span class="cbh-scan" aria-hidden="true"></span>
           </div>
