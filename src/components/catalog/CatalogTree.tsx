@@ -160,7 +160,7 @@ export function CatalogTree({
                           </button>
                         )}
                       </div>
-                      {sOpen && subItems.map((item) => {
+                      {sOpen && subItems.slice(0, LEAF_RENDER_CAP).map((item) => {
                         const checked = selectedIds?.has(item.id) ?? false;
                         return (
                           <div

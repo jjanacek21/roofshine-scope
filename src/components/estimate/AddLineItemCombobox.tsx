@@ -251,8 +251,8 @@ export function AddLineItemCombobox({
               Retry
             </button>
           </div>
-        ) : isFetching ? (
-          <div className="px-4 py-6 text-center text-[12px] text-muted-foreground">Loading catalog…</div>
+        ) : isLoading ? (
+          <div className="px-4 py-6 text-center text-[12px] text-muted-foreground">Loading price book…</div>
         ) : displayItems.length === 0 ? (
           <div className="px-4 py-6 text-center text-[12px] text-muted-foreground">No matching line items.</div>
         ) : (
