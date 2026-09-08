@@ -18,6 +18,8 @@ export type CatalogItem = {
 
 type Mode = "checkbox" | "add";
 
+const LEAF_RENDER_CAP = 300;
+
 export function CatalogTree({
   items,
   search,
