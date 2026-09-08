@@ -733,7 +733,9 @@ export type RefViewKey = keyof typeof REF_VIEWS;
 export const REF_HEADER = `
 <header class="nav" id="hdr">
   <div class="wrap nav-in">
+    <div class="nav-logo-slot" id="navLogoSlot"></div>
     <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false"><i></i></button>
+
     <nav class="links" id="nav">
       <button data-v="home" aria-current="page">Home</button>
       <button data-v="product">The app</button>
