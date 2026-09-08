@@ -10712,6 +10712,7 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_catalog_bundle: { Args: { p_price_book_id?: string }; Returns: Json }
       get_invite_preview: { Args: { _token: string }; Returns: Json }
       get_public_rep_card: { Args: { _slug: string }; Returns: Json }
       gettransactionid: { Args: never; Returns: unknown }

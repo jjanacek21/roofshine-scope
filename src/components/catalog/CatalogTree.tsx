@@ -18,6 +18,8 @@ export type CatalogItem = {
 
 type Mode = "checkbox" | "add";
 
+const LEAF_RENDER_CAP = 300;
+
 export function CatalogTree({
   items,
   search,
@@ -160,7 +162,7 @@ export function CatalogTree({
                           </button>
                         )}
                       </div>
-                      {sOpen && subItems.map((item) => {
+                      {sOpen && subItems.slice(0, LEAF_RENDER_CAP).map((item) => {
                         const checked = selectedIds?.has(item.id) ?? false;
                         return (
                           <div
@@ -200,6 +202,11 @@ export function CatalogTree({
                           </div>
                         );
                       })}
+                      {sOpen && subItems.length > LEAF_RENDER_CAP && (
+                        <div className="pl-12 pr-3 py-1.5 text-[11px] text-muted-foreground">
+                          Showing {LEAF_RENDER_CAP} of {subItems.length} — type to narrow
+                        </div>
+                      )}
                     </div>
                   );
                 })}

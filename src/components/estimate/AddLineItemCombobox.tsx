@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +25,7 @@ type RawRow = {
   category: string | null;
   domain: string | null;
   subgroup: string | null;
-  default_price: number | null;
+  default_price?: number | null;
   remove_price: number | null;
   replace_price: number | null;
 };
@@ -37,10 +37,6 @@ type EnrichedRow = RawRow & {
   base_label: string;
 };
 
-const SELECT =
-  "id, code, name, description, unit, trade, category, default_price, remove_price, replace_price, domain, subgroup";
-const RESULT_LIMIT = 50;
-
 function coalescePrice(r: { default_price: number | null; remove_price: number | null; replace_price: number | null }) {
   const d = Number(r.default_price ?? 0);
   if (d > 0) return d;
@@ -51,10 +47,6 @@ function coalescePrice(r: { default_price: number | null; remove_price: number |
   return 0;
 }
 
-/** PostgREST parses the `or()` string, so these characters must never reach it. */
-function sanitizeTerm(term: string) {
-  return term.replace(/[,()%*\\]/g, " ").trim();
-}
 
 function classify(name: string): { kind: EnrichedRow["kind"]; base: string } {
   const n = name.trim();
@@ -83,65 +75,64 @@ export function AddLineItemCombobox({
   onClose: () => void;
 }) {
   const [q, setQ] = useState("");
-  const [debounced, setDebounced] = useState("");
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(q), 200);
-    return () => clearTimeout(t);
-  }, [q]);
-
-  const term = sanitizeTerm(debounced);
 
   const {
-    data: rows = [],
-    isFetching,
+    data: allRows = [],
+    isLoading,
     isError,
     refetch,
-  } = useQuery<EnrichedRow[]>({
-    queryKey: ["catalog-search-v1", priceBookId, term],
+  } = useQuery<(RawRow & { effective_price: number })[]>({
+    queryKey: ["catalog-bundle-v1", priceBookId],
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60 * 24,
     retry: 1,
     queryFn: async () => {
-      let query = supabase
-        .from("line_item_master")
-        .select(SELECT)
-        .eq("status", "active")
-        .is("company_id", null);
-
-      if (term.length >= 2) {
-        query = query.or(`name.ilike.%${term}%,code.ilike.%${term}%`);
-      }
-
-      const { data, error } = await query.order("code").limit(RESULT_LIMIT);
-      if (error) throw new Error(error.message);
-      const items = (data ?? []) as unknown as RawRow[];
-      if (!items.length) return [];
-
-      // Prices for just these rows — one small request, not the whole book.
-      const priceMap = new Map<string, number>();
-      if (priceBookId) {
-        const { data: prices, error: pErr } = await supabase
-          .from("line_item_prices")
-          .select("line_item_master_id, unit_price")
-          .eq("price_book_id", priceBookId)
-          .in("line_item_master_id", items.map((i) => i.id));
-        if (pErr) throw new Error(pErr.message);
-        for (const p of prices ?? []) priceMap.set(p.line_item_master_id, Number(p.unit_price));
-      }
-
-      return items.map((i) => {
-        const { kind, base } = classify(i.name);
-        const baseKey = [base.toLowerCase(), i.unit, i.trade, (i.subgroup ?? "").toLowerCase()].join("|");
-        const override = priceMap.get(i.id);
-        return {
-          ...i,
-          effective_price: override != null ? override : coalescePrice(i),
-          kind,
-          base_key: baseKey,
-          base_label: base,
-        } satisfies EnrichedRow;
+      const { data, error } = await supabase.rpc("get_catalog_bundle" as any, {
+        p_price_book_id: priceBookId,
       });
+      if (error) throw new Error(error.message);
+      const raw = ((data as any)?.items ?? []) as any[][];
+      return raw.map((a) => ({
+        id: a[0],
+        code: a[1],
+        name: a[2],
+        unit: a[3],
+        trade: a[4],
+        domain: a[5],
+        subgroup: a[6],
+        category: a[7],
+        effective_price: Number(a[8] ?? 0),
+        remove_price: a[9],
+        replace_price: a[10],
+        description: null,
+      }));
     },
   });
+
+  // Classify once over the fetched rows.
+  const enriched = useMemo<EnrichedRow[]>(
+    () =>
+      allRows.map((i) => {
+        const { kind, base } = classify(i.name);
+        return {
+          ...i,
+          kind,
+          base_key: [base.toLowerCase(), i.unit, i.trade, (i.subgroup ?? "").toLowerCase()].join("|"),
+          base_label: base,
+        } satisfies EnrichedRow;
+      }),
+    [allRows],
+  );
+
+  // In-memory filter — no network.
+  const rows = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!term) return enriched;
+    return enriched.filter(
+      (r) => r.name.toLowerCase().includes(term) || r.code.toLowerCase().includes(term),
+    );
+  }, [enriched, q]);
+
 
   // Merge matching Remove + Replace within the current result set into a synthetic R&R.
   const { displayItems, pairMap } = useMemo(() => {
@@ -260,8 +251,8 @@ export function AddLineItemCombobox({
               Retry
             </button>
           </div>
-        ) : isFetching ? (
-          <div className="px-4 py-6 text-center text-[12px] text-muted-foreground">Loading catalog…</div>
+        ) : isLoading ? (
+          <div className="px-4 py-6 text-center text-[12px] text-muted-foreground">Loading price book…</div>
         ) : displayItems.length === 0 ? (
           <div className="px-4 py-6 text-center text-[12px] text-muted-foreground">No matching line items.</div>
         ) : (
