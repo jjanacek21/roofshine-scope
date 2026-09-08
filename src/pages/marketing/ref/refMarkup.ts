@@ -2,7 +2,7 @@
 
 import cbLogoAsset from "@/assets/cb-logo.webp.asset.json";
 import cbStormAsset from "@/assets/cb-storm.webp.asset.json";
-import cbRoofAsset from "@/assets/cb-roof.webp.asset.json";
+import cbRoofAsset from "@/assets/cb-roof-v2.webp.asset.json";
 import cbPriceBookAsset from "@/assets/cb-pricebook.mp4.asset.json";
 import cbPriceBookPosterAsset from "@/assets/cb-pricebook-poster.jpg.asset.json";
 import cbPresentationAsset from "@/assets/cb-presentation.webp.asset.json";
@@ -307,18 +307,16 @@ const CB_CARDS = `
         <article class="fbox cbh-card tilt3d cbh-rv cbh-d1">
           <span class="cbh-tag">Instant measurement</span>
           <h3 class="cbh-card-h">Seven taps, and it's scanned</h3>
-          <div class="cbh-stage">
+          <div class="cbh-stage cbh-stage-meas">
             <img class="cbh-media" src="${cbRoofAsset.url}" alt="Roof being measured from satellite imagery inside Claim Buddy" loading="lazy">
-            <svg class="cbh-trace" viewBox="0 0 720 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-              <polygon points="210,200 516,176 540,300 540,402 470,416 470,492 276,500 210,392"></polygon>
-              <circle cx="210" cy="200" r="9" style="--i:0"></circle>
-              <circle cx="516" cy="176" r="9" style="--i:1"></circle>
-              <circle cx="540" cy="300" r="9" style="--i:2"></circle>
-              <circle cx="540" cy="402" r="9" style="--i:3"></circle>
-              <circle cx="470" cy="416" r="9" style="--i:4"></circle>
-              <circle cx="470" cy="492" r="9" style="--i:5"></circle>
-              <circle cx="276" cy="500" r="9" style="--i:6"></circle>
-              <circle cx="210" cy="392" r="9" style="--i:7"></circle>
+            <svg class="verts" viewBox="0 0 334 186" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <polygon points="96,14 257,14 258,158 124,168 124,92 96,76"/>
+              <circle class="vx" cx="96"  cy="14"  r="4.5" style="animation-delay:.5s"/>
+              <circle class="vx" cx="257" cy="14"  r="4.5" style="animation-delay:.85s"/>
+              <circle class="vx" cx="258" cy="158" r="4.5" style="animation-delay:1.2s"/>
+              <circle class="vx" cx="124" cy="168" r="4.5" style="animation-delay:1.55s"/>
+              <circle class="vx" cx="124" cy="92"  r="4.5" style="animation-delay:1.9s"/>
+              <circle class="vx" cx="96"  cy="76"  r="4.5" style="animation-delay:2.25s"/>
             </svg>
             <span class="cbh-scan" aria-hidden="true"></span>
           </div>

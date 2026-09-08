@@ -556,13 +556,15 @@ body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:210px}
   box-shadow:0 0 26px 6px rgba(60,224,138,.55);animation:cbhScan 4.6s linear infinite}
 @keyframes cbhScan{0%{transform:translateY(0);opacity:0}8%{opacity:1}92%{opacity:1}
   100%{transform:translateY(236px);opacity:0}}
-.mkt-ref .cbh-trace{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.mkt-ref .cbh-trace polygon{fill:rgba(60,224,138,.13);stroke:#3ce08a;stroke-width:5;
-  stroke-dasharray:1900;stroke-dashoffset:1900;animation:cbhDraw 4.6s linear infinite}
-@keyframes cbhDraw{0%{stroke-dashoffset:1900}70%{stroke-dashoffset:0}100%{stroke-dashoffset:0}}
-.mkt-ref .cbh-trace circle{fill:#04120a;stroke:#3ce08a;stroke-width:6;opacity:0;
+.mkt-ref .cbh-stage-meas{aspect-ratio:334/186;height:auto}
+.mkt-ref .cbh-stage-meas .cbh-media{object-fit:contain}
+.mkt-ref .verts{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.mkt-ref .verts polygon{fill:rgba(60,224,138,.13);stroke:#3ce08a;stroke-width:2;
+  stroke-dasharray:900;stroke-dashoffset:900;animation:cbhDraw 4.6s linear infinite}
+@keyframes cbhDraw{0%{stroke-dashoffset:900}70%{stroke-dashoffset:0}100%{stroke-dashoffset:0}}
+.mkt-ref .verts .vx{fill:#04120a;stroke:#3ce08a;stroke-width:2.2;opacity:0;
   filter:drop-shadow(0 0 6px rgba(60,224,138,.85));
-  animation:cbhDot .6s ease forwards;animation-delay:calc(.5s + var(--i) * .3s)}
+  animation:cbhDot .6s ease forwards}
 @keyframes cbhDot{to{opacity:1}}
 .mkt-ref .cbh-float{animation:cbhFloat 9s ease-in-out infinite alternate}
 @keyframes cbhFloat{from{transform:scale(1.03) translateY(0)}to{transform:scale(1.06) translateY(-9px)}}
@@ -576,7 +578,7 @@ body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:210px}
 @media (prefers-reduced-motion:reduce){
   .mkt-ref .cbh-rv{opacity:1!important;transform:none!important;transition:none!important}
   .mkt-ref .cbh-kb,.mkt-ref .cbh-radar,.mkt-ref .cbh-scan,.mkt-ref .cbh-float,
-  .mkt-ref .cbh-trace polygon,.mkt-ref .cbh-trace circle{animation:none!important}
+  .mkt-ref .verts polygon,.mkt-ref .verts .vx{animation:none!important}
   .mkt-ref .cbh-scan,.mkt-ref .cbh-radar{display:none}
   .mkt-ref .cbh-trace polygon{stroke-dashoffset:0}
   .mkt-ref .cbh-trace circle{opacity:1}
