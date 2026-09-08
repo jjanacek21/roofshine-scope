@@ -1,10 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CatalogTree, type CatalogItem } from "@/components/catalog/CatalogTree";
-import { fetchAllPages } from "@/lib/fetch-all";
-
 
 export type CatalogResult = {
   id: string;
@@ -39,6 +37,10 @@ type EnrichedRow = RawRow & {
   base_label: string;
 };
 
+const SELECT =
+  "id, code, name, description, unit, trade, category, default_price, remove_price, replace_price, domain, subgroup";
+const RESULT_LIMIT = 50;
+
 function coalescePrice(r: { default_price: number | null; remove_price: number | null; replace_price: number | null }) {
   const d = Number(r.default_price ?? 0);
   if (d > 0) return d;
@@ -49,26 +51,26 @@ function coalescePrice(r: { default_price: number | null; remove_price: number |
   return 0;
 }
 
+/** PostgREST parses the `or()` string, so these characters must never reach it. */
+function sanitizeTerm(term: string) {
+  return term.replace(/[,()%*\\]/g, " ").trim();
+}
+
 function classify(name: string): { kind: EnrichedRow["kind"]; base: string } {
   const n = name.trim();
-  const lower = n.toLowerCase();
-  // R&R first
   let m = n.match(/^R&R\s+(.*)$/i);
   if (m) return { kind: "rr", base: m[1].trim() };
   m = n.match(/^Replace\s+(.*)$/i);
   if (m) return { kind: "replace", base: m[1].trim() };
   m = n.match(/^Remove\s+(.*)$/i);
   if (m) return { kind: "remove", base: m[1].trim() };
-  // Tear off variants are removals
   m = n.match(/^Tear off,?\s+haul and dispose of\s+(.*)$/i);
   if (m) return { kind: "remove", base: m[1].trim() };
   m = n.match(/^Tear off\s+(.*)$/i);
   if (m) return { kind: "remove", base: m[1].trim() };
-  // "Add. layer ... remove & disp. - X" — treat as removal of X
   m = n.match(/^Add\.?\s+layer of\s+(.*?),\s*remove\s*&\s*disp\.?\s*-\s*(.*)$/i);
   if (m) return { kind: "remove", base: `Add. layer ${m[1].trim()} - ${m[2].trim()}` };
   return { kind: "other", base: n };
-  void lower;
 }
 
 export function AddLineItemCombobox({
@@ -81,49 +83,58 @@ export function AddLineItemCombobox({
   onClose: () => void;
 }) {
   const [q, setQ] = useState("");
+  const [debounced, setDebounced] = useState("");
 
-  const { data: rows = [], isFetching } = useQuery<EnrichedRow[]>({
-    queryKey: ["catalog-all-with-price-v3", priceBookId],
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(q), 200);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const term = sanitizeTerm(debounced);
+
+  const {
+    data: rows = [],
+    isFetching,
+    isError,
+    refetch,
+  } = useQuery<EnrichedRow[]>({
+    queryKey: ["catalog-search-v1", priceBookId, term],
+    retry: 1,
     queryFn: async () => {
-      const items = await fetchAllPages<RawRow>((from, to) =>
-        supabase
-          .from("line_item_master")
-          .select(
-            "id, code, name, description, unit, trade, category, default_price, remove_price, replace_price, domain, subgroup",
-          )
-          .eq("status", "active")
-          .is("company_id", null)
-          .order("code")
-          .range(from, to) as unknown as PromiseLike<{ data: RawRow[] | null; error: { message: string } | null }>,
-      );
+      let query = supabase
+        .from("line_item_master")
+        .select(SELECT)
+        .eq("status", "active")
+        .is("company_id", null);
+
+      if (term.length >= 2) {
+        query = query.or(`name.ilike.%${term}%,code.ilike.%${term}%`);
+      }
+
+      const { data, error } = await query.order("code").limit(RESULT_LIMIT);
+      if (error) throw new Error(error.message);
+      const items = (data ?? []) as unknown as RawRow[];
       if (!items.length) return [];
 
-      // Market (price book) rows are authoritative — the whole book is fetched
-      // so nothing silently falls back to stale master defaults.
+      // Prices for just these rows — one small request, not the whole book.
       const priceMap = new Map<string, number>();
       if (priceBookId) {
-        const prices = await fetchAllPages<{ line_item_master_id: string; unit_price: number }>((from, to) =>
-          supabase
-            .from("line_item_prices")
-            .select("line_item_master_id, unit_price")
-            .eq("price_book_id", priceBookId)
-            .order("line_item_master_id")
-            .range(from, to) as unknown as PromiseLike<{
-            data: { line_item_master_id: string; unit_price: number }[] | null;
-            error: { message: string } | null;
-          }>,
-        );
-        for (const p of prices) priceMap.set(p.line_item_master_id, Number(p.unit_price));
+        const { data: prices, error: pErr } = await supabase
+          .from("line_item_prices")
+          .select("line_item_master_id, unit_price")
+          .eq("price_book_id", priceBookId)
+          .in("line_item_master_id", items.map((i) => i.id));
+        if (pErr) throw new Error(pErr.message);
+        for (const p of prices ?? []) priceMap.set(p.line_item_master_id, Number(p.unit_price));
       }
 
       return items.map((i) => {
         const { kind, base } = classify(i.name);
         const baseKey = [base.toLowerCase(), i.unit, i.trade, (i.subgroup ?? "").toLowerCase()].join("|");
         const override = priceMap.get(i.id);
-        const effective = override != null ? override : coalescePrice(i);
         return {
           ...i,
-          effective_price: effective,
+          effective_price: override != null ? override : coalescePrice(i),
           kind,
           base_key: baseKey,
           base_label: base,
@@ -132,8 +143,7 @@ export function AddLineItemCombobox({
     },
   });
 
-
-  // Build display list: merge matching Remove + Replace into synthetic R&R.
+  // Merge matching Remove + Replace within the current result set into a synthetic R&R.
   const { displayItems, pairMap } = useMemo(() => {
     const groups = new Map<string, EnrichedRow[]>();
     for (const r of rows) {
@@ -155,7 +165,6 @@ export function AddLineItemCombobox({
         const rep = replaces[0];
         const remPrice = Number(rem.remove_price ?? 0) > 0 ? Number(rem.remove_price) : rem.effective_price;
         const repPrice = Number(rep.replace_price ?? 0) > 0 ? Number(rep.replace_price) : rep.effective_price;
-        const combined = remPrice + repPrice;
         const pairId = `pair:${rem.id}:${rep.id}`;
         hidden.add(rem.id);
         hidden.add(rep.id);
@@ -167,7 +176,7 @@ export function AddLineItemCombobox({
           unit: rep.unit,
           domain: rep.domain,
           subgroup: rep.subgroup,
-          default_price: combined,
+          default_price: remPrice + repPrice,
           trade: rep.trade,
         });
       }
@@ -186,7 +195,6 @@ export function AddLineItemCombobox({
         trade: r.trade,
       }));
 
-    // Insert synthetic rows near their replace siblings — simplest: append, CatalogTree sorts visually by group.
     return { displayItems: [...passthrough, ...synthetic], pairMap: pairs };
   }, [rows]);
 
@@ -241,16 +249,23 @@ export function AddLineItemCombobox({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {isFetching && (
+        {isError ? (
+          <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+            <p className="text-[13px] text-foreground">Couldn't load the price book.</p>
+            <button
+              onClick={() => refetch()}
+              className="rounded-md border px-3 py-1.5 text-[12px] hover:bg-[var(--bg-hover)]"
+              style={{ borderColor: "var(--border-bright)" }}
+            >
+              Retry
+            </button>
+          </div>
+        ) : isFetching ? (
           <div className="px-4 py-6 text-center text-[12px] text-muted-foreground">Loading catalog…</div>
-        )}
-        {!isFetching && (
-          <CatalogTree
-            items={displayItems}
-            search={q}
-            mode="add"
-            onAdd={handlePick}
-          />
+        ) : displayItems.length === 0 ? (
+          <div className="px-4 py-6 text-center text-[12px] text-muted-foreground">No matching line items.</div>
+        ) : (
+          <CatalogTree items={displayItems} search={q} mode="add" onAdd={handlePick} />
         )}
       </div>
     </div>
