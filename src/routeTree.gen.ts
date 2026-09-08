@@ -75,6 +75,7 @@ import { Route as ApiPermitReferenceRouteImport } from './routes/api.permit-refe
 import { Route as ApiReportAiRouteImport } from './routes/api.report-ai'
 import { Route as ApiRkAiRouteImport } from './routes/api.rk-ai'
 import { Route as ApiSolarRoofExtractRouteImport } from './routes/api.solar-roof-extract'
+import { Route as ApiStorageMigrateRouteImport } from './routes/api.storage-migrate'
 import { Route as ApiTrainFromPdfRouteImport } from './routes/api.train-from-pdf'
 import { Route as ApiTrainingChatRouteImport } from './routes/api.training-chat'
 import { Route as BookKindRouteImport } from './routes/book.$kind'
@@ -505,6 +506,11 @@ const ApiRkAiRoute = ApiRkAiRouteImport.update({
 const ApiSolarRoofExtractRoute = ApiSolarRoofExtractRouteImport.update({
   id: '/api/solar-roof-extract',
   path: '/api/solar-roof-extract',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStorageMigrateRoute = ApiStorageMigrateRouteImport.update({
+  id: '/api/storage-migrate',
+  path: '/api/storage-migrate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTrainFromPdfRoute = ApiTrainFromPdfRouteImport.update({
@@ -1081,6 +1087,7 @@ export interface FileRoutesByFullPath {
   '/api/report-ai': typeof ApiReportAiRoute
   '/api/rk-ai': typeof ApiRkAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
+  '/api/storage-migrate': typeof ApiStorageMigrateRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/api/training-chat': typeof ApiTrainingChatRoute
   '/book/$kind': typeof BookKindRoute
@@ -1242,6 +1249,7 @@ export interface FileRoutesByTo {
   '/api/report-ai': typeof ApiReportAiRoute
   '/api/rk-ai': typeof ApiRkAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
+  '/api/storage-migrate': typeof ApiStorageMigrateRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/api/training-chat': typeof ApiTrainingChatRoute
   '/book/$kind': typeof BookKindRoute
@@ -1410,6 +1418,7 @@ export interface FileRoutesById {
   '/api/report-ai': typeof ApiReportAiRoute
   '/api/rk-ai': typeof ApiRkAiRoute
   '/api/solar-roof-extract': typeof ApiSolarRoofExtractRoute
+  '/api/storage-migrate': typeof ApiStorageMigrateRoute
   '/api/train-from-pdf': typeof ApiTrainFromPdfRoute
   '/api/training-chat': typeof ApiTrainingChatRoute
   '/book/$kind': typeof BookKindRoute
@@ -1581,6 +1590,7 @@ export interface FileRouteTypes {
     | '/api/report-ai'
     | '/api/rk-ai'
     | '/api/solar-roof-extract'
+    | '/api/storage-migrate'
     | '/api/train-from-pdf'
     | '/api/training-chat'
     | '/book/$kind'
@@ -1742,6 +1752,7 @@ export interface FileRouteTypes {
     | '/api/report-ai'
     | '/api/rk-ai'
     | '/api/solar-roof-extract'
+    | '/api/storage-migrate'
     | '/api/train-from-pdf'
     | '/api/training-chat'
     | '/book/$kind'
@@ -1909,6 +1920,7 @@ export interface FileRouteTypes {
     | '/api/report-ai'
     | '/api/rk-ai'
     | '/api/solar-roof-extract'
+    | '/api/storage-migrate'
     | '/api/train-from-pdf'
     | '/api/training-chat'
     | '/book/$kind'
@@ -2048,6 +2060,7 @@ export interface RootRouteChildren {
   ApiReportAiRoute: typeof ApiReportAiRoute
   ApiRkAiRoute: typeof ApiRkAiRoute
   ApiSolarRoofExtractRoute: typeof ApiSolarRoofExtractRoute
+  ApiStorageMigrateRoute: typeof ApiStorageMigrateRoute
   ApiTrainFromPdfRoute: typeof ApiTrainFromPdfRoute
   ApiTrainingChatRoute: typeof ApiTrainingChatRoute
   BookKindRoute: typeof BookKindRoute
@@ -2550,6 +2563,13 @@ declare module '@tanstack/react-router' {
       path: '/api/solar-roof-extract'
       fullPath: '/api/solar-roof-extract'
       preLoaderRoute: typeof ApiSolarRoofExtractRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/storage-migrate': {
+      id: '/api/storage-migrate'
+      path: '/api/storage-migrate'
+      fullPath: '/api/storage-migrate'
+      preLoaderRoute: typeof ApiStorageMigrateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/train-from-pdf': {
@@ -3602,6 +3622,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiReportAiRoute: ApiReportAiRoute,
   ApiRkAiRoute: ApiRkAiRoute,
   ApiSolarRoofExtractRoute: ApiSolarRoofExtractRoute,
+  ApiStorageMigrateRoute: ApiStorageMigrateRoute,
   ApiTrainFromPdfRoute: ApiTrainFromPdfRoute,
   ApiTrainingChatRoute: ApiTrainingChatRoute,
   BookKindRoute: BookKindRoute,
