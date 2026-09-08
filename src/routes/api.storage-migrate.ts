@@ -50,6 +50,10 @@ async function listAll(
 export const Route = createFileRoute("/api/storage-migrate")({
   server: {
     handlers: {
+      GET: async () => new Response("Method Not Allowed", { status: 405 }),
+      PUT: async () => new Response("Method Not Allowed", { status: 405 }),
+      PATCH: async () => new Response("Method Not Allowed", { status: 405 }),
+      DELETE: async () => new Response("Method Not Allowed", { status: 405 }),
       POST: async ({ request }) => {
         const NEW_KEY = process.env.GCN_NEW_SERVICE_KEY;
         const NEW_URL = process.env.GCN_NEW_SUPABASE_URL;
