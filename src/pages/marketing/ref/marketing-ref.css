@@ -476,20 +476,8 @@
    platform pages that share this template are untouched.
    ============================================================ */
 
-.mkt-ref.cb-standalone header.nav{overflow:visible}
-.mkt-ref.cb-standalone header.nav .nav-in{overflow:visible;position:relative;height:auto;min-height:86px;
-  padding-left:214px;flex-wrap:wrap;transition:min-height .34s cubic-bezier(.22,1,.36,1)}
-.mkt-ref.cb-standalone nav.links{overflow:visible}
-.mkt-ref.cb-standalone .cbh-navlogo{position:absolute;left:-14px;top:8px;width:270px;height:auto;z-index:80;
-  pointer-events:none;transition:width .34s cubic-bezier(.22,1,.36,1);
-  filter:drop-shadow(0 18px 34px rgba(6,20,14,.35))}
-body.shrunk .mkt-ref.cb-standalone header.nav .nav-in{min-height:64px}
-body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:210px}
-@media (max-width:900px){
-  .mkt-ref.cb-standalone header.nav .nav-in{padding-left:172px;min-height:74px}
-  .mkt-ref.cb-standalone .cbh-navlogo{width:186px;left:-10px;top:6px}
-  body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:150px}
-}
+/* Header layout now lives in the shared header block above. */
+
 
 /* --- scroll progress --- */
 .mkt-ref .cbh-prog{position:fixed;left:0;top:0;height:2px;width:0;z-index:200;pointer-events:none;
