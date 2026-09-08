@@ -9,7 +9,10 @@
  * Everything is scoped to the mounted root and returned in a single disposer.
  */
 
+import cbLogoAnim from "@/assets/cb-logo-anim.webm.asset.json";
 import { CB_LANDING_LOGO } from "./refMarkup";
+
+const CB_LOGO_ANIM = cbLogoAnim.url;
 
 export function mountCbHome(root: HTMLElement): () => void {
   const disposers: Array<() => void> = [];
@@ -26,15 +29,42 @@ export function mountCbHome(root: HTMLElement): () => void {
   disposers.push(() => root.classList.remove("cb-standalone"));
 
   /* ---------- header logo that bleeds into the hero ---------- */
-  const navIn = root.querySelector<HTMLElement>("header.nav .nav-in");
-  if (navIn && !navIn.querySelector(".cbh-navlogo")) {
-    const logo = document.createElement("img");
-    logo.className = "cbh-navlogo";
-    logo.src = CB_LANDING_LOGO;
-    logo.alt = "Claim Buddy";
-    navIn.appendChild(logo);
-    disposers.push(() => logo.remove());
+  const slot =
+    root.querySelector<HTMLElement>("header.nav .nav-logo-slot") ??
+    root.querySelector<HTMLElement>("header.nav .nav-in");
+  if (slot && !slot.querySelector(".cbh-navlogo")) {
+    if (reduce) {
+      const img = document.createElement("img");
+      img.className = "cbh-navlogo";
+      img.src = CB_LANDING_LOGO;
+      img.alt = "Claim Buddy";
+      slot.appendChild(img);
+      disposers.push(() => img.remove());
+    } else {
+      const v = document.createElement("video");
+      v.className = "cbh-navlogo";
+      v.autoplay = true;
+      v.loop = true;
+      v.muted = true;
+      v.playsInline = true;
+      v.preload = "metadata";
+      v.setAttribute("muted", "");
+      v.setAttribute("playsinline", "");
+      v.setAttribute("aria-label", "Claim Buddy");
+      v.poster = CB_LANDING_LOGO;
+      const src = document.createElement("source");
+      src.src = CB_LOGO_ANIM;
+      src.type = "video/webm";
+      v.appendChild(src);
+      slot.appendChild(v);
+      const kickLogo = () => void v.play().catch(() => {});
+      kickLogo();
+      on(window, "load", kickLogo);
+      on(document, "pointerdown", kickLogo, { once: true });
+      disposers.push(() => v.remove());
+    }
   }
+
 
   /* ---------- sticky shrink + scroll progress + grid parallax ---------- */
   const bar = document.createElement("div");

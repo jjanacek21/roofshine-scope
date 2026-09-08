@@ -144,39 +144,47 @@
 
 
 }
-.mkt-ref header.nav{position:sticky;top:0;z-index:60;
+/* ===== Marketing header (shared: gcn.claims + globalcontractor.app) ===== */
+.mkt-ref header.nav{position:sticky;top:0;z-index:60;overflow:visible;
   background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px) saturate(1.4);
   border-bottom:1px solid transparent;transition:border-color .25s var(--ease),box-shadow .25s var(--ease)}
+.mkt-ref header.nav::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(60,224,138,.85),transparent);
+  animation:navEdgeSweep 7s ease-in-out infinite}
+@keyframes navEdgeSweep{0%{opacity:.2;transform:scaleX(.2)}50%{opacity:1;transform:scaleX(1)}
+  100%{opacity:.2;transform:scaleX(.2)}}
 .mkt-ref header.nav.stuck{border-bottom-color:var(--hairline);box-shadow:0 6px 24px -18px rgba(15,23,42,.5)}
-.mkt-ref .nav-in{display:flex;align-items:center;justify-content:space-between;gap:18px;height:66px;position:relative;
-  transition:height .25s var(--ease)}
-.mkt-ref header.nav.stuck .nav-in{height:58px}
-.mkt-ref nav.links button{white-space:nowrap}
-.mkt-ref nav.links{display:flex;flex:1;gap:clamp(4px,1.4vw,18px);justify-content:space-evenly;
-  align-items:center;margin:0 clamp(10px,3vw,42px)}
-.mkt-ref nav.links button{position:relative;isolation:isolate;background:linear-gradient(180deg,
-    color-mix(in srgb,var(--surface) 92%,transparent),color-mix(in srgb,var(--surface-3) 88%,transparent));
-  border:1px solid var(--hairline);cursor:pointer;padding:12px 20px;border-radius:14px;
-  font-size:1.02rem;font-weight:600;letter-spacing:-.012em;color:var(--text-muted);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 8px 18px -14px rgba(0,0,0,.6);
-  transform:translateZ(0);
-  transition:transform .22s var(--ease),box-shadow .22s var(--ease),color .18s var(--ease),
-    border-color .22s var(--ease)}
-/* Cursor-tracked light: --mx/--my are written by the pointermove handler. */
-.mkt-ref nav.links button::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;
-  opacity:0;transition:opacity .22s var(--ease);
-  background:radial-gradient(150px circle at var(--mx,50%) var(--my,50%),
-    rgba(var(--accent-rgb),.42),rgba(90,190,255,.18) 42%,transparent 70%)}
-.mkt-ref nav.links button:hover{color:var(--text);transform:translateY(-2px) scale(1.03);
-  border-color:color-mix(in srgb,var(--accent) 55%,var(--hairline));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.26),0 14px 26px -16px rgba(0,0,0,.75),
-    0 0 22px -4px rgba(var(--accent-rgb),.45)}
-.mkt-ref nav.links button:active{transform:translateY(0) scale(.99)}
-.mkt-ref nav.links button:hover::before,.mkt-ref nav.links button:focus-visible::before{opacity:1}
-.mkt-ref nav.links button[aria-current="page"]{color:var(--text);font-weight:700;
-  border-color:color-mix(in srgb,var(--accent) 65%,var(--hairline));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 0 26px -6px rgba(var(--accent-rgb),.55)}
-.mkt-ref nav.links button[aria-current="page"]::before{opacity:.85}
+.mkt-ref .nav-in{display:flex;align-items:center;gap:26px;padding:0 26px 0 12px;min-height:120px;
+  position:relative;overflow:visible}
+.mkt-ref .nav-logo-slot{display:none}
+.mkt-ref.cb-standalone .nav-logo-slot{display:block;flex:0 0 auto;width:250px;height:104px;position:relative}
+.mkt-ref .cbh-navlogo{position:absolute;left:0;top:50%;transform:translateY(-50%);width:250px;height:auto;
+  z-index:80;pointer-events:none;background:transparent;
+  filter:drop-shadow(0 10px 26px rgba(0,0,0,.6))}
+.mkt-ref nav.links{flex:1 1 auto;display:flex;justify-content:space-evenly;align-items:center;min-width:0;
+  gap:clamp(2px,1vw,14px);margin:0}
+.mkt-ref nav.links button{position:relative;background:none;border:0;box-shadow:none;cursor:pointer;
+  font:600 .78rem var(--mono,ui-monospace,SFMono-Regular,Menlo,monospace);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text-dim,var(--text-muted));padding:9px 4px;white-space:nowrap;
+  transition:color .3s cubic-bezier(.22,1,.36,1),text-shadow .3s cubic-bezier(.22,1,.36,1)}
+.mkt-ref nav.links button::after{content:"";position:absolute;left:50%;right:50%;bottom:2px;height:1.5px;
+  border-radius:2px;background:linear-gradient(90deg,rgba(60,224,138,.15),#3ce08a,rgba(60,224,138,.15));
+  box-shadow:0 0 12px 1px rgba(60,224,138,.85);
+  transition:left .3s cubic-bezier(.22,1,.36,1),right .3s cubic-bezier(.22,1,.36,1)}
+.mkt-ref nav.links button:hover,.mkt-ref nav.links button:focus-visible{color:#fff;
+  text-shadow:0 0 18px rgba(60,224,138,.75)}
+.mkt-ref nav.links button:hover::after,.mkt-ref nav.links button:focus-visible::after,
+.mkt-ref nav.links button[aria-current="page"]::after{left:2px;right:2px}
+.mkt-ref nav.links button[aria-current="page"]{color:var(--text)}
+.mkt-ref .nav-cta{flex:0 0 auto}
+.mkt-ref .nav-cta .btn-s:hover{border-color:rgba(60,224,138,.5);
+  box-shadow:0 0 0 1px rgba(60,224,138,.25),0 0 22px -6px rgba(60,224,138,.5)}
+.mkt-ref .nav-cta .btn-p{position:relative;isolation:isolate;transition:transform .3s cubic-bezier(.22,1,.36,1)}
+.mkt-ref .nav-cta .btn-p::before{content:"";position:absolute;inset:-2px;border-radius:inherit;z-index:-1;
+  background:linear-gradient(135deg,#3ce08a,#1e6bff);filter:blur(13px);opacity:.32;
+  animation:navCtaPulse 3.6s ease-in-out infinite}
+@keyframes navCtaPulse{0%{opacity:.32}50%{opacity:.68}100%{opacity:.32}}
+.mkt-ref .nav-cta .btn-p:hover{transform:translateY(-2px)}
 .mkt-ref .menu-btn{display:none;width:44px;height:44px;border:1px solid var(--hairline);background:var(--surface);
   border-radius:12px;align-items:center;justify-content:center;cursor:pointer;padding:0;box-shadow:var(--sh-card)}
 .mkt-ref .menu-btn i{display:block;width:17px;height:1.6px;background:var(--text);position:relative;border-radius:2px}
@@ -188,24 +196,31 @@
   cursor:pointer;display:grid;place-items:center;font-size:15px;box-shadow:var(--sh-card)}
 @media(max-width:560px){
 .mkt-ref .nav-cta .btn-p{padding:0 13px;font-size:13px}
-
-
 }
 .mkt-ref .nav-signin-m,.mkt-ref .nav-signin-item{display:none}
+@media(max-width:1000px){
+.mkt-ref .nav-in{flex-wrap:wrap;gap:12px;padding:8px 14px 10px 10px;min-height:0}
+.mkt-ref.cb-standalone .nav-logo-slot{width:190px;height:80px}
+.mkt-ref .cbh-navlogo{width:190px}
+.mkt-ref nav.links{order:3;flex:1 0 100%;justify-content:space-between;overflow-x:auto;
+  -webkit-overflow-scrolling:touch}
+.mkt-ref .nav-cta{margin-left:auto}
+}
 @media(max-width:960px){
-.mkt-ref .nav-in{gap:10px}
-.mkt-ref .menu-btn{display:flex;order:2}
-.mkt-ref .nav-cta{order:3}
+.mkt-ref .menu-btn{display:flex;order:2;margin-left:auto}
+.mkt-ref .nav-cta{order:3;margin-left:0}
 .mkt-ref .nav-cta .btn-s,.mkt-ref .themer{display:none}
 .mkt-ref .nav-signin-m{display:inline-flex;align-items:center;height:40px;padding:0 12px;border-radius:10px;
     border:1px solid var(--hairline);background:var(--surface);color:var(--text);font:inherit;font-size:13px;
     font-weight:700;cursor:pointer;white-space:nowrap}
 .mkt-ref .nav-signin-item{display:block;color:var(--accent-ink);font-weight:700}
-.mkt-ref nav.links{position:absolute;top:100%;left:-22px;right:-22px;display:none;flex-direction:column;gap:8px;margin:0;
+.mkt-ref nav.links{position:absolute;top:100%;left:0;right:0;display:none;flex-direction:column;gap:8px;margin:0;
+    order:4;flex-basis:auto;overflow:visible;
     background:var(--surface);border-bottom:1px solid var(--hairline);padding:10px 22px 18px;box-shadow:var(--sh-raised)}
 .mkt-ref nav.links.open{display:flex}
-.mkt-ref nav.links button{text-align:left;padding:14px 12px;font-size:1rem}
+.mkt-ref nav.links button{text-align:left;padding:14px 12px;font-size:.85rem}
 }
+
 .mkt-ref .view{display:none}
 .mkt-ref .view.on{display:block}
 /* The clip is luma-keyed onto a canvas (logoVideo.ts), so the black plate is
@@ -461,20 +476,8 @@
    platform pages that share this template are untouched.
    ============================================================ */
 
-.mkt-ref.cb-standalone header.nav{overflow:visible}
-.mkt-ref.cb-standalone header.nav .nav-in{overflow:visible;position:relative;height:auto;min-height:86px;
-  padding-left:214px;flex-wrap:wrap;transition:min-height .34s cubic-bezier(.22,1,.36,1)}
-.mkt-ref.cb-standalone nav.links{overflow:visible}
-.mkt-ref.cb-standalone .cbh-navlogo{position:absolute;left:-14px;top:8px;width:270px;height:auto;z-index:80;
-  pointer-events:none;transition:width .34s cubic-bezier(.22,1,.36,1);
-  filter:drop-shadow(0 18px 34px rgba(6,20,14,.35))}
-body.shrunk .mkt-ref.cb-standalone header.nav .nav-in{min-height:64px}
-body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:210px}
-@media (max-width:900px){
-  .mkt-ref.cb-standalone header.nav .nav-in{padding-left:172px;min-height:74px}
-  .mkt-ref.cb-standalone .cbh-navlogo{width:186px;left:-10px;top:6px}
-  body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:150px}
-}
+/* Header layout now lives in the shared header block above. */
+
 
 /* --- scroll progress --- */
 .mkt-ref .cbh-prog{position:fixed;left:0;top:0;height:2px;width:0;z-index:200;pointer-events:none;
@@ -583,18 +586,10 @@ body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:210px}
   .mkt-ref .cbh-trace polygon{stroke-dashoffset:0}
   .mkt-ref .cbh-trace circle{opacity:1}
   .mkt-ref .cbh-card{transition:none!important;transform:none!important}
-  .mkt-ref .cbh-navlogo,.mkt-ref.cb-standalone header.nav .nav-in{transition:none!important}
+  .mkt-ref .cbh-navlogo{transition:none!important}
+  .mkt-ref header.nav::after{animation:none!important}
+  .mkt-ref .nav-cta .btn-p::before{animation:none!important}
+  .mkt-ref .nav-cta .btn-p{transition:none!important}
+  .mkt-ref nav.links button,.mkt-ref nav.links button::after{transition:none!important}
 }
 
-/* nav underline wipe — Claim Buddy standalone only */
-.mkt-ref.cb-standalone nav.links a{position:relative}
-.mkt-ref.cb-standalone nav.links a::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:1.5px;
-  background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .28s cubic-bezier(.22,1,.36,1)}
-.mkt-ref.cb-standalone nav.links a:hover::after{transform:scaleX(1)}
-@media (prefers-reduced-motion:reduce){.mkt-ref.cb-standalone nav.links a::after{transition:none}}
-
-@media (max-width:1440px) and (min-width:901px){
-  .mkt-ref.cb-standalone header.nav .nav-in{padding-left:112px}
-  .mkt-ref.cb-standalone .cbh-navlogo{width:190px;left:-18px}
-  body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:156px}
-}
