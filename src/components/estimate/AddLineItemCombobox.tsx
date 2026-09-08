@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,10 +37,6 @@ type EnrichedRow = RawRow & {
   base_label: string;
 };
 
-const SELECT =
-  "id, code, name, description, unit, trade, category, default_price, remove_price, replace_price, domain, subgroup";
-const RESULT_LIMIT = 50;
-
 function coalescePrice(r: { default_price: number | null; remove_price: number | null; replace_price: number | null }) {
   const d = Number(r.default_price ?? 0);
   if (d > 0) return d;
@@ -51,10 +47,6 @@ function coalescePrice(r: { default_price: number | null; remove_price: number |
   return 0;
 }
 
-/** PostgREST parses the `or()` string, so these characters must never reach it. */
-function sanitizeTerm(term: string) {
-  return term.replace(/[,()%*\\]/g, " ").trim();
-}
 
 function classify(name: string): { kind: EnrichedRow["kind"]; base: string } {
   const n = name.trim();
