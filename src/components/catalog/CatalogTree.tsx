@@ -19,6 +19,7 @@ export type CatalogItem = {
 type Mode = "checkbox" | "add";
 
 const LEAF_RENDER_CAP = 300;
+const AUTO_EXPAND_MAX = 400;
 
 export function CatalogTree({
   items,
@@ -72,7 +73,8 @@ export function CatalogTree({
     return [...canonical, ...extras];
   }, [tree]);
 
-  const isSearching = search.trim().length > 0;
+  const searchActive = search.trim().length > 0;
+  const isSearching = searchActive && filtered.length <= AUTO_EXPAND_MAX;
 
   function toggleDomain(d: string) {
     const next = new Set(openDomains);
@@ -105,6 +107,11 @@ export function CatalogTree({
 
   return (
     <div className="text-sm">
+      {searchActive && filtered.length > AUTO_EXPAND_MAX && (
+        <div className="px-3 py-2 text-xs text-muted-foreground">
+          {filtered.length} matches — keep typing, or open a category below
+        </div>
+      )}
       {orderedTrades.map((trade) => {
         const subgroups = tree.get(trade)!;
         const dOpen = isSearching || openDomains.has(trade);
@@ -148,7 +155,7 @@ export function CatalogTree({
                             {allSel ? "Clear" : "All"}
                           </button>
                         )}
-                        {mode === "add" && onAdd && (
+                        {mode === "add" && onAdd && subItems.length <= 50 && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
