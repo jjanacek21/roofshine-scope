@@ -586,18 +586,10 @@
   .mkt-ref .cbh-trace polygon{stroke-dashoffset:0}
   .mkt-ref .cbh-trace circle{opacity:1}
   .mkt-ref .cbh-card{transition:none!important;transform:none!important}
-  .mkt-ref .cbh-navlogo,.mkt-ref.cb-standalone header.nav .nav-in{transition:none!important}
+  .mkt-ref .cbh-navlogo{transition:none!important}
+  .mkt-ref header.nav::after{animation:none!important}
+  .mkt-ref .nav-cta .btn-p::before{animation:none!important}
+  .mkt-ref .nav-cta .btn-p{transition:none!important}
+  .mkt-ref nav.links button,.mkt-ref nav.links button::after{transition:none!important}
 }
 
-/* nav underline wipe — Claim Buddy standalone only */
-.mkt-ref.cb-standalone nav.links a{position:relative}
-.mkt-ref.cb-standalone nav.links a::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:1.5px;
-  background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .28s cubic-bezier(.22,1,.36,1)}
-.mkt-ref.cb-standalone nav.links a:hover::after{transform:scaleX(1)}
-@media (prefers-reduced-motion:reduce){.mkt-ref.cb-standalone nav.links a::after{transition:none}}
-
-@media (max-width:1440px) and (min-width:901px){
-  .mkt-ref.cb-standalone header.nav .nav-in{padding-left:112px}
-  .mkt-ref.cb-standalone .cbh-navlogo{width:190px;left:-18px}
-  body.shrunk .mkt-ref.cb-standalone .cbh-navlogo{width:156px}
-}
