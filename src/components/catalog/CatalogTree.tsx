@@ -202,6 +202,11 @@ export function CatalogTree({
                           </div>
                         );
                       })}
+                      {sOpen && subItems.length > LEAF_RENDER_CAP && (
+                        <div className="pl-12 pr-3 py-1.5 text-[11px] text-muted-foreground">
+                          Showing {LEAF_RENDER_CAP} of {subItems.length} — type to narrow
+                        </div>
+                      )}
                     </div>
                   );
                 })}
