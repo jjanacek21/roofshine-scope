@@ -6075,6 +6075,7 @@ export type Database = {
           tags: string[]
           trade: Database["public"]["Enums"]["trade_type"]
           trade_name: string | null
+          trade_original: string | null
           unit: string
           updated_at: string
           waste_pct: number
@@ -6100,6 +6101,7 @@ export type Database = {
           tags?: string[]
           trade: Database["public"]["Enums"]["trade_type"]
           trade_name?: string | null
+          trade_original?: string | null
           unit?: string
           updated_at?: string
           waste_pct?: number
@@ -6125,6 +6127,7 @@ export type Database = {
           tags?: string[]
           trade?: Database["public"]["Enums"]["trade_type"]
           trade_name?: string | null
+          trade_original?: string | null
           unit?: string
           updated_at?: string
           waste_pct?: number
