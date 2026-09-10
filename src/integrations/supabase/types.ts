@@ -6072,6 +6072,7 @@ export type Database = {
           replace_price: number | null
           status: Database["public"]["Enums"]["catalog_status"]
           subgroup: string | null
+          subgroup_original: string | null
           tags: string[]
           trade: Database["public"]["Enums"]["trade_type"]
           trade_name: string | null
@@ -6098,6 +6099,7 @@ export type Database = {
           replace_price?: number | null
           status?: Database["public"]["Enums"]["catalog_status"]
           subgroup?: string | null
+          subgroup_original?: string | null
           tags?: string[]
           trade: Database["public"]["Enums"]["trade_type"]
           trade_name?: string | null
@@ -6124,6 +6126,7 @@ export type Database = {
           replace_price?: number | null
           status?: Database["public"]["Enums"]["catalog_status"]
           subgroup?: string | null
+          subgroup_original?: string | null
           tags?: string[]
           trade?: Database["public"]["Enums"]["trade_type"]
           trade_name?: string | null
