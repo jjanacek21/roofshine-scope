@@ -171,6 +171,13 @@ export async function getInstantMeasurement({
     /*
      * Hard ceiling on the round trip. Overpass or Solar hanging used to leave
      * the screen on "Measuring..." forever with no way back.
+     *
+     * 80s is deliberate: the server's worst case is ~70s (extract 45s running
+     * in PARALLEL with the 38s first vision pass = 45s, then a 22s vision
+     * retry = 67s, plus the save and the follow-up reads). The measure page's
+     * outer race is 90s and must stay the real backstop, so this number has to
+     * live above the server budget and below 90s. Move the server budget and
+     * you move BOTH of these.
      */
     const res = await Promise.race([
       cbInstantMeasureFn({
@@ -184,8 +191,9 @@ export async function getInstantMeasurement({
         },
       }),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), 45_000),
+        setTimeout(() => reject(new Error("timeout")), 80_000),
       ),
+
     ]);
 
     if (!res.ok) return { ok: false, reason: res.reason ?? "failed", credit };
