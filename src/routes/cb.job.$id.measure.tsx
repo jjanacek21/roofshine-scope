@@ -78,7 +78,10 @@ const STEPS = [
  */
 function measureFailureMessage(reason: string, tracerStalled: boolean): string {
   if (reason === "no_credits") return "Out of measurement credits — enter it by hand";
+  if (reason === "engine_timeout")
+    return "That one took too long — tap Measure roof again, or draw it by hand.";
   if (tracerStalled) return "The roof tracer is busy — tap Measure roof again, or draw it by hand";
+
   if (reason.startsWith("tracer_")) {
     const detail = reason.replace("tracer_", "").replaceAll("_", " ");
     return `The roof tracer could not finish (${detail}) — move the pin and try again`;
